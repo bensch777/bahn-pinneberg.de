@@ -218,11 +218,11 @@
 		if (!hasData) {
 			cls = 'status--unknown'; icon = '?'; title = 'Noch keine Daten';
 		} else if (list.length === 0 && ok) {
-			cls = 'status--ok'; icon = '✓'; title = 'Keine Störung';
+			cls = 'status--ok'; icon = '✓'; title = 'Keine Infrastrukturstörung';
 		} else if (list.length === 0) {
-			cls = 'status--unknown'; icon = '?'; title = 'Störungslage unbekannt';
+			cls = 'status--unknown'; icon = '?'; title = 'Infrastrukturstörungen unbekannt';
 		} else {
-			cls = 'status--alert'; icon = '!'; title = plural(list.length, 'aktive Störung', 'aktive Störungen');
+			cls = 'status--alert'; icon = '!'; title = plural(list.length, 'Infrastrukturstörung', 'Infrastrukturstörungen');
 		}
 		var box = el('div', { class: 'card status ' + cls }, [
 			el('div', { class: 'status__icon', 'aria-hidden': 'true', text: icon }),

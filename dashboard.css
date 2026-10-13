@@ -136,18 +136,18 @@ button { font: inherit; color: inherit; }
 }
 
 /* Lagebild */
-.status { display: flex; gap: 16px; align-items: center; padding: 18px 22px; }
+.status { display: flex; gap: 12px; align-items: center; padding: 14px 18px; }
 .status--ok { background: var(--status-good-bg); border-color: transparent; }
 .status--alert { background: var(--status-crit-bg); border-color: transparent; }
 .status--unknown { background: var(--status-warn-bg); border-color: transparent; }
 .status__icon {
-	flex: none; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center;
-	color: #fff; font-weight: 700; font-size: 22px;
+	flex: none; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center;
+	color: #fff; font-weight: 700; font-size: 15px;
 }
 .status--ok .status__icon { background: var(--good); }
 .status--alert .status__icon { background: var(--critical); }
 .status--unknown .status__icon { background: var(--warning); color: #1a1a19; }
-.status__title { margin: 0; font-size: 24px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.2; }
+.status__title { margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em; line-height: 1.2; }
 
 .incidents { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 12px; }
 .incident { padding: 16px 18px; }
