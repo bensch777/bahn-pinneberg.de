@@ -526,13 +526,16 @@
 		var btn = document.getElementById('notify-toggle');
 		if (!btn) return;
 		if (!('Notification' in window)) { btn.hidden = true; return; }
+		var label = document.getElementById('notify-label');
 		var on = notifyEnabled();
-		btn.textContent = on ? 'Benachrichtigungen aus' : 'Bei Ausfällen benachrichtigen';
-		btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+		var text = on ? 'Benachrichtigungen ausschalten' : 'Bei Ausfällen benachrichtigen';
 		if (Notification.permission === 'denied') {
-			btn.textContent = 'Benachrichtigungen im Browser blockiert';
+			text = 'Benachrichtigungen im Browser blockiert';
 			btn.disabled = true;
 		}
+		btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+		btn.title = text;
+		if (label) label.textContent = text;
 	}
 
 	function initNotifyButton() {

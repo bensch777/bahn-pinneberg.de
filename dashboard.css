@@ -108,9 +108,20 @@ button { font: inherit; color: inherit; }
 .site-head { border-bottom: 1px solid var(--line); background: var(--surface); }
 .site-head__row { display: flex; justify-content: space-between; align-items: center; height: 48px; }
 .site-head__brand { font-weight: 600; text-decoration: none; font-size: 14px; }
-.site-head__nav { display: flex; gap: 16px; font-size: 13px; }
-.site-head__nav a { color: var(--ink-2); text-decoration: none; }
-.site-head__nav a:hover { color: var(--ink); text-decoration: underline; }
+.site-head__tools { display: flex; gap: 4px; align-items: center; }
+.tool {
+	display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 10px; border-radius: 8px;
+	border: 1px solid transparent; background: transparent; color: var(--ink-2); font-size: 13px; font-weight: 500;
+	text-decoration: none; cursor: pointer;
+}
+.tool:hover { color: var(--ink); background: var(--surface-2); }
+.tool:focus-visible { outline: 2px solid var(--series); outline-offset: 1px; }
+.tool__icon { width: 18px; height: 18px; fill: currentColor; flex: none; }
+.tool--toggle { padding: 0 7px; }
+.tool--toggle[aria-pressed="true"] { color: var(--series); background: var(--surface-2); }
+.tool--toggle:disabled { opacity: 0.45; cursor: default; }
+.tool--toggle:disabled:hover { background: transparent; color: var(--ink-2); }
+@media (max-width: 560px) { .tool span:not(.visually-hidden) { display: none; } .tool { padding: 0 7px; } }
 
 .page-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 24px; padding: 36px 0 8px; flex-wrap: wrap; }
 .page-head h1 { font-size: 30px; font-weight: 700; letter-spacing: -0.02em; margin: 0 0 6px; }
@@ -181,16 +192,6 @@ button { font: inherit; color: inherit; }
 .notice { padding: 14px 18px; color: var(--ink-2); }
 .site-foot { padding: 32px 16px 40px; color: var(--muted); font-size: 12.5px; }
 .site-foot p { margin: 0; }
-.notify { margin: 0 0 10px; }
-.notify button {
-	border: 1px solid var(--line); background: var(--surface); color: var(--ink-2); border-radius: 8px;
-	font-size: 13px; font-weight: 500; padding: 7px 12px; cursor: pointer;
-}
-.notify button:hover:not(:disabled) { color: var(--ink); border-color: var(--axis); }
-.notify button[aria-pressed="true"] { color: var(--ink); border-color: var(--series); }
-.notify button:disabled { cursor: default; opacity: 0.7; }
-.site-foot__telegram { margin: 0 0 8px; font-size: 14px; color: var(--ink-2); }
-.site-foot__telegram a { color: var(--ink); font-weight: 500; }
 
 .is-loading { opacity: 0.6; transition: opacity 0.2s; }
 
