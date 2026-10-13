@@ -167,42 +167,86 @@
 
 	/* ---------- Lagebild ---------- */
 
+	/** Fuellt eine der drei Lagekarten: Stufe ok, warn, alert oder unknown, Titel, optionale Zweitzeile. */
+	function setStatus(id, level, title, detail) {
+		var box = document.getElementById(id);
+		if (!box) return;
+		var icons = { ok: '✓', warn: '!', alert: '!', unknown: '?' };
+		box.className = 'card status status--' + level;
+		clear(box);
+		box.appendChild(el('div', { class: 'status__icon', 'aria-hidden': 'true', text: icons[level] || '?' }));
+		var h = el('h3', { class: 'status__title', text: title });
+		if (detail) h.appendChild(el('small', { text: detail }));
+		box.appendChild(h);
+	}
+
+	var EIL_AKUT_MS = 4 * 3600 * 1000;   // so lange gilt eine Eilmeldung als akut
+
 	function renderStatus() {
 		var section = document.getElementById('status');
 		if (!section) return;
-		Array.prototype.slice.call(section.children).forEach(function (c) { if (c.tagName !== 'H2') section.removeChild(c); });
 
 		var data = state.data;
 		var hasData = data && data.received_at;
 		var list = hasData ? data.stoerungen || [] : [];
 		var ok = hasData && data.quellen && data.quellen.strecken_info_ok;
 
-		var title, cls, icon;
+		// Karte 1: Infrastruktur laut strecken-info.de
+		if (!hasData) setStatus('status-infra', 'unknown', 'Noch keine Daten');
+		else if (list.length === 0 && ok) setStatus('status-infra', 'ok', 'Keine Infrastrukturstörung');
+		else if (list.length === 0) setStatus('status-infra', 'unknown', 'Infrastrukturstörungen unbekannt');
+		else setStatus('status-infra', 'alert', plural(list.length, 'Infrastrukturstörung', 'Infrastrukturstörungen'));
+
+		// Karte 2: Eilmeldungen der Nordbahn, akut heisst juenger als vier Stunden
+		var last = state.items.length ? state.items[state.items.length - 1] : null;
 		if (!hasData) {
-			cls = 'status--unknown'; icon = '?'; title = 'Noch keine Daten';
-		} else if (list.length === 0 && ok) {
-			cls = 'status--ok'; icon = '✓'; title = 'Keine Infrastrukturstörung';
-		} else if (list.length === 0) {
-			cls = 'status--unknown'; icon = '?'; title = 'Infrastrukturstörungen unbekannt';
+			setStatus('status-eil', 'unknown', 'Noch keine Daten');
+		} else if (!last) {
+			setStatus('status-eil', 'ok', 'Keine akuten Eilmeldungen');
 		} else {
-			cls = 'status--alert'; icon = '!'; title = plural(list.length, 'Infrastrukturstörung', 'Infrastrukturstörungen');
+			var lastMs = isNaN(last.stand) ? last.ms : last.stand;
+			var age = Date.now() - lastMs;
+			if (age > EIL_AKUT_MS) setStatus('status-eil', 'ok', 'Keine akuten Eilmeldungen', 'Letzte ' + relTime(lastMs));
+			else setStatus('status-eil', age < 3600 * 1000 ? 'alert' : 'warn', 'Eilmeldung ' + relTime(lastMs), last.title);
 		}
-		var box = el('div', { class: 'card status ' + cls }, [
-			el('div', { class: 'status__icon', 'aria-hidden': 'true', text: icon }),
-			el('h3', { class: 'status__title', text: title })
-		]);
+
 		alertState.stoerungen = list.length;
 		updateBadge();
 		notifyNew(list.map(function (st) {
 			return { id: 'st:' + st.key, title: 'Infrastrukturstörung', body: (st.titel || 'Störung') + (st.text ? ': ' + st.text : '') };
 		}));
-		section.appendChild(box);
 
-		if (list.length) {
-			var ul = el('ul', { class: 'incidents' });
+		var ul = document.getElementById('incidents');
+		if (ul) {
+			clear(ul);
+			ul.hidden = list.length === 0;
 			list.forEach(function (s) { ul.appendChild(renderIncident(s)); });
-			section.appendChild(ul);
 		}
+	}
+
+	/**
+	 * Karte 3: laeuft der Fahrplan? Ausfaelle, Umleitungen ueber Altona (bei RB61/RB71,
+	 * die RB60 faehrt planmaessig ab Altona) und Verspaetungen ab zehn Minuten.
+	 */
+	function renderBetrieb(result) {
+		if (!result) { setStatus('status-betrieb', 'unknown', 'Lade Fahrplan …'); return; }
+		if (!result.richtungen) { setStatus('status-betrieb', 'unknown', 'Fahrplanlage unbekannt'); return; }
+		var ausfaelle = 0, umleitungen = 0, verspaetet = 0, maxDelay = 0;
+		['hin', 'rueck'].forEach(function (key) {
+			(result.richtungen[key] || []).slice(0, 6).forEach(function (d) {
+				var rb60 = /RB\s?60/i.test(d.linie || '');
+				var altona = !rb60 && (/altona/i.test(d.ab || '') || /altona/i.test(d.ziel || '') || !!d.ersatz);
+				if (d.ausfall && !d.ersatz) ausfaelle++;
+				else if (altona) umleitungen++;
+				if (!d.ausfall && d.verspaetung >= 10) { verspaetet++; maxDelay = Math.max(maxDelay, d.verspaetung); }
+			});
+		});
+		var parts = [];
+		if (ausfaelle) parts.push(plural(ausfaelle, 'Zugausfall', 'Zugausfälle'));
+		if (umleitungen) parts.push(umleitungen === 1 ? 'Umleitung über Altona' : umleitungen + ' Umleitungen über Altona');
+		if (verspaetet) parts.push('Verspätungen bis ' + maxDelay + ' Min');
+		if (!parts.length) setStatus('status-betrieb', result.ok ? 'ok' : 'unknown', result.ok ? 'Fahrplan läuft' : 'Fahrplanlage unbekannt');
+		else setStatus('status-betrieb', ausfaelle || umleitungen ? 'alert' : 'warn', 'Betrieb gestört', parts.join(', '));
 	}
 
 	function renderIncident(s) {
@@ -300,6 +344,7 @@
 			else if (!ok) sub.textContent = 'Keine aktuellen Daten';
 			else sub.textContent = 'Stand ' + fmtClock(result.fetched_at) + ' Uhr';
 		}
+		renderBetrieb(result);
 		if (!result || (!ok && !result.richtungen)) {
 			Array.prototype.forEach.call(boards, function (b) {
 				var list = b.querySelector('.board__list');

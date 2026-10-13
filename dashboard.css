@@ -145,7 +145,11 @@ button { font: inherit; color: inherit; }
 }
 
 /* Lagebild */
-.status { display: flex; gap: 12px; align-items: center; padding: 14px 18px; }
+.status-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; }
+.status { display: flex; gap: 12px; align-items: center; padding: 14px 18px; min-width: 0; }
+.status--warn { background: var(--status-warn-bg); border-color: transparent; }
+.status--warn .status__icon { background: var(--warning); color: #1a1a19; }
+.status__title small { display: block; font-size: 12.5px; font-weight: 500; color: var(--ink-2); margin-top: 2px; }
 .status--ok { background: var(--status-good-bg); border-color: transparent; }
 .status--alert { background: var(--status-crit-bg); border-color: transparent; }
 .status--unknown { background: var(--status-warn-bg); border-color: transparent; }
@@ -156,7 +160,7 @@ button { font: inherit; color: inherit; }
 .status--ok .status__icon { background: var(--good); }
 .status--alert .status__icon { background: var(--critical); }
 .status--unknown .status__icon { background: var(--warning); color: #1a1a19; }
-.status__title { margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em; line-height: 1.2; }
+.status__title { margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em; line-height: 1.2; min-width: 0; }
 
 .incidents { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 12px; }
 .incident { padding: 16px 18px; }

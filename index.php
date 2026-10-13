@@ -102,6 +102,12 @@ $description = $aktiv > 0
 
 	<section id="status" class="section" aria-labelledby="status-h">
 		<h2 id="status-h" class="visually-hidden">Aktuelle Lage</h2>
+		<div class="status-grid">
+			<div class="card status status--unknown" id="status-infra"><div class="status__icon" aria-hidden="true">?</div><h3 class="status__title">Noch keine Daten</h3></div>
+			<div class="card status status--unknown" id="status-eil"><div class="status__icon" aria-hidden="true">?</div><h3 class="status__title">Noch keine Daten</h3></div>
+			<div class="card status status--unknown" id="status-betrieb"><div class="status__icon" aria-hidden="true">?</div><h3 class="status__title">Lade Fahrplan …</h3></div>
+		</div>
+		<ul class="incidents" id="incidents" hidden></ul>
 	</section>
 
 	<section id="abfahrten" class="section" aria-labelledby="abfahrten-h" data-endpoint="api/abfahrten" data-data-endpoint="api/data">
