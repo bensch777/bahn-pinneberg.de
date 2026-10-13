@@ -15,18 +15,6 @@
 	var RELOAD_MS = 60 * 60 * 1000;        // komplette Seite neu laden, damit lange offene Tabs neue Versionen bekommen
 	var STALE_MS = 20 * 60 * 1000;
 
-	// Reihenfolge = Prioritaet: "Streckensperrung ... Zugausfaelle" zaehlt als Sperrung.
-	var CATEGORIES = [
-		{ key: 'sperrung', label: 'Streckensperrung', test: /sperrung|gesperrt/ },
-		{ key: 'technik', label: 'Technische Störung', test: /stellwerk|weiche|signal|oberleitung|zugfunk|streckenst|technische|störung/ },
-		{ key: 'ersatz', label: 'Ersatzverkehr', test: /ersatzverkehr|\bsev\b|\bbus/ },
-		{ key: 'umleitung', label: 'Umleitung', test: /umleitung|umgeleitet/ },
-		{ key: 'ausfall', label: 'Zugausfall', test: /ausf|zugf|entf[aä]ll|f[aä]llt aus/ },
-		{ key: 'verspaetung', label: 'Verspätung', test: /versp[aä]t/ },
-		{ key: 'sonstiges', label: 'Sonstiges', test: /[\s\S]*/ }
-	];
-	var LINES = ['RB61', 'RB71', 'RB60'];
-
 	var state = {
 		data: null,
 		items: []        // aufbereitete Eilmeldungen
@@ -64,28 +52,6 @@
 
 	/* ---------- Aufbereitung ---------- */
 
-	function categorize(title) {
-		var t = (title || '').toLowerCase();
-		for (var i = 0; i < CATEGORIES.length; i++) {
-			if (CATEGORIES[i].test.test(t)) return CATEGORIES[i];
-		}
-		return CATEGORIES[CATEGORIES.length - 1];
-	}
-
-	/** Linien aus dem Titel: nur wenn "RB" vorkommt, dann jede freistehende 60, 61, 71. */
-	function linesOf(title) {
-		var t = (title || '').toLowerCase();
-		if (t.indexOf('rb') === -1) return [];
-		var found = [];
-		var re = /(^|[^0-9])(60|61|71)(?![0-9])/g;
-		var m;
-		while ((m = re.exec(t)) !== null) {
-			var line = 'RB' + m[2];
-			if (found.indexOf(line) === -1) found.push(line);
-		}
-		return found;
-	}
-
 	function prepare(data) {
 		var liveById = {};
 		(data.eilmeldungen_live || []).forEach(function (e) { if (e && e.id) liveById[e.id] = e; });
@@ -96,10 +62,8 @@
 			var ms = Date.parse(iso || '');
 			if (!id || isNaN(ms)) return;
 			seen[id] = true;
-			var cat = categorize(title);
 			items.push({
 				id: id, title: title || '', ms: ms,
-				cat: cat.key, catLabel: cat.label, lines: linesOf(title),
 				stand: live && live.stand ? Date.parse(live.stand) : NaN,
 				link: live && live.link ? live.link : ''
 			});
@@ -313,9 +277,7 @@
 			var title = it.link
 				? el('a', { href: it.link, rel: 'noopener', text: it.title || it.id })
 				: document.createTextNode(it.title || it.id);
-			var chips = el('ul', { class: 'chips' });
-			it.lines.forEach(function (l) { chips.appendChild(el('li', { class: 'chip chip--line', text: l })); });
-			ol.appendChild(el('li', {}, [time, el('div', {}, [el('p', { class: 'feed__title' }, [title]), chips])]));
+			ol.appendChild(el('li', {}, [time, el('p', { class: 'feed__title' }, [title])]));
 		});
 	}
 
