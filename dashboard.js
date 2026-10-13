@@ -382,20 +382,22 @@
 					var e = d.ersatz;
 					var eLate = e.verspaetung >= 3;
 					dest.appendChild(el('small', { class: 'dep__ersatz', text: 'Fährt stattdessen ab ' + e.ab + ' um ' + fmtClock(e.zeit)
-						+ (eLate ? ' (+' + e.verspaetung + ')' : '') + (e.gleis ? ', Gl. ' + e.gleis : '') }));
+						+ (eLate ? ' (+' + e.verspaetung + ')' : '') + (e.gleis ? ', Gl. ' + e.gleis + (e.gleis_plan ? ' (statt ' + e.gleis_plan + ')' : '') : '') }));
 				}
 
-				var where = d.gleis ? 'Gl. ' + d.gleis : '';
+				// Gleiswechsel: das heutige Gleis faellt auf, das Plangleis steht klein darunter
+				var platform = el('div', { class: 'dep__platform' + (d.gleis_plan ? ' dep__platform--wechsel' : ''), text: d.gleis ? 'Gl. ' + d.gleis : '' });
+				if (d.gleis_plan) platform.appendChild(el('small', { text: 'statt ' + d.gleis_plan }));
 				var row = el('li', { class: cls }, [
 					el('span', { class: 'dep__dot', 'aria-hidden': 'true' }),
 					time,
 					line,
 					dest,
-					el('div', { class: 'dep__platform', text: where })
+					platform
 				]);
 				var sr = (d.ausfall ? 'Fällt aus: ' : late ? 'Verspätet um ' + d.verspaetung + ' Minuten: ' : '');
 				if (d.ersatz_fuer) sr = 'Ersatz für ' + fmtClock(d.ersatz_fuer.zeit) + ' ab ' + d.ersatz_fuer.ab + ': ';
-				if (sr) row.setAttribute('aria-label', sr + fmtClock(d.zeit) + ' ' + d.linie + ' nach ' + d.ziel + (d.ab ? ' ab ' + d.ab : ''));
+				if (sr) row.setAttribute('aria-label', sr + fmtClock(d.zeit) + ' ' + d.linie + ' nach ' + d.ziel + (d.ab ? ' ab ' + d.ab : '') + (d.gleis_plan ? ', heute Gleis ' + d.gleis + ' statt ' + d.gleis_plan : ''));
 				list.appendChild(row);
 			});
 		});

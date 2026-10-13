@@ -197,6 +197,7 @@ function abf_merge_ersatz(array $rows)
                     'ist'         => $rows[$j]['ist'],
                     'verspaetung' => $rows[$j]['verspaetung'],
                     'gleis'       => $rows[$j]['gleis'],
+                    'gleis_plan'  => $rows[$j]['gleis_plan'],
                 ];
                 $rows[$j]['ersatz_fuer'] = [
                     'ab'   => $rows[$i]['ab'],
@@ -263,15 +264,25 @@ function abf_parse($xml, DateTime $now, &$stand)
         $delay = (int) abf_text($row, 'prognosemin');
         $ist = $ausfall ? null : (clone $zeit)->modify(($delay >= 0 ? '+' : '') . $delay . ' minutes');
 
+        // Bei einem Gleiswechsel steht das Plangleis in <gleis> und das heutige in
+        // <gleiswechsel> (z. B. "7"); ohne Wechsel ist das Feld leer oder "false".
+        $gleisPlan = abf_text($row, 'gleis');
+        $wechsel = abf_text($row, 'gleiswechsel');
+        $gleisNeu = preg_match('/^[0-9]+[a-z]?$/i', $wechsel) && $wechsel !== $gleisPlan ? $wechsel : '';
+
         $hinweise = [];
+        // "pünktlich, heute Gleis 7" oder "+ 4 Min": der Zeitteil ist schon in der
+        // Prognose-Minute, der Rest kann ein Hinweis sein. Den Gleiswechsel zeigt
+        // die Tafel ueber das Gleisfeld, nicht als Text.
         $prognose = abf_text($row, 'prognose');
-        if (!$ausfall && $prognose !== '' && !preg_match('/^(pünktlich|punktlich|\+?\s*\d+\s*min)/iu', $prognose)) {
-            $hinweise[] = $prognose;
+        $rest = $ausfall ? '' : trim(preg_replace('/^(pünktlich|punktlich|\+?\s*\d+\s*min\.?)\s*[,;.]?\s*/iu', '', $prognose));
+        if ($rest !== '' && !preg_match('/^heute\s+gleis/iu', $rest)) {
+            $hinweise[] = $rest;
         }
         if (abf_bool($row, 'sev') || abf_bool($row, 'istBus')) {
             $hinweise[] = 'Ersatzverkehr mit Bus';
         }
-        if (abf_bool($row, 'gleiswechsel')) {
+        if ($gleisNeu === '' && $wechsel === 'true') {
             $hinweise[] = 'Gleiswechsel';
         }
         foreach (['ursachetext', 'freitext'] as $name) {
@@ -293,7 +304,8 @@ function abf_parse($xml, DateTime $now, &$stand)
             'zug'         => abf_text($row, 'zug'),
             'ziel'        => $ziel !== null ? trim((string) $ziel) : '',
             'ziel_id'     => $ziel !== null ? trim((string) $ziel['id']) : '',
-            'gleis'       => abf_text($row, 'gleis'),
+            'gleis'       => $gleisNeu !== '' ? $gleisNeu : $gleisPlan,
+            'gleis_plan'  => $gleisNeu !== '' ? $gleisPlan : null,
             'ausfall'     => $ausfall,
             'hinweis'     => implode('. ', array_unique($hinweise)),
             'wagen'       => abf_bool($row, 'istZug') && $wagen > 0 ? $wagen : null,
@@ -375,6 +387,7 @@ function abf_build($fetch = 'abf_fetch')
                     'ist'         => $row['ersatz']['ist'] ? $row['ersatz']['ist']->format('c') : null,
                     'verspaetung' => $row['ersatz']['verspaetung'],
                     'gleis'       => $row['ersatz']['gleis'],
+                    'gleis_plan'  => $row['ersatz']['gleis_plan'],
                 ];
             }
             $out[] = [
@@ -385,6 +398,7 @@ function abf_build($fetch = 'abf_fetch')
                 'linie'       => $row['linie'],
                 'ziel'        => $row['ziel'],
                 'gleis'       => $row['gleis'],
+                'gleis_plan'  => $row['gleis_plan'],
                 'ausfall'     => $row['ausfall'],
                 'hinweis'     => $row['hinweis'],
                 'wagen'       => $row['wagen'],

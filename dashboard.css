@@ -239,7 +239,9 @@ button { font: inherit; color: inherit; }
 }
 .dep__ab--altona { color: #fff; background: var(--series-2); border-color: var(--series-2); }
 .dep--cancelled .dep__ab { opacity: 0.8; }
-.dep__platform { font-size: 12.5px; color: var(--muted); white-space: nowrap; }
+.dep__platform { font-size: 12.5px; color: var(--muted); white-space: nowrap; text-align: right; }
+.dep__platform--wechsel { color: var(--series-2); font-weight: 700; }
+.dep__platform small { display: block; font-size: 11px; font-weight: 500; color: var(--muted); text-decoration: line-through; }
 .dep--cancelled .dep__dest, .dep--cancelled .dep__line { opacity: 0.7; }
 .board__empty { margin: 0; padding: 14px 0 10px; color: var(--muted); font-size: 13.5px; }
 @media (max-width: 420px) {
