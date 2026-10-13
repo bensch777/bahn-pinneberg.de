@@ -378,14 +378,6 @@
 					dest.appendChild(document.createTextNode(' '));
 				}
 				dest.appendChild(el('span', { class: 'dep__ziel', text: d.ziel }));
-				if (d.an && !d.ausfall) {
-					// Rueckrichtung: wann bin ich zu Hause? Die Zeit kommt von der Prisdorfer Tafel.
-					if (d.an.ausfall) dest.appendChild(el('small', { class: 'dep__an dep__an--ausfall', text: 'Halt in Prisdorf entfällt' }));
-					else {
-						var anLate = d.an.verspaetung >= 3;
-						dest.appendChild(el('small', { class: 'dep__an', text: 'an Prisdorf ' + fmtClock(anLate && d.an.ist ? d.an.ist : d.an.zeit) + (anLate ? ' (+' + d.an.verspaetung + ')' : '') }));
-					}
-				}
 				if (d.ersatz_fuer) {
 					dest.appendChild(el('small', { class: 'dep__ersatz', text: 'Ersatz für den ' + fmtClock(d.ersatz_fuer.zeit) + ' ab ' + d.ersatz_fuer.ab }));
 				}
