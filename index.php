@@ -137,14 +137,12 @@ $description = $aktiv > 0
 			<div class="card board" data-richtung="hin">
 				<div class="board__head">
 					<h3 class="board__title" id="board-title-hin">Prisdorf &rarr; Hamburg</h3>
-					<p class="board__sub">Hbf / Altona</p>
 				</div>
 				<ol class="board__list" aria-live="polite"></ol>
 			</div>
 			<div class="card board" data-richtung="rueck">
 				<div class="board__head">
 					<h3 class="board__title" id="board-title-rueck">Hamburg &rarr; Wrist / Itzehoe</h3>
-					<p class="board__sub">ab Hbf und Altona</p>
 				</div>
 				<ol class="board__list" aria-live="polite"></ol>
 			</div>
