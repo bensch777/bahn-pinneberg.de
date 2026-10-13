@@ -111,7 +111,7 @@ $description = $aktiv > 0
 		<div class="section__head">
 			<h2 id="latest-h" class="section__title">Letzte Eilmeldungen</h2>
 		</div>
-		<ol class="feed" id="feed" data-limit="6"></ol>
+		<ol class="feed" id="feed" data-limit="6" data-max-age-days="3"></ol>
 	</section>
 
 	<noscript><p class="notice">Ohne JavaScript bleibt die Seite leer. Die Rohdaten gibt es unter <a href="api/data">api/data</a>.</p></noscript>

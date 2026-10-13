@@ -229,9 +229,16 @@
 		clear(ol);
 		ol.className = 'feed card';
 		var limit = parseInt(ol.getAttribute('data-limit'), 10) || 12;
-		var items = state.items.slice(-limit).reverse();
+		var maxAgeDays = parseInt(ol.getAttribute('data-max-age-days'), 10) || 0;
+		var cutoff = maxAgeDays ? Date.now() - maxAgeDays * 86400000 : 0;
+		// Massgeblich ist der Stand der Nordbahn, sonst der Erfassungszeitpunkt
+		var items = state.items.filter(function (it) {
+			return (isNaN(it.stand) ? it.ms : it.stand) >= cutoff;
+		}).slice(-limit).reverse();
 		if (!items.length) {
-			ol.appendChild(el('li', {}, [el('p', { class: 'feed__empty', text: 'Noch keine Eilmeldungen erfasst.' })]));
+			ol.appendChild(el('li', {}, [el('p', { class: 'feed__empty', text: maxAgeDays
+				? 'Keine Eilmeldung in den letzten ' + maxAgeDays + ' Tagen.'
+				: 'Noch keine Eilmeldungen erfasst.' })]));
 			return;
 		}
 		items.forEach(function (it) {
