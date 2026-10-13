@@ -21,7 +21,7 @@
 	};
 
 	// Was die Tab-Markierung (Favicon-Punkt und Titel) wissen muss
-	var alertState = { stoerungen: 0, ausfaelle: 0, verspaetet: 0 };
+	var alertState = { stoerungen: 0, stoerungenSchwer: 0, ausfaelle: 0, verspaetet: 0 };
 
 	/* ---------- Zeit-Helfer ---------- */
 
@@ -155,10 +155,13 @@
 		var list = hasData ? data.stoerungen || [] : [];
 		var ok = hasData && data.quellen && data.quellen.strecken_info_ok;
 
-		// Karte 1: Infrastruktur laut strecken-info.de
+		// Karte 1: Infrastruktur laut strecken-info.de. Stuft strecken-info alle
+		// Stoerungen als "leicht" ein, bleibt die Karte orange; ab "mittel" wird sie rot.
+		var schwer = list.filter(function (st) { return !/^leicht/i.test(st.einschraenkung || ''); }).length;
 		if (!hasData) setStatus('status-infra', 'unknown', 'Noch keine Daten');
 		else if (list.length === 0 && ok) setStatus('status-infra', 'ok', 'Keine Infrastrukturstörung');
 		else if (list.length === 0) setStatus('status-infra', 'unknown', 'Infrastrukturstörungen unbekannt');
+		else if (schwer === 0) setStatus('status-infra', 'warn', plural(list.length, 'leichte Infrastrukturstörung', 'leichte Infrastrukturstörungen'));
 		else setStatus('status-infra', 'alert', plural(list.length, 'Infrastrukturstörung', 'Infrastrukturstörungen'));
 
 		// Karte 2: Eilmeldungen der Nordbahn, akut heisst juenger als vier Stunden
@@ -175,6 +178,7 @@
 		}
 
 		alertState.stoerungen = list.length;
+		alertState.stoerungenSchwer = schwer;
 		updateBadge();
 		notifyNew(list.map(function (st) {
 			return { id: 'st:' + st.key, title: 'Infrastrukturstörung', body: (st.titel || 'Störung') + (st.text ? ': ' + st.text : '') };
@@ -463,9 +467,10 @@
 		return faviconCache[level];
 	}
 
-	/** Rot bei Störung oder Zugausfall, orange bei Verspätung, sonst nichts. */
+	/** Rot bei Störung ab "mittel" oder Zugausfall, orange bei leichter Störung oder Verspätung, sonst nichts. */
 	function updateBadge() {
-		var level = alertState.stoerungen || alertState.ausfaelle ? 'alert' : alertState.verspaetet ? 'warn' : '';
+		var level = alertState.stoerungenSchwer || alertState.ausfaelle ? 'alert'
+			: alertState.stoerungen || alertState.verspaetet ? 'warn' : '';
 		var parts = [];
 		if (alertState.stoerungen) parts.push(plural(alertState.stoerungen, 'Störung', 'Störungen'));
 		if (alertState.ausfaelle) parts.push(plural(alertState.ausfaelle, 'Ausfall', 'Ausfälle'));
