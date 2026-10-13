@@ -1,6 +1,7 @@
 /*
  * Nordbahn Monitor: baut aus dem eingebetteten JSON (siehe index.php) das
- * Dashboard und holt alle fuenf Minuten frische Daten von api/data.
+ * Dashboard, holt alle zwei Minuten frische Daten von api/data und laedt die
+ * Seite einmal pro Stunde komplett neu.
  *
  * Alle Texte aus den Daten (Titel, Meldungstexte, Bahnhofsnamen) stammen von
  * fremden Seiten und landen deshalb ausschliesslich per textContent im DOM.
@@ -11,7 +12,8 @@
 
 	var TZ = 'Europe/Berlin';
 	var DAY = 86400000;
-	var REFRESH_MS = 5 * 60 * 1000;
+	var REFRESH_MS = 2 * 60 * 1000;       // Störungen und Eilmeldungen nachladen
+	var RELOAD_MS = 60 * 60 * 1000;        // komplette Seite neu laden, damit lange offene Tabs neue Versionen bekommen
 	var STALE_MS = 20 * 60 * 1000;
 	var WEEKDAYS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
 	var MONTHS = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
@@ -825,6 +827,7 @@
 		setData(data);
 		setInterval(refresh, REFRESH_MS);
 		setInterval(renderFreshness, 60000);
+		setInterval(function () { if (!document.hidden) window.location.reload(); }, RELOAD_MS);
 		if (document.getElementById('abfahrten')) {
 			renderDepartures(null);
 			refreshDepartures();
