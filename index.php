@@ -80,7 +80,7 @@ $description = $aktiv > 0
 	<div class="page-head">
 		<div>
 			<h1>Nordbahn Monitor</h1>
-			<p class="page-head__lead">RB61 und RB71 zwischen Hamburg, Elmshorn, Itzehoe und Wrist: Was gerade gest&ouml;rt ist, wann der n&auml;chste Zug nach Hamburg und zur&uuml;ck nach Prisdorf f&auml;hrt und was die Nordbahn zuletzt gemeldet hat.</p>
+			<p class="page-head__lead">RB61 und RB71 zwischen Hamburg, Elmshorn, Itzehoe und Wrist.</p>
 		</div>
 		<p class="freshness" id="freshness" aria-live="polite"></p>
 	</div>
@@ -92,7 +92,7 @@ $description = $aktiv > 0
 	<section id="abfahrten" class="section" aria-labelledby="abfahrten-h" data-endpoint="api/abfahrten" data-data-endpoint="api/data">
 		<div class="section__head">
 			<h2 id="abfahrten-h" class="section__title">N&auml;chste Z&uuml;ge</h2>
-			<p class="section__sub" id="abfahrten-sub">Live vom Stationsmonitor der Nordbahn, jede Minute aktualisiert.</p>
+			<p class="section__sub" id="abfahrten-sub"></p>
 		</div>
 		<div class="boards">
 			<div class="card board" data-richtung="hin">
@@ -115,15 +115,9 @@ $description = $aktiv > 0
 	<section id="latest" class="section" aria-labelledby="latest-h">
 		<div class="section__head">
 			<h2 id="latest-h" class="section__title">Letzte Eilmeldungen</h2>
-			<p class="section__sub">Von der Nordbahn ver&ouml;ffentlicht, alle 15 Minuten abgeglichen.</p>
 		</div>
 		<ol class="feed" id="feed" data-limit="6"></ol>
 		<p class="section__more"><a href="statistik/">Statistik: wie oft und warum es hakt &rarr;</a></p>
-	</section>
-
-	<section id="pipeline" class="section section--compact" aria-labelledby="pipeline-h">
-		<h2 id="pipeline-h" class="section__title">Woher die Daten kommen</h2>
-		<p class="pipeline__text">St&ouml;rungen liefert <a href="https://strecken-info.de/" rel="noopener">strecken-info.de</a> (DB InfraGO, alle 5 Minuten abgefragt), die Eilmeldungen stammen von <a href="https://www.nordbahn.de/reiseplanung/eilmeldungen-sonderfahrplaene/?line-filter=3" rel="noopener">nordbahn.de</a> (alle 15 Minuten), die Abfahrten vom <a href="https://www.nordbahn.de/reiseplanung/stationsmonitor/" rel="noopener">Stationsmonitor der Nordbahn</a> (jede Minute).</p>
 	</section>
 
 	<noscript><p class="notice">Ohne JavaScript bleibt die Seite leer. Die Rohdaten gibt es unter <a href="api/data">api/data</a>.</p></noscript>

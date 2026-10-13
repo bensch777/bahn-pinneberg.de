@@ -198,7 +198,7 @@
 		if (stale) box.classList.add('is-stale');
 		box.appendChild(el('span', { class: 'dot' }));
 		var text = 'Stand ' + fmtDateTime(state.data.received_at) + ' (' + relTime(received) + ')';
-		if (stale) text += ', Abgleich überfällig';
+		if (stale) text += ', Daten veraltet';
 		box.appendChild(document.createTextNode(text));
 	}
 
@@ -220,8 +220,7 @@
 				el('div', { class: 'status__icon', 'aria-hidden': 'true', text: '?' }),
 				el('div', {}, [
 					el('p', { class: 'status__kicker', text: 'Jetzt auf der Strecke' }),
-					el('h3', { class: 'status__title', text: 'Noch keine Daten' }),
-					el('p', { class: 'status__sub', text: 'Sobald der erste Abgleich mit strecken-info.de ankommt, erscheint hier die Lage.' })
+					el('h3', { class: 'status__title', text: 'Noch keine Daten' })
 				])
 			]);
 		} else if (list.length === 0) {
@@ -229,10 +228,8 @@
 				el('div', { class: 'status__icon', 'aria-hidden': 'true', text: ok ? '✓' : '?' }),
 				el('div', {}, [
 					el('p', { class: 'status__kicker', text: 'Jetzt auf der Strecke' }),
-					el('h3', { class: 'status__title', text: ok ? 'Keine aktive Störung gemeldet' : 'Störungslage unbekannt' }),
-					el('p', { class: 'status__sub', text: ok
-						? 'strecken-info.de meldet aktuell nichts zwischen Hamburg, Elmshorn, Itzehoe und Wrist.'
-						: 'strecken-info.de war beim letzten Abgleich nicht erreichbar.' })
+					el('h3', { class: 'status__title', text: ok ? 'Keine Störung' : 'Störungslage unbekannt' }),
+					el('p', { class: 'status__sub', text: ok ? 'Hamburg – Elmshorn – Itzehoe/Wrist, alles normal.' : 'Gerade keine aktuellen Daten.' })
 				])
 			]);
 		} else {
@@ -241,7 +238,7 @@
 				el('div', {}, [
 					el('p', { class: 'status__kicker', text: 'Jetzt auf der Strecke' }),
 					el('h3', { class: 'status__title', text: plural(list.length, 'aktive Störung', 'aktive Störungen') }),
-					el('p', { class: 'status__sub', text: 'Gemeldet von strecken-info.de für den Abschnitt Hamburg – Elmshorn – Itzehoe/Wrist.' })
+					el('p', { class: 'status__sub', text: 'Hamburg – Elmshorn – Itzehoe/Wrist' })
 				])
 			]);
 		}
@@ -352,10 +349,7 @@
 		}
 		items.forEach(function (it) {
 			var hasStand = !isNaN(it.stand);
-			var time = el('div', { class: 'feed__time' }, [
-				fmtDateTime(new Date(hasStand ? it.stand : it.ms).toISOString()),
-				el('span', { text: hasStand ? 'Stand laut Nordbahn' : 'erfasst' })
-			]);
+			var time = el('div', { class: 'feed__time' }, [fmtDateTime(new Date(hasStand ? it.stand : it.ms).toISOString())]);
 			var title = it.link
 				? el('a', { href: it.link, rel: 'noopener', text: it.title || it.id })
 				: document.createTextNode(it.title || it.id);
@@ -481,17 +475,17 @@
 		// 6. Stoerungen pro Woche (eigenes Logbuch, waechst erst mit der Zeit)
 		var incidentCard = state.incidents.length
 			? chartCard({
-				title: 'Störungen laut strecken-info.de pro Woche',
-				sub: plural(incidents.length, 'Störung', 'Störungen') + ' im Zeitraum. Der Verlauf wird seit dem Start des Dashboards mitgeschrieben.',
+				title: 'Störungen pro Woche',
+				sub: plural(incidents.length, 'Störung', 'Störungen') + ' im Zeitraum, erfasst seit Oktober 2026.',
 				wide: true,
 				unit: ['Störung', 'Störungen'],
 				columns: weeklySeries(incidents, start)
 			})
 			: chartCard({
-				title: 'Störungen laut strecken-info.de pro Woche',
-				sub: 'Der Verlauf wird ab jetzt mitgeschrieben.',
+				title: 'Störungen pro Woche',
+				sub: 'Erfasst seit Oktober 2026.',
 				wide: true,
-				empty: 'Noch keine Störung im Logbuch. Sobald strecken-info.de die erste Störung meldet, beginnt hier die Zeitreihe.'
+				empty: 'Noch keine Störung erfasst.'
 			});
 		box.appendChild(incidentCard);
 
@@ -712,16 +706,16 @@
 		var ok = result && result.ok;
 
 		if (sub) {
-			if (!result) sub.textContent = 'Abfahrten werden geladen …';
-			else if (!ok && result.fetched_at) sub.textContent = 'Der Stationsmonitor antwortet gerade nicht, letzter Stand ' + fmtClock(result.fetched_at) + ' Uhr.';
-			else if (!ok) sub.textContent = 'Der Stationsmonitor der Nordbahn antwortet gerade nicht.';
-			else sub.textContent = 'Live vom Stationsmonitor der Nordbahn, Stand ' + fmtClock(result.fetched_at) + ' Uhr.';
+			if (!result) sub.textContent = 'Lade …';
+			else if (!ok && result.fetched_at) sub.textContent = 'Keine aktuellen Daten, letzter Stand ' + fmtClock(result.fetched_at) + ' Uhr';
+			else if (!ok) sub.textContent = 'Keine aktuellen Daten';
+			else sub.textContent = 'Stand ' + fmtClock(result.fetched_at) + ' Uhr';
 		}
 		if (!result || (!ok && !result.richtungen)) {
 			Array.prototype.forEach.call(boards, function (b) {
 				var list = b.querySelector('.board__list');
 				clear(list);
-				list.appendChild(el('li', {}, [el('p', { class: 'board__empty', text: result ? 'Keine Abfahrtsdaten.' : 'Lade …' })]));
+				list.appendChild(el('li', {}, [el('p', { class: 'board__empty', text: result ? 'Keine Daten.' : 'Lade …' })]));
 			});
 			return;
 		}
@@ -732,7 +726,7 @@
 			var deps = (result.richtungen && result.richtungen[key]) || [];
 			clear(list);
 			if (!deps.length) {
-				list.appendChild(el('li', {}, [el('p', { class: 'board__empty', text: 'In den nächsten zwei Stunden keine Abfahrt gemeldet.' })]));
+				list.appendChild(el('li', {}, [el('p', { class: 'board__empty', text: 'Keine Abfahrt in den nächsten zwei Stunden.' })]));
 				return;
 			}
 			deps.slice(0, 6).forEach(function (d) {

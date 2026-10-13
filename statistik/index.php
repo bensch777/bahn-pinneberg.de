@@ -67,7 +67,7 @@ $description = 'Wie oft und warum es bei RB61 und RB71 hakt: Eilmeldungen der No
 		<div>
 			<p class="page-head__kicker"><a href="../">Nordbahn Monitor</a></p>
 			<h1>Statistik</h1>
-			<p class="page-head__lead">Wie oft und warum es bei RB61 und RB71 hakt. Grundlage sind alle Eilmeldungen der Nordbahn seit M&auml;rz 2026 und der Verlauf der St&ouml;rungen laut strecken-info.de.</p>
+			<p class="page-head__lead">Wie oft und warum es bei RB61 und RB71 hakt, seit M&auml;rz 2026.</p>
 		</div>
 		<p class="freshness" id="freshness" aria-live="polite"></p>
 	</div>
@@ -80,7 +80,6 @@ $description = 'Wie oft und warum es bei RB61 und RB71 hakt: Eilmeldungen der No
 	<section id="latest" class="section" aria-labelledby="latest-h">
 		<div class="section__head">
 			<h2 id="latest-h" class="section__title">Letzte Eilmeldungen</h2>
-			<p class="section__sub">Von der Nordbahn ver&ouml;ffentlicht, alle 15 Minuten abgeglichen.</p>
 		</div>
 		<ol class="feed" id="feed"></ol>
 	</section>
@@ -96,11 +95,6 @@ $description = 'Wie oft und warum es bei RB61 und RB71 hakt: Eilmeldungen der No
 			<button type="button" role="radio" data-range="all" aria-checked="false">Seit Start</button>
 		</div>
 		<div class="charts" id="charts"></div>
-	</section>
-
-	<section id="pipeline" class="section section--compact" aria-labelledby="pipeline-h">
-		<h2 id="pipeline-h" class="section__title">Woher die Daten kommen</h2>
-		<p class="pipeline__text">Die Eilmeldungen stammen von <a href="https://www.nordbahn.de/reiseplanung/eilmeldungen-sonderfahrplaene/?line-filter=3" rel="noopener">nordbahn.de</a> und werden seit dem 26. M&auml;rz 2026 alle 15 Minuten abgeglichen; Kategorie und Linie sind aus dem Titel abgeleitet. Die St&ouml;rungen liefert <a href="https://strecken-info.de/" rel="noopener">strecken-info.de</a> (DB InfraGO) f&uuml;r den Abschnitt Hamburg&nbsp;&ndash; Elmshorn&nbsp;&ndash; Itzehoe/Wrist; aufgehobene St&ouml;rungen bleiben hier im Verlauf.</p>
 	</section>
 
 	<noscript><p class="notice">Ohne JavaScript bleiben die Diagramme leer. Die Rohdaten gibt es unter <a href="../api/data">api/data</a>.</p></noscript>
