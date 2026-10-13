@@ -525,7 +525,7 @@
 		['hin', 'rueck'].forEach(function (key) {
 			(result.richtungen[key] || []).slice(0, 6).forEach(function (d) {
 				if (!d.ausfall) return;
-				var richtung = key === 'hin' ? 'Prisdorf → Hamburg' : 'Hamburg → Prisdorf';
+				var richtung = key === 'hin' ? 'Prisdorf → Hamburg' : 'Hamburg → Wrist / Itzehoe';
 				events.push({
 					id: 'zug:' + (d.zug || d.linie + d.zeit),
 					title: 'Zugausfall ' + d.linie + ' um ' + fmtClock(d.zeit) + ' Uhr',
