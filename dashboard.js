@@ -121,11 +121,16 @@
 			box.appendChild(document.createTextNode('Noch keine Daten empfangen'));
 			return;
 		}
+		// Eine Zeitangabe fuer die ganze Seite: der juengere Stand von Lagebild und Abfahrten
+		var abf = departuresState.last;
+		var abfMs = abf && abf.ok && abf.fetched_at ? Date.parse(abf.fetched_at) : NaN;
+		var latest = isNaN(abfMs) ? received : Math.max(received, abfMs);
 		var stale = Date.now() - received > STALE_MS;
 		if (stale) box.classList.add('is-stale');
 		box.appendChild(el('span', { class: 'dot' }));
-		var text = 'Stand ' + fmtDateTime(state.data.received_at) + ' (' + relTime(received) + ')';
-		if (stale) text += ', Daten veraltet';
+		var text = 'Aktualisiert ' + relTime(latest);
+		if (stale) text += ', Störungsdaten veraltet (Stand ' + fmtDateTime(state.data.received_at) + ')';
+		box.title = 'Lagebild: ' + fmtDateTime(state.data.received_at) + (isNaN(abfMs) ? '' : ', Abfahrten: ' + fmtDateTime(abf.fetched_at));
 		box.appendChild(document.createTextNode(text));
 	}
 
@@ -319,12 +324,14 @@
 		var boards = section.querySelectorAll('.board');
 		var ok = result && result.ok;
 
+		// Den Stand zeigt die Kopfzeile fuer die ganze Seite; hier steht nur, wenn etwas fehlt
 		if (sub) {
 			if (!result) sub.textContent = 'Lade …';
 			else if (!ok && result.fetched_at) sub.textContent = 'Keine aktuellen Daten, letzter Stand ' + fmtClock(result.fetched_at) + ' Uhr';
 			else if (!ok) sub.textContent = 'Keine aktuellen Daten';
-			else sub.textContent = 'Stand ' + fmtClock(result.fetched_at) + ' Uhr';
+			else sub.textContent = '';
 		}
+		renderFreshness();
 		renderBetrieb(result);
 		if (!result || (!ok && !result.richtungen)) {
 			Array.prototype.forEach.call(boards, function (b) {
