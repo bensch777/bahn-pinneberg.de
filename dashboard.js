@@ -214,34 +214,20 @@
 		var list = hasData ? data.stoerungen || [] : [];
 		var ok = hasData && data.quellen && data.quellen.strecken_info_ok;
 
-		var box;
+		var title, cls, icon;
 		if (!hasData) {
-			box = el('div', { class: 'card status status--unknown' }, [
-				el('div', { class: 'status__icon', 'aria-hidden': 'true', text: '?' }),
-				el('div', {}, [
-					el('p', { class: 'status__kicker', text: 'Jetzt auf der Strecke' }),
-					el('h3', { class: 'status__title', text: 'Noch keine Daten' })
-				])
-			]);
+			cls = 'status--unknown'; icon = '?'; title = 'Noch keine Daten';
+		} else if (list.length === 0 && ok) {
+			cls = 'status--ok'; icon = '✓'; title = 'Keine Störung';
 		} else if (list.length === 0) {
-			box = el('div', { class: 'card status ' + (ok ? 'status--ok' : 'status--unknown') }, [
-				el('div', { class: 'status__icon', 'aria-hidden': 'true', text: ok ? '✓' : '?' }),
-				el('div', {}, [
-					el('p', { class: 'status__kicker', text: 'Jetzt auf der Strecke' }),
-					el('h3', { class: 'status__title', text: ok ? 'Keine Störung' : 'Störungslage unbekannt' }),
-					el('p', { class: 'status__sub', text: ok ? 'Hamburg – Elmshorn – Itzehoe/Wrist, alles normal.' : 'Gerade keine aktuellen Daten.' })
-				])
-			]);
+			cls = 'status--unknown'; icon = '?'; title = 'Störungslage unbekannt';
 		} else {
-			box = el('div', { class: 'card status status--alert' }, [
-				el('div', { class: 'status__icon', 'aria-hidden': 'true', text: '!' }),
-				el('div', {}, [
-					el('p', { class: 'status__kicker', text: 'Jetzt auf der Strecke' }),
-					el('h3', { class: 'status__title', text: plural(list.length, 'aktive Störung', 'aktive Störungen') }),
-					el('p', { class: 'status__sub', text: 'Hamburg – Elmshorn – Itzehoe/Wrist' })
-				])
-			]);
+			cls = 'status--alert'; icon = '!'; title = plural(list.length, 'aktive Störung', 'aktive Störungen');
 		}
+		var box = el('div', { class: 'card status ' + cls }, [
+			el('div', { class: 'status__icon', 'aria-hidden': 'true', text: icon }),
+			el('h3', { class: 'status__title', text: title })
+		]);
 		section.appendChild(box);
 
 		if (list.length) {
