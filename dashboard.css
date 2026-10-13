@@ -203,7 +203,7 @@ button { font: inherit; color: inherit; }
 	padding: 8px 0; border-top: 1px solid var(--line); font-variant-numeric: tabular-nums;
 }
 .dep:first-child { border-top: 0; }
-.dep__dot { width: 8px; height: 8px; border-radius: 50%; background: var(--good); align-self: center; }
+.dep__dot { width: 8px; height: 8px; border-radius: 50%; background: var(--good); align-self: start; margin-top: 8px; }
 .dep--late .dep__dot { background: var(--warning); }
 .dep--cancelled .dep__dot { background: var(--critical); }
 .dep__time { font-size: 20px; font-weight: 600; letter-spacing: -0.01em; line-height: 1.2; }
@@ -221,5 +221,6 @@ button { font: inherit; color: inherit; }
 @media (max-width: 420px) {
 	.dep { grid-template-columns: 10px 62px 48px 1fr auto; gap: 0 8px; }
 	.dep__time { font-size: 18px; }
+	.dep__dot { margin-top: 7px; }
 	.dep__dest { font-size: 14px; }
 }
