@@ -6,8 +6,7 @@
  *
  * Auf einen Blick: aktive Stoerungen laut strecken-info.de, die naechsten
  * Abfahrten ab Prisdorf in die Stadt und ab Hamburg zurueck, und die letzten
- * Eilmeldungen der Nordbahn. Die Auswertung ueber die Zeit liegt unter
- * statistik/.
+ * Eilmeldungen der Nordbahn.
  *
  * Dieser Ordner ist das Wurzelverzeichnis der Subdomain und zugleich als
  * /nordbahn/ auf der Hauptseite erreichbar, deshalb sind alle Links relativ.
@@ -69,10 +68,6 @@ $description = $aktiv > 0
 <header class="site-head">
 	<div class="wrap site-head__row">
 		<a class="site-head__brand" href="./">Nordbahn Monitor</a>
-		<nav class="site-head__nav" aria-label="Nordbahn Monitor">
-			<a href="./" aria-current="page">Status</a>
-			<a href="statistik/">Statistik</a>
-		</nav>
 	</div>
 </header>
 
@@ -117,7 +112,6 @@ $description = $aktiv > 0
 			<h2 id="latest-h" class="section__title">Letzte Eilmeldungen</h2>
 		</div>
 		<ol class="feed" id="feed" data-limit="6"></ol>
-		<p class="section__more"><a href="statistik/">Statistik: wie oft und warum es hakt &rarr;</a></p>
 	</section>
 
 	<noscript><p class="notice">Ohne JavaScript bleibt die Seite leer. Die Rohdaten gibt es unter <a href="api/data">api/data</a>.</p></noscript>

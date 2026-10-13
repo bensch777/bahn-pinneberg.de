@@ -1,7 +1,5 @@
 /* Nordbahn Monitor. Farben als Tokens, dunkler Modus folgt der Systemeinstellung.
-   Die Diagrammfarben sind gegen beide Hintergruende auf Kontrast und
-   Farbfehlsichtigkeit geprueft (ein Datenreihen-Blau, Statusfarben nur mit Icon
-   und Text). */
+   Statusfarben stehen nie allein, immer mit Icon und Text. */
 
 @font-face {
 	font-family: 'Inter';
@@ -159,19 +157,6 @@ button { font: inherit; color: inherit; }
 .incident__meta dd { margin: 0 0 4px; }
 .incident__meta div { display: flex; flex-direction: column; }
 
-/* Kacheln */
-.tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
-@media (max-width: 860px) { .tiles { grid-template-columns: repeat(2, 1fr); } .tile__value { font-size: 26px; } }
-.tile { padding: 16px 18px; min-height: 108px; display: flex; flex-direction: column; }
-.tile__label { font-size: 13px; color: var(--ink-2); margin: 0 0 6px; }
-.tile__value { font-size: 32px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.1; margin: 0; }
-.tile__value small { font-size: 15px; font-weight: 500; color: var(--ink-2); margin-left: 4px; letter-spacing: 0; }
-.tile__delta { margin: auto 0 0; padding-top: 8px; font-size: 13px; color: var(--muted); }
-.tile__delta .up { color: var(--critical-text); font-weight: 600; }
-.tile__delta .down { color: var(--good-text); font-weight: 600; }
-.tile__delta .flat { color: var(--ink-2); font-weight: 600; }
-.tile__sub { margin: auto 0 0; padding-top: 8px; font-size: 13px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
 /* Feed */
 .feed { list-style: none; margin: 0; padding: 0 18px; }
 .feed > li { display: grid; grid-template-columns: 112px 1fr; gap: 14px; padding: 12px 0; border-top: 1px solid var(--line); align-items: baseline; }
@@ -188,67 +173,6 @@ button { font: inherit; color: inherit; }
 .chip--line { font-weight: 600; }
 .feed__empty { padding: 18px; color: var(--muted); margin: 0; }
 
-/* Filter */
-.filters { display: inline-flex; gap: 4px; padding: 4px; background: var(--surface-2); border-radius: 10px; margin: 0 0 14px; }
-.filters button {
-	border: 0; background: transparent; padding: 6px 12px; border-radius: 7px; cursor: pointer;
-	font-size: 13px; font-weight: 500; color: var(--ink-2);
-}
-.filters button:hover { color: var(--ink); }
-.filters button[aria-checked="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,0.08); font-weight: 600; }
-.filters button:focus-visible { outline: 2px solid var(--series); outline-offset: 1px; }
-
-/* Diagramme */
-.charts { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-@media (max-width: 760px) { .charts { grid-template-columns: 1fr; } }
-.chart { margin: 0; padding: 16px 18px 14px; position: relative; }
-.chart--wide { grid-column: 1 / -1; }
-.chart__head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 10px; }
-.chart__title { margin: 0; font-size: 15px; font-weight: 600; }
-.chart__sub { margin: 2px 0 0; font-size: 12.5px; color: var(--muted); }
-.chart__toggle {
-	flex: none; border: 1px solid var(--line); background: transparent; border-radius: 6px;
-	font-size: 12px; padding: 3px 8px; cursor: pointer; color: var(--ink-2);
-}
-.chart__toggle:hover { color: var(--ink); border-color: var(--axis); }
-.chart__toggle:focus-visible { outline: 2px solid var(--series); outline-offset: 1px; }
-.chart__plot svg { display: block; width: 100%; height: auto; overflow: visible; }
-.chart__plot text { font-family: inherit; font-size: 11px; fill: var(--muted); }
-.chart__plot .tick { font-variant-numeric: tabular-nums; }
-.chart__plot .grid { stroke: var(--grid); stroke-width: 1; shape-rendering: crispEdges; }
-.chart__plot .axis { stroke: var(--axis); stroke-width: 1; shape-rendering: crispEdges; }
-.chart__plot .bar { fill: var(--series); pointer-events: none; }
-.chart__plot .bar--other { fill: var(--series-2); }
-.chart__plot .hit { fill: transparent; pointer-events: all; cursor: default; outline: none; }
-.chart__plot .hit:hover + .bar, .chart__plot .hit:focus-visible + .bar, .chart__plot .bar.is-hover { fill-opacity: 0.72; }
-.chart__plot .hit:focus-visible { stroke: var(--series); stroke-width: 1.5; }
-.chart__plot .label { fill: var(--ink-2); font-weight: 600; font-size: 11px; }
-.chart__empty { color: var(--muted); font-size: 13px; padding: 22px 0; margin: 0; }
-
-/* Horizontale Balken in HTML */
-.hbars { display: grid; gap: 6px; margin: 2px 0 0; }
-.hbar { display: grid; grid-template-columns: minmax(96px, 150px) 1fr 36px; gap: 10px; align-items: center; font-size: 13px; }
-.hbar__label { color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.hbar__track { height: 20px; position: relative; }
-.hbar__fill { position: absolute; left: 0; top: 0; bottom: 0; background: var(--series); border-radius: 0 4px 4px 0; min-width: 2px; }
-.hbar:hover .hbar__fill, .hbar:focus-within .hbar__fill { opacity: 0.72; }
-.hbar__value { text-align: right; font-variant-numeric: tabular-nums; color: var(--ink); font-weight: 500; }
-.hbar__track { outline: none; border-radius: 4px; }
-.hbar__track:focus-visible { box-shadow: 0 0 0 2px var(--series); }
-
-.chart table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 4px; }
-.chart th, .chart td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
-.chart th:last-child, .chart td:last-child { text-align: right; font-variant-numeric: tabular-nums; }
-.chart th { color: var(--muted); font-weight: 500; }
-
-.tip {
-	position: absolute; z-index: 5; pointer-events: none; display: none;
-	background: var(--ink); color: var(--page); padding: 6px 9px; border-radius: 6px;
-	font-size: 12px; line-height: 1.35; white-space: nowrap; box-shadow: 0 4px 14px rgba(0,0,0,0.18);
-}
-.tip strong { font-size: 13px; display: block; }
-.tip.is-on { display: block; }
-
 /* Pipeline */
 .steps { margin: 0; padding: 18px 18px 18px 36px; display: grid; gap: 10px; color: var(--ink-2); font-size: 14px; }
 .steps strong { color: var(--ink); }
@@ -260,19 +184,8 @@ button { font: inherit; color: inherit; }
 .site-foot__telegram { margin: 0 0 8px; font-size: 14px; color: var(--ink-2); }
 .site-foot__telegram a { color: var(--ink); font-weight: 500; }
 
-@media (prefers-reduced-motion: no-preference) {
-	.hbar__fill { transition: width 0.25s ease; }
-}
 .is-loading { opacity: 0.6; transition: opacity 0.2s; }
 
-/* Kopfzeile mit Rueckweg (Unterseiten) */
-.page-head__kicker { margin: 0 0 2px; font-size: 13px; font-weight: 600; color: var(--ink-2); }
-.page-head__kicker a { text-decoration: none; }
-.page-head__kicker a:hover { text-decoration: underline; }
-.site-head__nav a[aria-current="page"] { color: var(--ink); font-weight: 600; }
-.section__more { margin: 12px 0 0; font-size: 14px; }
-.section__more a { color: var(--ink-2); text-decoration: none; font-weight: 500; }
-.section__more a:hover { color: var(--ink); text-decoration: underline; }
 .section--compact .section__title { margin-bottom: 6px; }
 .pipeline__text { margin: 0; color: var(--ink-2); font-size: 14px; max-width: 760px; }
 .pipeline__text a { color: var(--ink); }
