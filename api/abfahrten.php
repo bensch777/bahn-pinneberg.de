@@ -12,7 +12,13 @@
  *
  *   hin:    Abfahrten in Prisdorf (APD) mit Ziel in Hamburg
  *   rueck:  Abfahrten in Hamburg Hbf (AH) und Hamburg-Altona (AA) Richtung
- *           Norden; RB60, RB61 und RB71 halten alle in Prisdorf
+ *           Norden; RB60, RB61 und RB71 halten alle in Prisdorf. Faellt ein
+ *           Zug ab Hbf aus und dieselbe Zugnummer startet ab Altona, wird das
+ *           als Ersatz an die ausgefallene Zeile gehaengt (und umgekehrt).
+ *
+ * Fuer ausgefallene und verspaetete Zuege holt der Endpunkt zusaetzlich die
+ * Ursache vom Zug-Endpunkt (?zug=Nummer, Element ursachetext), hoechstens
+ * sechs Abfragen je Aufbereitung, je Zug fuenf Minuten gecacht.
  *
  * Die Antwort wird eine Minute lang gecacht, damit viele Browser nicht viele
  * Anfragen an die Nordbahn ausloesen. Ist der Monitor nicht erreichbar, kommt
@@ -30,6 +36,9 @@ const ABF_PER_DIR    = 8;                            // Abfahrten je Richtung in
 const ABF_TIMEOUT    = 6;                            // Sekunden je Anfrage
 const ABF_CACHE_FILE = NORDBAHN_CACHE_DIR . '/abfahrten.json';
 const ABF_LOCK_FILE  = NORDBAHN_CACHE_DIR . '/abfahrten.lock';
+const ABF_ZUG_CACHE  = NORDBAHN_CACHE_DIR . '/zuege.json'; // Ursachen je Zugnummer
+const ABF_ZUG_TTL    = 300;                                 // Sekunden, die eine Ursache gilt
+const ABF_ZUG_MAX    = 6;                                   // Zugabfragen je Aufbereitung
 
 /** Holt eine URL als Text, oder null bei Fehler. */
 function abf_fetch($url)
@@ -63,6 +72,142 @@ function abf_fetch($url)
 function abf_url($stationId)
 {
     return ABF_API . '?bhf=' . rawurlencode($stationId) . '&id_prod=&format=xml';
+}
+
+/** URL der Zugdetails (Laufweg mit Prognosen und Ursache). */
+function abf_zug_url($zug)
+{
+    return ABF_API . '?zug=' . rawurlencode($zug) . '&id_prod=&format=xml';
+}
+
+/** Ursache aus den Zugdetails, oder leer. */
+function abf_parse_ursache($xml)
+{
+    $doc = @simplexml_load_string($xml);
+    if ($doc === false) {
+        return '';
+    }
+    $text = isset($doc->ursachetext) ? trim((string) $doc->ursachetext) : '';
+    if ($text === '' && isset($doc->ursacheris)) {
+        $text = trim((string) $doc->ursacheris);
+    }
+    if ($text === '') {
+        foreach ($doc->halt as $halt) {
+            $t = isset($halt->ursacheris) ? trim((string) $halt->ursacheris) : '';
+            if ($t !== '') {
+                $text = $t;
+                break;
+            }
+        }
+    }
+
+    return $text;
+}
+
+/**
+ * Ursachen fuer ausgefallene und verspaetete Zuege nachladen. Je Zug wird die
+ * Antwort fuenf Minuten gecacht, pro Aufbereitung gibt es hoechstens
+ * ABF_ZUG_MAX Abfragen, damit ein schlechter Tag nicht zur Lastspitze wird.
+ */
+function abf_add_ursachen(array &$lists, $fetch)
+{
+    $cache = nordbahn_read_json(ABF_ZUG_CACHE);
+    if (!is_array($cache)) {
+        $cache = [];
+    }
+    $now = time();
+    $calls = 0;
+    $changed = false;
+
+    foreach ($lists as &$list) {
+        $n = 0;
+        foreach ($list as &$row) {
+            if (++$n > ABF_PER_DIR) {
+                break;
+            }
+            if ($row['zug'] === '' || (!$row['ausfall'] && $row['verspaetung'] < 3)) {
+                continue;
+            }
+            $zug = $row['zug'];
+            $entry = $cache[$zug] ?? null;
+            if (!is_array($entry) || ($now - (int) ($entry['t'] ?? 0)) > ABF_ZUG_TTL) {
+                if ($calls >= ABF_ZUG_MAX) {
+                    continue;
+                }
+                $calls++;
+                $xml = $fetch(abf_zug_url($zug));
+                if ($xml === null) {
+                    continue;
+                }
+                $entry = ['t' => $now, 'ursache' => abf_parse_ursache($xml)];
+                $cache[$zug] = $entry;
+                $changed = true;
+            }
+            $ursache = (string) ($entry['ursache'] ?? '');
+            if ($ursache !== '' && stripos($row['hinweis'], $ursache) === false) {
+                $row['hinweis'] = trim($ursache . ($row['hinweis'] !== '' ? '. ' . $row['hinweis'] : ''));
+            }
+        }
+        unset($row);
+    }
+    unset($list);
+
+    if ($changed) {
+        foreach ($cache as $zug => $entry) {
+            if (!is_array($entry) || ($now - (int) ($entry['t'] ?? 0)) > 6 * ABF_ZUG_TTL) {
+                unset($cache[$zug]);
+            }
+        }
+        nordbahn_write_json(ABF_ZUG_CACHE, $cache);
+    }
+}
+
+/**
+ * Faellt ein Zug an einem Hamburger Bahnhof aus und dieselbe Zugnummer faehrt
+ * am anderen los, wird die fahrende Abfahrt als Ersatz an die ausgefallene
+ * gehaengt und nicht mehr einzeln gelistet.
+ */
+function abf_merge_ersatz(array $rows)
+{
+    $byZug = [];
+    foreach ($rows as $i => $row) {
+        if ($row['zug'] !== '') {
+            $byZug[$row['zug']][] = $i;
+        }
+    }
+    $drop = [];
+    foreach ($byZug as $indexes) {
+        if (count($indexes) < 2) {
+            continue;
+        }
+        foreach ($indexes as $i) {
+            if (!$rows[$i]['ausfall']) {
+                continue;
+            }
+            foreach ($indexes as $j) {
+                if ($j === $i || $rows[$j]['ausfall'] || $rows[$j]['ab'] === $rows[$i]['ab']) {
+                    continue;
+                }
+                $rows[$i]['ersatz'] = [
+                    'ab'          => $rows[$j]['ab'],
+                    'zeit'        => $rows[$j]['zeit'],
+                    'ist'         => $rows[$j]['ist'],
+                    'verspaetung' => $rows[$j]['verspaetung'],
+                    'gleis'       => $rows[$j]['gleis'],
+                ];
+                $drop[$j] = true;
+                break;
+            }
+        }
+    }
+    $out = [];
+    foreach ($rows as $i => $row) {
+        if (!isset($drop[$i])) {
+            $out[] = $row;
+        }
+    }
+
+    return $out;
 }
 
 /**
@@ -153,6 +298,7 @@ function abf_parse($xml, DateTime $now, &$stand)
             'hinweis'     => implode('. ', array_unique($hinweise)),
             'wagen'       => abf_bool($row, 'istZug') && $wagen > 0 ? $wagen : null,
             'ab'          => null,
+            'ersatz'      => null,
         ];
     }
 
@@ -199,16 +345,39 @@ function abf_build($fetch = 'abf_fetch')
         return ($a['ist'] ?: $a['zeit']) <=> ($b['ist'] ?: $b['zeit']);
     };
     usort($hin, $sort);
+    $rueck = abf_merge_ersatz($rueck);
     usort($rueck, $sort);
 
+    // Vergangenes raus, bevor Ursachen geholt werden, sonst gehen Abfragen an alte Zuege
     $cutoff = (clone $now)->modify('-1 minute');
+    $upcoming = function (array $list) use ($cutoff) {
+        return array_values(array_filter($list, function ($row) use ($cutoff) {
+            return ($row['ist'] ?: $row['zeit']) >= $cutoff;
+        }));
+    };
+    $lists = ['hin' => $upcoming($hin), 'rueck' => $upcoming($rueck)];
+    abf_add_ursachen($lists, $fetch);
+    $hin = $lists['hin'];
+    $rueck = $lists['rueck'];
+
     $format = function (array $list) use ($cutoff) {
         $out = [];
         foreach ($list as $row) {
             if (($row['ist'] ?: $row['zeit']) < $cutoff) {
                 continue;
             }
+            $ersatz = null;
+            if ($row['ersatz']) {
+                $ersatz = [
+                    'ab'          => $row['ersatz']['ab'],
+                    'zeit'        => $row['ersatz']['zeit']->format('c'),
+                    'ist'         => $row['ersatz']['ist'] ? $row['ersatz']['ist']->format('c') : null,
+                    'verspaetung' => $row['ersatz']['verspaetung'],
+                    'gleis'       => $row['ersatz']['gleis'],
+                ];
+            }
             $out[] = [
+                'zug'         => $row['zug'],
                 'zeit'        => $row['zeit']->format('c'),
                 'ist'         => $row['ist'] ? $row['ist']->format('c') : null,
                 'verspaetung' => $row['verspaetung'],
@@ -219,6 +388,7 @@ function abf_build($fetch = 'abf_fetch')
                 'hinweis'     => $row['hinweis'],
                 'wagen'       => $row['wagen'],
                 'ab'          => $row['ab'],
+                'ersatz'      => $ersatz,
             ];
             if (count($out) >= ABF_PER_DIR) {
                 break;
@@ -238,11 +408,16 @@ function abf_build($fetch = 'abf_fetch')
 }
 
 // Auf der Kommandozeile laesst sich die Aufbereitung gegen lokale Dateien pruefen:
-// php nordbahn/api/abfahrten.php prisdorf.xml hbf.xml altona.xml
+// php nordbahn/api/abfahrten.php prisdorf.xml hbf.xml altona.xml [zug.xml]
+// Die vierte Datei dient als Antwort fuer alle Zugabfragen; der Zug-Cache wird dabei nicht benutzt.
 if (PHP_SAPI === 'cli') {
     $files = array_slice($argv, 1);
+    $zugFile = count($files) > 3 ? $files[3] : null;
     $index = 0;
-    $result = abf_build(function ($url) use ($files, &$index) {
+    $result = abf_build(function ($url) use ($files, $zugFile, &$index) {
+        if (strpos($url, '?zug=') !== false) {
+            return $zugFile !== null && is_readable($zugFile) ? file_get_contents($zugFile) : null;
+        }
         $file = $files[$index++] ?? null;
 
         return $file !== null && is_readable($file) ? file_get_contents($file) : null;

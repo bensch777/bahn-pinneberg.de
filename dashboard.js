@@ -193,6 +193,9 @@
 		]);
 		alertState.stoerungen = list.length;
 		updateBadge();
+		notifyNew(list.map(function (st) {
+			return { id: 'st:' + st.key, title: 'Infrastrukturstörung', body: (st.titel || 'Störung') + (st.text ? ': ' + st.text : '') };
+		}));
 		section.appendChild(box);
 
 		if (list.length) {
@@ -254,7 +257,6 @@
 				: document.createTextNode(it.title || it.id);
 			var chips = el('ul', { class: 'chips' });
 			it.lines.forEach(function (l) { chips.appendChild(el('li', { class: 'chip chip--line', text: l })); });
-			chips.appendChild(el('li', { class: 'chip', text: it.catLabel }));
 			ol.appendChild(el('li', {}, [time, el('div', {}, [el('p', { class: 'feed__title' }, [title]), chips])]));
 		});
 	}
@@ -262,6 +264,22 @@
 	/* ---------- Abfahrten ---------- */
 
 	var DEPARTURES_MS = 60 * 1000;
+
+	/** "in 7 Min" auf Basis der Prognose, ab 60 Minuten nichts mehr. */
+	function fmtCountdown(iso) {
+		var diff = Math.round((Date.parse(iso) - Date.now()) / 60000);
+		if (isNaN(diff) || diff > 59) return '';
+		if (diff <= 0) return 'jetzt';
+		return 'in ' + diff + ' Min';
+	}
+
+	/** Vormittags steht die Fahrt in die Stadt oben, nachmittags der Rueckweg. */
+	function orderBoards() {
+		var boards = document.querySelector('.boards');
+		if (!boards) return;
+		var hour = parseInt(new Date().toLocaleTimeString('de-DE', { timeZone: TZ, hour: '2-digit', hour12: false }), 10);
+		boards.classList.toggle('boards--rueck-first', hour >= 12);
+	}
 
 	function fmtClock(iso) {
 		var dt = new Date(iso);
@@ -305,16 +323,37 @@
 				list.appendChild(el('li', {}, [el('p', { class: 'board__empty', text: 'Keine Abfahrt in den nächsten zwei Stunden.' })]));
 				return;
 			}
+			var nextMarked = false;
 			deps.slice(0, 6).forEach(function (d) {
 				var late = !d.ausfall && d.verspaetung >= 3;
 				var cls = 'dep' + (d.ausfall ? ' dep--cancelled' : late ? ' dep--late' : '');
+				var fahrbar = !d.ausfall || !!d.ersatz;
+				if (fahrbar && !nextMarked) { cls += ' dep--next'; nextMarked = true; }
+
 				var time = el('div', { class: 'dep__time' }, [fmtClock(d.zeit)]);
 				if (d.ausfall) time.appendChild(el('small', { text: 'fällt aus' }));
 				else if (late) time.appendChild(el('small', { text: '+' + d.verspaetung + ' → ' + fmtClock(d.ist) }));
+				else {
+					var cd = fmtCountdown(d.ist || d.zeit);
+					if (cd) time.appendChild(el('small', { class: 'dep__countdown', text: cd }));
+				}
+				if (late) {
+					var cdLate = fmtCountdown(d.ist);
+					if (cdLate) time.appendChild(el('small', { class: 'dep__countdown', text: cdLate }));
+				}
+
 				var line = el('div', { class: 'dep__line' }, [d.linie]);
 				if (d.wagen) line.appendChild(el('small', { text: plural(d.wagen, 'Wagen', 'Wagen') }));
+
 				var dest = el('div', { class: 'dep__dest', title: d.ziel }, [d.ziel]);
 				if (d.hinweis) dest.appendChild(el('small', { text: d.hinweis }));
+				if (d.ersatz) {
+					var e = d.ersatz;
+					var eLate = e.verspaetung >= 3;
+					dest.appendChild(el('small', { class: 'dep__ersatz', text: 'Fährt stattdessen ab ' + e.ab + ' um ' + fmtClock(e.zeit)
+						+ (eLate ? ' (+' + e.verspaetung + ')' : '') + (e.gleis ? ', Gl. ' + e.gleis : '') }));
+				}
+
 				var where = [d.ab ? 'ab ' + d.ab : '', d.gleis ? 'Gl. ' + d.gleis : ''].filter(Boolean).join(', ');
 				var row = el('li', { class: cls }, [
 					el('span', { class: 'dep__dot', 'aria-hidden': 'true' }),
@@ -331,6 +370,7 @@
 		alertState.ausfaelle = ausfaelle;
 		alertState.verspaetet = verspaetet;
 		updateBadge();
+		notifyNew(collectEvents(result));
 	}
 
 	var departuresState = { last: null };
@@ -397,6 +437,10 @@
 		if (alertState.ausfaelle) parts.push(plural(alertState.ausfaelle, 'Ausfall', 'Ausfälle'));
 		if (!parts.length && alertState.verspaetet) parts.push(plural(alertState.verspaetet, 'Verspätung', 'Verspätungen'));
 		document.title = parts.length ? '(' + parts.join(', ') + ') ' + BASE_TITLE : BASE_TITLE;
+		try {
+			var count = alertState.stoerungen + alertState.ausfaelle;
+			if (navigator.setAppBadge) { if (count) navigator.setAppBadge(count); else navigator.clearAppBadge(); }
+		} catch (e) { /* kein App-Badge verfuegbar */ }
 		var link = document.getElementById('favicon');
 		if (!link) return;
 		var url = faviconUrl(level);
@@ -404,6 +448,105 @@
 			link.type = 'image/png';
 			link.href = url;
 		}
+	}
+
+	/* ---------- Systembenachrichtigungen ---------- */
+
+	var NOTIFY_KEY = 'nordbahn.notify';       // "1" = eingeschaltet
+	var SEEN_KEY = 'nordbahn.notified';       // bereits gemeldete Ereignisse
+	var seen = null;
+
+	function storage(action, key, value) {
+		try {
+			if (action === 'get') return window.localStorage.getItem(key);
+			window.localStorage.setItem(key, value);
+		} catch (e) { return null; }
+		return null;
+	}
+
+	function notifyEnabled() {
+		return 'Notification' in window && Notification.permission === 'granted' && storage('get', NOTIFY_KEY) === '1';
+	}
+
+	function loadSeen() {
+		if (seen) return seen;
+		seen = {};
+		try {
+			var raw = JSON.parse(storage('get', SEEN_KEY) || '{}');
+			var cutoff = Date.now() - 12 * 3600 * 1000;
+			Object.keys(raw).forEach(function (k) { if (raw[k] > cutoff) seen[k] = raw[k]; });
+		} catch (e) { seen = {}; }
+		return seen;
+	}
+
+	/** Ausfaelle der angezeigten Zuege als Ereignisse (eine ID je Zug und Tag). */
+	function collectEvents(result) {
+		var events = [];
+		if (!result || !result.richtungen) return events;
+		['hin', 'rueck'].forEach(function (key) {
+			(result.richtungen[key] || []).slice(0, 6).forEach(function (d) {
+				if (!d.ausfall) return;
+				var richtung = key === 'hin' ? 'Prisdorf → Hamburg' : 'Hamburg → Prisdorf';
+				events.push({
+					id: 'zug:' + (d.zug || d.linie + d.zeit),
+					title: 'Zugausfall ' + d.linie + ' um ' + fmtClock(d.zeit) + ' Uhr',
+					body: richtung + (d.ab ? ' ab ' + d.ab : '') + (d.hinweis ? '. ' + d.hinweis : '')
+						+ (d.ersatz ? '. Fährt stattdessen ab ' + d.ersatz.ab + ' um ' + fmtClock(d.ersatz.zeit) + ' Uhr' : '')
+				});
+			});
+		});
+		return events;
+	}
+
+	var notifyPrimed = false;
+
+	/** Meldet nur, was seit dem letzten Mal neu ist; beim ersten Laden wird nichts gemeldet. */
+	function notifyNew(events) {
+		var list = loadSeen();
+		var fresh = events.filter(function (ev) { return !list[ev.id]; });
+		fresh.forEach(function (ev) { list[ev.id] = Date.now(); });
+		if (fresh.length) storage('set', SEEN_KEY, JSON.stringify(list));
+		if (!notifyPrimed) { notifyPrimed = true; return; }
+		if (!notifyEnabled()) return;
+		fresh.slice(0, 3).forEach(function (ev) {
+			try {
+				var n = new Notification(ev.title, { body: ev.body, icon: 'favicon.svg', tag: ev.id, lang: 'de' });
+				n.onclick = function () { window.focus(); n.close(); };
+			} catch (e) { /* Benachrichtigung nicht moeglich */ }
+		});
+	}
+
+	function renderNotifyButton() {
+		var btn = document.getElementById('notify-toggle');
+		if (!btn) return;
+		if (!('Notification' in window)) { btn.hidden = true; return; }
+		var on = notifyEnabled();
+		btn.textContent = on ? 'Benachrichtigungen aus' : 'Bei Ausfällen benachrichtigen';
+		btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+		if (Notification.permission === 'denied') {
+			btn.textContent = 'Benachrichtigungen im Browser blockiert';
+			btn.disabled = true;
+		}
+	}
+
+	function initNotifyButton() {
+		var btn = document.getElementById('notify-toggle');
+		if (!btn) return;
+		renderNotifyButton();
+		btn.addEventListener('click', function () {
+			if (notifyEnabled()) {
+				storage('set', NOTIFY_KEY, '0');
+				renderNotifyButton();
+				return;
+			}
+			Notification.requestPermission().then(function (perm) {
+				if (perm === 'granted') {
+					storage('set', NOTIFY_KEY, '1');
+					try { new Notification('Nordbahn Monitor', { body: 'Du bekommst jetzt eine Meldung bei neuen Zugausfällen und Störungen.', icon: 'favicon.svg', lang: 'de' }); } catch (e) { /* egal */ }
+				}
+				renderNotifyButton();
+			});
+		});
 	}
 
 	/* ---------- Steuerung ---------- */
@@ -448,10 +591,13 @@
 		setInterval(renderFreshness, 60000);
 		setInterval(function () { if (!document.hidden) window.location.reload(); }, RELOAD_MS);
 		if (document.getElementById('abfahrten')) {
+			orderBoards();
 			renderDepartures(null);
 			refreshDepartures();
 			setInterval(refreshDepartures, DEPARTURES_MS);
+			setInterval(function () { orderBoards(); if (departuresState.last) renderDepartures(departuresState.last); }, 30000);
 		}
+		initNotifyButton();
 		document.addEventListener('visibilitychange', function () { if (!document.hidden) { refresh(); refreshDepartures(); } });
 	}
 

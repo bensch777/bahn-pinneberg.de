@@ -181,6 +181,14 @@ button { font: inherit; color: inherit; }
 .notice { padding: 14px 18px; color: var(--ink-2); }
 .site-foot { padding: 32px 16px 40px; color: var(--muted); font-size: 12.5px; }
 .site-foot p { margin: 0; }
+.notify { margin: 0 0 10px; }
+.notify button {
+	border: 1px solid var(--line); background: var(--surface); color: var(--ink-2); border-radius: 8px;
+	font-size: 13px; font-weight: 500; padding: 7px 12px; cursor: pointer;
+}
+.notify button:hover:not(:disabled) { color: var(--ink); border-color: var(--axis); }
+.notify button[aria-pressed="true"] { color: var(--ink); border-color: var(--series); }
+.notify button:disabled { cursor: default; opacity: 0.7; }
 .site-foot__telegram { margin: 0 0 8px; font-size: 14px; color: var(--ink-2); }
 .site-foot__telegram a { color: var(--ink); font-weight: 500; }
 
@@ -193,6 +201,7 @@ button { font: inherit; color: inherit; }
 /* Abfahrtsmonitor: zwei Tafeln, eine je Richtung */
 .boards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 @media (max-width: 760px) { .boards { grid-template-columns: 1fr; } }
+.boards--rueck-first .board[data-richtung="rueck"] { order: -1; }
 .board { padding: 14px 18px 8px; }
 .board__head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-bottom: 6px; }
 .board__title { margin: 0; font-size: 15px; font-weight: 600; }
@@ -210,6 +219,12 @@ button { font: inherit; color: inherit; }
 .dep--cancelled .dep__time { color: var(--critical-text); text-decoration: line-through; text-decoration-thickness: 2px; }
 .dep__time small { display: block; font-size: 11.5px; font-weight: 500; letter-spacing: 0; line-height: 1.2; text-decoration: none; white-space: nowrap; }
 .dep--late .dep__time small { color: var(--critical-text); }
+.dep__time .dep__countdown { color: var(--muted); font-weight: 500; }
+.dep--late .dep__time .dep__countdown { color: var(--muted); }
+.dep--next { position: relative; }
+.dep--next::before { content: ''; position: absolute; left: -18px; top: 8px; bottom: 8px; width: 3px; border-radius: 0 2px 2px 0; background: var(--series); }
+.dep--next .dep__time { color: var(--ink); }
+.dep__ersatz { color: var(--ink) !important; font-weight: 500; }
 .dep--cancelled .dep__time small { color: var(--critical-text); }
 .dep__line { font-weight: 700; font-size: 14px; color: var(--series); white-space: nowrap; }
 .dep__line small { display: block; font-size: 11px; font-weight: 500; color: var(--muted); }

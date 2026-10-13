@@ -61,6 +61,11 @@ $description = $aktiv > 0
 <meta property="og:description" content="<?= $description ?>">
 
 <link rel="icon" id="favicon" type="image/svg+xml" href="favicon.svg">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Nordbahn">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="stylesheet" href="dashboard.css">
 <script defer src="https://bensch777.de/js/pa.js" data-domain="bensch777.de"></script>
 </head>
@@ -119,6 +124,7 @@ $description = $aktiv > 0
 </main>
 
 <footer class="site-foot wrap">
+	<p class="notify"><button type="button" id="notify-toggle" aria-pressed="false">Bei Ausfällen benachrichtigen</button></p>
 	<p class="site-foot__telegram">Auch auf Telegram: <a href="https://t.me/NordbahnEilmeldungen" rel="noopener">Nordbahn Eilmeldungen</a> und <a href="https://t.me/prisdorfpendler" rel="noopener">Prisdorf Pendler</a> mit allen Bahn-Updates.</p>
 	<p>Ein Projekt von <a href="https://bensch777.de/">bensch777.de</a>, keine offizielle Seite der Nordbahn. Quellen: nordbahn.de und strecken-info.de. Zeiten in deutscher Zeit.</p>
 </footer>
