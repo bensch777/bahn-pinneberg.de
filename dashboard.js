@@ -345,7 +345,13 @@
 				var line = el('div', { class: 'dep__line' }, [d.linie]);
 				if (d.wagen) line.appendChild(el('small', { text: plural(d.wagen, 'Wagen', 'Wagen') }));
 
-				var dest = el('div', { class: 'dep__dest', title: d.ziel }, [d.ziel]);
+				var dest = el('div', { class: 'dep__dest', title: d.ziel }, []);
+				if (d.ab) {
+					// Rueckrichtung: der Startbahnhof ist die wichtige Information, Altona faellt auf
+					dest.appendChild(el('span', { class: 'dep__ab' + (/altona/i.test(d.ab) ? ' dep__ab--altona' : ''), text: 'ab ' + d.ab }));
+					dest.appendChild(document.createTextNode(' '));
+				}
+				dest.appendChild(el('span', { class: 'dep__ziel', text: d.ziel }));
 				if (d.hinweis) dest.appendChild(el('small', { text: d.hinweis }));
 				if (d.ersatz) {
 					var e = d.ersatz;
@@ -354,7 +360,7 @@
 						+ (eLate ? ' (+' + e.verspaetung + ')' : '') + (e.gleis ? ', Gl. ' + e.gleis : '') }));
 				}
 
-				var where = [d.ab ? 'ab ' + d.ab : '', d.gleis ? 'Gl. ' + d.gleis : ''].filter(Boolean).join(', ');
+				var where = d.gleis ? 'Gl. ' + d.gleis : '';
 				var row = el('li', { class: cls }, [
 					el('span', { class: 'dep__dot', 'aria-hidden': 'true' }),
 					time,
