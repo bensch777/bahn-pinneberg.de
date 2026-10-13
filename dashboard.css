@@ -259,6 +259,8 @@ button { font: inherit; color: inherit; }
 .notice { padding: 14px 18px; color: var(--ink-2); }
 .site-foot { padding: 32px 16px 40px; color: var(--muted); font-size: 12.5px; }
 .site-foot p { margin: 0; }
+.site-foot__telegram { margin: 0 0 8px; font-size: 14px; color: var(--ink-2); }
+.site-foot__telegram a { color: var(--ink); font-weight: 500; }
 
 @media (prefers-reduced-motion: no-preference) {
 	.hbar__fill { transition: width 0.25s ease; }
@@ -299,6 +301,7 @@ button { font: inherit; color: inherit; }
 .dep--late .dep__time small { color: var(--critical-text); }
 .dep--cancelled .dep__time small { color: var(--critical-text); }
 .dep__line { font-weight: 700; font-size: 14px; color: var(--series); white-space: nowrap; }
+.dep__line small { display: block; font-size: 11px; font-weight: 500; color: var(--muted); }
 .dep__dest { font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dep__dest small { display: block; font-size: 11.5px; color: var(--muted); white-space: normal; }
 .dep__platform { font-size: 12.5px; color: var(--muted); white-space: nowrap; }

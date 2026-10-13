@@ -8,7 +8,7 @@
  * Quelle ist der Stationsmonitor der Nordbahn (datnet, ETC Consult), derselbe
  * Dienst, den nordbahn.de/reiseplanung/stationsmonitor/ anzeigt. Je Bahnhof
  * liefert er ein XML mit den naechsten Abfahrten: Soll-Zeit, Prognose in
- * Minuten, Gleis, Ausfall, Ersatzverkehr.
+ * Minuten, Gleis, Ausfall, Ersatzverkehr, Anzahl der Fahrzeuge.
  *
  *   hin:    Abfahrten in Prisdorf (APD) mit Ziel in Hamburg
  *   rueck:  Abfahrten in Hamburg Hbf (AH) und Hamburg-Altona (AA) Richtung
@@ -136,6 +136,9 @@ function abf_parse($xml, DateTime $now, &$stand)
             }
         }
 
+        // Anzahl der Fahrzeuge im Zug; auf der Nordbahn-Tafel steht das als Wagenzahl
+        $wagen = isset($row->fahrzeuge) ? count($row->fahrzeuge->fahrzeug) : 0;
+
         $ziel = $row->ziel ?? null;
         $out[] = [
             'zeit'        => $zeit,
@@ -148,6 +151,7 @@ function abf_parse($xml, DateTime $now, &$stand)
             'gleis'       => abf_text($row, 'gleis'),
             'ausfall'     => $ausfall,
             'hinweis'     => implode('. ', array_unique($hinweise)),
+            'wagen'       => abf_bool($row, 'istZug') && $wagen > 0 ? $wagen : null,
             'ab'          => null,
         ];
     }
@@ -213,6 +217,7 @@ function abf_build($fetch = 'abf_fetch')
                 'gleis'       => $row['gleis'],
                 'ausfall'     => $row['ausfall'],
                 'hinweis'     => $row['hinweis'],
+                'wagen'       => $row['wagen'],
                 'ab'          => $row['ab'],
             ];
             if (count($out) >= ABF_PER_DIR) {

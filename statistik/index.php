@@ -67,7 +67,7 @@ $description = 'Wie oft und warum es bei RB61 und RB71 hakt: Eilmeldungen der No
 		<div>
 			<p class="page-head__kicker"><a href="../">Nordbahn Monitor</a></p>
 			<h1>Statistik</h1>
-			<p class="page-head__lead">Wie oft und warum es bei RB61 und RB71 hakt. Grundlage sind alle Eilmeldungen, die die n8n-Workflows seit M&auml;rz 2026 eingesammelt haben, und der Verlauf der St&ouml;rungen laut strecken-info.de.</p>
+			<p class="page-head__lead">Wie oft und warum es bei RB61 und RB71 hakt. Grundlage sind alle Eilmeldungen der Nordbahn seit M&auml;rz 2026 und der Verlauf der St&ouml;rungen laut strecken-info.de.</p>
 		</div>
 		<p class="freshness" id="freshness" aria-live="polite"></p>
 	</div>
@@ -80,7 +80,7 @@ $description = 'Wie oft und warum es bei RB61 und RB71 hakt: Eilmeldungen der No
 	<section id="latest" class="section" aria-labelledby="latest-h">
 		<div class="section__head">
 			<h2 id="latest-h" class="section__title">Letzte Eilmeldungen</h2>
-			<p class="section__sub">Von der Nordbahn ver&ouml;ffentlicht, von n8n alle 15 Minuten eingesammelt.</p>
+			<p class="section__sub">Von der Nordbahn ver&ouml;ffentlicht, alle 15 Minuten abgeglichen.</p>
 		</div>
 		<ol class="feed" id="feed"></ol>
 	</section>
@@ -98,25 +98,16 @@ $description = 'Wie oft und warum es bei RB61 und RB71 hakt: Eilmeldungen der No
 		<div class="charts" id="charts"></div>
 	</section>
 
-	<section id="pipeline" class="section" aria-labelledby="pipeline-h">
-		<h2 id="pipeline-h" class="section__title">So entsteht diese Seite</h2>
-		<ol class="steps">
-			<li>
-				<strong>Eilmeldungen.</strong> Ein n8n-Workflow liest alle 15 Minuten die <a href="https://www.nordbahn.de/reiseplanung/eilmeldungen-sonderfahrplaene/?line-filter=3" rel="noopener">Eilmeldungen der Nordbahn</a> f&uuml;r RB60, RB61 und RB71. Neue Meldungen gehen sofort per Telegram raus und werden in einer Tabelle gemerkt. Daraus stammt die Historie.
-			</li>
-			<li>
-				<strong>St&ouml;rungen.</strong> Ein zweiter Workflow fragt alle 5 Minuten die <a href="https://strecken-info.de/" rel="noopener">St&ouml;rungsmeldungen der DB InfraGO</a> f&uuml;r die Strecken Hamburg&nbsp;&ndash; Elmshorn&nbsp;&ndash; Itzehoe/Wrist ab und meldet neue, verl&auml;ngerte und aufgehobene St&ouml;rungen per Telegram, Discord und X.
-			</li>
-			<li>
-				<strong>Dashboard.</strong> Ein dritter Workflow schickt alle 5 Minuten den aktuellen Stand an diese Seite. Aufgehobene St&ouml;rungen bleiben hier im Verlauf, damit sich auch die St&ouml;rungen &uuml;ber die Zeit auswerten lassen.
-			</li>
-		</ol>
+	<section id="pipeline" class="section section--compact" aria-labelledby="pipeline-h">
+		<h2 id="pipeline-h" class="section__title">Woher die Daten kommen</h2>
+		<p class="pipeline__text">Die Eilmeldungen stammen von <a href="https://www.nordbahn.de/reiseplanung/eilmeldungen-sonderfahrplaene/?line-filter=3" rel="noopener">nordbahn.de</a> und werden seit dem 26. M&auml;rz 2026 alle 15 Minuten abgeglichen; Kategorie und Linie sind aus dem Titel abgeleitet. Die St&ouml;rungen liefert <a href="https://strecken-info.de/" rel="noopener">strecken-info.de</a> (DB InfraGO) f&uuml;r den Abschnitt Hamburg&nbsp;&ndash; Elmshorn&nbsp;&ndash; Itzehoe/Wrist; aufgehobene St&ouml;rungen bleiben hier im Verlauf.</p>
 	</section>
 
 	<noscript><p class="notice">Ohne JavaScript bleiben die Diagramme leer. Die Rohdaten gibt es unter <a href="../api/data">api/data</a>.</p></noscript>
 </main>
 
 <footer class="site-foot wrap">
+	<p class="site-foot__telegram">Auch auf Telegram: <a href="https://t.me/NordbahnEilmeldungen" rel="noopener">Nordbahn Eilmeldungen</a> und <a href="https://t.me/prisdorfpendler" rel="noopener">Prisdorf Pendler</a> mit allen Bahn-Updates.</p>
 	<p>Ein Projekt von <a href="https://bensch777.de/">bensch777.de</a>, keine offizielle Seite der Nordbahn. Quellen: nordbahn.de und strecken-info.de. Zeiten in deutscher Zeit.</p>
 </footer>
 

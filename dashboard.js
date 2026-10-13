@@ -221,7 +221,7 @@
 				el('div', {}, [
 					el('p', { class: 'status__kicker', text: 'Jetzt auf der Strecke' }),
 					el('h3', { class: 'status__title', text: 'Noch keine Daten' }),
-					el('p', { class: 'status__sub', text: 'Der n8n-Workflow hat diese Seite noch nicht beliefert. Sobald der erste Abgleich ankommt, erscheint hier die Lage.' })
+					el('p', { class: 'status__sub', text: 'Sobald der erste Abgleich mit strecken-info.de ankommt, erscheint hier die Lage.' })
 				])
 			]);
 		} else if (list.length === 0) {
@@ -741,13 +741,15 @@
 				var time = el('div', { class: 'dep__time' }, [fmtClock(d.zeit)]);
 				if (d.ausfall) time.appendChild(el('small', { text: 'fällt aus' }));
 				else if (late) time.appendChild(el('small', { text: '+' + d.verspaetung + ' → ' + fmtClock(d.ist) }));
+				var line = el('div', { class: 'dep__line' }, [d.linie]);
+				if (d.wagen) line.appendChild(el('small', { text: plural(d.wagen, 'Wagen', 'Wagen') }));
 				var dest = el('div', { class: 'dep__dest', title: d.ziel }, [d.ziel]);
 				if (d.hinweis) dest.appendChild(el('small', { text: d.hinweis }));
 				var where = [d.ab ? 'ab ' + d.ab : '', d.gleis ? 'Gl. ' + d.gleis : ''].filter(Boolean).join(', ');
 				var row = el('li', { class: cls }, [
 					el('span', { class: 'dep__dot', 'aria-hidden': 'true' }),
 					time,
-					el('div', { class: 'dep__line', text: d.linie }),
+					line,
 					dest,
 					el('div', { class: 'dep__platform', text: where })
 				]);

@@ -115,7 +115,7 @@ $description = $aktiv > 0
 	<section id="latest" class="section" aria-labelledby="latest-h">
 		<div class="section__head">
 			<h2 id="latest-h" class="section__title">Letzte Eilmeldungen</h2>
-			<p class="section__sub">Von der Nordbahn ver&ouml;ffentlicht, von n8n alle 15 Minuten eingesammelt.</p>
+			<p class="section__sub">Von der Nordbahn ver&ouml;ffentlicht, alle 15 Minuten abgeglichen.</p>
 		</div>
 		<ol class="feed" id="feed" data-limit="6"></ol>
 		<p class="section__more"><a href="statistik/">Statistik: wie oft und warum es hakt &rarr;</a></p>
@@ -123,13 +123,14 @@ $description = $aktiv > 0
 
 	<section id="pipeline" class="section section--compact" aria-labelledby="pipeline-h">
 		<h2 id="pipeline-h" class="section__title">Woher die Daten kommen</h2>
-		<p class="pipeline__text">St&ouml;rungen liefert <a href="https://strecken-info.de/" rel="noopener">strecken-info.de</a> (DB InfraGO), die Eilmeldungen stammen von <a href="https://www.nordbahn.de/reiseplanung/eilmeldungen-sonderfahrplaene/?line-filter=3" rel="noopener">nordbahn.de</a>, die Abfahrten vom <a href="https://www.nordbahn.de/reiseplanung/stationsmonitor/" rel="noopener">Stationsmonitor der Nordbahn</a>. Zwei n8n-Workflows sammeln St&ouml;rungen (alle 5 Minuten) und Eilmeldungen (alle 15 Minuten) ein, melden Neues per Telegram, Discord und X und schicken den Stand an diese Seite.</p>
+		<p class="pipeline__text">St&ouml;rungen liefert <a href="https://strecken-info.de/" rel="noopener">strecken-info.de</a> (DB InfraGO, alle 5 Minuten abgefragt), die Eilmeldungen stammen von <a href="https://www.nordbahn.de/reiseplanung/eilmeldungen-sonderfahrplaene/?line-filter=3" rel="noopener">nordbahn.de</a> (alle 15 Minuten), die Abfahrten vom <a href="https://www.nordbahn.de/reiseplanung/stationsmonitor/" rel="noopener">Stationsmonitor der Nordbahn</a> (jede Minute).</p>
 	</section>
 
 	<noscript><p class="notice">Ohne JavaScript bleibt die Seite leer. Die Rohdaten gibt es unter <a href="api/data">api/data</a>.</p></noscript>
 </main>
 
 <footer class="site-foot wrap">
+	<p class="site-foot__telegram">Auch auf Telegram: <a href="https://t.me/NordbahnEilmeldungen" rel="noopener">Nordbahn Eilmeldungen</a> und <a href="https://t.me/prisdorfpendler" rel="noopener">Prisdorf Pendler</a> mit allen Bahn-Updates.</p>
 	<p>Ein Projekt von <a href="https://bensch777.de/">bensch777.de</a>, keine offizielle Seite der Nordbahn. Quellen: nordbahn.de und strecken-info.de. Zeiten in deutscher Zeit.</p>
 </footer>
 
