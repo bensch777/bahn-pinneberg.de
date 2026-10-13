@@ -36,6 +36,9 @@ if ($json === false) {
 }
 
 $aktiv = count($data['stoerungen']);
+// Versionsstempel an Script und Stylesheet, damit Browser nach einem Deploy nicht
+// mit altem JavaScript gegen die neue API laufen.
+$assetVersion = max((int) @filemtime(__DIR__ . '/dashboard.js'), (int) @filemtime(__DIR__ . '/dashboard.css'));
 $description = $aktiv > 0
     ? $aktiv . ' aktive St&ouml;rung' . ($aktiv === 1 ? '' : 'en') . ' auf der Nordbahn-Strecke Hamburg &ndash; Elmshorn &ndash; Itzehoe/Wrist. Dazu die n&auml;chsten Z&uuml;ge ab Prisdorf nach Hamburg und zur&uuml;ck sowie die letzten Eilmeldungen zu RB61 und RB71.'
     : 'St&ouml;rungen, n&auml;chste Z&uuml;ge zwischen Prisdorf und Hamburg und Eilmeldungen der Nordbahn-Linien RB61 und RB71 zwischen Hamburg, Elmshorn, Itzehoe und Wrist auf einen Blick.';
@@ -66,7 +69,7 @@ $description = $aktiv > 0
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Nordbahn">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<link rel="stylesheet" href="dashboard.css">
+<link rel="stylesheet" href="dashboard.css?v=<?= $assetVersion ?>">
 <script defer src="https://bensch777.de/js/pa.js" data-domain="bensch777.de"></script>
 </head>
 <body>
@@ -148,6 +151,6 @@ $description = $aktiv > 0
 </footer>
 
 <script id="nordbahn-data" type="application/json"><?= $json ?></script>
-<script src="dashboard.js" defer></script>
+<script src="dashboard.js?v=<?= $assetVersion ?>" defer></script>
 </body>
 </html>
