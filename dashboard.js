@@ -225,28 +225,42 @@
 	}
 
 	/**
-	 * Karte 3: laeuft der Fahrplan? Ausfaelle, Umleitungen ueber Altona (bei RB61/RB71,
-	 * die RB60 faehrt planmaessig ab Altona) und Verspaetungen ab zehn Minuten.
+	 * Karte 3: laeuft der Fahrplan? Zaehlt Ausfaelle, Umleitungen ueber Altona (bei RB61/RB71,
+	 * die RB60 faehrt planmaessig ab Altona) und Verspaetungen ab zehn Minuten und setzt sie ins
+	 * Verhaeltnis zu allen angezeigten Zuegen: bis zu einem Viertel betroffen ist eine Warnung,
+	 * darueber eine Stoerung.
 	 */
+	var BETRIEB_ALERT_ANTEIL = 0.25;
+
 	function renderBetrieb(result) {
 		if (!result) { setStatus('status-betrieb', 'unknown', 'Lade Fahrplan …'); return; }
 		if (!result.richtungen) { setStatus('status-betrieb', 'unknown', 'Fahrplanlage unbekannt'); return; }
-		var ausfaelle = 0, umleitungen = 0, verspaetet = 0, maxDelay = 0;
+		var total = 0, ausfaelle = 0, umleitungen = 0, verspaetet = 0, maxDelay = 0;
 		['hin', 'rueck'].forEach(function (key) {
 			(result.richtungen[key] || []).slice(0, 6).forEach(function (d) {
+				total++;
 				var rb60 = /RB\s?60/i.test(d.linie || '');
 				var altona = !rb60 && (/altona/i.test(d.ab || '') || /altona/i.test(d.ziel || '') || !!d.ersatz);
 				if (d.ausfall && !d.ersatz) ausfaelle++;
 				else if (altona) umleitungen++;
-				if (!d.ausfall && d.verspaetung >= 10) { verspaetet++; maxDelay = Math.max(maxDelay, d.verspaetung); }
+				else if (d.verspaetung >= 10) { verspaetet++; maxDelay = Math.max(maxDelay, d.verspaetung); }
 			});
 		});
+		var betroffen = ausfaelle + umleitungen + verspaetet;
+		if (!total || !betroffen) {
+			setStatus('status-betrieb', result.ok ? 'ok' : 'unknown', result.ok ? 'Fahrplan läuft' : 'Fahrplanlage unbekannt');
+			return;
+		}
 		var parts = [];
 		if (ausfaelle) parts.push(plural(ausfaelle, 'Zugausfall', 'Zugausfälle'));
 		if (umleitungen) parts.push(umleitungen === 1 ? 'Umleitung über Altona' : umleitungen + ' Umleitungen über Altona');
 		if (verspaetet) parts.push('Verspätungen bis ' + maxDelay + ' Min');
-		if (!parts.length) setStatus('status-betrieb', result.ok ? 'ok' : 'unknown', result.ok ? 'Fahrplan läuft' : 'Fahrplanlage unbekannt');
-		else setStatus('status-betrieb', ausfaelle || umleitungen ? 'alert' : 'warn', 'Betrieb gestört', parts.join(', '));
+		var anteil = betroffen / total;
+		var level = anteil > BETRIEB_ALERT_ANTEIL ? 'alert' : 'warn';
+		var prozent = Math.round(anteil * 100);
+		setStatus('status-betrieb', level,
+			level === 'alert' ? 'Betrieb gestört' : 'Betrieb beeinträchtigt',
+			betroffen + ' von ' + total + ' Zügen (' + prozent + ' %): ' + parts.join(', '));
 	}
 
 	function renderIncident(s) {
