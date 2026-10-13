@@ -14,7 +14,8 @@
  *   rueck:  Abfahrten in Hamburg Hbf (AH) und Hamburg-Altona (AA) Richtung
  *           Norden; RB60, RB61 und RB71 halten alle in Prisdorf. Faellt ein
  *           Zug ab Hbf aus und dieselbe Zugnummer startet ab Altona, wird das
- *           als Ersatz an die ausgefallene Zeile gehaengt (und umgekehrt).
+ *           als Ersatz an die ausgefallene Zeile gehaengt (und umgekehrt);
+ *           der Ersatz steht zusaetzlich als eigene Zeile in der Liste.
  *
  * Fuer ausgefallene und verspaetete Zuege holt der Endpunkt zusaetzlich die
  * Ursache vom Zug-Endpunkt (?zug=Nummer, Element ursachetext), hoechstens
@@ -165,7 +166,8 @@ function abf_add_ursachen(array &$lists, $fetch)
 /**
  * Faellt ein Zug an einem Hamburger Bahnhof aus und dieselbe Zugnummer faehrt
  * am anderen los, wird die fahrende Abfahrt als Ersatz an die ausgefallene
- * gehaengt und nicht mehr einzeln gelistet.
+ * gehaengt. Sie bleibt trotzdem als eigene Zeile stehen, denn wer schon in
+ * Altona steht, sucht sie dort in der Liste.
  */
 function abf_merge_ersatz(array $rows)
 {
@@ -175,7 +177,6 @@ function abf_merge_ersatz(array $rows)
             $byZug[$row['zug']][] = $i;
         }
     }
-    $drop = [];
     foreach ($byZug as $indexes) {
         if (count($indexes) < 2) {
             continue;
@@ -188,6 +189,8 @@ function abf_merge_ersatz(array $rows)
                 if ($j === $i || $rows[$j]['ausfall'] || $rows[$j]['ab'] === $rows[$i]['ab']) {
                     continue;
                 }
+                // Der Ausfall bekommt den Verweis auf den Ersatz, der Ersatz bleibt als
+                // eigene Zeile stehen und sagt, fuer welchen Zug er faehrt.
                 $rows[$i]['ersatz'] = [
                     'ab'          => $rows[$j]['ab'],
                     'zeit'        => $rows[$j]['zeit'],
@@ -195,19 +198,16 @@ function abf_merge_ersatz(array $rows)
                     'verspaetung' => $rows[$j]['verspaetung'],
                     'gleis'       => $rows[$j]['gleis'],
                 ];
-                $drop[$j] = true;
+                $rows[$j]['ersatz_fuer'] = [
+                    'ab'   => $rows[$i]['ab'],
+                    'zeit' => $rows[$i]['zeit'],
+                ];
                 break;
             }
         }
     }
-    $out = [];
-    foreach ($rows as $i => $row) {
-        if (!isset($drop[$i])) {
-            $out[] = $row;
-        }
-    }
 
-    return $out;
+    return $rows;
 }
 
 /**
@@ -299,6 +299,7 @@ function abf_parse($xml, DateTime $now, &$stand)
             'wagen'       => abf_bool($row, 'istZug') && $wagen > 0 ? $wagen : null,
             'ab'          => null,
             'ersatz'      => null,
+            'ersatz_fuer' => null,
         ];
     }
 
@@ -389,6 +390,9 @@ function abf_build($fetch = 'abf_fetch')
                 'wagen'       => $row['wagen'],
                 'ab'          => $row['ab'],
                 'ersatz'      => $ersatz,
+                'ersatz_fuer' => $row['ersatz_fuer']
+                    ? ['ab' => $row['ersatz_fuer']['ab'], 'zeit' => $row['ersatz_fuer']['zeit']->format('c')]
+                    : null,
             ];
             if (count($out) >= ABF_PER_DIR) {
                 break;

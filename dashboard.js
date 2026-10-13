@@ -202,6 +202,7 @@
 		var total = 0, ausfaelle = 0, umleitungen = 0, verspaetet = 0, maxDelay = 0;
 		['hin', 'rueck'].forEach(function (key) {
 			(result.richtungen[key] || []).slice(0, 6).forEach(function (d) {
+				if (d.ersatz_fuer) return; // Ersatzzug ist schon ueber den Ausfall erfasst
 				total++;
 				var rb60 = /RB\s?60/i.test(d.linie || '');
 				var altona = !rb60 && (/altona/i.test(d.ab || '') || /altona/i.test(d.ziel || '') || !!d.ersatz);
@@ -348,8 +349,8 @@
 			deps.slice(0, 6).forEach(function (d) {
 				var late = !d.ausfall && d.verspaetung >= 3;
 				var cls = 'dep' + (d.ausfall ? ' dep--cancelled' : late ? ' dep--late' : '');
-				var fahrbar = !d.ausfall || !!d.ersatz;
-				if (fahrbar && !nextMarked) { cls += ' dep--next'; nextMarked = true; }
+				if (d.ersatz_fuer) cls += ' dep--ersatz';
+				if (!d.ausfall && !nextMarked) { cls += ' dep--next'; nextMarked = true; }
 
 				var time = el('div', { class: 'dep__time' }, [fmtClock(d.zeit)]);
 				if (d.ausfall) time.appendChild(el('small', { text: 'fällt aus' }));
@@ -373,6 +374,9 @@
 					dest.appendChild(document.createTextNode(' '));
 				}
 				dest.appendChild(el('span', { class: 'dep__ziel', text: d.ziel }));
+				if (d.ersatz_fuer) {
+					dest.appendChild(el('small', { class: 'dep__ersatz', text: 'Ersatz für den ' + fmtClock(d.ersatz_fuer.zeit) + ' ab ' + d.ersatz_fuer.ab }));
+				}
 				if (d.hinweis) dest.appendChild(el('small', { text: d.hinweis }));
 				if (d.ersatz) {
 					var e = d.ersatz;
@@ -390,6 +394,7 @@
 					el('div', { class: 'dep__platform', text: where })
 				]);
 				var sr = (d.ausfall ? 'Fällt aus: ' : late ? 'Verspätet um ' + d.verspaetung + ' Minuten: ' : '');
+				if (d.ersatz_fuer) sr = 'Ersatz für ' + fmtClock(d.ersatz_fuer.zeit) + ' ab ' + d.ersatz_fuer.ab + ': ';
 				if (sr) row.setAttribute('aria-label', sr + fmtClock(d.zeit) + ' ' + d.linie + ' nach ' + d.ziel + (d.ab ? ' ab ' + d.ab : ''));
 				list.appendChild(row);
 			});

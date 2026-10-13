@@ -227,6 +227,7 @@ button { font: inherit; color: inherit; }
 .dep--next::before { content: ''; position: absolute; left: -18px; top: 8px; bottom: 8px; width: 3px; border-radius: 0 2px 2px 0; background: var(--series); }
 .dep--next .dep__time { color: var(--ink); }
 .dep__ersatz { color: var(--ink) !important; font-weight: 500; }
+.dep--ersatz .dep__dot { background: var(--series-2); }
 .dep--cancelled .dep__time small { color: var(--critical-text); }
 .dep__line { font-weight: 700; font-size: 14px; color: var(--series); white-space: nowrap; }
 .dep__line small { display: block; font-size: 11px; font-weight: 500; color: var(--muted); }
