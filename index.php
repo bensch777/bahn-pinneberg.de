@@ -2,10 +2,11 @@
 /**
  * Nordbahn Monitor (nordbahn.bensch777.de): Statusseite zu den Linien RB61
  * und RB71 zwischen Hamburg, Elmshorn, Itzehoe und Wrist, gedacht fuer
- * Pendler aus Prisdorf.
+ * Pendler entlang der Strecke.
  *
  * Auf einen Blick: aktive Stoerungen laut strecken-info.de, die naechsten
- * Abfahrten ab Prisdorf in die Stadt und ab Hamburg zurueck, und die letzten
+ * Abfahrten vom eigenen Bahnhof in die Stadt und ab Hamburg zurueck (der
+ * Bahnhof ist waehlbar und bleibt im Browser gespeichert), und die letzten
  * Eilmeldungen der Nordbahn.
  *
  * Dieser Ordner ist das Wurzelverzeichnis der Subdomain und zugleich als
@@ -117,22 +118,32 @@ $description = $aktiv > 0
 		<ul class="incidents" id="incidents" hidden></ul>
 	</section>
 
-	<section id="abfahrten" class="section" aria-labelledby="abfahrten-h" data-endpoint="api/abfahrten" data-data-endpoint="api/data">
+	<section id="abfahrten" class="section" aria-labelledby="abfahrten-h" data-endpoint="api/abfahrten" data-data-endpoint="api/data" data-heimat-default="<?= NORDBAHN_HEIMAT_DEFAULT ?>">
 		<div class="section__head">
 			<h2 id="abfahrten-h" class="section__title">N&auml;chste Z&uuml;ge</h2>
-			<p class="section__sub" id="abfahrten-sub"></p>
+			<div class="section__tools">
+				<label class="heimat">
+					<span class="heimat__label">Mein Bahnhof</span>
+					<select id="heimat" class="heimat__select">
+<?php foreach (NORDBAHN_BAHNHOEFE as $id => $bhf): ?>
+						<option value="<?= $id ?>" data-ast="<?= $bhf['ast'] ?>"<?= $id === NORDBAHN_HEIMAT_DEFAULT ? ' selected' : '' ?>><?= htmlspecialchars($bhf['name'], ENT_QUOTES, 'UTF-8') ?></option>
+<?php endforeach; ?>
+					</select>
+				</label>
+				<p class="section__sub" id="abfahrten-sub"></p>
+			</div>
 		</div>
 		<div class="boards">
 			<div class="card board" data-richtung="hin">
 				<div class="board__head">
-					<h3 class="board__title">Prisdorf &rarr; Hamburg</h3>
+					<h3 class="board__title" id="board-title-hin">Prisdorf &rarr; Hamburg</h3>
 					<p class="board__sub">Hbf / Altona</p>
 				</div>
 				<ol class="board__list" aria-live="polite"></ol>
 			</div>
 			<div class="card board" data-richtung="rueck">
 				<div class="board__head">
-					<h3 class="board__title">Hamburg &rarr; Wrist / Itzehoe</h3>
+					<h3 class="board__title" id="board-title-rueck">Hamburg &rarr; Wrist / Itzehoe</h3>
 					<p class="board__sub">ab Hbf und Altona</p>
 				</div>
 				<ol class="board__list" aria-live="polite"></ol>

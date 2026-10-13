@@ -1,45 +1,68 @@
 <?php
 /**
- * Abfahrten fuer Pendler aus Prisdorf: hin in die Stadt und aus der Stadt
+ * Abfahrten fuer Pendler: vom Heimatbahnhof in die Stadt und aus der Stadt
  * zurueck.
  *
- * URL: https://nordbahn.bensch777.de/api/abfahrten
+ * URL: https://nordbahn.bensch777.de/api/abfahrten?bhf=APD
+ *      bhf ist die ID des Heimatbahnhofs aus NORDBAHN_BAHNHOEFE (store.php),
+ *      ohne Angabe Prisdorf.
  *
  * Quelle ist der Stationsmonitor der Nordbahn (datnet, ETC Consult), derselbe
  * Dienst, den nordbahn.de/reiseplanung/stationsmonitor/ anzeigt. Je Bahnhof
  * liefert er ein XML mit den naechsten Abfahrten: Soll-Zeit, Prognose in
  * Minuten, Gleis, Ausfall, Ersatzverkehr, Anzahl der Fahrzeuge.
  *
- *   hin:    Abfahrten in Prisdorf (APD) mit Ziel in Hamburg
+ *   hin:    Abfahrten am Heimatbahnhof mit Ziel in Hamburg
  *   rueck:  Abfahrten in Hamburg Hbf (AH) und Hamburg-Altona (AA) Richtung
- *           Norden; RB60, RB61 und RB71 halten alle in Prisdorf. Faellt ein
- *           Zug ab Hbf aus und dieselbe Zugnummer startet ab Altona, wird das
- *           als Ersatz an die ausgefallene Zeile gehaengt (und umgekehrt);
- *           der Ersatz steht zusaetzlich als eigene Zeile in der Liste.
+ *           Norden, die den Heimatbahnhof erreichen: bis Elmshorn alle, auf
+ *           dem Ast nach Itzehoe nur Zuege nach Itzehoe, auf dem nach Wrist
+ *           nur Zuege nach Wrist. Faellt ein Zug ab Hbf aus und dieselbe
+ *           Zugnummer startet ab Altona, wird das als Ersatz an die
+ *           ausgefallene Zeile gehaengt (und umgekehrt); der Ersatz steht
+ *           zusaetzlich als eigene Zeile in der Liste.
  *
  * Fuer ausgefallene und verspaetete Zuege holt der Endpunkt zusaetzlich die
  * Ursache vom Zug-Endpunkt (?zug=Nummer, Element ursachetext), hoechstens
  * sechs Abfragen je Aufbereitung, je Zug fuenf Minuten gecacht.
  *
- * Die Antwort wird eine Minute lang gecacht, damit viele Browser nicht viele
- * Anfragen an die Nordbahn ausloesen. Ist der Monitor nicht erreichbar, kommt
- * der letzte bekannte Stand mit ok=false.
+ * Die Antwort wird je Bahnhof eine Minute lang gecacht, damit viele Browser
+ * nicht viele Anfragen an die Nordbahn ausloesen. Ist der Monitor nicht
+ * erreichbar, kommt der letzte bekannte Stand mit ok=false.
  */
 
 require __DIR__ . '/store.php';
 
 const ABF_API        = 'https://datnet-nbe.etc-consult.de/datnet-nbe/xml_v3';
-const ABF_HEIMAT     = 'APD';                        // Prisdorf
 const ABF_STADT      = ['AH' => 'Hbf', 'AA' => 'Altona']; // Startbahnhoefe fuer den Rueckweg
 const ABF_STADT_IDS  = ['AH', 'AA', 'ADF'];          // Ziele, die "in die Stadt" bedeuten
 const ABF_TTL        = 60;                           // Sekunden, die eine Antwort gueltig bleibt
 const ABF_PER_DIR    = 8;                            // Abfahrten je Richtung in der Antwort
 const ABF_TIMEOUT    = 6;                            // Sekunden je Anfrage
-const ABF_CACHE_FILE = NORDBAHN_CACHE_DIR . '/abfahrten.json';
-const ABF_LOCK_FILE  = NORDBAHN_CACHE_DIR . '/abfahrten.lock';
 const ABF_ZUG_CACHE  = NORDBAHN_CACHE_DIR . '/zuege.json'; // Ursachen je Zugnummer
 const ABF_ZUG_TTL    = 300;                                 // Sekunden, die eine Ursache gilt
 const ABF_ZUG_MAX    = 6;                                   // Zugabfragen je Aufbereitung
+
+/**
+ * Erreicht ein Zug mit diesem Ziel den Heimatbahnhof? Bis Elmshorn ja, sofern
+ * das Ziel dahinter liegt; auf den Aesten nur, wenn das Ziel auf demselben Ast
+ * weiter draussen liegt. Unbekannte Ziele gelten fuer den Stamm als erreicht,
+ * denn alle Nordbahn-Zuege aus Hamburg fahren mindestens bis Elmshorn.
+ */
+function abf_erreicht($zielId, $heimat)
+{
+    $bahnhoefe = NORDBAHN_BAHNHOEFE;
+    $reihe = array_keys($bahnhoefe);
+    $heimatAst = $bahnhoefe[$heimat]['ast'];
+    if (!isset($bahnhoefe[$zielId])) {
+        return $heimatAst === 'stamm';
+    }
+    $zielAst = $bahnhoefe[$zielId]['ast'];
+    if ($heimatAst !== 'stamm' && $zielAst !== $heimatAst) {
+        return false;
+    }
+
+    return array_search($heimat, $reihe, true) <= array_search($zielId, $reihe, true);
+}
 
 /** Holt eine URL als Text, oder null bei Fehler. */
 function abf_fetch($url)
@@ -319,16 +342,16 @@ function abf_parse($xml, DateTime $now, &$stand)
 }
 
 /** Holt die Tafeln und sortiert die Abfahrten nach hin und zurueck. */
-function abf_build($fetch = 'abf_fetch')
+function abf_build($fetch = 'abf_fetch', $heimat = NORDBAHN_HEIMAT_DEFAULT)
 {
     $now = new DateTime('now', new DateTimeZone('Europe/Berlin'));
     $stand = '';
     $quellen = [];
 
     $hin = [];
-    $xml = $fetch(abf_url(ABF_HEIMAT));
+    $xml = $fetch(abf_url($heimat));
     $rows = $xml !== null ? abf_parse($xml, $now, $stand) : null;
-    $quellen[ABF_HEIMAT] = $rows !== null;
+    $quellen[$heimat] = $rows !== null;
     foreach ($rows ?? [] as $row) {
         if (in_array($row['ziel_id'], ABF_STADT_IDS, true) || stripos($row['ziel'], 'Hamburg') !== false) {
             $hin[] = $row;
@@ -341,8 +364,11 @@ function abf_build($fetch = 'abf_fetch')
         $rows = $xml !== null ? abf_parse($xml, $now, $stand) : null;
         $quellen[$id] = $rows !== null;
         foreach ($rows ?? [] as $row) {
-            // Alles, was nicht in Hamburg endet, faehrt ueber Prisdorf nach Norden
+            // Nur Zuege nach Norden, die am Heimatbahnhof vorbeikommen
             if (in_array($row['ziel_id'], ABF_STADT_IDS, true) || stripos($row['ziel'], 'Hamburg') !== false) {
+                continue;
+            }
+            if (!abf_erreicht($row['ziel_id'], $heimat)) {
                 continue;
             }
             $row['ab'] = $label;
@@ -350,7 +376,7 @@ function abf_build($fetch = 'abf_fetch')
         }
     }
 
-    if (!$quellen[ABF_HEIMAT] && !in_array(true, $quellen, true)) {
+    if (!$quellen[$heimat] && !in_array(true, $quellen, true)) {
         return null;
     }
 
@@ -420,16 +446,25 @@ function abf_build($fetch = 'abf_fetch')
         'ok'         => true,
         'fetched_at' => $now->format('c'),
         'stand'      => $stand,
+        'heimat'     => ['id' => $heimat, 'name' => NORDBAHN_BAHNHOEFE[$heimat]['name']],
         'quellen'    => $quellen,
         'richtungen' => ['hin' => $format($hin), 'rueck' => $format($rueck)],
     ];
 }
 
 // Auf der Kommandozeile laesst sich die Aufbereitung gegen lokale Dateien pruefen:
-// php nordbahn/api/abfahrten.php prisdorf.xml hbf.xml altona.xml [zug.xml]
+// php nordbahn/api/abfahrten.php [--bhf=APD] heimat.xml hbf.xml altona.xml [zug.xml]
 // Die vierte Datei dient als Antwort fuer alle Zugabfragen; der Zug-Cache wird dabei nicht benutzt.
 if (PHP_SAPI === 'cli') {
     $files = array_slice($argv, 1);
+    $heimat = NORDBAHN_HEIMAT_DEFAULT;
+    if (isset($files[0]) && strpos($files[0], '--bhf=') === 0) {
+        $heimat = substr(array_shift($files), 6);
+        if (!isset(NORDBAHN_BAHNHOEFE[$heimat])) {
+            fwrite(STDERR, "Unbekannter Bahnhof: $heimat\n");
+            exit(1);
+        }
+    }
     $zugFile = count($files) > 3 ? $files[3] : null;
     $index = 0;
     $result = abf_build(function ($url) use ($files, $zugFile, &$index) {
@@ -439,7 +474,7 @@ if (PHP_SAPI === 'cli') {
         $file = $files[$index++] ?? null;
 
         return $file !== null && is_readable($file) ? file_get_contents($file) : null;
-    });
+    }, $heimat);
     echo json_encode($result, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT), "\n";
     exit;
 }
@@ -448,7 +483,16 @@ header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: public, max-age=30');
 header('X-Robots-Tag: noindex');
 
-$cached = nordbahn_read_json(ABF_CACHE_FILE);
+$heimat = isset($_GET['bhf']) ? strtoupper(trim((string) $_GET['bhf'])) : NORDBAHN_HEIMAT_DEFAULT;
+if (!isset(NORDBAHN_BAHNHOEFE[$heimat])) {
+    http_response_code(400);
+    echo json_encode(['ok' => false, 'error' => 'Unbekannter Bahnhof.', 'bahnhoefe' => array_keys(NORDBAHN_BAHNHOEFE)]);
+    exit;
+}
+$cacheFile = NORDBAHN_CACHE_DIR . '/abfahrten-' . $heimat . '.json';
+$lockFile  = NORDBAHN_CACHE_DIR . '/abfahrten-' . $heimat . '.lock';
+
+$cached = nordbahn_read_json($cacheFile);
 $fresh = is_array($cached) && isset($cached['fetched_at']) && (time() - strtotime($cached['fetched_at'])) < ABF_TTL;
 
 if (!$fresh) {
@@ -456,11 +500,11 @@ if (!$fresh) {
     if (!is_dir(NORDBAHN_CACHE_DIR)) {
         @mkdir(NORDBAHN_CACHE_DIR, 0775, true);
     }
-    $lock = @fopen(ABF_LOCK_FILE, 'c');
+    $lock = @fopen($lockFile, 'c');
     if ($lock !== false && flock($lock, LOCK_EX | LOCK_NB)) {
-        $result = abf_build();
+        $result = abf_build('abf_fetch', $heimat);
         if ($result !== null) {
-            nordbahn_write_json(ABF_CACHE_FILE, $result);
+            nordbahn_write_json($cacheFile, $result);
             $cached = $result;
         } elseif (is_array($cached)) {
             $cached['ok'] = false;

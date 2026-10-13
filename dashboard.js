@@ -413,13 +413,52 @@
 
 	var departuresState = { last: null };
 
+	/* ---------- Heimatbahnhof ---------- */
+
+	var HEIMAT_KEY = 'nordbahn.heimat';
+	var heimatState = { id: 'APD', name: 'Prisdorf', ast: 'stamm' };
+
+	/** Liest die Auswahl aus dem Select; der Wert kommt aus localStorage oder der Vorgabe der Seite. */
+	function initHeimat() {
+		var select = document.getElementById('heimat');
+		var section = document.getElementById('abfahrten');
+		if (!select || !section) return;
+		var wanted = section.getAttribute('data-heimat-default') || 'APD';
+		try { wanted = localStorage.getItem(HEIMAT_KEY) || wanted; } catch (e) { /* privater Modus */ }
+		if (select.querySelector('option[value="' + wanted + '"]')) select.value = wanted;
+		applyHeimat(select);
+		select.addEventListener('change', function () {
+			applyHeimat(select);
+			try { localStorage.setItem(HEIMAT_KEY, heimatState.id); } catch (e) { /* egal */ }
+			departuresState.last = null;
+			renderDepartures(null);
+			refreshDepartures();
+		});
+	}
+
+	function applyHeimat(select) {
+		var opt = select.options[select.selectedIndex];
+		heimatState = { id: select.value, name: opt ? opt.textContent : select.value, ast: opt ? opt.getAttribute('data-ast') || 'stamm' : 'stamm' };
+		var hin = document.getElementById('board-title-hin');
+		var rueck = document.getElementById('board-title-rueck');
+		if (hin) hin.textContent = heimatState.name + ' → Hamburg';
+		if (rueck) rueck.textContent = rueckTitel();
+	}
+
+	/** Hinter Elmshorn faehrt nur noch ein Ast, davor beide. */
+	function rueckTitel() {
+		return 'Hamburg → ' + (heimatState.ast === 'itzehoe' ? 'Itzehoe' : heimatState.ast === 'wrist' ? 'Wrist' : 'Wrist / Itzehoe');
+	}
+
 	function refreshDepartures() {
 		var section = document.getElementById('abfahrten');
 		if (!section || document.hidden || !window.fetch) return Promise.resolve();
-		var url = section.getAttribute('data-endpoint') || 'api/abfahrten';
+		var heimat = heimatState.id;
+		var url = (section.getAttribute('data-endpoint') || 'api/abfahrten') + '?bhf=' + encodeURIComponent(heimat);
 		return fetch(url, { cache: 'no-cache', headers: { 'Accept': 'application/json' } })
 			.then(function (res) { return res.json(); })
 			.then(function (result) {
+				if (heimat !== heimatState.id) return; // inzwischen umgestellt, Antwort ist veraltet
 				departuresState.last = result;
 				renderDepartures(result);
 			})
@@ -525,9 +564,9 @@
 		['hin', 'rueck'].forEach(function (key) {
 			(result.richtungen[key] || []).slice(0, 6).forEach(function (d) {
 				if (!d.ausfall) return;
-				var richtung = key === 'hin' ? 'Prisdorf → Hamburg' : 'Hamburg → Wrist / Itzehoe';
+				var richtung = key === 'hin' ? heimatState.name + ' → Hamburg' : rueckTitel();
 				events.push({
-					id: 'zug:' + (d.zug || d.linie + d.zeit),
+					id: 'zug:' + heimatState.id + ':' + (d.zug || d.linie + d.zeit),
 					title: 'Zugausfall ' + d.linie + ' um ' + fmtClock(d.zeit) + ' Uhr',
 					body: richtung + (d.ab ? ' ab ' + d.ab : '') + (d.hinweis ? '. ' + d.hinweis : '')
 						+ (d.ersatz ? '. Fährt stattdessen ab ' + d.ersatz.ab + ' um ' + fmtClock(d.ersatz.zeit) + ' Uhr' : '')
@@ -633,6 +672,7 @@
 		setInterval(renderFreshness, 60000);
 		setInterval(function () { if (!document.hidden) window.location.reload(); }, RELOAD_MS);
 		if (document.getElementById('abfahrten')) {
+			initHeimat();
 			orderBoards();
 			renderDepartures(null);
 			refreshDepartures();

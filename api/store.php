@@ -25,6 +25,26 @@ const NORDBAHN_LOG_FILE  = NORDBAHN_CACHE_DIR . '/stoerungen-log.json';
 // letzten Zeitpunkt, zu dem n8n sie noch als aktiv gemeldet hat.
 const NORDBAHN_LOG_KEEP_DAYS = 400;
 
+// Bahnhoefe, die sich als Heimat waehlen lassen, in Streckenreihenfolge ab
+// Hamburg. Die IDs sind die des Nordbahn-Stationsmonitors. 'ast' sagt, welche
+// Zuege dort halten: auf dem Stamm bis Elmshorn alle, dahinter nur die nach
+// Itzehoe (RB61) oder nur die nach Wrist (RB71).
+const NORDBAHN_BAHNHOEFE = [
+    'AP'   => ['name' => 'Pinneberg',     'ast' => 'stamm'],
+    'APD'  => ['name' => 'Prisdorf',      'ast' => 'stamm'],
+    'ATM'  => ['name' => 'Tornesch',      'ast' => 'stamm'],
+    'AEL'  => ['name' => 'Elmshorn',      'ast' => 'stamm'],
+    'AHZH' => ['name' => 'Herzhorn',      'ast' => 'itzehoe'],
+    'AGST' => ['name' => 'Glückstadt',    'ast' => 'itzehoe'],
+    'AKM'  => ['name' => 'Krempe',        'ast' => 'itzehoe'],
+    'AKHD' => ['name' => 'Kremperheide',  'ast' => 'itzehoe'],
+    'AIZ'  => ['name' => 'Itzehoe',       'ast' => 'itzehoe'],
+    'AHOT' => ['name' => 'Horst (Holst)', 'ast' => 'wrist'],
+    'ADH'  => ['name' => 'Dauenhof',      'ast' => 'wrist'],
+    'AWST' => ['name' => 'Wrist',         'ast' => 'wrist'],
+];
+const NORDBAHN_HEIMAT_DEFAULT = 'APD';
+
 /** Liest config.php aus dem Web-Root. Fehlt sie, bleibt die Liste leer. */
 function nordbahn_config()
 {
