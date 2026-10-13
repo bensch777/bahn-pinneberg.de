@@ -388,6 +388,16 @@
 				if (d.ersatz_fuer) {
 					dest.appendChild(el('small', { class: 'dep__ersatz', text: 'Ersatz für den ' + fmtClock(d.ersatz_fuer.zeit) + ' ab ' + d.ersatz_fuer.ab }));
 				}
+				if (d.dammtor && !d.ausfall) {
+					// Zuege ab Hbf halten drei Minuten spaeter am Dammtor
+					var dt = d.dammtor;
+					if (dt.ausfall) dest.appendChild(el('small', { class: 'dep__dammtor dep__dammtor--ausfall', text: 'Halt am Dammtor entfällt' }));
+					else {
+						var dtLate = dt.verspaetung >= 3;
+						dest.appendChild(el('small', { class: 'dep__dammtor', text: 'Dammtor ' + fmtClock(dtLate && dt.ist ? dt.ist : dt.zeit) + (dtLate ? ' (+' + dt.verspaetung + ')' : '')
+							+ (dt.gleis ? ', Gl. ' + dt.gleis + (dt.gleis_plan ? ' (statt ' + dt.gleis_plan + ')' : '') : '') }));
+					}
+				}
 				if (d.hinweis) dest.appendChild(el('small', { text: d.hinweis }));
 				if (d.ersatz) {
 					var e = d.ersatz;
@@ -538,6 +548,7 @@
 	/* ---------- Systembenachrichtigungen ---------- */
 
 	var NOTIFY_KEY = 'nordbahn.notify';       // "1" = eingeschaltet
+	var NOTIFY_ZEIT_KEY = 'nordbahn.notify.zeit'; // "pendel" (Vorgabe) oder "immer"
 	var SEEN_KEY = 'nordbahn.notified';       // bereits gemeldete Ereignisse
 	var seen = null;
 
@@ -551,6 +562,29 @@
 
 	function notifyEnabled() {
 		return 'Notification' in window && Notification.permission === 'granted' && storage('get', NOTIFY_KEY) === '1';
+	}
+
+	function notifyZeit() {
+		return storage('get', NOTIFY_ZEIT_KEY) === 'immer' ? 'immer' : 'pendel';
+	}
+
+	/** Pendelzeiten: Montag bis Freitag, 6 bis 9 und 16 bis 19 Uhr deutscher Zeit. */
+	function inPendelzeit(now) {
+		var hour = NaN, day = '';
+		try {
+			new Intl.DateTimeFormat('en-US', { timeZone: TZ, hour: 'numeric', hour12: false, weekday: 'short' })
+				.formatToParts(now || new Date())
+				.forEach(function (p) {
+					if (p.type === 'hour') hour = parseInt(p.value, 10) % 24;
+					if (p.type === 'weekday') day = p.value;
+				});
+		} catch (e) { return true; }
+		if (day === 'Sat' || day === 'Sun') return false;
+		return (hour >= 6 && hour < 9) || (hour >= 16 && hour < 19);
+	}
+
+	function notifyAllowedNow() {
+		return notifyZeit() === 'immer' || inPendelzeit();
 	}
 
 	function loadSeen() {
@@ -592,7 +626,7 @@
 		fresh.forEach(function (ev) { list[ev.id] = Date.now(); });
 		if (fresh.length) storage('set', SEEN_KEY, JSON.stringify(list));
 		if (!notifyPrimed) { notifyPrimed = true; return; }
-		if (!notifyEnabled()) return;
+		if (!notifyEnabled() || !notifyAllowedNow()) return;
 		fresh.slice(0, 3).forEach(function (ev) {
 			try {
 				var n = new Notification(ev.title, { body: ev.body, icon: 'favicon.svg', tag: ev.id, lang: 'de' });
@@ -607,22 +641,42 @@
 		if (!('Notification' in window)) { btn.hidden = true; return; }
 		var label = document.getElementById('notify-label');
 		var on = notifyEnabled();
-		var text = on ? 'Benachrichtigungen ausschalten' : 'Bei Ausfällen benachrichtigen';
+		var text = on ? 'Benachrichtigungen an' + (notifyZeit() === 'pendel' ? ', nur zu Pendelzeiten' : '') : 'Benachrichtigungen aus';
+		var hint = document.getElementById('notify-hint');
+		var box = document.getElementById('notify-on');
 		if (Notification.permission === 'denied') {
 			text = 'Benachrichtigungen im Browser blockiert';
-			btn.disabled = true;
+			if (box) box.disabled = true;
+			if (hint) { hint.textContent = 'Im Browser blockiert. Erlaube Benachrichtigungen für diese Seite in den Einstellungen.'; hint.hidden = false; }
+		} else if (hint) {
+			hint.hidden = true;
 		}
+		if (box) box.checked = on;
+		Array.prototype.forEach.call(document.querySelectorAll('input[name="notify-zeit"]'), function (r) { r.checked = r.value === notifyZeit(); });
 		btn.setAttribute('aria-pressed', on ? 'true' : 'false');
 		btn.title = text;
 		if (label) label.textContent = text;
 	}
 
+	/** Die Glocke oeffnet ein kleines Menue: an/aus und ob nur zu Pendelzeiten gemeldet wird. */
 	function initNotifyButton() {
 		var btn = document.getElementById('notify-toggle');
-		if (!btn) return;
+		var menu = document.getElementById('notify-menu');
+		var wrap = document.getElementById('notify-wrap');
+		if (!btn || !menu) return;
 		renderNotifyButton();
-		btn.addEventListener('click', function () {
-			if (notifyEnabled()) {
+
+		function open(show) {
+			menu.hidden = !show;
+			btn.setAttribute('aria-expanded', show ? 'true' : 'false');
+		}
+		btn.addEventListener('click', function () { open(menu.hidden); });
+		document.addEventListener('click', function (ev) { if (!menu.hidden && wrap && !wrap.contains(ev.target)) open(false); });
+		document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape' && !menu.hidden) { open(false); btn.focus(); } });
+
+		var box = document.getElementById('notify-on');
+		if (box) box.addEventListener('change', function () {
+			if (!box.checked) {
 				storage('set', NOTIFY_KEY, '0');
 				renderNotifyButton();
 				return;
@@ -633,6 +687,11 @@
 					try { new Notification('Nordbahn Monitor', { body: 'Du bekommst jetzt eine Meldung bei neuen Zugausfällen und Störungen.', icon: 'favicon.svg', lang: 'de' }); } catch (e) { /* egal */ }
 				}
 				renderNotifyButton();
+			});
+		});
+		Array.prototype.forEach.call(document.querySelectorAll('input[name="notify-zeit"]'), function (r) {
+			r.addEventListener('change', function () {
+				if (r.checked) { storage('set', NOTIFY_ZEIT_KEY, r.value); renderNotifyButton(); }
 			});
 		});
 	}

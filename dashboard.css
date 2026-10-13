@@ -122,6 +122,19 @@ button { font: inherit; color: inherit; }
 .tool--toggle:disabled { opacity: 0.45; cursor: default; }
 .tool--toggle:disabled:hover { background: transparent; color: var(--ink-2); }
 @media (max-width: 560px) { .tool span:not(.visually-hidden) { display: none; } .tool { padding: 0 7px; } }
+.tool-menu { position: relative; }
+.menu {
+	position: absolute; right: 0; top: calc(100% + 6px); z-index: 20; width: 272px; padding: 8px 12px 10px;
+	background: var(--surface); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+	font-size: 13.5px; color: var(--ink); text-align: left;
+}
+.menu__row { display: flex; gap: 9px; align-items: flex-start; padding: 6px 0; cursor: pointer; }
+.menu__row input { margin: 3px 0 0; flex: none; accent-color: var(--series); }
+.menu__row small { display: block; font-size: 12px; color: var(--muted); }
+.menu__group { border: 0; margin: 6px 0 0; padding: 6px 0 0; border-top: 1px solid var(--line); }
+.menu__group legend { padding: 0; font-size: 12px; color: var(--muted); }
+.menu__hint { margin: 0 0 4px; font-size: 12.5px; color: var(--warning-text, var(--muted)); }
+.menu[hidden] { display: none; }
 .tool--refresh { padding: 0 7px; }
 .tool--refresh.is-busy { color: var(--series); }
 .tool--refresh.is-busy .tool__icon { animation: tool-spin 0.8s linear infinite; }
@@ -241,6 +254,7 @@ button { font: inherit; color: inherit; }
 .dep--next::before { content: ''; position: absolute; left: -18px; top: 8px; bottom: 8px; width: 3px; border-radius: 0 2px 2px 0; background: var(--series); }
 .dep--next .dep__time { color: var(--ink); }
 .dep__ersatz { color: var(--ink) !important; font-weight: 500; }
+.dep__dammtor--ausfall { color: var(--critical-text) !important; font-weight: 600; }
 .dep--ersatz .dep__dot { background: var(--series-2); }
 .dep--cancelled .dep__time small { color: var(--critical-text); }
 .dep__line { font-weight: 700; font-size: 14px; color: var(--series); white-space: nowrap; }
@@ -260,6 +274,7 @@ button { font: inherit; color: inherit; }
 .board__empty { margin: 0; padding: 14px 0 10px; color: var(--muted); font-size: 13.5px; }
 @media (max-width: 420px) {
 	.dep { grid-template-columns: 10px 62px 48px 1fr auto; gap: 0 8px; }
+	.dep__dest { white-space: normal; } /* "ab Dammtor Itzehoe" passt sonst nicht in die Spalte */
 	.dep__time { font-size: 18px; }
 	.dep__dot { margin-top: 7px; }
 	.dep__dest { font-size: 14px; }

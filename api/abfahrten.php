@@ -14,7 +14,9 @@
  *
  *   hin:    Abfahrten am Heimatbahnhof mit Ziel in Hamburg
  *   rueck:  Abfahrten in Hamburg Hbf (AH) und Hamburg-Altona (AA) Richtung
- *           Norden, die den Heimatbahnhof erreichen: bis Elmshorn alle, auf
+ *           Norden, die den Heimatbahnhof erreichen (Hbf-Zuege tragen ihren
+ *           Halt am Dammtor (ADF) mit; ist der Zug am Hbf schon weg, steht er
+ *           als eigene Zeile ab Dammtor): bis Elmshorn alle, auf
  *           dem Ast nach Itzehoe nur Zuege nach Itzehoe, auf dem nach Wrist
  *           nur Zuege nach Wrist. Faellt ein Zug ab Hbf aus und dieselbe
  *           Zugnummer startet ab Altona, wird das als Ersatz an die
@@ -34,6 +36,8 @@ require __DIR__ . '/store.php';
 
 const ABF_API        = 'https://datnet-nbe.etc-consult.de/datnet-nbe/xml_v3';
 const ABF_STADT      = ['AH' => 'Hbf', 'AA' => 'Altona']; // Startbahnhoefe fuer den Rueckweg
+const ABF_DAMMTOR    = 'ADF';                        // Zwischenhalt der Hbf-Zuege, haengt an deren Zeile
+const ABF_AUSFALL_GRACE = 5;                         // Minuten, die ein Ausfall nach seiner Zeit stehen bleibt
 const ABF_STADT_IDS  = ['AH', 'AA', 'ADF'];          // Ziele, die "in die Stadt" bedeuten
 const ABF_TTL        = 60;                           // Sekunden, die eine Antwort gueltig bleibt
 const ABF_PER_DIR    = 8;                            // Abfahrten je Richtung in der Antwort
@@ -335,6 +339,7 @@ function abf_parse($xml, DateTime $now, &$stand)
             'ab'          => null,
             'ersatz'      => null,
             'ersatz_fuer' => null,
+            'dammtor'     => null, // Halt am Dammtor, nur Zuege ab Hbf
         ];
     }
 
@@ -376,6 +381,23 @@ function abf_build($fetch = 'abf_fetch', $heimat = NORDBAHN_HEIMAT_DEFAULT)
         }
     }
 
+    // Dammtor liegt drei Minuten hinter dem Hbf auf derselben Fahrt. Die Zuege
+    // haengen als Zwischenhalt an der Hbf-Zeile; ist ein Zug am Hbf schon weg,
+    // steht er als eigene Zeile "ab Dammtor", solange er dort noch kommt.
+    $dammtor = [];
+    $xml = $fetch(abf_url(ABF_DAMMTOR));
+    $rows = $xml !== null ? abf_parse($xml, $now, $stand) : null;
+    $quellen[ABF_DAMMTOR] = $rows !== null;
+    foreach ($rows ?? [] as $row) {
+        if (in_array($row['ziel_id'], ABF_STADT_IDS, true) || stripos($row['ziel'], 'Hamburg') !== false) {
+            continue;
+        }
+        if ($row['zug'] === '' || !abf_erreicht($row['ziel_id'], $heimat)) {
+            continue;
+        }
+        $dammtor[$row['zug']] = $row;
+    }
+
     if (!$quellen[$heimat] && !in_array(true, $quellen, true)) {
         return null;
     }
@@ -387,22 +409,57 @@ function abf_build($fetch = 'abf_fetch', $heimat = NORDBAHN_HEIMAT_DEFAULT)
     $rueck = abf_merge_ersatz($rueck);
     usort($rueck, $sort);
 
-    // Vergangenes raus, bevor Ursachen geholt werden, sonst gehen Abfragen an alte Zuege
+    // Vergangenes raus, bevor Ursachen geholt werden, sonst gehen Abfragen an alte
+    // Zuege. Ausfaelle bleiben ein paar Minuten laenger stehen, damit der Bezug
+    // zum Ersatzzug sichtbar bleibt.
     $cutoff = (clone $now)->modify('-1 minute');
-    $upcoming = function (array $list) use ($cutoff) {
-        return array_values(array_filter($list, function ($row) use ($cutoff) {
-            return ($row['ist'] ?: $row['zeit']) >= $cutoff;
+    $cutoffAusfall = (clone $now)->modify('-' . ABF_AUSFALL_GRACE . ' minutes');
+    $vorbei = function (array $row) use ($cutoff, $cutoffAusfall) {
+        return ($row['ist'] ?: $row['zeit']) < ($row['ausfall'] ? $cutoffAusfall : $cutoff);
+    };
+    $upcoming = function (array $list) use ($vorbei) {
+        return array_values(array_filter($list, function ($row) use ($vorbei) {
+            return !$vorbei($row);
         }));
     };
-    $lists = ['hin' => $upcoming($hin), 'rueck' => $upcoming($rueck)];
+    $rueck = $upcoming($rueck);
+    $gesehen = [];
+    foreach ($rueck as &$row) {
+        if ($row['zug'] === '') {
+            continue;
+        }
+        $gesehen[$row['zug']] = true;
+        if ($row['ab'] === 'Hbf' && isset($dammtor[$row['zug']])) {
+            $d = $dammtor[$row['zug']];
+            $row['dammtor'] = [
+                'zeit'        => $d['zeit'],
+                'ist'         => $d['ist'],
+                'verspaetung' => $d['verspaetung'],
+                'gleis'       => $d['gleis'],
+                'gleis_plan'  => $d['gleis_plan'],
+                'ausfall'     => $d['ausfall'],
+            ];
+        }
+    }
+    unset($row);
+    foreach ($upcoming(array_values($dammtor)) as $row) {
+        if (isset($gesehen[$row['zug']]) || $row['ausfall']) {
+            continue;
+        }
+        $row['ab'] = 'Dammtor';
+        $rueck[] = $row;
+    }
+    usort($rueck, $sort);
+
+    $lists = ['hin' => $upcoming($hin), 'rueck' => $rueck];
     abf_add_ursachen($lists, $fetch);
     $hin = $lists['hin'];
     $rueck = $lists['rueck'];
 
-    $format = function (array $list) use ($cutoff) {
+    $format = function (array $list) use ($vorbei) {
         $out = [];
         foreach ($list as $row) {
-            if (($row['ist'] ?: $row['zeit']) < $cutoff) {
+            if ($vorbei($row)) {
                 continue;
             }
             $ersatz = null;
@@ -433,6 +490,14 @@ function abf_build($fetch = 'abf_fetch', $heimat = NORDBAHN_HEIMAT_DEFAULT)
                 'ersatz_fuer' => $row['ersatz_fuer']
                     ? ['ab' => $row['ersatz_fuer']['ab'], 'zeit' => $row['ersatz_fuer']['zeit']->format('c')]
                     : null,
+                'dammtor'     => $row['dammtor'] ? [
+                    'zeit'        => $row['dammtor']['zeit']->format('c'),
+                    'ist'         => $row['dammtor']['ist'] ? $row['dammtor']['ist']->format('c') : null,
+                    'verspaetung' => $row['dammtor']['verspaetung'],
+                    'gleis'       => $row['dammtor']['gleis'],
+                    'gleis_plan'  => $row['dammtor']['gleis_plan'],
+                    'ausfall'     => $row['dammtor']['ausfall'],
+                ] : null,
             ];
             if (count($out) >= ABF_PER_DIR) {
                 break;
@@ -453,8 +518,8 @@ function abf_build($fetch = 'abf_fetch', $heimat = NORDBAHN_HEIMAT_DEFAULT)
 }
 
 // Auf der Kommandozeile laesst sich die Aufbereitung gegen lokale Dateien pruefen:
-// php nordbahn/api/abfahrten.php [--bhf=APD] heimat.xml hbf.xml altona.xml [zug.xml]
-// Die vierte Datei dient als Antwort fuer alle Zugabfragen; der Zug-Cache wird dabei nicht benutzt.
+// php nordbahn/api/abfahrten.php [--bhf=APD] heimat.xml hbf.xml altona.xml dammtor.xml [zug.xml]
+// Die fuenfte Datei dient als Antwort fuer alle Zugabfragen; der Zug-Cache wird dabei nicht benutzt.
 if (PHP_SAPI === 'cli') {
     $files = array_slice($argv, 1);
     $heimat = NORDBAHN_HEIMAT_DEFAULT;
@@ -465,7 +530,7 @@ if (PHP_SAPI === 'cli') {
             exit(1);
         }
     }
-    $zugFile = count($files) > 3 ? $files[3] : null;
+    $zugFile = count($files) > 4 ? $files[4] : null;
     $index = 0;
     $result = abf_build(function ($url) use ($files, $zugFile, &$index) {
         if (strpos($url, '?zug=') !== false) {
