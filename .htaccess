@@ -1,0 +1,13 @@
+# Nordbahn Monitor. Dieser Ordner ist das Wurzelverzeichnis von
+# nordbahn.bensch777.de und zugleich /nordbahn/ auf der Hauptseite; die
+# Regeln sind deshalb relativ zum Ordner formuliert und gelten an beiden Orten.
+RewriteEngine On
+
+# Die API-Endpunkte sind PHP-Dateien.
+RewriteRule ^api/data$ api/data.php [L]
+RewriteRule ^api/push$ api/push.php [L]
+RewriteRule ^api/abfahrten$ api/abfahrten.php [L]
+
+<IfModule mod_dir.c>
+	DirectoryIndex index.php index.html
+</IfModule>
