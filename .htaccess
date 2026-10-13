@@ -9,6 +9,18 @@ RewriteRule ^api/push$ api/push.php [L]
 RewriteRule ^api/abfahrten$ api/abfahrten.php [L]
 RewriteRule ^api/revision$ api/revision.php [L]
 
+# Sitemap ist dynamisch (Bahnhofsliste aus store.php).
+RewriteRule ^sitemap\.xml$ sitemap.php [L]
+
+# Bahnhofsseiten: /elmshorn/ rendert index.php mit vorgewaehltem Bahnhof.
+# Ohne Schraegstrich am Ende gibt es nur eine Weiterleitung, damit jede Seite
+# genau eine Adresse hat. Vorhandene Dateien und Ordner (api, fonts, og) bleiben.
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^([a-z]+)$ https://nordbahn.bensch777.de/$1/ [R=301,L]
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^([a-z]+)/$ index.php?bhf=$1 [L,QSA]
+
 <IfModule mod_dir.c>
 	DirectoryIndex index.php index.html
 </IfModule>

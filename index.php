@@ -9,20 +9,45 @@
  * Bahnhof ist waehlbar und bleibt im Browser gespeichert), und die letzten
  * Eilmeldungen der Nordbahn.
  *
- * Dieser Ordner ist das Wurzelverzeichnis der Subdomain und zugleich als
- * /nordbahn/ auf der Hauptseite erreichbar, deshalb sind alle Links relativ.
+ * Adressen: / zeigt den gemerkten Bahnhof, /elmshorn/ (per Rewrite als
+ * ?bhf=elmshorn) eine Bahnhofsseite mit eigenem Titel und Canonical. Der
+ * Ordner ist das Wurzelverzeichnis der Subdomain; alle Links sind relativ,
+ * auf Bahnhofsseiten mit "../" davor.
  *
  * Datenfluss: n8n pusht alle 2 Minuten nach api/push (Stoerungen,
- * Eilmeldungen, Historie), die Daten liegen in cache/nordbahn/. Der Stand
- * wird hier als JSON ins HTML eingebettet, damit die Seite ohne zweiten
- * Request rendert; dashboard.js baut daraus die Ansicht und holt sich
+ * Eilmeldungen, Historie), die Daten liegen in cache/nordbahn/. Lagekarten,
+ * Stoerungen und Eilmeldungen werden hier schon ins HTML gerendert
+ * (api/render.php), damit Suchmaschinen und Vorschauen etwas sehen; derselbe
+ * Stand steckt als JSON im HTML, dashboard.js uebernimmt die Ansicht und holt
  * spaeter frische Daten von api/data. Die Abfahrten kommen jede Minute live
  * von api/abfahrten (Quelle: der Stationsmonitor der Nordbahn).
  */
 
 require __DIR__ . '/api/store.php';
+require __DIR__ . '/api/render.php';
 
 const SITE_URL = 'https://nordbahn.bensch777.de';
+
+// Bahnhofsseite? Unbekannte Pfade bekommen eine echte 404.
+$slug = isset($_GET['bhf']) ? strtolower(trim((string) $_GET['bhf'])) : '';
+$heimat = NORDBAHN_HEIMAT_DEFAULT;
+$stationPage = false;
+if ($slug !== '') {
+    $id = nordbahn_bahnhof_by_slug($slug);
+    if ($id === null) {
+        http_response_code(404);
+        header('Content-Type: text/html; charset=utf-8');
+        echo '<!DOCTYPE html><html lang="de"><head><meta charset="utf-8"><title>Seite nicht gefunden</title><meta name="robots" content="noindex"></head>',
+            '<body><p>Diesen Bahnhof gibt es hier nicht. <a href="../">Zur Startseite</a></p></body></html>';
+        exit;
+    }
+    $heimat = $id;
+    $stationPage = true;
+}
+$root = $stationPage ? '../' : './';
+$bahnhof = NORDBAHN_BAHNHOEFE[$heimat];
+$pageUrl = SITE_URL . '/' . ($stationPage ? $bahnhof['slug'] . '/' : '');
+$rueckTitel = 'Hamburg → ' . ($bahnhof['ast'] === 'itzehoe' ? 'Itzehoe' : ($bahnhof['ast'] === 'wrist' ? 'Wrist' : 'Wrist / Itzehoe'));
 
 $data = nordbahn_dataset();
 
@@ -37,47 +62,116 @@ if ($json === false) {
 }
 
 $aktiv = count($data['stoerungen']);
+$items = nb_items($data);
+$cards = [
+    'infra'   => nb_status_infra($data),
+    'eil'     => nb_status_eil($data, $items),
+    'betrieb' => nb_status_betrieb(nb_read_abfahrten($heimat)),
+];
+$ogImage = SITE_URL . '/og/' . nb_overall_level($cards) . '.png';
+
 // Versionsstempel an Script und Stylesheet, damit Browser nach einem Deploy nicht
 // mit altem JavaScript gegen die neue API laufen.
 $assetVersion = max((int) @filemtime(__DIR__ . '/dashboard.js'), (int) @filemtime(__DIR__ . '/dashboard.css'));
-$description = $aktiv > 0
-    ? $aktiv . ' aktive St&ouml;rung' . ($aktiv === 1 ? '' : 'en') . ' auf der Nordbahn-Strecke Hamburg &ndash; Elmshorn &ndash; Itzehoe/Wrist. Dazu die n&auml;chsten Z&uuml;ge vom eigenen Bahnhof nach Hamburg und zur&uuml;ck sowie die letzten Eilmeldungen zu RB61 und RB71.'
-    : 'St&ouml;rungen, n&auml;chste Z&uuml;ge und Eilmeldungen der Nordbahn-Linien RB61 und RB71 zwischen Hamburg, Elmshorn, Itzehoe und Wrist auf einen Blick.';
+
+$stoerungSatz = $aktiv > 0
+    ? $aktiv . ' aktive Störung' . ($aktiv === 1 ? '' : 'en') . ' auf der Nordbahn-Strecke Hamburg – Elmshorn – Itzehoe/Wrist.'
+    : 'Störungen heute auf der Nordbahn-Strecke Hamburg – Elmshorn – Itzehoe/Wrist.';
+if ($stationPage) {
+    $title = 'Abfahrten ' . $bahnhof['name'] . ' → Hamburg und zurück live – RB61/RB71 | Nordbahn Monitor';
+    $description = 'Nächste Züge ab ' . $bahnhof['name'] . ' nach Hamburg und zurück mit Verspätungen, Ausfällen und Gleis. '
+        . $stoerungSatz . ' Dazu die letzten Eilmeldungen der RB61 und RB71. Live, alle zwei Minuten aktualisiert.';
+    $lead = 'Nächste Züge ab ' . $bahnhof['name'] . ' nach Hamburg und zurück, dazu Störungen und Eilmeldungen der RB61 und RB71.';
+} else {
+    $title = 'Nordbahn Monitor – Störungen, Abfahrten und Eilmeldungen RB61/RB71 live';
+    $description = $stoerungSatz . ' Dazu die nächsten Züge vom eigenen Bahnhof nach Hamburg und zurück sowie die letzten Eilmeldungen zu RB61 und RB71. Live, alle zwei Minuten aktualisiert.';
+    $lead = 'Störungen heute, nächste Züge und Eilmeldungen der RB61 und RB71 zwischen Hamburg, Elmshorn, Itzehoe und Wrist.';
+}
+
+$faq = [
+    ['Was bedeutet „Betrieb beeinträchtigt“ oder „Betrieb gestört“?',
+     'Die Karte zählt, wie viele der nächsten Züge in beide Richtungen betroffen sind: Zugausfälle, Umleitungen über Hamburg-Altona und Verspätungen ab zehn Minuten. Bis zu einem Viertel der Züge heißt „beeinträchtigt“, darüber „gestört“.'],
+    ['Woher kommen die Daten?',
+     'Abfahrten, Gleise und Verspätungen stammen vom Stationsmonitor der Nordbahn, Eilmeldungen von nordbahn.de, Infrastrukturstörungen von strecken-info.de der DB InfraGO. Abfahrten werden jede Minute geladen, Störungen und Eilmeldungen alle zwei Minuten.'],
+    ['Welche Linien und Bahnhöfe werden angezeigt?',
+     'Die RB61 Hamburg – Itzehoe, die RB71 Hamburg – Wrist und die Verstärkerzüge der RB60. Als eigener Bahnhof lässt sich jeder Halt zwischen Pinneberg und Itzehoe bzw. Wrist wählen, die Auswahl bleibt im Browser gespeichert.'],
+    ['Kann ich mich bei Zugausfällen benachrichtigen lassen?',
+     'Ja, über die Glocke oben rechts, wahlweise nur zu Pendelzeiten. Die Meldung kommt, solange die Seite geöffnet ist. Unabhängig davon gibt es die Telegram-Kanäle „Nordbahn Eilmeldungen“ und „Prisdorf Pendler“.'],
+    ['Ist das eine offizielle Seite der Nordbahn?',
+     'Nein. Der Nordbahn Monitor ist ein privates Projekt von bensch777.de ohne Verbindung zur NBE Nordbahn Eisenbahngesellschaft. Verbindliche Auskünfte gibt es auf nordbahn.de.'],
+];
+$jsonLd = [
+    [
+        '@context' => 'https://schema.org',
+        '@type' => 'WebApplication',
+        'name' => 'Nordbahn Monitor',
+        'url' => $pageUrl,
+        'description' => $description,
+        'applicationCategory' => 'TravelApplication',
+        'operatingSystem' => 'Any',
+        'browserRequirements' => 'Requires JavaScript',
+        'inLanguage' => 'de',
+        'isAccessibleForFree' => true,
+        'offers' => ['@type' => 'Offer', 'price' => '0', 'priceCurrency' => 'EUR'],
+        'author' => ['@type' => 'Person', 'name' => 'Benjamin Neske', 'url' => 'https://bensch777.de/'],
+    ],
+    [
+        '@context' => 'https://schema.org',
+        '@type' => 'FAQPage',
+        'mainEntity' => array_map(function ($qa) {
+            return ['@type' => 'Question', 'name' => $qa[0], 'acceptedAnswer' => ['@type' => 'Answer', 'text' => $qa[1]]];
+        }, $faq),
+    ],
+];
 ?>
 <!DOCTYPE html>
 <html lang="de">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Nordbahn Monitor &ndash; St&ouml;rungen, Abfahrten und Eilmeldungen RB61/RB71</title>
-<meta name="description" content="<?= $description ?>">
-<link rel="canonical" href="<?= SITE_URL ?>/">
+<title><?= nb_e($title) ?></title>
+<meta name="description" content="<?= nb_e($description) ?>">
+<link rel="canonical" href="<?= nb_e($pageUrl) ?>">
 <meta name="robots" content="index, follow">
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#f6f6f4" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#121211" media="(prefers-color-scheme: dark)">
 
 <meta property="og:type" content="website">
-<meta property="og:site_name" content="bensch777">
+<meta property="og:site_name" content="Nordbahn Monitor">
 <meta property="og:locale" content="de_DE">
-<meta property="og:url" content="<?= SITE_URL ?>/">
-<meta property="og:title" content="Nordbahn Monitor &ndash; St&ouml;rungen, Abfahrten und Eilmeldungen RB61/RB71">
-<meta property="og:description" content="<?= $description ?>">
+<meta property="og:url" content="<?= nb_e($pageUrl) ?>">
+<meta property="og:title" content="<?= nb_e($title) ?>">
+<meta property="og:description" content="<?= nb_e($description) ?>">
+<meta property="og:image" content="<?= nb_e($ogImage) ?>">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Aktuelle Lage auf der Nordbahn-Strecke">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="<?= nb_e($title) ?>">
+<meta name="twitter:description" content="<?= nb_e($description) ?>">
+<meta name="twitter:image" content="<?= nb_e($ogImage) ?>">
 
-<link rel="icon" id="favicon" type="image/svg+xml" href="favicon.svg">
-<link rel="apple-touch-icon" href="icon-180.png">
-<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" id="favicon" type="image/svg+xml" href="<?= $root ?>favicon.svg">
+<link rel="apple-touch-icon" href="<?= $root ?>icon-180.png">
+<link rel="manifest" href="<?= $root ?>manifest.webmanifest">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Nordbahn">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<link rel="stylesheet" href="dashboard.css?v=<?= $assetVersion ?>">
-<script defer src="https://bensch777.de/js/pa.js" data-domain="bensch777.de"></script>
+<link rel="stylesheet" href="<?= $root ?>dashboard.css?v=<?= $assetVersion ?>">
+<script type="application/ld+json"><?= json_encode($jsonLd, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) ?></script>
+<!-- Privacy-friendly analytics by Plausible -->
+<script async src="https://plausible.io/js/pa-YR5IRACXIMdFAo0Tud1Lj.js"></script>
+<script>
+  window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};
+  plausible.init()
+</script>
 </head>
 <body>
 
 <header class="site-head">
 	<div class="wrap site-head__row">
-		<a class="site-head__brand" href="./">Nordbahn Monitor</a>
+		<a class="site-head__brand" href="<?= $root ?>">Nordbahn Monitor</a>
 		<nav class="site-head__tools" aria-label="Kan&auml;le und Benachrichtigungen">
 			<a class="tool" href="https://t.me/NordbahnEilmeldungen" rel="noopener" title="Telegram: Nordbahn Eilmeldungen">
 				<svg class="tool__icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21.6 3.3 2.9 10.6c-1.1.4-1.1 1.1-.2 1.4l4.7 1.5 1.8 5.6c.2.6.1.9.8.9.5 0 .7-.2 1-.5l2.3-2.3 4.8 3.6c.9.5 1.5.2 1.7-.8l3.2-15c.3-1.3-.5-1.9-1.4-1.7ZM8.4 13.1l9.6-6c.5-.3.9-.1.5.2l-7.9 7.2-.3 3.3-1.9-4.7Z"/></svg>
@@ -113,8 +207,8 @@ $description = $aktiv > 0
 <main class="wrap" id="app">
 	<div class="page-head">
 		<div>
-			<h1>Nordbahn Monitor</h1>
-			<p class="page-head__lead">RB61 und RB71 zwischen Hamburg, Elmshorn, Itzehoe und Wrist.</p>
+			<h1><?= $stationPage ? 'Abfahrten ' . nb_e($bahnhof['name']) . ' &ndash; Hamburg live' : 'Nordbahn Monitor' ?></h1>
+			<p class="page-head__lead"><?= nb_e($lead) ?></p>
 		</div>
 		<p class="freshness" id="freshness" aria-live="polite"></p>
 	</div>
@@ -122,14 +216,19 @@ $description = $aktiv > 0
 	<section id="status" class="section" aria-labelledby="status-h">
 		<h2 id="status-h" class="visually-hidden">Aktuelle Lage</h2>
 		<div class="status-grid">
-			<div class="card status status--unknown" id="status-infra"><div class="status__icon" aria-hidden="true">?</div><h3 class="status__title">Noch keine Daten</h3></div>
-			<div class="card status status--unknown" id="status-eil"><div class="status__icon" aria-hidden="true">?</div><h3 class="status__title">Noch keine Daten</h3></div>
-			<div class="card status status--unknown" id="status-betrieb"><div class="status__icon" aria-hidden="true">?</div><h3 class="status__title">Lade Fahrplan …</h3></div>
+			<?= nb_render_status_card('status-infra', $cards['infra']) ?>
+			<?= nb_render_status_card('status-eil', $cards['eil']) ?>
+			<?= nb_render_status_card('status-betrieb', $cards['betrieb']) ?>
 		</div>
-		<ul class="incidents" id="incidents" hidden></ul>
+		<ul class="incidents" id="incidents"<?= $aktiv ? '' : ' hidden' ?>>
+<?php foreach ($data['stoerungen'] as $st): ?>
+			<?= nb_render_incident($st) ?>
+
+<?php endforeach; ?>
+		</ul>
 	</section>
 
-	<section id="abfahrten" class="section" aria-labelledby="abfahrten-h" data-endpoint="api/abfahrten" data-data-endpoint="api/data" data-heimat-default="<?= NORDBAHN_HEIMAT_DEFAULT ?>">
+	<section id="abfahrten" class="section" aria-labelledby="abfahrten-h" data-root="<?= $root ?>" data-endpoint="<?= $root ?>api/abfahrten" data-data-endpoint="<?= $root ?>api/data" data-heimat-default="<?= $heimat ?>"<?= $stationPage ? ' data-heimat-fixed' : '' ?>>
 		<div class="section__head">
 			<h2 id="abfahrten-h" class="section__title">N&auml;chste Z&uuml;ge</h2>
 			<div class="section__tools">
@@ -137,7 +236,7 @@ $description = $aktiv > 0
 					<span class="heimat__label">Mein Bahnhof</span>
 					<select id="heimat" class="heimat__select">
 <?php foreach (NORDBAHN_BAHNHOEFE as $id => $bhf): ?>
-						<option value="<?= $id ?>" data-ast="<?= $bhf['ast'] ?>"<?= $id === NORDBAHN_HEIMAT_DEFAULT ? ' selected' : '' ?>><?= htmlspecialchars($bhf['name'], ENT_QUOTES, 'UTF-8') ?></option>
+						<option value="<?= $id ?>" data-ast="<?= $bhf['ast'] ?>" data-slug="<?= $bhf['slug'] ?>"<?= $id === $heimat ? ' selected' : '' ?>><?= nb_e($bhf['name']) ?></option>
 <?php endforeach; ?>
 					</select>
 				</label>
@@ -147,13 +246,13 @@ $description = $aktiv > 0
 		<div class="boards">
 			<div class="card board" data-richtung="hin">
 				<div class="board__head">
-					<h3 class="board__title" id="board-title-hin">Prisdorf &rarr; Hamburg</h3>
+					<h3 class="board__title" id="board-title-hin"><?= nb_e($bahnhof['name']) ?> &rarr; Hamburg</h3>
 				</div>
 				<ol class="board__list" aria-live="polite"></ol>
 			</div>
 			<div class="card board" data-richtung="rueck">
 				<div class="board__head">
-					<h3 class="board__title" id="board-title-rueck">Hamburg &rarr; Wrist / Itzehoe</h3>
+					<h3 class="board__title" id="board-title-rueck"><?= nb_e($rueckTitel) ?></h3>
 				</div>
 				<ol class="board__list" aria-live="polite"></ol>
 			</div>
@@ -164,17 +263,37 @@ $description = $aktiv > 0
 		<div class="section__head">
 			<h2 id="latest-h" class="section__title">Letzte Eilmeldungen</h2>
 		</div>
-		<ol class="feed" id="feed" data-limit="6" data-max-age-days="3"></ol>
+		<ol class="feed card" id="feed" data-limit="6" data-max-age-days="3">
+			<?= nb_render_feed($items, 6, 3) ?>
+
+		</ol>
 	</section>
 
-	<noscript><p class="notice">Ohne JavaScript bleibt die Seite leer. Die Rohdaten gibt es unter <a href="api/data">api/data</a>.</p></noscript>
+	<section id="faq" class="section" aria-labelledby="faq-h">
+		<div class="section__head">
+			<h2 id="faq-h" class="section__title">H&auml;ufige Fragen</h2>
+		</div>
+		<div class="card faq">
+<?php foreach ($faq as $qa): ?>
+			<details>
+				<summary><?= nb_e($qa[0]) ?></summary>
+				<p><?= nb_e($qa[1]) ?></p>
+			</details>
+<?php endforeach; ?>
+		</div>
+	</section>
+
+	<noscript><p class="notice">Ohne JavaScript bleibt die Seite auf diesem Stand stehen. Die Rohdaten gibt es unter <a href="<?= $root ?>api/data">api/data</a>.</p></noscript>
 </main>
 
 <footer class="site-foot wrap">
 	<p>Ein Projekt von <a href="https://bensch777.de/">bensch777.de</a>, keine offizielle Seite der Nordbahn. Quellen: nordbahn.de und strecken-info.de. Zeiten in deutscher Zeit.</p>
+	<p class="site-foot__stations">Abfahrten ab:
+<?php $links = []; foreach (NORDBAHN_BAHNHOEFE as $id => $bhf) { $links[] = '<a href="' . $root . $bhf['slug'] . '/" data-id="' . $id . '"' . ($id === $heimat ? ' aria-current="page"' : '') . '>' . nb_e($bhf['name']) . '</a>'; } echo implode(' &middot; ', $links); ?>
+	</p>
 </footer>
 
 <script id="nordbahn-data" type="application/json"><?= $json ?></script>
-<script src="dashboard.js?v=<?= $assetVersion ?>" defer></script>
+<script src="<?= $root ?>dashboard.js?v=<?= $assetVersion ?>" defer></script>
 </body>
 </html>

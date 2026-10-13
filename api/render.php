@@ -1,0 +1,320 @@
+<?php
+/**
+ * Server-seitiges Rendern der Statusseite.
+ *
+ * dashboard.js baut dieselben Bausteine im Browser und aktualisiert sie
+ * laufend. Hier entstehen sie einmal beim Seitenaufruf aus den gleichen Daten,
+ * damit Suchmaschinen, Messenger-Vorschauen und Browser ohne JavaScript den
+ * aktuellen Stand im HTML vorfinden. Die Logik (Schwellen, Texte) muss mit der
+ * im Script uebereinstimmen.
+ */
+
+const NB_EIL_AKUT_S          = 4 * 3600;   // Eilmeldung gilt so lange als akut
+const NB_BETRIEB_ALERT_ANTEIL = 0.25;      // darueber "Betrieb gestoert" statt "beeintraechtigt"
+const NB_ABF_MAX_AGE_S        = 10 * 60;   // so alt darf der Abfahrten-Cache fuer die Karte sein
+
+function nb_e($text)
+{
+    return htmlspecialchars((string) $text, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+/** "13.10., 18:14 Uhr" in deutscher Zeit, wie fmtDateTime im Script. */
+function nb_fmt_datetime($iso)
+{
+    if (!$iso) {
+        return '';
+    }
+    try {
+        $dt = new DateTime($iso);
+    } catch (Exception $e) {
+        return '';
+    }
+    $dt->setTimezone(new DateTimeZone('Europe/Berlin'));
+
+    return $dt->format('d.m., H:i') . ' Uhr';
+}
+
+/** "vor 12 Min.", "vor 3 Std.", "gestern", wie relTime im Script. */
+function nb_rel_time($ts)
+{
+    $diff = max(0, time() - $ts);
+    $min = (int) round($diff / 60);
+    if ($min < 1) {
+        return 'gerade eben';
+    }
+    if ($min < 60) {
+        return 'vor ' . $min . ' Min.';
+    }
+    $h = (int) round($min / 60);
+    if ($h < 24) {
+        return 'vor ' . $h . ' Std.';
+    }
+    $d = (int) round($h / 24);
+
+    return $d === 1 ? 'gestern' : 'vor ' . $d . ' Tagen';
+}
+
+function nb_ts($iso)
+{
+    $ts = $iso ? strtotime($iso) : false;
+
+    return $ts === false ? null : $ts;
+}
+
+/** Eilmeldungen aus Historie und Live-Liste zusammengefuehrt, aelteste zuerst (wie prepare im Script). */
+function nb_items(array $data)
+{
+    $live = [];
+    foreach ($data['eilmeldungen_live'] ?? [] as $e) {
+        if (!empty($e['id'])) {
+            $live[$e['id']] = $e;
+        }
+    }
+    $items = [];
+    $seen = [];
+    $push = function ($id, $title, $iso, $l) use (&$items, &$seen) {
+        $ts = nb_ts($iso);
+        if (!$id || $ts === null) {
+            return;
+        }
+        $seen[$id] = true;
+        $items[] = [
+            'id'    => $id,
+            'title' => (string) $title,
+            'ts'    => $ts,
+            'stand' => $l && !empty($l['stand']) ? nb_ts($l['stand']) : null,
+            'link'  => $l && !empty($l['link']) ? $l['link'] : '',
+        ];
+    };
+    foreach ($data['eilmeldungen'] ?? [] as $e) {
+        if ($e) {
+            $push($e['id'] ?? '', $e['title'] ?? '', $e['seen_at'] ?? '', $live[$e['id'] ?? ''] ?? null);
+        }
+    }
+    foreach ($data['eilmeldungen_live'] ?? [] as $e) {
+        if ($e && empty($seen[$e['id'] ?? ''])) {
+            $push($e['id'] ?? '', $e['title'] ?? '', $e['stand'] ?? '', $e);
+        }
+    }
+    usort($items, function ($a, $b) {
+        return $a['ts'] <=> $b['ts'];
+    });
+
+    return $items;
+}
+
+function nb_plural($n, $one, $many)
+{
+    return $n . ' ' . ($n === 1 ? $one : $many);
+}
+
+/** Karte 1: Infrastruktur laut strecken-info.de. */
+function nb_status_infra(array $data)
+{
+    $hasData = !empty($data['received_at']);
+    $list = $hasData ? ($data['stoerungen'] ?? []) : [];
+    $ok = $hasData && !empty($data['quellen']['strecken_info_ok']);
+    $schwer = 0;
+    foreach ($list as $st) {
+        if (!preg_match('/^leicht/i', $st['einschraenkung'] ?? '')) {
+            $schwer++;
+        }
+    }
+    if (!$hasData) {
+        return ['level' => 'unknown', 'title' => 'Noch keine Daten', 'detail' => ''];
+    }
+    if (!$list) {
+        return $ok
+            ? ['level' => 'ok', 'title' => 'Keine Infrastrukturstörung', 'detail' => '']
+            : ['level' => 'unknown', 'title' => 'Infrastrukturstörungen unbekannt', 'detail' => ''];
+    }
+    if ($schwer === 0) {
+        return ['level' => 'warn', 'title' => nb_plural(count($list), 'leichte Infrastrukturstörung', 'leichte Infrastrukturstörungen'), 'detail' => ''];
+    }
+
+    return ['level' => 'alert', 'title' => nb_plural(count($list), 'Infrastrukturstörung', 'Infrastrukturstörungen'), 'detail' => ''];
+}
+
+/** Karte 2: Eilmeldungen der Nordbahn, akut heisst juenger als vier Stunden. */
+function nb_status_eil(array $data, array $items)
+{
+    if (empty($data['received_at'])) {
+        return ['level' => 'unknown', 'title' => 'Noch keine Daten', 'detail' => ''];
+    }
+    if (!$items) {
+        return ['level' => 'ok', 'title' => 'Keine akuten Eilmeldungen', 'detail' => ''];
+    }
+    $last = $items[count($items) - 1];
+    $ts = $last['stand'] ?? $last['ts'];
+    $age = time() - $ts;
+    if ($age > NB_EIL_AKUT_S) {
+        return ['level' => 'ok', 'title' => 'Keine akuten Eilmeldungen', 'detail' => 'Letzte ' . nb_rel_time($ts)];
+    }
+
+    return ['level' => $age < 3600 ? 'alert' : 'warn', 'title' => 'Eilmeldung ' . nb_rel_time($ts), 'detail' => $last['title']];
+}
+
+/** Letzter Stand der Abfahrten fuer den Bahnhof, wenn er juenger als zehn Minuten ist. */
+function nb_read_abfahrten($heimat)
+{
+    $abf = nordbahn_read_json(NORDBAHN_CACHE_DIR . '/abfahrten-' . $heimat . '.json');
+    if (!is_array($abf) || empty($abf['ok']) || empty($abf['fetched_at'])) {
+        return null;
+    }
+    $ts = nb_ts($abf['fetched_at']);
+    if ($ts === null || time() - $ts > NB_ABF_MAX_AGE_S) {
+        return null;
+    }
+
+    return $abf;
+}
+
+/** Karte 3: Fahrplanlage nach dem Anteil betroffener Zuege (wie renderBetrieb im Script). */
+function nb_status_betrieb($abf)
+{
+    if (!$abf || empty($abf['richtungen'])) {
+        return ['level' => 'unknown', 'title' => 'Lade Fahrplan …', 'detail' => ''];
+    }
+    $total = 0;
+    $ausfaelle = 0;
+    $umleitungen = 0;
+    $verspaetet = 0;
+    $maxDelay = 0;
+    foreach (['hin', 'rueck'] as $key) {
+        foreach (array_slice($abf['richtungen'][$key] ?? [], 0, 6) as $d) {
+            if (!empty($d['ersatz_fuer'])) {
+                continue;
+            }
+            $total++;
+            $rb60 = preg_match('/RB\s?60/i', $d['linie'] ?? '');
+            $altona = !$rb60 && (stripos($d['ab'] ?? '', 'altona') !== false || stripos($d['ziel'] ?? '', 'altona') !== false || !empty($d['ersatz']));
+            if (!empty($d['ausfall']) && empty($d['ersatz'])) {
+                $ausfaelle++;
+            } elseif ($altona) {
+                $umleitungen++;
+            } elseif (($d['verspaetung'] ?? 0) >= 10) {
+                $verspaetet++;
+                $maxDelay = max($maxDelay, (int) $d['verspaetung']);
+            }
+        }
+    }
+    $betroffen = $ausfaelle + $umleitungen + $verspaetet;
+    if (!$total || !$betroffen) {
+        return ['level' => 'ok', 'title' => 'Fahrplan läuft', 'detail' => ''];
+    }
+    $parts = [];
+    if ($ausfaelle) {
+        $parts[] = nb_plural($ausfaelle, 'Zugausfall', 'Zugausfälle');
+    }
+    if ($umleitungen) {
+        $parts[] = $umleitungen === 1 ? 'Umleitung über Altona' : $umleitungen . ' Umleitungen über Altona';
+    }
+    if ($verspaetet) {
+        $parts[] = 'Verspätungen bis ' . $maxDelay . ' Min';
+    }
+    $anteil = $betroffen / $total;
+    $level = $anteil > NB_BETRIEB_ALERT_ANTEIL ? 'alert' : 'warn';
+
+    return [
+        'level'  => $level,
+        'title'  => $level === 'alert' ? 'Betrieb gestört' : 'Betrieb beeinträchtigt',
+        'detail' => $betroffen . ' von ' . $total . ' Zügen (' . round($anteil * 100) . ' %): ' . implode(', ', $parts),
+    ];
+}
+
+/** Gesamtlage fuer das Vorschaubild: alert > warn > ok, sonst info. */
+function nb_overall_level(array $cards)
+{
+    $levels = array_column($cards, 'level');
+    if (in_array('alert', $levels, true)) {
+        return 'alert';
+    }
+    if (in_array('warn', $levels, true)) {
+        return 'warn';
+    }
+    if ($cards['infra']['level'] === 'ok') {
+        return 'ok';
+    }
+
+    return 'info';
+}
+
+function nb_render_status_card($id, array $st)
+{
+    $icons = ['ok' => '✓', 'warn' => '!', 'alert' => '!', 'unknown' => '?'];
+    $html = '<div class="card status status--' . nb_e($st['level']) . '" id="' . nb_e($id) . '" data-ssr>';
+    $html .= '<div class="status__icon" aria-hidden="true">' . ($icons[$st['level']] ?? '?') . '</div>';
+    $html .= '<h3 class="status__title">' . nb_e($st['title']);
+    if ($st['detail'] !== '') {
+        $html .= '<small>' . nb_e($st['detail']) . '</small>';
+    }
+    $html .= '</h3></div>';
+
+    return $html;
+}
+
+function nb_render_incident(array $s)
+{
+    $rows = [];
+    $abschnitte = [];
+    foreach ($s['abschnitte'] ?? [] as $a) {
+        $teil = implode(' – ', array_filter([$a['von'] ?? '', $a['bis'] ?? '']));
+        if (!empty($a['strecke'])) {
+            $teil .= ' (Strecke ' . $a['strecke'] . ')';
+        }
+        if ($teil !== '') {
+            $abschnitte[] = $teil;
+        }
+    }
+    $rows['Abschnitt'] = $abschnitte ? implode(', ', $abschnitte) : implode(', ', $s['betriebsstellen'] ?? []);
+    $rows['Auswirkung'] = implode(', ', $s['wirkungen'] ?? []);
+    $rows['Einschränkung'] = !empty($s['einschraenkung']) ? mb_strtoupper(mb_substr($s['einschraenkung'], 0, 1)) . mb_substr($s['einschraenkung'], 1) : '';
+    $zeit = '';
+    if (!empty($s['beginn'])) {
+        $zeit = 'seit ' . nb_fmt_datetime($s['beginn']);
+    }
+    if (!empty($s['ende'])) {
+        $zeit .= ($zeit ? ', ' : '') . 'voraussichtlich bis ' . nb_fmt_datetime($s['ende']);
+    }
+    $rows['Zeitraum'] = $zeit;
+
+    $html = '<li class="card incident"><h4 class="incident__title">' . nb_e($s['titel'] ?? 'Störung') . '</h4>';
+    if (!empty($s['text'])) {
+        $html .= '<p class="incident__text">' . nb_e($s['text']) . '</p>';
+    }
+    $html .= '<dl class="incident__meta">';
+    foreach ($rows as $label => $value) {
+        if ($value === '') {
+            continue;
+        }
+        $html .= '<div><dt>' . nb_e($label) . '</dt><dd>' . nb_e($value) . '</dd></div>';
+    }
+    $html .= '</dl></li>';
+
+    return $html;
+}
+
+/** Die letzten Eilmeldungen als Listeneintraege, neueste zuerst (wie renderFeed im Script). */
+function nb_render_feed(array $items, $limit, $maxAgeDays)
+{
+    $cutoff = $maxAgeDays ? time() - $maxAgeDays * 86400 : 0;
+    $list = array_values(array_filter($items, function ($it) use ($cutoff) {
+        return ($it['stand'] ?? $it['ts']) >= $cutoff;
+    }));
+    $list = array_reverse(array_slice($list, -$limit));
+    if (!$list) {
+        return '<li><p class="feed__empty">' . ($maxAgeDays ? 'Keine Eilmeldung in den letzten ' . $maxAgeDays . ' Tagen.' : 'Noch keine Eilmeldungen erfasst.') . '</p></li>';
+    }
+    $html = '';
+    foreach ($list as $it) {
+        $ts = $it['stand'] ?? $it['ts'];
+        $title = $it['title'] !== '' ? $it['title'] : $it['id'];
+        $html .= '<li><div class="feed__time">' . nb_e(nb_fmt_datetime(date('c', $ts))) . '</div><p class="feed__title">';
+        $html .= $it['link']
+            ? '<a href="' . nb_e($it['link']) . '" rel="noopener">' . nb_e($title) . '</a>'
+            : nb_e($title);
+        $html .= '</p></li>';
+    }
+
+    return $html;
+}

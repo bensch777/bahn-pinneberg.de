@@ -29,21 +29,34 @@ const NORDBAHN_LOG_KEEP_DAYS = 400;
 // Hamburg. Die IDs sind die des Nordbahn-Stationsmonitors. 'ast' sagt, welche
 // Zuege dort halten: auf dem Stamm bis Elmshorn alle, dahinter nur die nach
 // Itzehoe (RB61) oder nur die nach Wrist (RB71).
+// 'slug' ist der Pfad der Bahnhofsseite, z. B. nordbahn.bensch777.de/elmshorn/.
 const NORDBAHN_BAHNHOEFE = [
-    'AP'   => ['name' => 'Pinneberg',     'ast' => 'stamm'],
-    'APD'  => ['name' => 'Prisdorf',      'ast' => 'stamm'],
-    'ATM'  => ['name' => 'Tornesch',      'ast' => 'stamm'],
-    'AEL'  => ['name' => 'Elmshorn',      'ast' => 'stamm'],
-    'AHZH' => ['name' => 'Herzhorn',      'ast' => 'itzehoe'],
-    'AGST' => ['name' => 'Glückstadt',    'ast' => 'itzehoe'],
-    'AKM'  => ['name' => 'Krempe',        'ast' => 'itzehoe'],
-    'AKHD' => ['name' => 'Kremperheide',  'ast' => 'itzehoe'],
-    'AIZ'  => ['name' => 'Itzehoe',       'ast' => 'itzehoe'],
-    'AHOT' => ['name' => 'Horst (Holst)', 'ast' => 'wrist'],
-    'ADH'  => ['name' => 'Dauenhof',      'ast' => 'wrist'],
-    'AWST' => ['name' => 'Wrist',         'ast' => 'wrist'],
+    'AP'   => ['name' => 'Pinneberg',     'ast' => 'stamm',   'slug' => 'pinneberg'],
+    'APD'  => ['name' => 'Prisdorf',      'ast' => 'stamm',   'slug' => 'prisdorf'],
+    'ATM'  => ['name' => 'Tornesch',      'ast' => 'stamm',   'slug' => 'tornesch'],
+    'AEL'  => ['name' => 'Elmshorn',      'ast' => 'stamm',   'slug' => 'elmshorn'],
+    'AHZH' => ['name' => 'Herzhorn',      'ast' => 'itzehoe', 'slug' => 'herzhorn'],
+    'AGST' => ['name' => 'Glückstadt',    'ast' => 'itzehoe', 'slug' => 'glueckstadt'],
+    'AKM'  => ['name' => 'Krempe',        'ast' => 'itzehoe', 'slug' => 'krempe'],
+    'AKHD' => ['name' => 'Kremperheide',  'ast' => 'itzehoe', 'slug' => 'kremperheide'],
+    'AIZ'  => ['name' => 'Itzehoe',       'ast' => 'itzehoe', 'slug' => 'itzehoe'],
+    'AHOT' => ['name' => 'Horst (Holst)', 'ast' => 'wrist',   'slug' => 'horst'],
+    'ADH'  => ['name' => 'Dauenhof',      'ast' => 'wrist',   'slug' => 'dauenhof'],
+    'AWST' => ['name' => 'Wrist',         'ast' => 'wrist',   'slug' => 'wrist'],
 ];
 const NORDBAHN_HEIMAT_DEFAULT = 'APD';
+
+/** Bahnhofs-ID zu einem Seitenpfad wie "elmshorn", oder null. */
+function nordbahn_bahnhof_by_slug($slug)
+{
+    foreach (NORDBAHN_BAHNHOEFE as $id => $bhf) {
+        if ($bhf['slug'] === $slug) {
+            return $id;
+        }
+    }
+
+    return null;
+}
 
 /** Liest config.php aus dem Web-Root. Fehlt sie, bleibt die Liste leer. */
 function nordbahn_config()

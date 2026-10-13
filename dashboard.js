@@ -15,6 +15,35 @@
 	var RELOAD_MS = 60 * 60 * 1000;        // komplette Seite neu laden, damit lange offene Tabs neue Versionen bekommen
 	var STALE_MS = 20 * 60 * 1000;
 
+	/**
+	 * Adressen einmal beim Start absolut aufloesen. Die Seite schreibt beim
+	 * Bahnhofswechsel die Adresse um (/elmshorn/), danach wuerden relative
+	 * Pfade wie "api/data" ins Leere zeigen.
+	 */
+	var urls = { root: './', data: 'api/data', abfahrten: 'api/abfahrten' };
+
+	function resolveUrls() {
+		var section = document.getElementById('abfahrten');
+		var rel = {
+			root: (section && section.getAttribute('data-root')) || './',
+			data: (section && section.getAttribute('data-data-endpoint')) || 'api/data',
+			abfahrten: (section && section.getAttribute('data-endpoint')) || 'api/abfahrten'
+		};
+		try {
+			Object.keys(rel).forEach(function (k) { urls[k] = new URL(rel[k], document.baseURI).href; });
+		} catch (e) { urls = rel; }
+	}
+
+	/** Wurzelverzeichnis der Seite, fuer Icons und Bahnhofsadressen. */
+	function root() {
+		return urls.root;
+	}
+
+	/** Zaehlt ein Ereignis in Plausible, wenn das Script geladen ist. */
+	function track(name, props) {
+		try { if (window.plausible) window.plausible(name, props ? { props: props } : undefined); } catch (e) { /* egal */ }
+	}
+
 	var state = {
 		data: null,
 		items: []        // aufbereitete Eilmeldungen
@@ -206,7 +235,14 @@
 	var BETRIEB_ALERT_ANTEIL = 0.25;
 
 	function renderBetrieb(result) {
-		if (!result) { setStatus('status-betrieb', 'unknown', 'Lade Fahrplan …'); return; }
+		var card = document.getElementById('status-betrieb');
+		if (!result) {
+			// Vom Server gerenderte Karte stehen lassen, bis die ersten Abfahrten da sind
+			if (card && card.hasAttribute('data-ssr')) return;
+			setStatus('status-betrieb', 'unknown', 'Lade Fahrplan …');
+			return;
+		}
+		if (card) card.removeAttribute('data-ssr');
 		if (!result.richtungen) { setStatus('status-betrieb', 'unknown', 'Fahrplanlage unbekannt'); return; }
 		var total = 0, ausfaelle = 0, umleitungen = 0, verspaetet = 0, maxDelay = 0;
 		['hin', 'rueck'].forEach(function (key) {
@@ -441,12 +477,22 @@
 		var section = document.getElementById('abfahrten');
 		if (!select || !section) return;
 		var wanted = section.getAttribute('data-heimat-default') || 'APD';
-		try { wanted = localStorage.getItem(HEIMAT_KEY) || wanted; } catch (e) { /* privater Modus */ }
+		// Eine Bahnhofsseite (/elmshorn/) zeigt ihren Bahnhof, sonst gilt die gemerkte Wahl
+		if (!section.hasAttribute('data-heimat-fixed')) {
+			try { wanted = localStorage.getItem(HEIMAT_KEY) || wanted; } catch (e) { /* privater Modus */ }
+		}
 		if (select.querySelector('option[value="' + wanted + '"]')) select.value = wanted;
 		applyHeimat(select);
 		select.addEventListener('change', function () {
 			applyHeimat(select);
 			try { localStorage.setItem(HEIMAT_KEY, heimatState.id); } catch (e) { /* egal */ }
+			// Adresse mitfuehren, damit Reload und Teilen auf derselben Bahnhofsseite landen
+			var opt = select.options[select.selectedIndex];
+			var slug = opt ? opt.getAttribute('data-slug') : '';
+			if (slug && window.history && history.replaceState) {
+				try { history.replaceState(null, '', root() + slug + '/'); } catch (e) { /* egal */ }
+			}
+			track('Bahnhof', { bahnhof: heimatState.name });
 			departuresState.last = null;
 			renderDepartures(null);
 			refreshDepartures();
@@ -460,6 +506,10 @@
 		var rueck = document.getElementById('board-title-rueck');
 		if (hin) hin.textContent = heimatState.name + ' → Hamburg';
 		if (rueck) rueck.textContent = rueckTitel();
+		Array.prototype.forEach.call(document.querySelectorAll('.site-foot__stations a'), function (a) {
+			if (a.getAttribute('data-id') === heimatState.id) a.setAttribute('aria-current', 'page');
+			else a.removeAttribute('aria-current');
+		});
 	}
 
 	/** Hinter Elmshorn faehrt nur noch ein Ast, davor beide. */
@@ -471,7 +521,7 @@
 		var section = document.getElementById('abfahrten');
 		if (!section || document.hidden || !window.fetch) return Promise.resolve();
 		var heimat = heimatState.id;
-		var url = (section.getAttribute('data-endpoint') || 'api/abfahrten') + '?bhf=' + encodeURIComponent(heimat);
+		var url = urls.abfahrten + '?bhf=' + encodeURIComponent(heimat);
 		return fetch(url, { cache: 'no-cache', headers: { 'Accept': 'application/json' } })
 			.then(function (res) { return res.json(); })
 			.then(function (result) {
@@ -629,7 +679,7 @@
 		if (!notifyEnabled() || !notifyAllowedNow()) return;
 		fresh.slice(0, 3).forEach(function (ev) {
 			try {
-				var n = new Notification(ev.title, { body: ev.body, icon: 'favicon.svg', tag: ev.id, lang: 'de' });
+				var n = new Notification(ev.title, { body: ev.body, icon: root() + 'favicon.svg', tag: ev.id, lang: 'de' });
 				n.onclick = function () { window.focus(); n.close(); };
 			} catch (e) { /* Benachrichtigung nicht moeglich */ }
 		});
@@ -684,7 +734,8 @@
 			Notification.requestPermission().then(function (perm) {
 				if (perm === 'granted') {
 					storage('set', NOTIFY_KEY, '1');
-					try { new Notification('Nordbahn Monitor', { body: 'Du bekommst jetzt eine Meldung bei neuen Zugausfällen und Störungen.', icon: 'favicon.svg', lang: 'de' }); } catch (e) { /* egal */ }
+					try { new Notification('Nordbahn Monitor', { body: 'Du bekommst jetzt eine Meldung bei neuen Zugausfällen und Störungen.', icon: root() + 'favicon.svg', lang: 'de' }); } catch (e) { /* egal */ }
+					track('Benachrichtigung an');
 				}
 				renderNotifyButton();
 			});
@@ -713,7 +764,7 @@
 	function refresh() {
 		if (document.hidden || !window.fetch) return Promise.resolve();
 		var app = document.getElementById('app');
-		var url = (document.getElementById('abfahrten') || app).getAttribute('data-data-endpoint') || 'api/data';
+		var url = urls.data;
 		return fetch(url, { cache: 'no-cache', headers: { 'Accept': 'application/json' } })
 			.then(function (res) { if (!res.ok) throw new Error(res.status); return res.json(); })
 			.then(function (data) {
@@ -730,6 +781,7 @@
 	}
 
 	function boot() {
+		resolveUrls();
 		var raw = document.getElementById('nordbahn-data');
 		var data = {};
 		try { data = JSON.parse(raw.textContent); } catch (e) { data = {}; }
@@ -747,6 +799,9 @@
 		}
 		initNotifyButton();
 		initRefreshButton();
+		Array.prototype.forEach.call(document.querySelectorAll('a.tool[href*="t.me"]'), function (a) {
+			a.addEventListener('click', function () { track('Telegram', { kanal: a.getAttribute('href').replace(/.*\//, '') }); });
+		});
 		document.addEventListener('visibilitychange', function () { if (!document.hidden) { refresh(); refreshDepartures(); } });
 	}
 
