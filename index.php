@@ -11,7 +11,7 @@
  * Dieser Ordner ist das Wurzelverzeichnis der Subdomain und zugleich als
  * /nordbahn/ auf der Hauptseite erreichbar, deshalb sind alle Links relativ.
  *
- * Datenfluss: n8n pusht alle 5 Minuten nach api/push (Stoerungen,
+ * Datenfluss: n8n pusht alle 2 Minuten nach api/push (Stoerungen,
  * Eilmeldungen, Historie), die Daten liegen in cache/nordbahn/. Der Stand
  * wird hier als JSON ins HTML eingebettet, damit die Seite ohne zweiten
  * Request rendert; dashboard.js baut daraus die Ansicht und holt sich
@@ -86,6 +86,10 @@ $description = $aktiv > 0
 				<svg class="tool__icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21.6 3.3 2.9 10.6c-1.1.4-1.1 1.1-.2 1.4l4.7 1.5 1.8 5.6c.2.6.1.9.8.9.5 0 .7-.2 1-.5l2.3-2.3 4.8 3.6c.9.5 1.5.2 1.7-.8l3.2-15c.3-1.3-.5-1.9-1.4-1.7ZM8.4 13.1l9.6-6c.5-.3.9-.1.5.2l-7.9 7.2-.3 3.3-1.9-4.7Z"/></svg>
 				<span>Pendler</span>
 			</a>
+			<button type="button" class="tool tool--refresh" id="refresh-button" title="Jetzt aktualisieren">
+				<svg class="tool__icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M17.65 6.35A7.96 7.96 0 0 0 12 4a8 8 0 1 0 7.74 10h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35Z"/></svg>
+				<span class="visually-hidden">Jetzt aktualisieren</span>
+			</button>
 			<button type="button" class="tool tool--toggle" id="notify-toggle" aria-pressed="false" title="Bei Ausf&auml;llen benachrichtigen">
 				<svg class="tool__icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22a2.5 2.5 0 0 0 2.4-2h-4.8a2.5 2.5 0 0 0 2.4 2Zm7-6.3V11c0-3.3-2-6.1-5-6.8V3.5a2 2 0 1 0-4 0v.7C7 4.9 5 7.7 5 11v4.7L3 17.5V19h18v-1.5l-2-1.8ZM17 16.5H7V11c0-2.8 2.1-5 5-5s5 2.2 5 5v5.5Z"/></svg>
 				<span class="visually-hidden" id="notify-label">Bei Ausf&auml;llen benachrichtigen</span>

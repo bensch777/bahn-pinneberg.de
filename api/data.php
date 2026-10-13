@@ -13,7 +13,7 @@
 require __DIR__ . '/store.php';
 
 header('Content-Type: application/json; charset=utf-8');
-header('Cache-Control: public, max-age=60');
+header('Cache-Control: public, max-age=20');
 header('X-Robots-Tag: noindex');
 
 echo json_encode(nordbahn_dataset(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);

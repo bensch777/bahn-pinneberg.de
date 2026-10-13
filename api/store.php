@@ -6,7 +6,7 @@
  * und cache/ der Hauptseite sind ueber das Dateisystem trotzdem erreichbar.
  *
  * Die Daten kommen nicht von hier, sondern aus n8n: der Workflow
- * "Nordbahn Dashboard Push" sammelt alle 5 Minuten die aktiven Stoerungen
+ * "Nordbahn Dashboard Push" sammelt alle 2 Minuten die aktiven Stoerungen
  * (strecken-info.de), die aktuellen Eilmeldungen (nordbahn.de) und die
  * Eilmeldungs-Historie aus seiner Data Table ein und schickt alles per POST
  * an api/push. Der Webserver legt das Paket in cache/nordbahn/ ab

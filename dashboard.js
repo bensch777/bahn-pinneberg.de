@@ -1,6 +1,6 @@
 /*
  * Nordbahn Monitor: baut aus dem eingebetteten JSON (siehe index.php) das
- * Dashboard, holt alle zwei Minuten frische Daten von api/data und laedt die
+ * Dashboard, holt jede Minute frische Daten von api/data und laedt die
  * Seite einmal pro Stunde komplett neu.
  *
  * Alle Texte aus den Daten (Titel, Meldungstexte, Bahnhofsnamen) stammen von
@@ -11,7 +11,7 @@
 	'use strict';
 
 	var TZ = 'Europe/Berlin';
-	var REFRESH_MS = 2 * 60 * 1000;       // Störungen und Eilmeldungen nachladen
+	var REFRESH_MS = 60 * 1000;           // Störungen und Eilmeldungen nachladen
 	var RELOAD_MS = 60 * 60 * 1000;        // komplette Seite neu laden, damit lange offene Tabs neue Versionen bekommen
 	var STALE_MS = 20 * 60 * 1000;
 
@@ -415,9 +415,9 @@
 
 	function refreshDepartures() {
 		var section = document.getElementById('abfahrten');
-		if (!section || document.hidden || !window.fetch) return;
+		if (!section || document.hidden || !window.fetch) return Promise.resolve();
 		var url = section.getAttribute('data-endpoint') || 'api/abfahrten';
-		fetch(url, { cache: 'no-cache', headers: { 'Accept': 'application/json' } })
+		return fetch(url, { cache: 'no-cache', headers: { 'Accept': 'application/json' } })
 			.then(function (res) { return res.json(); })
 			.then(function (result) {
 				departuresState.last = result;
@@ -606,10 +606,10 @@
 	}
 
 	function refresh() {
-		if (document.hidden || !window.fetch) return;
+		if (document.hidden || !window.fetch) return Promise.resolve();
 		var app = document.getElementById('app');
 		var url = (document.getElementById('abfahrten') || app).getAttribute('data-data-endpoint') || 'api/data';
-		fetch(url, { cache: 'no-cache', headers: { 'Accept': 'application/json' } })
+		return fetch(url, { cache: 'no-cache', headers: { 'Accept': 'application/json' } })
 			.then(function (res) { if (!res.ok) throw new Error(res.status); return res.json(); })
 			.then(function (data) {
 				if (!data || !data.received_at) return;
@@ -640,7 +640,25 @@
 			setInterval(function () { orderBoards(); if (departuresState.last) renderDepartures(departuresState.last); }, 30000);
 		}
 		initNotifyButton();
+		initRefreshButton();
 		document.addEventListener('visibilitychange', function () { if (!document.hidden) { refresh(); refreshDepartures(); } });
+	}
+
+	/** Manuell nachladen, vor allem fuer die Webapp ohne Browserleiste. Das Icon dreht sich, solange geladen wird. */
+	function initRefreshButton() {
+		var btn = document.getElementById('refresh-button');
+		if (!btn) return;
+		if (!window.fetch || !window.Promise) { btn.hidden = true; return; }
+		btn.addEventListener('click', function () {
+			if (btn.classList.contains('is-busy')) return;
+			btn.classList.add('is-busy');
+			var started = Date.now();
+			Promise.all([refresh(), refreshDepartures()]).then(done, done);
+			function done() {
+				// mindestens eine halbe Umdrehung, sonst flackert es nur
+				setTimeout(function () { btn.classList.remove('is-busy'); }, Math.max(0, 600 - (Date.now() - started)));
+			}
+		});
 	}
 
 	if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
