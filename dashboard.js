@@ -32,6 +32,9 @@
 		items: []        // aufbereitete Eilmeldungen
 	};
 
+	// Was die Tab-Markierung (Favicon-Punkt und Titel) wissen muss
+	var alertState = { stoerungen: 0, ausfaelle: 0, verspaetet: 0 };
+
 	/* ---------- Zeit-Helfer ---------- */
 
 	function fmtDateTime(iso, withYear) {
@@ -188,6 +191,8 @@
 			el('div', { class: 'status__icon', 'aria-hidden': 'true', text: icon }),
 			el('h3', { class: 'status__title', text: title })
 		]);
+		alertState.stoerungen = list.length;
+		updateBadge();
 		section.appendChild(box);
 
 		if (list.length) {
@@ -286,10 +291,15 @@
 			return;
 		}
 
+		var ausfaelle = 0, verspaetet = 0;
 		Array.prototype.forEach.call(boards, function (b) {
 			var key = b.getAttribute('data-richtung');
 			var list = b.querySelector('.board__list');
 			var deps = (result.richtungen && result.richtungen[key]) || [];
+			deps.slice(0, 6).forEach(function (d) {
+				if (d.ausfall) ausfaelle++;
+				else if (d.verspaetung >= 5) verspaetet++;
+			});
 			clear(list);
 			if (!deps.length) {
 				list.appendChild(el('li', {}, [el('p', { class: 'board__empty', text: 'Keine Abfahrt in den nächsten zwei Stunden.' })]));
@@ -318,6 +328,9 @@
 				list.appendChild(row);
 			});
 		});
+		alertState.ausfaelle = ausfaelle;
+		alertState.verspaetet = verspaetet;
+		updateBadge();
 	}
 
 	var departuresState = { last: null };
@@ -340,6 +353,57 @@
 					renderDepartures({ ok: false });
 				}
 			});
+	}
+
+	/* ---------- Tab-Markierung ---------- */
+
+	var BASE_TITLE = document.title;
+	var faviconCache = {};
+
+	/** Zeichnet das Favicon (blaues Quadrat mit N) und je nach Lage einen Punkt oben rechts. */
+	function faviconUrl(level) {
+		if (faviconCache[level]) return faviconCache[level];
+		var canvas = document.createElement('canvas');
+		canvas.width = 64; canvas.height = 64;
+		var ctx = canvas.getContext('2d');
+		if (!ctx) return null;
+		var r = 14;
+		ctx.fillStyle = '#2a78d6';
+		ctx.beginPath();
+		ctx.moveTo(r, 0); ctx.lineTo(64 - r, 0); ctx.quadraticCurveTo(64, 0, 64, r);
+		ctx.lineTo(64, 64 - r); ctx.quadraticCurveTo(64, 64, 64 - r, 64);
+		ctx.lineTo(r, 64); ctx.quadraticCurveTo(0, 64, 0, 64 - r);
+		ctx.lineTo(0, r); ctx.quadraticCurveTo(0, 0, r, 0);
+		ctx.closePath(); ctx.fill();
+		ctx.fillStyle = '#fff';
+		ctx.font = '700 40px Inter, system-ui, -apple-system, "Segoe UI", sans-serif';
+		ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+		ctx.fillText('N', 32, 34);
+		if (level) {
+			ctx.beginPath(); ctx.arc(49, 15, 16, 0, Math.PI * 2);
+			ctx.fillStyle = '#fff'; ctx.fill();
+			ctx.beginPath(); ctx.arc(49, 15, 13, 0, Math.PI * 2);
+			ctx.fillStyle = level === 'alert' ? '#d03b3b' : '#f59e0b'; ctx.fill();
+		}
+		faviconCache[level] = canvas.toDataURL('image/png');
+		return faviconCache[level];
+	}
+
+	/** Rot bei Störung oder Zugausfall, orange bei Verspätung, sonst nichts. */
+	function updateBadge() {
+		var level = alertState.stoerungen || alertState.ausfaelle ? 'alert' : alertState.verspaetet ? 'warn' : '';
+		var parts = [];
+		if (alertState.stoerungen) parts.push(plural(alertState.stoerungen, 'Störung', 'Störungen'));
+		if (alertState.ausfaelle) parts.push(plural(alertState.ausfaelle, 'Ausfall', 'Ausfälle'));
+		if (!parts.length && alertState.verspaetet) parts.push(plural(alertState.verspaetet, 'Verspätung', 'Verspätungen'));
+		document.title = parts.length ? '(' + parts.join(', ') + ') ' + BASE_TITLE : BASE_TITLE;
+		var link = document.getElementById('favicon');
+		if (!link) return;
+		var url = faviconUrl(level);
+		if (url && link.href !== url) {
+			link.type = 'image/png';
+			link.href = url;
+		}
 	}
 
 	/* ---------- Steuerung ---------- */

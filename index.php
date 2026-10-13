@@ -60,6 +60,7 @@ $description = $aktiv > 0
 <meta property="og:title" content="Nordbahn Monitor &ndash; St&ouml;rungen, Abfahrten und Eilmeldungen RB61/RB71">
 <meta property="og:description" content="<?= $description ?>">
 
+<link rel="icon" id="favicon" type="image/svg+xml" href="favicon.svg">
 <link rel="stylesheet" href="dashboard.css">
 <script defer src="https://bensch777.de/js/pa.js" data-domain="bensch777.de"></script>
 </head>
