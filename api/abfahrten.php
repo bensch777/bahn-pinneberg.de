@@ -312,6 +312,7 @@ function abf_parse($xml, DateTime $now, &$stand)
             'ab'          => null,
             'ersatz'      => null,
             'ersatz_fuer' => null,
+            'an'          => null, // Ankunft in Prisdorf, nur Rueckrichtung
         ];
     }
 
@@ -326,12 +327,20 @@ function abf_build($fetch = 'abf_fetch')
     $quellen = [];
 
     $hin = [];
+    $anHeimat = []; // Zuege nach Norden auf der Prisdorfer Tafel, je Zugnummer
     $xml = $fetch(abf_url(ABF_HEIMAT));
     $rows = $xml !== null ? abf_parse($xml, $now, $stand) : null;
     $quellen[ABF_HEIMAT] = $rows !== null;
     foreach ($rows ?? [] as $row) {
         if (in_array($row['ziel_id'], ABF_STADT_IDS, true) || stripos($row['ziel'], 'Hamburg') !== false) {
             $hin[] = $row;
+        } elseif ($row['zug'] !== '') {
+            $anHeimat[$row['zug']] = [
+                'zeit'        => $row['zeit'],
+                'ist'         => $row['ist'],
+                'verspaetung' => $row['verspaetung'],
+                'ausfall'     => $row['ausfall'],
+            ];
         }
     }
 
@@ -346,6 +355,10 @@ function abf_build($fetch = 'abf_fetch')
                 continue;
             }
             $row['ab'] = $label;
+            // Dieselbe Zugnummer auf der Prisdorfer Tafel liefert die Ankunft dort
+            if ($row['zug'] !== '' && isset($anHeimat[$row['zug']])) {
+                $row['an'] = $anHeimat[$row['zug']];
+            }
             $rueck[] = $row;
         }
     }
@@ -407,6 +420,12 @@ function abf_build($fetch = 'abf_fetch')
                 'ersatz_fuer' => $row['ersatz_fuer']
                     ? ['ab' => $row['ersatz_fuer']['ab'], 'zeit' => $row['ersatz_fuer']['zeit']->format('c')]
                     : null,
+                'an'          => $row['an'] ? [
+                    'zeit'        => $row['an']['zeit']->format('c'),
+                    'ist'         => $row['an']['ist'] ? $row['an']['ist']->format('c') : null,
+                    'verspaetung' => $row['an']['verspaetung'],
+                    'ausfall'     => $row['an']['ausfall'],
+                ] : null,
             ];
             if (count($out) >= ABF_PER_DIR) {
                 break;
