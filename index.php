@@ -128,15 +128,7 @@ $jsonLd = [
 <header class="site-head">
 	<div class="wrap site-head__row">
 		<a class="site-head__brand" href="<?= $root ?>">Nordbahn Monitor</a>
-		<nav class="site-head__tools" aria-label="Kan&auml;le und Benachrichtigungen">
-			<a class="tool" href="https://t.me/NordbahnEilmeldungen" rel="noopener" title="Telegram: Nordbahn Eilmeldungen">
-				<svg class="tool__icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21.6 3.3 2.9 10.6c-1.1.4-1.1 1.1-.2 1.4l4.7 1.5 1.8 5.6c.2.6.1.9.8.9.5 0 .7-.2 1-.5l2.3-2.3 4.8 3.6c.9.5 1.5.2 1.7-.8l3.2-15c.3-1.3-.5-1.9-1.4-1.7ZM8.4 13.1l9.6-6c.5-.3.9-.1.5.2l-7.9 7.2-.3 3.3-1.9-4.7Z"/></svg>
-				<span>Eilmeldungen</span>
-			</a>
-			<a class="tool" href="https://t.me/prisdorfpendler" rel="noopener" title="Telegram: Prisdorf Pendler, alle Bahn-Updates">
-				<svg class="tool__icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21.6 3.3 2.9 10.6c-1.1.4-1.1 1.1-.2 1.4l4.7 1.5 1.8 5.6c.2.6.1.9.8.9.5 0 .7-.2 1-.5l2.3-2.3 4.8 3.6c.9.5 1.5.2 1.7-.8l3.2-15c.3-1.3-.5-1.9-1.4-1.7ZM8.4 13.1l9.6-6c.5-.3.9-.1.5.2l-7.9 7.2-.3 3.3-1.9-4.7Z"/></svg>
-				<span>Pendler</span>
-			</a>
+		<nav class="site-head__tools" aria-label="Aktualisieren und Benachrichtigungen">
 			<button type="button" class="tool tool--refresh" id="refresh-button" title="Jetzt aktualisieren">
 				<svg class="tool__icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M17.65 6.35A7.96 7.96 0 0 0 12 4a8 8 0 1 0 7.74 10h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35Z"/></svg>
 				<span class="visually-hidden">Jetzt aktualisieren</span>
@@ -230,7 +222,11 @@ $jsonLd = [
 
 <footer class="site-foot wrap">
 	<p>Ein Projekt von <a href="https://bensch777.de/">bensch777.de</a>, keine offizielle Seite der Nordbahn. Quellen: nordbahn.de und strecken-info.de.</p>
-	<p class="site-foot__links">Telegram: <a href="https://t.me/NordbahnEilmeldungen" rel="noopener">Nordbahn Eilmeldungen</a> &middot; <a href="https://t.me/prisdorfpendler" rel="noopener">Prisdorf Pendler</a> &middot; <a href="<?= $root ?>faq/">H&auml;ufige Fragen</a></p>
+	<p class="site-foot__links">
+		<a class="foot__link" href="https://t.me/NordbahnEilmeldungen" rel="noopener"><svg class="foot__icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21.6 3.3 2.9 10.6c-1.1.4-1.1 1.1-.2 1.4l4.7 1.5 1.8 5.6c.2.6.1.9.8.9.5 0 .7-.2 1-.5l2.3-2.3 4.8 3.6c.9.5 1.5.2 1.7-.8l3.2-15c.3-1.3-.5-1.9-1.4-1.7ZM8.4 13.1l9.6-6c.5-.3.9-.1.5.2l-7.9 7.2-.3 3.3-1.9-4.7Z"/></svg>Telegram: Nordbahn Eilmeldungen</a>
+		<a class="foot__link" href="https://t.me/prisdorfpendler" rel="noopener"><svg class="foot__icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21.6 3.3 2.9 10.6c-1.1.4-1.1 1.1-.2 1.4l4.7 1.5 1.8 5.6c.2.6.1.9.8.9.5 0 .7-.2 1-.5l2.3-2.3 4.8 3.6c.9.5 1.5.2 1.7-.8l3.2-15c.3-1.3-.5-1.9-1.4-1.7ZM8.4 13.1l9.6-6c.5-.3.9-.1.5.2l-7.9 7.2-.3 3.3-1.9-4.7Z"/></svg>Telegram: Prisdorf Pendler</a>
+		<span class="foot__link"><a href="<?= $root ?>faq/">H&auml;ufige Fragen</a></span>
+	</p>
 </footer>
 
 <script id="nordbahn-data" type="application/json"><?= $json ?></script>

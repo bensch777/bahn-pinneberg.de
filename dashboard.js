@@ -782,7 +782,7 @@
 		}
 		initNotifyButton();
 		initRefreshButton();
-		Array.prototype.forEach.call(document.querySelectorAll('a.tool[href*="t.me"]'), function (a) {
+		Array.prototype.forEach.call(document.querySelectorAll('a[href*="t.me"]'), function (a) {
 			a.addEventListener('click', function () { track('Telegram', { kanal: a.getAttribute('href').replace(/.*\//, '') }); });
 		});
 		document.addEventListener('visibilitychange', function () { if (!document.hidden) { refresh(); refreshDepartures(); } });

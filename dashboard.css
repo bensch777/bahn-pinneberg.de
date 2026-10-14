@@ -242,8 +242,10 @@ button { font: inherit; color: inherit; }
 .faq p { margin: 0 0 12px; color: var(--ink-2); font-size: 14px; max-width: 720px; }
 
 /* Zweite Zeile im Footer */
-.site-foot__links { margin: 6px 0 0; }
+.site-foot__links { margin: 8px 0 0; display: flex; flex-wrap: wrap; gap: 4px 18px; }
 .site-foot a { color: var(--ink-2); }
+.foot__link { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.foot__icon { width: 14px; height: 14px; fill: currentColor; flex: none; }
 
 /* Pipeline */
 .steps { margin: 0; padding: 18px 18px 18px 36px; display: grid; gap: 10px; color: var(--ink-2); font-size: 14px; }
