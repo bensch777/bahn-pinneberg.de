@@ -278,9 +278,17 @@ function nb_render_incident(array $s)
     }
     $rows['Zeitraum'] = $zeit;
 
-    $html = '<li class="card incident"><h4 class="incident__title">' . nb_e($s['titel'] ?? 'Störung') . '</h4>';
-    if (!empty($s['text'])) {
-        $html .= '<p class="incident__text">' . nb_e($s['text']) . '</p>';
+    // Liegt der Pendler-Text der KI vor, steht er vorn; die Originalmeldung rutscht in die Details
+    $ki = !empty($s['ki_titel']) || !empty($s['ki_text']);
+    $titel = $ki && !empty($s['ki_titel']) ? $s['ki_titel'] : ($s['titel'] ?? 'Störung');
+    $text = $ki && !empty($s['ki_text']) ? $s['ki_text'] : ($s['text'] ?? '');
+    if ($ki) {
+        $rows = ['Meldung' => trim(($s['titel'] ?? '') . (!empty($s['text']) ? ': ' . $s['text'] : ''))] + $rows;
+    }
+
+    $html = '<li class="card incident"><h4 class="incident__title">' . nb_e($titel) . '</h4>';
+    if ($text !== '') {
+        $html .= '<p class="incident__text">' . nb_e($text) . '</p>';
     }
     $html .= '<dl class="incident__meta">';
     foreach ($rows as $label => $value) {

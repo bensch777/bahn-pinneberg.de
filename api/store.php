@@ -193,6 +193,9 @@ function nordbahn_clean_stoerung($raw)
         'beginn'         => nordbahn_iso($raw['beginn'] ?? ''),
         'ende'           => nordbahn_iso($raw['ende'] ?? ''),
         'betriebsstellen' => nordbahn_text_list($raw['betriebsstellen'] ?? null),
+        // Pendler-Text, den der Alert-Workflow per KI formuliert hat (leer, bis er vorliegt)
+        'ki_titel'       => nordbahn_text($raw['ki_titel'] ?? '', 120),
+        'ki_text'        => nordbahn_text($raw['ki_text'] ?? '', 600),
     ];
 }
 
@@ -312,7 +315,7 @@ function nordbahn_update_log(array $stoerungen, $nowIso)
             $entry['first_seen'] = $s['beginn'] !== '' ? $s['beginn'] : $nowIso;
         }
         $entry['last_seen'] = $nowIso;
-        foreach (['key', 'titel', 'text', 'abschnitte', 'wirkungen', 'einschraenkung', 'beginn', 'ende'] as $field) {
+        foreach (['key', 'titel', 'text', 'abschnitte', 'wirkungen', 'einschraenkung', 'beginn', 'ende', 'ki_titel', 'ki_text'] as $field) {
             $entry[$field] = $s[$field];
         }
         $log[$key] = $entry;

@@ -211,7 +211,9 @@
 		alertState.stoerungenSchwer = schwer;
 		updateBadge();
 		notifyNew(list.map(function (st) {
-			return { id: 'st:' + st.key, title: 'Infrastrukturstörung', body: (st.titel || 'Störung') + (st.text ? ': ' + st.text : '') };
+			var t = st.ki_titel || st.titel || 'Störung';
+			var b = st.ki_text || st.text || '';
+			return { id: 'st:' + st.key, title: 'Infrastrukturstörung', body: t + (b ? ': ' + b : '') };
 		}));
 
 		var ul = document.getElementById('incidents');
@@ -275,6 +277,11 @@
 			if (!value) return;
 			meta.appendChild(el('div', {}, [el('dt', { text: label }), el('dd', { text: value })]));
 		}
+		// Liegt der Pendler-Text der KI vor, steht er vorn; die Originalmeldung rutscht in die Details
+		var ki = !!(s.ki_titel || s.ki_text);
+		var titel = ki && s.ki_titel ? s.ki_titel : (s.titel || 'Störung');
+		var text = ki && s.ki_text ? s.ki_text : (s.text || '');
+		if (ki) row('Meldung', ((s.titel || '') + (s.text ? ': ' + s.text : '')).trim());
 		var abschnitte = (s.abschnitte || []).map(function (a) {
 			return [a.von, a.bis].filter(Boolean).join(' – ') + (a.strecke ? ' (Strecke ' + a.strecke + ')' : '');
 		}).filter(Boolean).join(', ');
@@ -287,8 +294,8 @@
 		row('Zeitraum', zeit);
 
 		return el('li', { class: 'card incident' }, [
-			el('h4', { class: 'incident__title', text: s.titel || 'Störung' }),
-			s.text ? el('p', { class: 'incident__text', text: s.text }) : null,
+			el('h4', { class: 'incident__title', text: titel }),
+			text ? el('p', { class: 'incident__text', text: text }) : null,
 			meta
 		]);
 	}
