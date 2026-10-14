@@ -155,14 +155,13 @@ $jsonLd = [
 <main class="wrap" id="app">
 	<div class="page-head">
 		<div>
-			<h1>Nordbahn Monitor</h1>
+			<h1>Aktuelle Lage</h1>
 			<p class="page-head__lead"><?= nb_e($lead) ?></p>
 		</div>
 		<p class="freshness" id="freshness" aria-live="polite"></p>
 	</div>
 
-	<section id="status" class="section" aria-labelledby="status-h">
-		<h2 id="status-h" class="visually-hidden">Aktuelle Lage</h2>
+	<section id="status" class="section" aria-label="Lagekarten">
 		<div class="status-grid">
 			<?= nb_render_status_card('status-infra', $cards['infra']) ?>
 			<?= nb_render_status_card('status-eil', $cards['eil']) ?>
