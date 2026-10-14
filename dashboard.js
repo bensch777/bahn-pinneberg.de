@@ -418,14 +418,21 @@
 				if (d.wagen) line.appendChild(el('small', { text: plural(d.wagen, 'Wagen', 'Wagen') }));
 
 				var dest = el('div', { class: 'dep__dest', title: d.ziel }, []);
+				// Jeder Hamburger Bahnhof hat seine Farbe: Hbf blau, Dammtor blau umrandet (gleicher Zug), Altona orange
+				function bahnhofClass(name) {
+					return /altona/i.test(name) ? ' dep__ab--altona' : /dammtor/i.test(name) ? ' dep__ab--dammtor' : /hbf/i.test(name) ? ' dep__ab--hbf' : '';
+				}
 				if (d.ab) {
 					// Rueckrichtung: der Startbahnhof ist die wichtige Information, Altona faellt auf
-					// Jeder Startbahnhof hat seine Farbe: Hbf blau, Dammtor blau umrandet (gleicher Zug), Altona orange
-					var abClass = /altona/i.test(d.ab) ? ' dep__ab--altona' : /dammtor/i.test(d.ab) ? ' dep__ab--dammtor' : /hbf/i.test(d.ab) ? ' dep__ab--hbf' : '';
-					dest.appendChild(el('span', { class: 'dep__ab' + abClass, text: 'ab ' + d.ab }));
+					dest.appendChild(el('span', { class: 'dep__ab' + bahnhofClass(d.ab), text: 'ab ' + d.ab }));
 					dest.appendChild(document.createTextNode(' '));
+					dest.appendChild(el('span', { class: 'dep__ziel', text: d.ziel }));
+				} else {
+					// Hinrichtung: das Hamburger Ziel als Chip, gleiche Farben wie die Startbahnhoefe
+					var zielKurz = /altona/i.test(d.ziel) ? 'Altona' : /dammtor/i.test(d.ziel) ? 'Dammtor' : /hbf|hauptbahnhof/i.test(d.ziel) ? 'Hbf' : '';
+					if (zielKurz) dest.appendChild(el('span', { class: 'dep__ab' + bahnhofClass(zielKurz), text: 'nach ' + zielKurz }));
+					else dest.appendChild(el('span', { class: 'dep__ziel', text: d.ziel }));
 				}
-				dest.appendChild(el('span', { class: 'dep__ziel', text: d.ziel }));
 				if (d.ersatz_fuer) {
 					dest.appendChild(el('small', { class: 'dep__ersatz', text: 'Ersatz für den ' + fmtClock(d.ersatz_fuer.zeit) + ' ab ' + d.ersatz_fuer.ab }));
 				}
