@@ -420,7 +420,9 @@
 				var dest = el('div', { class: 'dep__dest', title: d.ziel }, []);
 				if (d.ab) {
 					// Rueckrichtung: der Startbahnhof ist die wichtige Information, Altona faellt auf
-					dest.appendChild(el('span', { class: 'dep__ab' + (/altona/i.test(d.ab) ? ' dep__ab--altona' : ''), text: 'ab ' + d.ab }));
+					// Jeder Startbahnhof hat seine Farbe: Hbf blau, Dammtor blau umrandet (gleicher Zug), Altona orange
+					var abClass = /altona/i.test(d.ab) ? ' dep__ab--altona' : /dammtor/i.test(d.ab) ? ' dep__ab--dammtor' : /hbf/i.test(d.ab) ? ' dep__ab--hbf' : '';
+					dest.appendChild(el('span', { class: 'dep__ab' + abClass, text: 'ab ' + d.ab }));
 					dest.appendChild(document.createTextNode(' '));
 				}
 				dest.appendChild(el('span', { class: 'dep__ziel', text: d.ziel }));
