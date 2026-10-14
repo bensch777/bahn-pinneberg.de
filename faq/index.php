@@ -100,13 +100,6 @@ $description = 'Wie der Nordbahn Monitor Störungen, Abfahrten und Eilmeldungen 
 	</section>
 </main>
 
-<footer class="site-foot wrap">
-	<p>Ein Projekt von <a href="https://bensch777.de/">bensch777.de</a>, keine offizielle Seite der Nordbahn. Quellen: nordbahn.de und strecken-info.de.</p>
-	<p class="site-foot__links">
-		<a class="foot__link" href="https://t.me/NordbahnEilmeldungen" rel="noopener"><svg class="foot__icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21.6 3.3 2.9 10.6c-1.1.4-1.1 1.1-.2 1.4l4.7 1.5 1.8 5.6c.2.6.1.9.8.9.5 0 .7-.2 1-.5l2.3-2.3 4.8 3.6c.9.5 1.5.2 1.7-.8l3.2-15c.3-1.3-.5-1.9-1.4-1.7ZM8.4 13.1l9.6-6c.5-.3.9-.1.5.2l-7.9 7.2-.3 3.3-1.9-4.7Z"/></svg>Telegram: Nordbahn Eilmeldungen</a>
-		<a class="foot__link" href="https://t.me/prisdorfpendler" rel="noopener"><svg class="foot__icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21.6 3.3 2.9 10.6c-1.1.4-1.1 1.1-.2 1.4l4.7 1.5 1.8 5.6c.2.6.1.9.8.9.5 0 .7-.2 1-.5l2.3-2.3 4.8 3.6c.9.5 1.5.2 1.7-.8l3.2-15c.3-1.3-.5-1.9-1.4-1.7ZM8.4 13.1l9.6-6c.5-.3.9-.1.5.2l-7.9 7.2-.3 3.3-1.9-4.7Z"/></svg>Telegram: Prisdorf Pendler</a>
-		<span class="foot__link"><a href="<?= $root ?>">Zur&uuml;ck zur Lage</a></span>
-	</p>
-</footer>
+<?php $current = 'faq'; require __DIR__ . '/../inc/footer.php'; ?>
 </body>
 </html>

@@ -242,10 +242,7 @@ button { font: inherit; color: inherit; }
 .faq p { margin: 0 0 12px; color: var(--ink-2); font-size: 14px; max-width: 720px; }
 
 /* Zweite Zeile im Footer */
-.site-foot__links { margin: 8px 0 0; display: flex; flex-wrap: wrap; gap: 4px 18px; }
-.site-foot a { color: var(--ink-2); }
-.foot__link { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
-.foot__icon { width: 14px; height: 14px; fill: currentColor; flex: none; }
+
 
 /* Pipeline */
 .steps { margin: 0; padding: 18px 18px 18px 36px; display: grid; gap: 10px; color: var(--ink-2); font-size: 14px; }
@@ -253,8 +250,18 @@ button { font: inherit; color: inherit; }
 .steps a { color: var(--ink); }
 
 .notice { padding: 14px 18px; color: var(--ink-2); }
-.site-foot { padding: 32px 16px 40px; color: var(--muted); font-size: 12.5px; }
-.site-foot p { margin: 0; }
+/* Footer: eigener Streifen mit drei Spalten, auf dem Handy untereinander */
+.site-foot { margin-top: 40px; padding: 28px 0 36px; border-top: 1px solid var(--line); background: var(--surface); color: var(--muted); font-size: 13px; }
+.site-foot__grid { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 24px 40px; }
+@media (max-width: 760px) { .site-foot__grid { grid-template-columns: 1fr; gap: 20px; } }
+.site-foot__brand { display: inline-block; font-weight: 700; font-size: 15px; color: var(--ink); text-decoration: none; margin-bottom: 6px; }
+.site-foot__about p { margin: 0; max-width: 420px; line-height: 1.5; }
+.site-foot__head { margin: 0 0 8px; font-size: 11.5px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.site-foot__list { list-style: none; margin: 0; padding: 0; display: grid; gap: 7px; }
+.site-foot a { color: var(--ink-2); text-decoration: none; }
+.site-foot a:hover { color: var(--ink); text-decoration: underline; }
+.foot__link { display: inline-flex; align-items: center; gap: 7px; }
+.foot__icon { width: 14px; height: 14px; fill: currentColor; flex: none; }
 
 .is-loading { opacity: 0.6; transition: opacity 0.2s; }
 
