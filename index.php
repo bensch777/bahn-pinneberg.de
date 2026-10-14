@@ -229,8 +229,8 @@ $jsonLd = [
 </main>
 
 <footer class="site-foot wrap">
-	<p>Ein Projekt von <a href="https://bensch777.de/">bensch777.de</a>, keine offizielle Seite der Nordbahn. Quellen: nordbahn.de und strecken-info.de. Zeiten in deutscher Zeit.</p>
-	<p class="site-foot__links"><a href="<?= $root ?>faq/">H&auml;ufige Fragen</a></p>
+	<p>Ein Projekt von <a href="https://bensch777.de/">bensch777.de</a>, keine offizielle Seite der Nordbahn. Quellen: nordbahn.de und strecken-info.de.</p>
+	<p class="site-foot__links">Telegram: <a href="https://t.me/NordbahnEilmeldungen" rel="noopener">Nordbahn Eilmeldungen</a> &middot; <a href="https://t.me/prisdorfpendler" rel="noopener">Prisdorf Pendler</a> &middot; <a href="<?= $root ?>faq/">H&auml;ufige Fragen</a></p>
 </footer>
 
 <script id="nordbahn-data" type="application/json"><?= $json ?></script>
