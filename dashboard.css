@@ -241,11 +241,8 @@ button { font: inherit; color: inherit; }
 .faq details[open] summary::after { content: '–'; }
 .faq p { margin: 0 0 12px; color: var(--ink-2); font-size: 14px; max-width: 720px; }
 
-/* Bahnhofslinks im Footer */
-.site-foot__stations { margin: 6px 0 0; }
-.site-foot__stations a { color: var(--ink-2); text-decoration: none; }
-.site-foot__stations a:hover { text-decoration: underline; }
-.site-foot__stations a[aria-current] { color: var(--ink); font-weight: 600; }
+/* Zweite Zeile im Footer */
+.site-foot__links { margin: 6px 0 0; }
 
 /* Pipeline */
 .steps { margin: 0; padding: 18px 18px 18px 36px; display: grid; gap: 10px; color: var(--ink-2); font-size: 14px; }

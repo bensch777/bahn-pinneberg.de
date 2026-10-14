@@ -9,10 +9,9 @@
  * Bahnhof ist waehlbar und bleibt im Browser gespeichert), und die letzten
  * Eilmeldungen der Nordbahn.
  *
- * Adressen: / zeigt den gemerkten Bahnhof, /elmshorn/ (per Rewrite als
- * ?bhf=elmshorn) eine Bahnhofsseite mit eigenem Titel und Canonical. Der
- * Ordner ist das Wurzelverzeichnis der Subdomain; alle Links sind relativ,
- * auf Bahnhofsseiten mit "../" davor.
+ * Der Ordner ist das Wurzelverzeichnis der Subdomain und zugleich als
+ * /nordbahn/ auf der Hauptseite erreichbar, deshalb sind alle Links relativ.
+ * Die FAQ liegt unter faq/.
  *
  * Datenfluss: n8n pusht alle 2 Minuten nach api/push (Stoerungen,
  * Eilmeldungen, Historie), die Daten liegen in cache/nordbahn/. Lagekarten,
@@ -28,26 +27,11 @@ require __DIR__ . '/api/render.php';
 
 const SITE_URL = 'https://nordbahn.bensch777.de';
 
-// Bahnhofsseite? Unbekannte Pfade bekommen eine echte 404.
-$slug = isset($_GET['bhf']) ? strtolower(trim((string) $_GET['bhf'])) : '';
 $heimat = NORDBAHN_HEIMAT_DEFAULT;
-$stationPage = false;
-if ($slug !== '') {
-    $id = nordbahn_bahnhof_by_slug($slug);
-    if ($id === null) {
-        http_response_code(404);
-        header('Content-Type: text/html; charset=utf-8');
-        echo '<!DOCTYPE html><html lang="de"><head><meta charset="utf-8"><title>Seite nicht gefunden</title><meta name="robots" content="noindex"></head>',
-            '<body><p>Diesen Bahnhof gibt es hier nicht. <a href="../">Zur Startseite</a></p></body></html>';
-        exit;
-    }
-    $heimat = $id;
-    $stationPage = true;
-}
-$root = $stationPage ? '../' : './';
+$root = './';
 $bahnhof = NORDBAHN_BAHNHOEFE[$heimat];
-$pageUrl = SITE_URL . '/' . ($stationPage ? $bahnhof['slug'] . '/' : '');
-$rueckTitel = 'Hamburg → ' . ($bahnhof['ast'] === 'itzehoe' ? 'Itzehoe' : ($bahnhof['ast'] === 'wrist' ? 'Wrist' : 'Wrist / Itzehoe'));
+$pageUrl = SITE_URL . '/';
+$rueckTitel = 'Hamburg → Wrist / Itzehoe';
 
 $data = nordbahn_dataset();
 
@@ -77,51 +61,23 @@ $assetVersion = max((int) @filemtime(__DIR__ . '/dashboard.js'), (int) @filemtim
 $stoerungSatz = $aktiv > 0
     ? $aktiv . ' aktive Störung' . ($aktiv === 1 ? '' : 'en') . ' auf der Nordbahn-Strecke Hamburg – Elmshorn – Itzehoe/Wrist.'
     : 'Störungen heute auf der Nordbahn-Strecke Hamburg – Elmshorn – Itzehoe/Wrist.';
-if ($stationPage) {
-    $title = 'Abfahrten ' . $bahnhof['name'] . ' → Hamburg und zurück live – RB61/RB71 | Nordbahn Monitor';
-    $description = 'Nächste Züge ab ' . $bahnhof['name'] . ' nach Hamburg und zurück mit Verspätungen, Ausfällen und Gleis. '
-        . $stoerungSatz . ' Dazu die letzten Eilmeldungen der RB61 und RB71. Live, alle zwei Minuten aktualisiert.';
-    $lead = 'Nächste Züge ab ' . $bahnhof['name'] . ' nach Hamburg und zurück, dazu Störungen und Eilmeldungen der RB61 und RB71.';
-} else {
-    $title = 'Nordbahn Monitor – Störungen, Abfahrten und Eilmeldungen RB61/RB71 live';
-    $description = $stoerungSatz . ' Dazu die nächsten Züge vom eigenen Bahnhof nach Hamburg und zurück sowie die letzten Eilmeldungen zu RB61 und RB71. Live, alle zwei Minuten aktualisiert.';
-    $lead = 'Störungen heute, nächste Züge und Eilmeldungen der RB61 und RB71 zwischen Hamburg, Elmshorn, Itzehoe und Wrist.';
-}
+$title = 'Nordbahn Monitor – Störungen, Abfahrten und Eilmeldungen RB61/RB71 live';
+$description = $stoerungSatz . ' Dazu die nächsten Züge vom eigenen Bahnhof nach Hamburg und zurück sowie die letzten Eilmeldungen zu RB61 und RB71. Live, alle zwei Minuten aktualisiert.';
+$lead = 'Störungen heute, nächste Züge und Eilmeldungen der RB61 und RB71 zwischen Hamburg, Elmshorn, Itzehoe und Wrist.';
 
-$faq = [
-    ['Was bedeutet „Betrieb beeinträchtigt“ oder „Betrieb gestört“?',
-     'Die Karte zählt, wie viele der nächsten Züge in beide Richtungen betroffen sind: Zugausfälle, Umleitungen über Hamburg-Altona und Verspätungen ab zehn Minuten. Bis zu einem Viertel der Züge heißt „beeinträchtigt“, darüber „gestört“.'],
-    ['Woher kommen die Daten?',
-     'Abfahrten, Gleise und Verspätungen stammen vom Stationsmonitor der Nordbahn, Eilmeldungen von nordbahn.de, Infrastrukturstörungen von strecken-info.de der DB InfraGO. Abfahrten werden jede Minute geladen, Störungen und Eilmeldungen alle zwei Minuten.'],
-    ['Welche Linien und Bahnhöfe werden angezeigt?',
-     'Die RB61 Hamburg – Itzehoe, die RB71 Hamburg – Wrist und die Verstärkerzüge der RB60. Als eigener Bahnhof lässt sich jeder Halt zwischen Pinneberg und Itzehoe bzw. Wrist wählen, die Auswahl bleibt im Browser gespeichert.'],
-    ['Kann ich mich bei Zugausfällen benachrichtigen lassen?',
-     'Ja, über die Glocke oben rechts, wahlweise nur zu Pendelzeiten. Die Meldung kommt, solange die Seite geöffnet ist. Unabhängig davon gibt es die Telegram-Kanäle „Nordbahn Eilmeldungen“ und „Prisdorf Pendler“.'],
-    ['Ist das eine offizielle Seite der Nordbahn?',
-     'Nein. Der Nordbahn Monitor ist ein privates Projekt von bensch777.de ohne Verbindung zur NBE Nordbahn Eisenbahngesellschaft. Verbindliche Auskünfte gibt es auf nordbahn.de.'],
-];
 $jsonLd = [
-    [
-        '@context' => 'https://schema.org',
-        '@type' => 'WebApplication',
-        'name' => 'Nordbahn Monitor',
-        'url' => $pageUrl,
-        'description' => $description,
-        'applicationCategory' => 'TravelApplication',
-        'operatingSystem' => 'Any',
-        'browserRequirements' => 'Requires JavaScript',
-        'inLanguage' => 'de',
-        'isAccessibleForFree' => true,
-        'offers' => ['@type' => 'Offer', 'price' => '0', 'priceCurrency' => 'EUR'],
-        'author' => ['@type' => 'Person', 'name' => 'Benjamin Neske', 'url' => 'https://bensch777.de/'],
-    ],
-    [
-        '@context' => 'https://schema.org',
-        '@type' => 'FAQPage',
-        'mainEntity' => array_map(function ($qa) {
-            return ['@type' => 'Question', 'name' => $qa[0], 'acceptedAnswer' => ['@type' => 'Answer', 'text' => $qa[1]]];
-        }, $faq),
-    ],
+    '@context' => 'https://schema.org',
+    '@type' => 'WebApplication',
+    'name' => 'Nordbahn Monitor',
+    'url' => $pageUrl,
+    'description' => $description,
+    'applicationCategory' => 'TravelApplication',
+    'operatingSystem' => 'Any',
+    'browserRequirements' => 'Requires JavaScript',
+    'inLanguage' => 'de',
+    'isAccessibleForFree' => true,
+    'offers' => ['@type' => 'Offer', 'price' => '0', 'priceCurrency' => 'EUR'],
+    'author' => ['@type' => 'Person', 'name' => 'Benjamin Neske', 'url' => 'https://bensch777.de/'],
 ];
 ?>
 <!DOCTYPE html>
@@ -207,7 +163,7 @@ $jsonLd = [
 <main class="wrap" id="app">
 	<div class="page-head">
 		<div>
-			<h1><?= $stationPage ? 'Abfahrten ' . nb_e($bahnhof['name']) . ' &ndash; Hamburg live' : 'Nordbahn Monitor' ?></h1>
+			<h1>Nordbahn Monitor</h1>
 			<p class="page-head__lead"><?= nb_e($lead) ?></p>
 		</div>
 		<p class="freshness" id="freshness" aria-live="polite"></p>
@@ -228,7 +184,7 @@ $jsonLd = [
 		</ul>
 	</section>
 
-	<section id="abfahrten" class="section" aria-labelledby="abfahrten-h" data-root="<?= $root ?>" data-endpoint="<?= $root ?>api/abfahrten" data-data-endpoint="<?= $root ?>api/data" data-heimat-default="<?= $heimat ?>"<?= $stationPage ? ' data-heimat-fixed' : '' ?>>
+	<section id="abfahrten" class="section" aria-labelledby="abfahrten-h" data-root="<?= $root ?>" data-endpoint="<?= $root ?>api/abfahrten" data-data-endpoint="<?= $root ?>api/data" data-heimat-default="<?= $heimat ?>">
 		<div class="section__head">
 			<h2 id="abfahrten-h" class="section__title">N&auml;chste Z&uuml;ge</h2>
 			<div class="section__tools">
@@ -236,7 +192,7 @@ $jsonLd = [
 					<span class="heimat__label">Mein Bahnhof</span>
 					<select id="heimat" class="heimat__select">
 <?php foreach (NORDBAHN_BAHNHOEFE as $id => $bhf): ?>
-						<option value="<?= $id ?>" data-ast="<?= $bhf['ast'] ?>" data-slug="<?= $bhf['slug'] ?>"<?= $id === $heimat ? ' selected' : '' ?>><?= nb_e($bhf['name']) ?></option>
+						<option value="<?= $id ?>" data-ast="<?= $bhf['ast'] ?>"<?= $id === $heimat ? ' selected' : '' ?>><?= nb_e($bhf['name']) ?></option>
 <?php endforeach; ?>
 					</select>
 				</label>
@@ -269,28 +225,12 @@ $jsonLd = [
 		</ol>
 	</section>
 
-	<section id="faq" class="section" aria-labelledby="faq-h">
-		<div class="section__head">
-			<h2 id="faq-h" class="section__title">H&auml;ufige Fragen</h2>
-		</div>
-		<div class="card faq">
-<?php foreach ($faq as $qa): ?>
-			<details>
-				<summary><?= nb_e($qa[0]) ?></summary>
-				<p><?= nb_e($qa[1]) ?></p>
-			</details>
-<?php endforeach; ?>
-		</div>
-	</section>
-
 	<noscript><p class="notice">Ohne JavaScript bleibt die Seite auf diesem Stand stehen. Die Rohdaten gibt es unter <a href="<?= $root ?>api/data">api/data</a>.</p></noscript>
 </main>
 
 <footer class="site-foot wrap">
 	<p>Ein Projekt von <a href="https://bensch777.de/">bensch777.de</a>, keine offizielle Seite der Nordbahn. Quellen: nordbahn.de und strecken-info.de. Zeiten in deutscher Zeit.</p>
-	<p class="site-foot__stations">Abfahrten ab:
-<?php $links = []; foreach (NORDBAHN_BAHNHOEFE as $id => $bhf) { $links[] = '<a href="' . $root . $bhf['slug'] . '/" data-id="' . $id . '"' . ($id === $heimat ? ' aria-current="page"' : '') . '>' . nb_e($bhf['name']) . '</a>'; } echo implode(' &middot; ', $links); ?>
-	</p>
+	<p class="site-foot__links"><a href="<?= $root ?>faq/">H&auml;ufige Fragen</a></p>
 </footer>
 
 <script id="nordbahn-data" type="application/json"><?= $json ?></script>

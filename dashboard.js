@@ -15,11 +15,7 @@
 	var RELOAD_MS = 60 * 60 * 1000;        // komplette Seite neu laden, damit lange offene Tabs neue Versionen bekommen
 	var STALE_MS = 20 * 60 * 1000;
 
-	/**
-	 * Adressen einmal beim Start absolut aufloesen. Die Seite schreibt beim
-	 * Bahnhofswechsel die Adresse um (/elmshorn/), danach wuerden relative
-	 * Pfade wie "api/data" ins Leere zeigen.
-	 */
+	/** Adressen der Endpunkte einmal beim Start aus den Attributen der Seite lesen. */
 	var urls = { root: './', data: 'api/data', abfahrten: 'api/abfahrten' };
 
 	function resolveUrls() {
@@ -34,7 +30,7 @@
 		} catch (e) { urls = rel; }
 	}
 
-	/** Wurzelverzeichnis der Seite, fuer Icons und Bahnhofsadressen. */
+	/** Wurzelverzeichnis der Seite, fuer Icons. */
 	function root() {
 		return urls.root;
 	}
@@ -477,21 +473,12 @@
 		var section = document.getElementById('abfahrten');
 		if (!select || !section) return;
 		var wanted = section.getAttribute('data-heimat-default') || 'APD';
-		// Eine Bahnhofsseite (/elmshorn/) zeigt ihren Bahnhof, sonst gilt die gemerkte Wahl
-		if (!section.hasAttribute('data-heimat-fixed')) {
-			try { wanted = localStorage.getItem(HEIMAT_KEY) || wanted; } catch (e) { /* privater Modus */ }
-		}
+		try { wanted = localStorage.getItem(HEIMAT_KEY) || wanted; } catch (e) { /* privater Modus */ }
 		if (select.querySelector('option[value="' + wanted + '"]')) select.value = wanted;
 		applyHeimat(select);
 		select.addEventListener('change', function () {
 			applyHeimat(select);
 			try { localStorage.setItem(HEIMAT_KEY, heimatState.id); } catch (e) { /* egal */ }
-			// Adresse mitfuehren, damit Reload und Teilen auf derselben Bahnhofsseite landen
-			var opt = select.options[select.selectedIndex];
-			var slug = opt ? opt.getAttribute('data-slug') : '';
-			if (slug && window.history && history.replaceState) {
-				try { history.replaceState(null, '', root() + slug + '/'); } catch (e) { /* egal */ }
-			}
 			track('Bahnhof', { bahnhof: heimatState.name });
 			departuresState.last = null;
 			renderDepartures(null);
@@ -506,10 +493,6 @@
 		var rueck = document.getElementById('board-title-rueck');
 		if (hin) hin.textContent = heimatState.name + ' → Hamburg';
 		if (rueck) rueck.textContent = rueckTitel();
-		Array.prototype.forEach.call(document.querySelectorAll('.site-foot__stations a'), function (a) {
-			if (a.getAttribute('data-id') === heimatState.id) a.setAttribute('aria-current', 'page');
-			else a.removeAttribute('aria-current');
-		});
 	}
 
 	/** Hinter Elmshorn faehrt nur noch ein Ast, davor beide. */
