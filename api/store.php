@@ -17,9 +17,13 @@
  * der Server sie aus und antwortet leer.
  */
 
-const NORDBAHN_CACHE_DIR = __DIR__ . '/../../cache/nordbahn';
-const NORDBAHN_DATA_FILE = NORDBAHN_CACHE_DIR . '/data.json';
-const NORDBAHN_LOG_FILE  = NORDBAHN_CACHE_DIR . '/stoerungen-log.json';
+// Die Tests (tests/run.php) definieren NORDBAHN_CACHE_DIR vorher auf ein
+// Wegwerfverzeichnis, damit sie den echten Cache nicht anfassen.
+if (!defined('NORDBAHN_CACHE_DIR')) {
+    define('NORDBAHN_CACHE_DIR', __DIR__ . '/../../cache/nordbahn');
+}
+define('NORDBAHN_DATA_FILE', NORDBAHN_CACHE_DIR . '/data.json');
+define('NORDBAHN_LOG_FILE', NORDBAHN_CACHE_DIR . '/stoerungen-log.json');
 
 // So lange bleibt eine aufgehobene Stoerung im Logbuch, gerechnet ab dem
 // letzten Zeitpunkt, zu dem n8n sie noch als aktiv gemeldet hat.

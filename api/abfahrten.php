@@ -34,7 +34,7 @@
  * erreichbar, kommt der letzte bekannte Stand mit ok=false.
  */
 
-require __DIR__ . '/store.php';
+require_once __DIR__ . '/store.php';
 
 const ABF_API        = 'https://datnet-nbe.etc-consult.de/datnet-nbe/xml_v3';
 const ABF_STADT      = ['AH' => 'Hbf', 'AA' => 'Altona']; // Startbahnhoefe fuer den Rueckweg
@@ -547,9 +547,9 @@ function abf_parse($xml, DateTime $now, &$stand)
 }
 
 /** Holt die Tafeln und sortiert die Abfahrten nach hin und zurueck. */
-function abf_build($fetch = 'abf_fetch', $heimat = NORDBAHN_HEIMAT_DEFAULT)
+function abf_build($fetch = 'abf_fetch', $heimat = NORDBAHN_HEIMAT_DEFAULT, ?DateTime $now = null)
 {
-    $now = new DateTime('now', new DateTimeZone('Europe/Berlin'));
+    $now = $now ?? new DateTime('now', new DateTimeZone('Europe/Berlin'));
     $stand = '';
     $quellen = [];
 
@@ -731,6 +731,9 @@ function abf_build($fetch = 'abf_fetch', $heimat = NORDBAHN_HEIMAT_DEFAULT)
 // Die fuenfte Angabe dient als Antwort fuer alle Zugabfragen (eine Datei) oder liefert je
 // Zugnummer <verzeichnis>/<nummer>.xml; der Zug-Cache wird dabei nicht benutzt.
 if (PHP_SAPI === 'cli') {
+    if (!isset($argv[0]) || realpath($argv[0]) !== __FILE__) {
+        return; // als Bibliothek eingebunden (Tests), nicht als Kommando gestartet
+    }
     $files = array_slice($argv, 1);
     $heimat = NORDBAHN_HEIMAT_DEFAULT;
     if (isset($files[0]) && strpos($files[0], '--bhf=') === 0) {
