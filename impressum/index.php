@@ -1,8 +1,8 @@
 <?php
 /**
- * Impressum und Datenschutzerklaerung. Die Anbieterangaben kommen aus
- * config.php (NORDBAHN_IMPRESSUM), damit Adresse und Mailadresse nicht im
- * Repo liegen. Fehlen sie, steht ein deutlicher Hinweis auf der Seite.
+ * Impressum und Datenschutzerklaerung. Die Anbieterangaben stehen hier als
+ * Vorgabe (oeffentliche Impressumsadresse) und lassen sich per config.php
+ * (NORDBAHN_IMPRESSUM) ueberschreiben, z. B. fuer den Hoster-Namen.
  */
 
 require __DIR__ . '/../api/store.php';
@@ -16,8 +16,17 @@ $assetVersion = (int) @filemtime(__DIR__ . '/../dashboard.css');
 
 $config = nordbahn_config();
 $imp = is_array($config['NORDBAHN_IMPRESSUM'] ?? null) ? $config['NORDBAHN_IMPRESSUM'] : [];
-$imp += ['name' => '', 'strasse' => '', 'ort' => '', 'email' => '', 'hoster' => ''];
+$imp += [
+    'name'    => 'Benjamin Neske',
+    'zusatz'  => 'c/o Rechtsanwalt Matutis',
+    'strasse' => 'Berliner Straße 57',
+    'ort'     => '14467 Potsdam',
+    'land'    => 'Deutschland',
+    'email'   => 'hallo@bahn-pinneberg.de',
+    'hoster'  => '',
+];
 $vollstaendig = $imp['name'] !== '' && $imp['strasse'] !== '' && $imp['ort'] !== '' && $imp['email'] !== '';
+$anschrift = array_values(array_filter([$imp['name'], $imp['zusatz'], $imp['strasse'], $imp['ort'], $imp['land']], 'strlen'));
 $host = nordbahn_site_host();
 
 $title = 'Impressum und Datenschutz – Nordbahn Monitor';
@@ -69,7 +78,7 @@ $description = 'Anbieterkennzeichnung und Datenschutzerklärung des Nordbahn Mon
 		<div class="card prose">
 			<h2>Angaben gem&auml;&szlig; &sect; 5 DDG</h2>
 <?php if ($vollstaendig): ?>
-			<p><?= nb_e($imp['name']) ?><br><?= nb_e($imp['strasse']) ?><br><?= nb_e($imp['ort']) ?></p>
+			<p><?= implode('<br>', array_map('nb_e', $anschrift)) ?></p>
 			<h2>Kontakt</h2>
 			<p>E-Mail: <a href="mailto:<?= nb_e($imp['email']) ?>"><?= nb_e($imp['email']) ?></a></p>
 			<h2>Verantwortlich f&uuml;r den Inhalt</h2>
@@ -90,7 +99,7 @@ $description = 'Anbieterkennzeichnung und Datenschutzerklärung des Nordbahn Mon
 		</div>
 		<div class="card prose">
 			<h2>Verantwortlicher</h2>
-			<p><?= $vollstaendig ? nb_e($imp['name']) . ', ' . nb_e($imp['strasse']) . ', ' . nb_e($imp['ort']) . ', E-Mail ' . nb_e($imp['email']) : 'Siehe Impressum.' ?></p>
+			<p><?= $vollstaendig ? nb_e(implode(', ', $anschrift)) . ', E-Mail <a href="mailto:' . nb_e($imp['email']) . '">' . nb_e($imp['email']) . '</a>' : 'Siehe Impressum.' ?></p>
 
 			<h2>Was diese Seite nicht tut</h2>
 			<p>Es gibt kein Konto, kein Formular, keinen Newsletter und keine Cookies. Es werden keine personenbezogenen Daten an Dritte weitergegeben oder zu Werbezwecken verarbeitet.</p>

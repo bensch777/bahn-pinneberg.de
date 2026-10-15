@@ -31,7 +31,7 @@ Die Daten kommen aus zwei n8n-Workflows: „Nordbahn Dashboard Push“ sammelt S
 - `NORDBAHN_SITE_URL`: öffentliche Adresse, Grundlage für Canonical, Open Graph, Sitemap und robots.txt
 - `NORDBAHN_PLAUSIBLE_JS`: Script-URL der Plausible-Site, leer für kein Analytics
 - `NORDBAHN_GOOGLE_VERIFICATION`, `NORDBAHN_BING_VERIFICATION`: Verifizierungs-Codes für Search Console und Bing Webmaster Tools
-- `NORDBAHN_IMPRESSUM`: Name, Straße, Ort, E-Mail (und optional `hoster`) für Impressum und Datenschutzerklärung; bleibt auf dem Server
+- `NORDBAHN_IMPRESSUM`: optional, überschreibt die Impressumsangaben Feld für Feld (`name`, `zusatz`, `strasse`, `ort`, `land`, `email`, `hoster`)
 
 `cache/` muss für PHP beschreibbar sein; der Ordner wird beim ersten Push angelegt.
 

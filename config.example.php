@@ -27,12 +27,10 @@ return [
     'NORDBAHN_GOOGLE_VERIFICATION' => '',
     'NORDBAHN_BING_VERIFICATION' => '',
 
-    // Angaben fuer das Impressum (Pflicht nach § 5 DDG). Bleiben hier auf dem
-    // Server und landen nicht im Repo.
+    // Angaben fuer das Impressum, optional: ueberschreibt die Vorgabe in
+    // impressum/index.php Feld fuer Feld (name, zusatz, strasse, ort, land,
+    // email, hoster). 'hoster' erscheint in der Datenschutzerklaerung.
     'NORDBAHN_IMPRESSUM' => [
-        'name'    => 'Vorname Nachname',
-        'strasse' => 'Strasse Hausnummer',
-        'ort'     => 'PLZ Ort',
-        'email'   => 'mail@example.org',
+        'hoster' => '',
     ],
 ];
