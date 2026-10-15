@@ -21,4 +21,18 @@ return [
 
     // Script-URL der Plausible-Site fuer diese Domain. Leer: kein Analytics.
     'NORDBAHN_PLAUSIBLE_JS' => '',
+
+    // Verifizierungs-Codes fuer Google Search Console und Bing Webmaster Tools
+    // (nur der content-Wert des Meta-Tags). Leer: kein Tag.
+    'NORDBAHN_GOOGLE_VERIFICATION' => '',
+    'NORDBAHN_BING_VERIFICATION' => '',
+
+    // Angaben fuer das Impressum (Pflicht nach § 5 DDG). Bleiben hier auf dem
+    // Server und landen nicht im Repo.
+    'NORDBAHN_IMPRESSUM' => [
+        'name'    => 'Vorname Nachname',
+        'strasse' => 'Strasse Hausnummer',
+        'ort'     => 'PLZ Ort',
+        'email'   => 'mail@example.org',
+    ],
 ];

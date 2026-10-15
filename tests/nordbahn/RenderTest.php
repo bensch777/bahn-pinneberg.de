@@ -119,3 +119,33 @@ function test_eilmeldung_ki_titel_in_der_liste()
     $clean = nordbahn_clean_payload(['eilmeldungen' => [['id' => 'em-1', 'title' => 'T', 'seen_at' => '2026-10-15T08:00:00Z', 'ki_titel' => 'KI', 'ki_text' => 'Text']]]);
     t_eq('KI', $clean['eilmeldungen'][0]['ki_titel'], 'ki_titel ueberlebt die Bereinigung');
 }
+
+/* ---------- Statistik ---------- */
+
+function test_statistik_kennzahlen()
+{
+    $now = strtotime('2026-10-15 12:00:00 Europe/Berlin');
+    $iso = function ($ts) { return gmdate('Y-m-d\TH:i:s\Z', $ts); };
+    $verlauf = [
+        ['key' => 'A', 'titel' => 'Störung an Signalanlagen – Stromausfall', 'first_seen' => $iso($now - 2 * 86400), 'last_seen' => $iso($now - 2 * 86400 + 3 * 3600)],
+        ['key' => 'B', 'titel' => 'Störung an Signalanlagen', 'ki_titel' => 'Signal kaputt in Elmshorn', 'first_seen' => $iso($now - 10 * 86400), 'last_seen' => $iso($now - 10 * 86400 + 5 * 3600)],
+        ['key' => 'C', 'titel' => 'Bauarbeiten', 'first_seen' => $iso($now - 40 * 86400), 'last_seen' => $iso($now - 40 * 86400 + 3600)],
+        ['key' => 'ALT', 'titel' => 'Personen im Gleis', 'first_seen' => $iso($now - 100 * 86400), 'last_seen' => $iso($now - 100 * 86400 + 600)],
+        ['key' => 'KAPUTT', 'titel' => 'x', 'first_seen' => '', 'last_seen' => ''],
+    ];
+    $s = nb_statistik($verlauf, $now);
+    t_eq(4, $s['gesamt'], 'kaputter Eintrag zaehlt nicht');
+    t_eq($now - 100 * 86400, $s['seit'], 'aelteste Stoerung');
+    t_eq(2, $s['tage30']['n'], 'zwei in den letzten 30 Tagen');
+    t_eq(8 * 3600, $s['tage30']['dauer'], 'Gesamtdauer');
+    t_eq(4 * 3600, $s['tage30']['schnitt'], 'Schnitt');
+    t_eq('Signal kaputt in Elmshorn', $s['tage30']['laengste']['titel'], 'laengste mit KI-Titel');
+    t_eq(8, count($s['wochen']), 'acht Wochen');
+    t_eq(1, end($s['wochen'])['n'], 'laufende Woche zuletzt, mit der Stoerung von vorgestern');
+    t_eq(['Störung an Signalanlagen', 'Bauarbeiten'], array_column($s['ursachen'], 'name'), 'Ursachen der letzten 90 Tage, haeufigste zuerst, Unterursache abgeschnitten');
+    t_eq(2, $s['ursachen'][0]['n'], 'zwei Signalstoerungen');
+    t_eq(0, nb_bar_stufe(0, 5), 'leerer Balken');
+    t_eq(100, nb_bar_stufe(5, 5), 'voller Balken');
+    t_eq(5, nb_bar_stufe(1, 100), 'mindestens 5 Prozent, wenn ueberhaupt etwas da ist');
+    t_eq(40, nb_bar_stufe(2, 5), 'gerundet auf 5er-Stufe');
+}

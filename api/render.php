@@ -321,6 +321,93 @@ function nb_render_incident(array $s)
 
 /** Die letzten Eilmeldungen als Listeneintraege, neueste zuerst (wie renderFeed im Script). */
 /**
+ * Kennzahlen aus dem Stoerungs-Logbuch fuer die Statistik-Seite. Gezaehlt wird
+ * nach Beginn (first_seen); die Dauer reicht bis zum letzten Zeitpunkt, zu dem
+ * die Stoerung noch aktiv gemeldet war (last_seen), bei laufenden also bis jetzt.
+ */
+function nb_statistik(array $verlauf, $now = null)
+{
+    $now = $now ?? time();
+    $eintraege = [];
+    $seit = null;
+    foreach ($verlauf as $e) {
+        if (!is_array($e) || empty($e['key'])) {
+            continue;
+        }
+        $start = nb_ts($e['first_seen'] ?? '');
+        $ende = nb_ts($e['last_seen'] ?? '');
+        if ($start === null || $ende === null) {
+            continue;
+        }
+        $ende = max($start, $ende);
+        $titel = trim((string) ($e['titel'] ?? 'Störung'));
+        $ursache = trim(explode(' – ', $titel)[0]) ?: 'Störung';
+        $eintraege[] = [
+            'key'      => $e['key'],
+            'titel'    => trim((string) (($e['ki_titel'] ?? '') !== '' ? $e['ki_titel'] : $titel)),
+            'ursache'  => $ursache,
+            'start'    => $start,
+            'ende'     => $ende,
+            'dauer'    => $ende - $start,
+        ];
+        $seit = $seit === null ? $start : min($seit, $start);
+    }
+
+    $tage30 = array_values(array_filter($eintraege, function ($e) use ($now) {
+        return $e['start'] >= $now - 30 * 86400;
+    }));
+    $dauer30 = array_sum(array_column($tage30, 'dauer'));
+    $laengste = null;
+    foreach ($tage30 as $e) {
+        if ($laengste === null || $e['dauer'] > $laengste['dauer']) {
+            $laengste = $e;
+        }
+    }
+
+    // Letzte acht Kalenderwochen (ISO), aelteste zuerst, die laufende Woche zuletzt
+    $wochen = [];
+    $montag = strtotime('monday this week 00:00', $now);
+    for ($i = 7; $i >= 0; $i--) {
+        $von = strtotime('-' . $i . ' weeks', $montag);
+        $bis = $von + 7 * 86400;
+        $n = 0;
+        $dauer = 0;
+        foreach ($eintraege as $e) {
+            if ($e['start'] >= $von && $e['start'] < $bis) {
+                $n++;
+                $dauer += $e['dauer'];
+            }
+        }
+        $wochen[] = ['kw' => (int) date('W', $von), 'von' => $von, 'bis' => $bis - 1, 'n' => $n, 'dauer' => $dauer];
+    }
+
+    // Haeufigste Ursachen der letzten 90 Tage
+    $ursachen = [];
+    foreach ($eintraege as $e) {
+        if ($e['start'] < $now - 90 * 86400) {
+            continue;
+        }
+        $u = $e['ursache'];
+        if (!isset($ursachen[$u])) {
+            $ursachen[$u] = ['name' => $u, 'n' => 0, 'dauer' => 0];
+        }
+        $ursachen[$u]['n']++;
+        $ursachen[$u]['dauer'] += $e['dauer'];
+    }
+    usort($ursachen, function ($a, $b) {
+        return [$b['n'], $b['dauer']] <=> [$a['n'], $a['dauer']];
+    });
+
+    return [
+        'gesamt'   => count($eintraege),
+        'seit'     => $seit,
+        'tage30'   => ['n' => count($tage30), 'dauer' => $dauer30, 'schnitt' => $tage30 ? (int) round($dauer30 / count($tage30)) : 0, 'laengste' => $laengste],
+        'wochen'   => $wochen,
+        'ursachen' => array_slice(array_values($ursachen), 0, 6),
+    ];
+}
+
+/**
  * Aufgehobene Stoerungen aus dem Logbuch, juengste zuerst. Aktive (noch in
  * stoerungen gemeldete) bleiben draussen, die stehen oben in den Karten.
  * Titel und Text nehmen den Pendler-Text der KI, wenn es ihn gibt.
@@ -356,6 +443,16 @@ function nb_verlauf_items(array $data)
     });
 
     return $out;
+}
+
+/** Balkenbreite in 5-Prozent-Stufen (0..100) fuer data-w, CSP-konform ohne Inline-Style. */
+function nb_bar_stufe($wert, $max)
+{
+    if ($max <= 0 || $wert <= 0) {
+        return 0;
+    }
+
+    return (int) max(5, min(100, 5 * round(20 * $wert / $max)));
 }
 
 /** "35 Min." oder "2 Std. 10 Min." */
@@ -409,7 +506,7 @@ function nb_render_feed(array $items, $limit, $maxAgeDays)
         $tooltip = !empty($it['original']) && $it['original'] !== $it['title'] ? ' title="Nordbahn: ' . nb_e($it['original']) . '"' : '';
         $html .= '<li><div class="feed__time">' . nb_e(nb_fmt_datetime(date('c', $ts))) . '</div><p class="feed__title"' . $tooltip . '>';
         $html .= $it['link']
-            ? '<a href="' . nb_e($it['link']) . '" rel="noopener">' . nb_e($title) . '</a>'
+            ? '<a href="' . nb_e($it['link']) . '" rel="noopener nofollow">' . nb_e($title) . '</a>'
             : nb_e($title);
         $html .= '</p></li>';
     }

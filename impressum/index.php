@@ -1,0 +1,123 @@
+<?php
+/**
+ * Impressum und Datenschutzerklaerung. Die Anbieterangaben kommen aus
+ * config.php (NORDBAHN_IMPRESSUM), damit Adresse und Mailadresse nicht im
+ * Repo liegen. Fehlen sie, steht ein deutlicher Hinweis auf der Seite.
+ */
+
+require __DIR__ . '/../api/store.php';
+require __DIR__ . '/../api/render.php';
+require __DIR__ . '/../inc/security.php';
+nb_send_security_headers();
+
+define('SITE_URL', nordbahn_site_url());
+$root = '../';
+$assetVersion = (int) @filemtime(__DIR__ . '/../dashboard.css');
+
+$config = nordbahn_config();
+$imp = is_array($config['NORDBAHN_IMPRESSUM'] ?? null) ? $config['NORDBAHN_IMPRESSUM'] : [];
+$imp += ['name' => '', 'strasse' => '', 'ort' => '', 'email' => '', 'hoster' => ''];
+$vollstaendig = $imp['name'] !== '' && $imp['strasse'] !== '' && $imp['ort'] !== '' && $imp['email'] !== '';
+$host = nordbahn_site_host();
+
+$title = 'Impressum und Datenschutz – Nordbahn Monitor';
+$description = 'Anbieterkennzeichnung und Datenschutzerklärung des Nordbahn Monitors auf ' . $host . '.';
+?>
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title><?= nb_e($title) ?></title>
+<meta name="description" content="<?= nb_e($description) ?>">
+<link rel="canonical" href="<?= SITE_URL ?>/impressum/">
+<meta name="robots" content="index, follow">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#f6f6f4" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#121211" media="(prefers-color-scheme: dark)">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Nordbahn Monitor">
+<meta property="og:locale" content="de_DE">
+<meta property="og:url" content="<?= SITE_URL ?>/impressum/">
+<meta property="og:title" content="<?= nb_e($title) ?>">
+<meta property="og:description" content="<?= nb_e($description) ?>">
+<link rel="icon" type="image/svg+xml" href="<?= $root ?>favicon.svg">
+<link rel="apple-touch-icon" href="<?= $root ?>icon-180.png">
+<link rel="stylesheet" href="<?= $root ?>dashboard.css?v=<?= $assetVersion ?>">
+<?php require __DIR__ . '/../inc/analytics.php'; ?>
+</head>
+<body>
+
+<header class="site-head">
+	<div class="wrap site-head__row">
+		<a class="site-head__brand" href="<?= $root ?>">Nordbahn Monitor <span class="site-head__domain"><?= nb_e($host) ?></span></a>
+		<nav class="site-head__tools" aria-label="Zur&uuml;ck">
+			<a class="tool" href="<?= $root ?>">Zur Lage</a>
+		</nav>
+	</div>
+</header>
+
+<main class="wrap">
+	<div class="page-head">
+		<div>
+			<h1>Impressum</h1>
+			<p class="page-head__lead">Wer hinter dem Nordbahn Monitor steht und was mit Ihren Daten passiert.</p>
+		</div>
+	</div>
+
+	<section class="section">
+		<div class="card prose">
+			<h2>Angaben gem&auml;&szlig; &sect; 5 DDG</h2>
+<?php if ($vollstaendig): ?>
+			<p><?= nb_e($imp['name']) ?><br><?= nb_e($imp['strasse']) ?><br><?= nb_e($imp['ort']) ?></p>
+			<h2>Kontakt</h2>
+			<p>E-Mail: <a href="mailto:<?= nb_e($imp['email']) ?>"><?= nb_e($imp['email']) ?></a></p>
+			<h2>Verantwortlich f&uuml;r den Inhalt</h2>
+			<p><?= nb_e($imp['name']) ?>, Anschrift wie oben.</p>
+<?php else: ?>
+			<p><strong>Die Anbieterangaben sind noch nicht hinterlegt.</strong> Sie werden in der Konfiguration des Servers gepflegt (NORDBAHN_IMPRESSUM in config.php).</p>
+<?php endif; ?>
+			<h2>Hinweis zum Projekt</h2>
+			<p>Der Nordbahn Monitor ist ein privates, nicht kommerzielles Projekt ohne Verbindung zur NBE Nordbahn Eisenbahngesellschaft mbH, zur DB InfraGO AG oder zur NAH.SH GmbH. Alle Angaben zu St&ouml;rungen, Abfahrten und Eilmeldungen stammen aus &ouml;ffentlichen Quellen (nordbahn.de, strecken-info.de) und werden automatisch aufbereitet. F&uuml;r Richtigkeit, Vollst&auml;ndigkeit und Aktualit&auml;t wird keine Gew&auml;hr &uuml;bernommen. Verbindlich sind allein die Ausk&uuml;nfte der Nordbahn.</p>
+			<h2>Haftung f&uuml;r Links</h2>
+			<p>Die Seite verlinkt auf Angebote Dritter (nordbahn.de, strecken-info.de, Telegram, X). Auf deren Inhalte habe ich keinen Einfluss; es gelten die Angaben der jeweiligen Anbieter.</p>
+		</div>
+	</section>
+
+	<section class="section" id="datenschutz">
+		<div class="section__head">
+			<h2 class="section__title">Datenschutzerkl&auml;rung</h2>
+		</div>
+		<div class="card prose">
+			<h2>Verantwortlicher</h2>
+			<p><?= $vollstaendig ? nb_e($imp['name']) . ', ' . nb_e($imp['strasse']) . ', ' . nb_e($imp['ort']) . ', E-Mail ' . nb_e($imp['email']) : 'Siehe Impressum.' ?></p>
+
+			<h2>Was diese Seite nicht tut</h2>
+			<p>Es gibt kein Konto, kein Formular, keinen Newsletter und keine Cookies. Es werden keine personenbezogenen Daten an Dritte weitergegeben oder zu Werbezwecken verarbeitet.</p>
+
+			<h2>Server-Logs</h2>
+			<p>Beim Aufruf speichert der Webserver<?= $imp['hoster'] !== '' ? ' (Hosting: ' . nb_e($imp['hoster']) . ')' : '' ?> technisch bedingt IP-Adresse, Zeitpunkt, aufgerufene Adresse, &uuml;bertragene Datenmenge, Browser und Referrer in Logdateien. Das dient dem sicheren Betrieb und der Fehlersuche (Art. 6 Abs. 1 lit. f DSGVO). Die Logs werden nach den Fristen des Hosting-Anbieters gel&ouml;scht.</p>
+
+			<h2>Reichweitenmessung mit Plausible</h2>
+			<p>Zur Messung der Nutzung wird Plausible Analytics eingesetzt (Plausible Insights O&Uuml;, Estland, Server in der EU). Plausible arbeitet ohne Cookies und ohne Speicherung personenbezogener Daten: Die IP-Adresse wird nur fl&uuml;chtig zur Bildung eines t&auml;glich wechselnden, nicht r&uuml;ckrechenbaren Kennzeichens verwendet und nicht gespeichert. Erfasst werden Seitenaufrufe, Referrer, Ger&auml;tetyp, Browser und Land sowie einzelne Aktionen (z. B. Wahl des Heimatbahnhofs). Rechtsgrundlage ist das berechtigte Interesse, die Nutzung der Seite zu verstehen (Art. 6 Abs. 1 lit. f DSGVO). Details: <a href="https://plausible.io/data-policy" rel="noopener">plausible.io/data-policy</a>.</p>
+
+			<h2>Einstellungen im Browser</h2>
+			<p>Heimatbahnhof und Benachrichtigungseinstellungen werden ausschlie&szlig;lich im lokalen Speicher Ihres Browsers (localStorage) abgelegt. Diese Daten verlassen Ihr Ger&auml;t nicht und lassen sich &uuml;ber die Browser-Einstellungen l&ouml;schen.</p>
+
+			<h2>Benachrichtigungen</h2>
+			<p>Wenn Sie Benachrichtigungen einschalten, erzeugt Ihr Browser diese lokal aus den Daten, die die Seite ohnehin l&auml;dt. Es gibt keinen Push-Dienst und keine Registrierung auf einem Server; die Freigabe k&ouml;nnen Sie jederzeit im Browser widerrufen.</p>
+
+			<h2>Datenquellen und externe Dienste</h2>
+			<p>Die Seite l&auml;dt St&ouml;rungen, Abfahrten und Eilmeldungen serverseitig von nordbahn.de und strecken-info.de; Ihr Browser verbindet sich dabei nicht mit diesen Diensten. Links zu Telegram, X, nordbahn.de und strecken-info.de f&uuml;hren zu Angeboten Dritter mit eigenen Datenschutzbestimmungen.</p>
+
+			<h2>Ihre Rechte</h2>
+			<p>Sie haben das Recht auf Auskunft, Berichtigung, L&ouml;schung, Einschr&auml;nkung der Verarbeitung, Daten&uuml;bertragbarkeit und Widerspruch (Art. 15 bis 21 DSGVO) sowie auf Beschwerde bei einer Datenschutz-Aufsichtsbeh&ouml;rde. Da diese Seite keine personenbezogenen Daten speichert, beschr&auml;nkt sich das in der Praxis auf die Server-Logs des Hosting-Anbieters.</p>
+
+			<p class="section__note">Stand: <?= nb_e(date('d.m.Y', (int) @filemtime(__FILE__))) ?></p>
+		</div>
+	</section>
+</main>
+
+<?php $current = 'impressum'; require __DIR__ . '/../inc/footer.php'; ?>
+</body>
+</html>

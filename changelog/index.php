@@ -6,6 +6,8 @@
 
 require __DIR__ . '/../api/store.php';
 require __DIR__ . '/../api/render.php';
+require __DIR__ . '/../inc/security.php';
+nb_send_security_headers();
 
 define('SITE_URL', nordbahn_site_url());
 $root = '../';
@@ -13,6 +15,9 @@ $assetVersion = (int) @filemtime(__DIR__ . '/../dashboard.css');
 
 $changelog = [
     ['2026-10-15', [
+        ['Störungsstatistik', 'Neue Seite mit Kennzahlen aus dem Logbuch: Störungen und Gesamtdauer der letzten 30 Tage, Verlauf über acht Kalenderwochen und die häufigsten Ursachen. Verlinkt im Footer.'],
+        ['Impressum und Datenschutz', 'Eigene Seite mit Anbieterkennzeichnung und Datenschutzerklärung (Hosting, Plausible, lokale Einstellungen, Benachrichtigungen). Die Kontaktangaben kommen aus der Konfiguration.'],
+        ['Sicherheit und Suchmaschinen', 'Security-Header (HSTS, Content-Security-Policy, nosniff, Referrer-Policy, Permissions-Policy). Titel und Beschreibung nennen die Bahnhöfe, Strukturdaten beschreiben die Website, Verifizierung für Search Console und Bing per Konfiguration.'],
         ['Eilmeldungen mit Pendler-Titel', 'Der Eilmeldungs-Workflow lässt sich von der KI einen sprechenden Titel schreiben, zum Beispiel welcher Zug wann ausfällt statt nur „Zugausfall RB60“. Die Seite zeigt diesen Titel, der Nordbahn-Titel steht im Tooltip. Meldungen zu kurzfristigem Personalausfall landen nur noch auf der Seite, nicht mehr per Telegram.'],
         ['Abgelaufen ist nicht aufgehoben', 'strecken-info.de meldet eine Störung als „abgelaufen“, sobald ihr gemeldetes Ende vorbei ist, auch wenn sie weiter andauert. Die Workflows nahmen das bisher als erledigt. Jetzt zählt nur noch „geschlossen“; eine abgelaufene Störung bleibt aktiv und zeigt „gemeldetes Ende überschritten, dauert an“.'],
         ['Letzte Störungen', 'Unter den Eilmeldungen steht eine Liste der zuletzt aufgehobenen Infrastruktur-Störungen der letzten sieben Tage: Beginn, Ende, Dauer und der Pendler-Text. Bisher verschwand eine Störung mit ihrer Aufhebung sofort von der Seite.'],

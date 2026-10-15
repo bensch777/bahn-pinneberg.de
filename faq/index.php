@@ -6,6 +6,8 @@
 
 require __DIR__ . '/../api/store.php';
 require __DIR__ . '/../api/render.php';
+require __DIR__ . '/../inc/security.php';
+nb_send_security_headers();
 
 define('SITE_URL', nordbahn_site_url());
 $root = '../';

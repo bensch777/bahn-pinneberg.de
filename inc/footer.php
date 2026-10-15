@@ -27,8 +27,14 @@
 <?php if ($current !== 'faq'): ?>
 				<li><a href="<?= $root ?>faq/">H&auml;ufige Fragen</a></li>
 <?php endif; ?>
+<?php if ($current !== 'statistik'): ?>
+				<li><a href="<?= $root ?>statistik/">St&ouml;rungsstatistik</a></li>
+<?php endif; ?>
 <?php if ($current !== 'changelog'): ?>
 				<li><a href="<?= $root ?>changelog/">Was ist neu</a></li>
+<?php endif; ?>
+<?php if ($current !== 'impressum'): ?>
+				<li><a href="<?= $root ?>impressum/">Impressum &amp; Datenschutz</a></li>
 <?php endif; ?>
 				<li><a href="https://bensch777.de/" rel="noopener">bensch777.de</a></li>
 				<li>Quellen: <a href="https://www.nordbahn.de/" rel="noopener">nordbahn.de</a>, <a href="https://strecken-info.de/" rel="noopener">strecken-info.de</a></li>

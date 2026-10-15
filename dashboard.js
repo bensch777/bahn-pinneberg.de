@@ -332,7 +332,7 @@
 			var hasStand = !isNaN(it.stand);
 			var time = el('div', { class: 'feed__time' }, [fmtDateTime(new Date(hasStand ? it.stand : it.ms).toISOString())]);
 			var title = it.link
-				? el('a', { href: it.link, rel: 'noopener', text: it.title || it.id })
+				? el('a', { href: it.link, rel: 'noopener nofollow', text: it.title || it.id })
 				: document.createTextNode(it.title || it.id);
 			var p = el('p', { class: 'feed__title' }, [title]);
 			if (it.original && it.original !== it.title) p.setAttribute('title', 'Nordbahn: ' + it.original);

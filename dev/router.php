@@ -19,6 +19,8 @@ $map = [
     '/'              => '/index.php',
     '/faq/'          => '/faq/index.php',
     '/changelog/'    => '/changelog/index.php',
+    '/statistik/'    => '/statistik/index.php',
+    '/impressum/'    => '/impressum/index.php',
 ];
 if (preg_match('#^/(cache|tests|dev|\.git)(/|$)#', $path) || preg_match('#^/(config(\.example)?\.php|README\.md)$#', $path)) {
     http_response_code(403);
