@@ -108,6 +108,9 @@ button { font: inherit; color: inherit; }
 .site-head { border-bottom: 1px solid var(--line); background: var(--surface); }
 .site-head__row { display: flex; justify-content: space-between; align-items: center; height: 48px; }
 .site-head__brand { font-weight: 600; text-decoration: none; font-size: 14px; }
+.site-head__domain { font-weight: 400; color: var(--muted); }
+.site-head__domain::before { content: "\00b7"; margin: 0 6px 0 2px; }
+@media (max-width: 359px) { .site-head__domain { display: none; } }
 .site-head__tools { display: flex; gap: 4px; align-items: center; }
 .tool {
 	display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 10px; border-radius: 8px;

@@ -100,7 +100,7 @@ function nb_datum($iso)
 
 <header class="site-head">
 	<div class="wrap site-head__row">
-		<a class="site-head__brand" href="<?= $root ?>">Nordbahn Monitor</a>
+		<a class="site-head__brand" href="<?= $root ?>">Nordbahn Monitor <span class="site-head__domain"><?= htmlspecialchars(nordbahn_site_host(), ENT_QUOTES, 'UTF-8') ?></span></a>
 		<nav class="site-head__tools" aria-label="Zur&uuml;ck">
 			<a class="tool" href="<?= $root ?>">Zur Lage</a>
 		</nav>

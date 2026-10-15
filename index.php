@@ -122,7 +122,7 @@ $jsonLd = [
 
 <header class="site-head">
 	<div class="wrap site-head__row">
-		<a class="site-head__brand" href="<?= $root ?>">Nordbahn Monitor</a>
+		<a class="site-head__brand" href="<?= $root ?>">Nordbahn Monitor <span class="site-head__domain"><?= htmlspecialchars(nordbahn_site_host(), ENT_QUOTES, 'UTF-8') ?></span></a>
 		<nav class="site-head__tools" aria-label="Aktualisieren und Benachrichtigungen">
 			<button type="button" class="tool tool--refresh" id="refresh-button" title="Jetzt aktualisieren">
 				<svg class="tool__icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M17.65 6.35A7.96 7.96 0 0 0 12 4a8 8 0 1 0 7.74 10h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35Z"/></svg>
