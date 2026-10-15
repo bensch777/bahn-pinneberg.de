@@ -278,12 +278,14 @@ function nb_render_incident(array $s)
     }
     $rows['Zeitraum'] = $zeit;
 
-    // Liegt der Pendler-Text der KI vor, steht er vorn; die Originalmeldung rutscht in die Details
+    // Liegt der Pendler-Text der KI vor, reichen Titel, Text und Zeitraum; die technischen
+    // Details (Originalmeldung, Abschnitt, Wirkung, Einschraenkung) zeigt die Karte nur, solange
+    // der Text noch fehlt.
     $ki = !empty($s['ki_titel']) || !empty($s['ki_text']);
     $titel = $ki && !empty($s['ki_titel']) ? $s['ki_titel'] : ($s['titel'] ?? 'Störung');
     $text = $ki && !empty($s['ki_text']) ? $s['ki_text'] : ($s['text'] ?? '');
     if ($ki) {
-        $rows = ['Meldung' => trim(($s['titel'] ?? '') . (!empty($s['text']) ? ': ' . $s['text'] : ''))] + $rows;
+        $rows = ['Zeitraum' => $rows['Zeitraum']];
     }
 
     $html = '<li class="card incident"><h4 class="incident__title">' . nb_e($titel) . '</h4>';

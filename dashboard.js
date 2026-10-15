@@ -277,17 +277,19 @@
 			if (!value) return;
 			meta.appendChild(el('div', {}, [el('dt', { text: label }), el('dd', { text: value })]));
 		}
-		// Liegt der Pendler-Text der KI vor, steht er vorn; die Originalmeldung rutscht in die Details
+		// Liegt der Pendler-Text der KI vor, reichen Titel, Text und Zeitraum; die technischen
+		// Details zeigt die Karte nur, solange der Text noch fehlt.
 		var ki = !!(s.ki_titel || s.ki_text);
 		var titel = ki && s.ki_titel ? s.ki_titel : (s.titel || 'Störung');
 		var text = ki && s.ki_text ? s.ki_text : (s.text || '');
-		if (ki) row('Meldung', ((s.titel || '') + (s.text ? ': ' + s.text : '')).trim());
-		var abschnitte = (s.abschnitte || []).map(function (a) {
-			return [a.von, a.bis].filter(Boolean).join(' – ') + (a.strecke ? ' (Strecke ' + a.strecke + ')' : '');
-		}).filter(Boolean).join(', ');
-		row('Abschnitt', abschnitte || (s.betriebsstellen || []).join(', '));
-		row('Auswirkung', (s.wirkungen || []).join(', '));
-		row('Einschränkung', s.einschraenkung ? s.einschraenkung.charAt(0).toUpperCase() + s.einschraenkung.slice(1) : '');
+		if (!ki) {
+			var abschnitte = (s.abschnitte || []).map(function (a) {
+				return [a.von, a.bis].filter(Boolean).join(' – ') + (a.strecke ? ' (Strecke ' + a.strecke + ')' : '');
+			}).filter(Boolean).join(', ');
+			row('Abschnitt', abschnitte || (s.betriebsstellen || []).join(', '));
+			row('Auswirkung', (s.wirkungen || []).join(', '));
+			row('Einschränkung', s.einschraenkung ? s.einschraenkung.charAt(0).toUpperCase() + s.einschraenkung.slice(1) : '');
+		}
 		var zeit = '';
 		if (s.beginn) zeit = 'seit ' + fmtDateTime(s.beginn);
 		if (s.ende) zeit += (zeit ? ', ' : '') + 'voraussichtlich bis ' + fmtDateTime(s.ende);
