@@ -233,6 +233,7 @@ button { font: inherit; color: inherit; }
 .feed__title a { color: var(--series); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; text-decoration-color: color-mix(in srgb, var(--series) 45%, transparent); }
 .feed__title a:hover { text-decoration-color: var(--series); }
 .feed__title a::after { content: ' \2197'; font-size: 12px; }
+.feed__meta { margin: 2px 0 0; font-size: 13px; color: var(--muted); line-height: 1.4; }
 .feed__empty { padding: 18px; color: var(--muted); margin: 0; }
 
 /* FAQ */

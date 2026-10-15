@@ -334,6 +334,51 @@
 		});
 	}
 
+	/** Aufgehobene Stoerungen aus dem Logbuch, juengste zuerst (wie nb_verlauf_items). */
+	function verlaufItems(data) {
+		var aktiv = {};
+		(data.stoerungen || []).forEach(function (s) { if (s.key) aktiv[s.key] = true; });
+		var out = [];
+		(data.stoerungen_verlauf || []).forEach(function (e) {
+			if (!e || !e.key || aktiv[e.key]) return;
+			var start = Date.parse(e.first_seen), ende = Date.parse(e.last_seen);
+			if (isNaN(start) || isNaN(ende)) return;
+			out.push({ key: e.key, titel: (e.ki_titel || e.titel || 'Störung').trim(), text: (e.ki_text || '').trim(), start: start, ende: Math.max(start, ende) });
+		});
+		return out.sort(function (a, b) { return b.ende - a.ende; });
+	}
+
+	function fmtDauer(ms) {
+		var min = Math.round(ms / 60000);
+		if (min < 60) return Math.max(1, min) + ' Min.';
+		var h = Math.floor(min / 60), rest = min % 60;
+		return h + ' Std.' + (rest ? ' ' + rest + ' Min.' : '');
+	}
+
+	function renderVerlauf() {
+		var ol = document.getElementById('verlauf-feed');
+		if (!ol || !state.data) return;
+		clear(ol);
+		var limit = parseInt(ol.getAttribute('data-limit'), 10) || 6;
+		var maxAgeDays = parseInt(ol.getAttribute('data-max-age-days'), 10) || 0;
+		var cutoff = maxAgeDays ? Date.now() - maxAgeDays * 86400000 : 0;
+		var items = verlaufItems(state.data).filter(function (it) { return it.ende >= cutoff; }).slice(0, limit);
+		if (!items.length) {
+			ol.appendChild(el('li', {}, [el('p', { class: 'feed__empty', text: maxAgeDays
+				? 'Keine aufgehobene Störung in den letzten ' + maxAgeDays + ' Tagen.'
+				: 'Noch keine Störung erfasst.' })]));
+			return;
+		}
+		items.forEach(function (it) {
+			var meta = el('p', { class: 'feed__meta', text: 'bis ' + fmtDateTime(new Date(it.ende).toISOString()) + ' · ' + fmtDauer(it.ende - it.start) });
+			if (it.text) { meta.appendChild(el('br')); meta.appendChild(document.createTextNode(it.text)); }
+			ol.appendChild(el('li', {}, [
+				el('div', { class: 'feed__time' }, [fmtDateTime(new Date(it.start).toISOString())]),
+				el('div', {}, [el('p', { class: 'feed__title', text: it.titel }), meta])
+			]));
+		});
+	}
+
 	/* ---------- Abfahrten ---------- */
 
 	var DEPARTURES_MS = 60 * 1000;
@@ -773,6 +818,7 @@
 		renderFreshness();
 		renderStatus();
 		renderFeed();
+		renderVerlauf();
 	}
 
 	function setData(data) {

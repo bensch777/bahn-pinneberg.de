@@ -313,6 +313,78 @@ function nb_render_incident(array $s)
 }
 
 /** Die letzten Eilmeldungen als Listeneintraege, neueste zuerst (wie renderFeed im Script). */
+/**
+ * Aufgehobene Stoerungen aus dem Logbuch, juengste zuerst. Aktive (noch in
+ * stoerungen gemeldete) bleiben draussen, die stehen oben in den Karten.
+ * Titel und Text nehmen den Pendler-Text der KI, wenn es ihn gibt.
+ */
+function nb_verlauf_items(array $data)
+{
+    $aktiv = [];
+    foreach ($data['stoerungen'] ?? [] as $s) {
+        if (!empty($s['key'])) {
+            $aktiv[$s['key']] = true;
+        }
+    }
+    $out = [];
+    foreach ($data['stoerungen_verlauf'] ?? [] as $e) {
+        if (!is_array($e) || empty($e['key']) || isset($aktiv[$e['key']])) {
+            continue;
+        }
+        $start = nb_ts($e['first_seen'] ?? '');
+        $ende = nb_ts($e['last_seen'] ?? '');
+        if ($start === null || $ende === null) {
+            continue;
+        }
+        $out[] = [
+            'key'   => $e['key'],
+            'titel' => trim((string) (($e['ki_titel'] ?? '') !== '' ? $e['ki_titel'] : ($e['titel'] ?? 'Störung'))),
+            'text'  => trim((string) ($e['ki_text'] ?? '')),
+            'start' => $start,
+            'ende'  => max($start, $ende),
+        ];
+    }
+    usort($out, function ($a, $b) {
+        return $b['ende'] <=> $a['ende'];
+    });
+
+    return $out;
+}
+
+/** "35 Min." oder "2 Std. 10 Min." */
+function nb_dauer($sekunden)
+{
+    $min = (int) round($sekunden / 60);
+    if ($min < 60) {
+        return max(1, $min) . ' Min.';
+    }
+    $h = intdiv($min, 60);
+    $rest = $min % 60;
+
+    return $h . ' Std.' . ($rest ? ' ' . $rest . ' Min.' : '');
+}
+
+/** Liste der aufgehobenen Stoerungen fuer die Startseite (wie renderVerlauf im Script). */
+function nb_render_verlauf(array $items, $limit, $maxAgeDays)
+{
+    $cutoff = $maxAgeDays ? time() - $maxAgeDays * 86400 : 0;
+    $list = array_slice(array_values(array_filter($items, function ($it) use ($cutoff) {
+        return $it['ende'] >= $cutoff;
+    })), 0, $limit);
+    if (!$list) {
+        return '<li><p class="feed__empty">' . ($maxAgeDays ? 'Keine aufgehobene Störung in den letzten ' . $maxAgeDays . ' Tagen.' : 'Noch keine Störung erfasst.') . '</p></li>';
+    }
+    $html = '';
+    foreach ($list as $it) {
+        $html .= '<li><div class="feed__time">' . nb_e(nb_fmt_datetime(date('c', $it['start']))) . '</div><div>'
+            . '<p class="feed__title">' . nb_e($it['titel']) . '</p>'
+            . '<p class="feed__meta">bis ' . nb_e(nb_fmt_datetime(date('c', $it['ende']))) . ' · ' . nb_e(nb_dauer($it['ende'] - $it['start']))
+            . ($it['text'] !== '' ? '<br>' . nb_e($it['text']) : '') . '</p></div></li>';
+    }
+
+    return $html;
+}
+
 function nb_render_feed(array $items, $limit, $maxAgeDays)
 {
     $cutoff = $maxAgeDays ? time() - $maxAgeDays * 86400 : 0;

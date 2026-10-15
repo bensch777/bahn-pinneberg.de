@@ -42,3 +42,51 @@ function test_betrieb_ersatz_zaehlt_nicht_doppelt()
     t_eq('1 von 5 Zügen (20 %): Umleitung über Altona', $s['detail'], 'Ausfall mit Ersatz ist eine Umleitung, die Ersatzzeile zaehlt nicht');
     t_eq('warn', $s['level'], 'ein Fuenftel: beeintraechtigt, nicht gestoert');
 }
+
+/* ---------- Letzte Stoerungen (Verlauf) ---------- */
+
+function t_verlauf_data()
+{
+    $jetzt = time();
+    $iso = function ($ts) { return gmdate('Y-m-d\TH:i:s\Z', $ts); };
+
+    return ['stoerungen' => [['key' => 'AKTIV']], 'stoerungen_verlauf' => [
+        ['key' => 'AKTIV', 'titel' => 'Noch aktiv', 'first_seen' => $iso($jetzt - 3600), 'last_seen' => $iso($jetzt)],
+        ['key' => 'ALT', 'titel' => 'Uralt', 'first_seen' => $iso($jetzt - 10 * 86400), 'last_seen' => $iso($jetzt - 9 * 86400)],
+        ['key' => 'B', 'titel' => 'Signalstörung', 'ki_titel' => 'Verspätungen in Elmshorn', 'ki_text' => 'Ein Signal war kaputt.',
+            'first_seen' => $iso($jetzt - 5 * 3600), 'last_seen' => $iso($jetzt - 3 * 3600)],
+        ['key' => 'C', 'titel' => 'Bauarbeiten', 'first_seen' => $iso($jetzt - 2 * 3600), 'last_seen' => $iso($jetzt - 40 * 60)],
+        ['key' => 'KAPUTT', 'titel' => 'ohne Zeit', 'first_seen' => '', 'last_seen' => ''],
+    ]];
+}
+
+function test_verlauf_items_aufgehobene_juengste_zuerst()
+{
+    $items = nb_verlauf_items(t_verlauf_data());
+    t_eq(['C', 'B', 'ALT'], array_column($items, 'key'), 'aktive und kaputte Eintraege fehlen, Reihenfolge nach Ende');
+    t_eq('Verspätungen in Elmshorn', $items[1]['titel'], 'KI-Titel vor technischem Titel');
+    t_eq('Bauarbeiten', $items[0]['titel'], 'ohne KI-Titel der technische');
+    t_eq(2 * 3600, $items[1]['ende'] - $items[1]['start'], 'Dauer aus first_seen und last_seen');
+}
+
+function test_verlauf_render_mit_alter_und_limit()
+{
+    $items = nb_verlauf_items(t_verlauf_data());
+    $html = nb_render_verlauf($items, 6, 7);
+    t_eq(2, substr_count($html, '<li>'), 'zehn Tage alte Stoerung faellt raus');
+    t_contains('Verspätungen in Elmshorn', $html, 'Titel');
+    t_contains('Ein Signal war kaputt.', $html, 'Pendler-Text');
+    t_contains('2 Std.', $html, 'Dauer');
+    t_contains('1 Std. 20 Min.', $html, 'Dauer mit Minuten');
+    t_eq(1, substr_count(nb_render_verlauf($items, 1, 7), '<li>'), 'Limit');
+    t_contains('Keine aufgehobene Störung in den letzten 7 Tagen.', nb_render_verlauf([], 6, 7), 'leer');
+    t_contains('Noch keine Störung erfasst.', nb_render_verlauf([], 6, 0), 'leer ohne Altersgrenze');
+}
+
+function test_dauer_format()
+{
+    t_eq('1 Min.', nb_dauer(20), 'mindestens eine Minute');
+    t_eq('35 Min.', nb_dauer(35 * 60), 'Minuten');
+    t_eq('3 Std.', nb_dauer(3 * 3600), 'volle Stunden');
+    t_eq('2 Std. 10 Min.', nb_dauer(2 * 3600 + 10 * 60), 'Stunden und Minuten');
+}

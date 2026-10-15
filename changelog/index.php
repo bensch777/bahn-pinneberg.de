@@ -13,6 +13,7 @@ $assetVersion = (int) @filemtime(__DIR__ . '/../dashboard.css');
 
 $changelog = [
     ['2026-10-15', [
+        ['Letzte Störungen', 'Unter den Eilmeldungen steht eine Liste der zuletzt aufgehobenen Infrastruktur-Störungen der letzten sieben Tage: Beginn, Ende, Dauer und der Pendler-Text. Bisher verschwand eine Störung mit ihrer Aufhebung sofort von der Seite.'],
         ['Eigenes Projekt', 'Der Monitor hat ein eigenes Repository mit eigenem Deploy und läuft unabhängig von bensch777.de. Adresse und Analytics stehen in der Konfiguration, nicht mehr im Code.'],
         ['Automatische Tests für die Abfahrten', 'Alle Fälle der Abfahrtstafel sind jetzt als Tests festgehalten: Normalbetrieb, Verspätung, Gleiswechsel, Ausfall mit Ersatz ab Altona, Umleitung, Dammtor, Teilausfälle in beiden Richtungen, Heimatbahnhof-Filter und Ausfälle der Datenquelle. Sie laufen bei jeder Änderung auf GitHub, bevor etwas live geht.'],
         ['„Erst ab Pinneberg“ wie „nur bis Pinneberg“', 'Startet ein Zug der Rückrichtung erst unterwegs, ist die Zeile kein Ausfall mehr, sondern die Abfahrt dort: orangener Punkt, Chip „erst ab Pinneberg“, Abfahrtszeit und Countdown ab Pinneberg, dazu die Hamburger Planzeit als Hinweis. Auch das Gleis ist das in Pinneberg, nicht mehr das am Hbf. Die Zeile bleibt stehen, bis der Zug in Pinneberg abfährt.'],
