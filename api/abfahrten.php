@@ -149,6 +149,7 @@ function abf_parse_zug($xml)
             'name'    => $name,
             'an'      => abf_text($halt, 'ankunft'),
             'ab'      => abf_text($halt, 'abfahrt'),
+            'gleis'   => abf_text($halt, 'gleis'),
             'ausfall' => abf_bool($halt, 'ausfall') || in_array(mb_strtolower($name), $entfallen, true),
             // Kommt der Zug dort noch an? Bei einem Endhalt steht die Ankunft als
             // "pünktlich", nur die Abfahrt als "Halt entfällt!": der Zug wendet dort.
@@ -271,7 +272,7 @@ function abf_teilausfall(array $row, array $halte, $heimat, $dir)
                 return null;
             }
 
-            return ['art' => 'beginnt', 'id' => $halte[$i]['id'], 'name' => $halte[$i]['name'], 'zeit' => $halte[$i]['ab'] ?: $halte[$i]['an']];
+            return ['art' => 'beginnt', 'id' => $halte[$i]['id'], 'name' => $halte[$i]['name'], 'zeit' => $halte[$i]['ab'] ?: $halte[$i]['an'], 'gleis' => (string) ($halte[$i]['gleis'] ?? '')];
         }
     }
 
@@ -367,6 +368,10 @@ function abf_add_zuginfo(array &$lists, $fetch, $heimat)
             $row['ist'] = null;
             $row['verspaetung'] = 0;
             $row['ausfall'] = false;
+            // Das Gleis gilt fuer den Starthalt, nicht mehr fuer den Hbf
+            $row['gleis'] = $teil['gleis'] !== '' ? $teil['gleis'] : null;
+            $row['gleis_plan'] = null;
+            unset($teil['gleis']);
         }
         $row['teil'] = $teil;
         unset($row);
