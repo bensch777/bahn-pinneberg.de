@@ -126,6 +126,14 @@ function abf_parse_zug($xml)
     if ($text === '' && isset($doc->ursacheris)) {
         $text = trim((string) $doc->ursacheris);
     }
+    // Hinweis zum Zuglauf, z. B. "Ausfall: hält heute nicht in Pinneberg, Hamburg Dammtor, Hamburg Hbf".
+    // Der Text ist verlaesslicher als die ausfall-Flags der Halte: am letzten Halt
+    // eines Zuges bleibt das Flag auch dann false, wenn der Halt laut Text entfaellt.
+    $zuglauf = '';
+    if (isset($doc->zuglaufinfotext)) {
+        $zuglauf = trim(preg_replace('/\s+/', ' ', (string) $doc->zuglaufinfotext));
+    }
+    $entfallen = abf_entfallene_halte($zuglauf);
     foreach ($doc->halt as $halt) {
         if ($text === '') {
             $t = isset($halt->ursacheris) ? trim((string) $halt->ursacheris) : '';
@@ -134,17 +142,39 @@ function abf_parse_zug($xml)
             }
         }
         $bhf = $halt->bhf ?? null;
+        $name = $bhf !== null ? trim((string) $bhf) : '';
         $out['halte'][] = [
             'id'      => $bhf !== null ? trim((string) $bhf['id']) : '',
-            'name'    => $bhf !== null ? trim((string) $bhf) : '',
+            'name'    => $name,
             'an'      => abf_text($halt, 'ankunft'),
             'ab'      => abf_text($halt, 'abfahrt'),
-            'ausfall' => abf_bool($halt, 'ausfall'),
+            'ausfall' => abf_bool($halt, 'ausfall') || in_array(mb_strtolower($name), $entfallen, true),
         ];
     }
     $out['ursache'] = $text;
+    $out['zuglauf'] = $zuglauf;
 
     return $out;
+}
+
+/**
+ * Liest aus dem Zuglaufhinweis die Namen der Halte, die heute entfallen
+ * ("hält heute nicht in A, B, C"). Kleingeschrieben, fuer den Vergleich.
+ */
+function abf_entfallene_halte($zuglauf)
+{
+    if ($zuglauf === '' || !preg_match('/h[aä]lt (?:heute )?nicht in\s+(.+?)(?:\.|$)/iu', $zuglauf, $m)) {
+        return [];
+    }
+    $namen = [];
+    foreach (preg_split('/\s*(?:,|\bund\b)\s*/u', $m[1]) as $n) {
+        $n = mb_strtolower(trim($n));
+        if ($n !== '') {
+            $namen[] = $n;
+        }
+    }
+
+    return $namen;
 }
 
 /**
@@ -228,6 +258,16 @@ function abf_teilausfall(array $row, array $halte, $heimat, $dir)
     return null;
 }
 
+/** Macht aus "Ausfall: hält heute nicht in A, B" den Hinweis "Hält heute nicht in A, B". */
+function abf_zuglauf_hinweis($zuglauf)
+{
+    if (!preg_match('/(h[aä]lt (?:heute )?nicht in\s+.+?)(?:\.|$)/iu', $zuglauf, $m)) {
+        return '';
+    }
+
+    return mb_strtoupper(mb_substr($m[1], 0, 1)) . mb_substr($m[1], 1);
+}
+
 /**
  * Zuglauf und Ursache je Zug nachladen. Der Stationsmonitor meldet einen Zug,
  * der unterwegs endet oder erst unterwegs beginnt, am Heimatbahnhof oft als
@@ -288,10 +328,12 @@ function abf_add_zuginfo(array &$lists, $fetch, $heimat)
         }
         $teil = abf_teilausfall($row, $entry['halte'] ?? [], $heimat, $dir);
         if ($teil !== null && $teil['art'] === 'endet' && $teil['id'] === $heimat) {
-            // Faehrt nicht ueber den Heimatbahnhof hinaus: fuer den Pendler ein Ausfall
+            // Faehrt nicht ueber den Heimatbahnhof hinaus: fuer den Pendler ein Ausfall.
+            // Als Hinweis der Nordbahn-Text ("hält heute nicht in …"), wenn es ihn gibt.
             $row['ausfall'] = true;
             $row['ist'] = null;
-            $row['hinweis'] = trim('Endet heute schon in ' . $teil['name'] . ($row['hinweis'] !== '' ? '. ' . $row['hinweis'] : ''));
+            $grund = abf_zuglauf_hinweis((string) ($entry['zuglauf'] ?? '')) ?: 'Endet heute schon in ' . $teil['name'];
+            $row['hinweis'] = trim($grund . ($row['hinweis'] !== '' ? '. ' . $row['hinweis'] : ''));
             $teil = null;
         }
         $row['teil'] = $teil;
