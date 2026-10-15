@@ -32,15 +32,21 @@ jobs:
 
       # Spiegelt das Repo ins Web-Root. config.php und cache/ liegen nur auf dem
       # Server und bleiben durch die Ausnahmen bei --delete unangetastet.
+      # Zugangsdaten gehen per -u und nicht in der URL mit, damit Sonderzeichen
+      # im Passwort (: @ /) die Adresse nicht zerlegen. DEPLOY_HOST ist nur der
+      # Hostname, DEPLOY_PATH der absolute Pfad zum Web-Root.
       - name: Deploy via SFTP
         env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
           DEPLOY_PASSWORD: ${{ secrets.DEPLOY_PASSWORD }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
         run: |
           lftp -c "
             set sftp:auto-confirm yes;
             set net:max-retries 3;
             set net:reconnect-interval-base 5;
-            open sftp://${{ secrets.DEPLOY_USER }}:$DEPLOY_PASSWORD@${{ secrets.DEPLOY_HOST }};
+            open -u \"$DEPLOY_USER\",\"$DEPLOY_PASSWORD\" \"sftp://$DEPLOY_HOST\";
             mirror --reverse --delete --verbose \
               --exclude='^\.git/' \
               --exclude='^\.github/' \
@@ -52,6 +58,6 @@ jobs:
               --exclude='^README\.md$' \
               --exclude='^php-error\.log$' \
               --exclude='^error_log$' \
-              ./ ${{ secrets.DEPLOY_PATH }};
+              ./ \"$DEPLOY_PATH\";
             bye
           "
