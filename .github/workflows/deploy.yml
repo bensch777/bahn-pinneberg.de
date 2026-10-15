@@ -30,6 +30,34 @@ jobs:
       - name: Install lftp
         run: sudo apt-get install -y lftp
 
+      # Sicherung vor dem Mirror: --delete loescht alles, was nicht im Repo ist.
+      # Zeigt DEPLOY_PATH versehentlich auf das Home-Verzeichnis des SFTP-Nutzers
+      # (leer, "/" oder "." bei einem chrooted Zugang, oder ein Verzeichnis mit
+      # .bashrc, public_html, www_logs), bricht der Lauf hier ab.
+      - name: Zielverzeichnis pruefen
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PASSWORD: ${{ secrets.DEPLOY_PASSWORD }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+        run: |
+          case "${DEPLOY_PATH:-}" in
+            ""|"/"|"."|"./"|"~"|"~/")
+              echo "::error::DEPLOY_PATH ist leer oder zeigt auf das Wurzel- bzw. Home-Verzeichnis des SFTP-Nutzers. Bitte den Pfad zum Web-Root der Domain eintragen."
+              exit 1;;
+          esac
+          lftp -c "
+            set sftp:auto-confirm yes;
+            set net:max-retries 2;
+            open -u \"$DEPLOY_USER\",\"$DEPLOY_PASSWORD\" \"sftp://$DEPLOY_HOST\";
+            cls -a \"$DEPLOY_PATH\"
+          " > remote-listing.txt
+          echo "Inhalt von $DEPLOY_PATH:"; cat remote-listing.txt
+          if grep -qE '(^|/)(\.bashrc|\.bash_logout|\.profile|\.phpversion|\.ssh|public_html|www_logs|htdocs|logs)/?$' remote-listing.txt; then
+            echo "::error::DEPLOY_PATH sieht wie das Home-Verzeichnis des SFTP-Nutzers aus, nicht wie das Web-Root. Deploy abgebrochen, nichts geaendert."
+            exit 1
+          fi
+
       # Spiegelt das Repo ins Web-Root. config.php und cache/ liegen nur auf dem
       # Server und bleiben durch die Ausnahmen bei --delete unangetastet.
       # Zugangsdaten gehen per -u und nicht in der URL mit, damit Sonderzeichen

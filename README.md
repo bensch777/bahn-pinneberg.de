@@ -58,4 +58,6 @@ Ohne Fremdpakete. Die Tests bauen die XML-Antworten des Stationsmonitors und der
 
 ## Deploy
 
-Ein Push auf `main` lässt erst die Tests laufen und spiegelt dann das Repo per SFTP ins Web-Root (`.github/workflows/deploy.yml`). Nötige Secrets im Repo: `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_PASSWORD`, `DEPLOY_PATH`. `config.php` und `cache/` bleiben vom Deploy unberührt.
+Ein Push auf `main` lässt erst die Tests laufen und spiegelt dann das Repo per SFTP ins Web-Root (`.github/workflows/deploy.yml`). Nötige Secrets im Repo: `DEPLOY_HOST` (nur der Hostname), `DEPLOY_USER`, `DEPLOY_PASSWORD`, `DEPLOY_PATH` (Pfad zum Web-Root der Domain, z. B. `/www/htdocs/xyz/bahn-pinneberg.de`). `config.php` und `cache/` bleiben vom Deploy unberührt.
+
+Achtung: der Mirror läuft mit `--delete`, alles im Zielverzeichnis, was nicht im Repo ist, wird gelöscht. Der Workflow prüft deshalb vorher, ob `DEPLOY_PATH` auf ein Home-Verzeichnis zeigt, und bricht dann ab.
