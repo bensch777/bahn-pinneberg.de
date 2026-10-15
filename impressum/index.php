@@ -40,7 +40,7 @@ $description = 'Anbieterkennzeichnung und Datenschutzerklärung des Nordbahn Mon
 <title><?= nb_e($title) ?></title>
 <meta name="description" content="<?= nb_e($description) ?>">
 <link rel="canonical" href="<?= SITE_URL ?>/impressum/">
-<meta name="robots" content="index, follow">
+<meta name="robots" content="noindex, nofollow">
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#f6f6f4" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#121211" media="(prefers-color-scheme: dark)">

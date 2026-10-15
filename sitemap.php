@@ -13,7 +13,6 @@ $urls = [
     ['loc' => SITEMAP_BASE . 'faq/', 'priority' => '0.5'],
     ['loc' => SITEMAP_BASE . 'statistik/', 'priority' => '0.6'],
     ['loc' => SITEMAP_BASE . 'changelog/', 'priority' => '0.4'],
-    ['loc' => SITEMAP_BASE . 'impressum/', 'priority' => '0.1'],
 ];
 
 echo '<?xml version="1.0" encoding="UTF-8"?>', "\n";
