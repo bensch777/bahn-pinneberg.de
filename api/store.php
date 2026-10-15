@@ -234,6 +234,8 @@ function nordbahn_clean_stoerung($raw)
         'einschraenkung' => nordbahn_text($raw['einschraenkung'] ?? '', 40),
         'beginn'         => nordbahn_iso($raw['beginn'] ?? ''),
         'ende'           => nordbahn_iso($raw['ende'] ?? ''),
+        // strecken-info: "abgelaufen" = gemeldetes Ende vorbei, aber nicht geschlossen
+        'abgelaufen'     => !empty($raw['abgelaufen']),
         'betriebsstellen' => nordbahn_text_list($raw['betriebsstellen'] ?? null),
         // Pendler-Text, den der Alert-Workflow per KI formuliert hat (leer, bis er vorliegt)
         'ki_titel'       => nordbahn_text($raw['ki_titel'] ?? '', 120),

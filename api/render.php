@@ -282,7 +282,10 @@ function nb_render_incident(array $s)
         $zeit = 'seit ' . nb_fmt_datetime($s['beginn']);
     }
     if (!empty($s['ende'])) {
-        $zeit .= ($zeit ? ', ' : '') . 'voraussichtlich bis ' . nb_fmt_datetime($s['ende']);
+        // "abgelaufen": das gemeldete Ende ist vorbei, die Stoerung dauert aber an
+        $zeit .= ($zeit ? ', ' : '') . (!empty($s['abgelaufen']) ? 'gemeldetes Ende ' . nb_fmt_datetime($s['ende']) . ' überschritten, dauert an' : 'voraussichtlich bis ' . nb_fmt_datetime($s['ende']));
+    } elseif (!empty($s['abgelaufen'])) {
+        $zeit .= ($zeit ? ', ' : '') . 'dauert länger als gemeldet';
     }
     $rows['Zeitraum'] = $zeit;
 

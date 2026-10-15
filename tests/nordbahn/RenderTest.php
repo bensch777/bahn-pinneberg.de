@@ -90,3 +90,12 @@ function test_dauer_format()
     t_eq('3 Std.', nb_dauer(3 * 3600), 'volle Stunden');
     t_eq('2 Std. 10 Min.', nb_dauer(2 * 3600 + 10 * 60), 'Stunden und Minuten');
 }
+
+function test_incident_zeitraum_abgelaufen()
+{
+    $s = ['key' => 'X', 'titel' => 'Störung', 'ki_titel' => 'Test', 'ki_text' => 'Text', 'beginn' => '2026-10-15T05:00:00Z', 'ende' => '2026-10-15T10:31:00Z'];
+    t_contains('voraussichtlich bis 15.10., 12:31 Uhr', nb_render_incident($s), 'laufende Stoerung');
+    t_contains('gemeldetes Ende 15.10., 12:31 Uhr überschritten, dauert an', nb_render_incident($s + ['abgelaufen' => true]), 'abgelaufene Stoerung');
+    t_eq(true, nordbahn_clean_payload(['eilmeldungen' => [], 'stoerungen' => [['key' => 'X', 'abgelaufen' => true]]])['stoerungen'][0]['abgelaufen'], 'Flag ueberlebt die Bereinigung');
+    t_eq(false, nordbahn_clean_payload(['eilmeldungen' => [], 'stoerungen' => [['key' => 'X']]])['stoerungen'][0]['abgelaufen'], 'ohne Flag false');
+}

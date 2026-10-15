@@ -294,7 +294,9 @@
 		}
 		var zeit = '';
 		if (s.beginn) zeit = 'seit ' + fmtDateTime(s.beginn);
-		if (s.ende) zeit += (zeit ? ', ' : '') + 'voraussichtlich bis ' + fmtDateTime(s.ende);
+		// "abgelaufen": das gemeldete Ende ist vorbei, die Stoerung dauert aber an
+		if (s.ende) zeit += (zeit ? ', ' : '') + (s.abgelaufen ? 'gemeldetes Ende ' + fmtDateTime(s.ende) + ' überschritten, dauert an' : 'voraussichtlich bis ' + fmtDateTime(s.ende));
+		else if (s.abgelaufen) zeit += (zeit ? ', ' : '') + 'dauert länger als gemeldet';
 		row('Zeitraum', zeit);
 
 		return el('li', { class: 'card incident' }, [
