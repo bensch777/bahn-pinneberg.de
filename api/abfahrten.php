@@ -46,7 +46,7 @@ const ABF_PER_DIR    = 8;                            // Abfahrten je Richtung in
 const ABF_TIMEOUT    = 6;                            // Sekunden je Anfrage
 const ABF_ZUG_CACHE  = NORDBAHN_CACHE_DIR . '/zuege.json'; // Ursachen je Zugnummer
 const ABF_ZUG_TTL    = 300;                                 // Sekunden, die eine Ursache gilt
-const ABF_ZUG_MAX    = 10;                                  // Zugabfragen je Aufbereitung
+const ABF_ZUG_MAX    = 16;                                  // Zugabfragen je Aufbereitung
 
 /**
  * Erreicht ein Zug mit diesem Ziel den Heimatbahnhof? Bis Elmshorn ja, sofern
@@ -217,9 +217,14 @@ function abf_teilausfall(array $row, array $halte, $heimat, $dir)
 }
 
 /**
- * Ursachen fuer ausgefallene und verspaetete Zuege nachladen. Je Zug wird die
- * Antwort fuenf Minuten gecacht, pro Aufbereitung gibt es hoechstens
- * ABF_ZUG_MAX Abfragen, damit ein schlechter Tag nicht zur Lastspitze wird.
+ * Zuglauf und Ursache je Zug nachladen. Der Stationsmonitor meldet einen Zug,
+ * der unterwegs endet oder erst unterwegs beginnt, am Heimatbahnhof oft als
+ * ganz normale Abfahrt (kein Ausfall, keine Verspaetung, kein Zuglaufhinweis).
+ * Darum wird jeder Zug der Liste abgefragt; auffaellige Zuege (Ausfall,
+ * Verspaetung, Zuglaufhinweis) zuerst, damit sie bei knappem Budget sicher
+ * dran sind. Je Zug wird die Antwort fuenf Minuten gecacht, pro Aufbereitung
+ * gibt es hoechstens ABF_ZUG_MAX Abfragen, damit ein schlechter Tag nicht zur
+ * Lastspitze wird.
  */
 function abf_add_zuginfo(array &$lists, $fetch, $heimat)
 {
@@ -231,49 +236,55 @@ function abf_add_zuginfo(array &$lists, $fetch, $heimat)
     $calls = 0;
     $changed = false;
 
-    foreach ($lists as $dir => &$list) {
-        $n = 0;
-        foreach ($list as &$row) {
-            if (++$n > ABF_PER_DIR) {
-                break;
-            }
-            // Zugauskunft nur, wenn es etwas zu erklaeren gibt: Ausfall, Verspaetung
-            // oder ein Hinweis zum Zuglauf (Halte entfallen)
-            if ($row['zug'] === '' || (!$row['ausfall'] && $row['verspaetung'] < 3 && !$row['zuglaufinfo'])) {
+    // Reihenfolge der Abfragen: erst die auffaelligen Zuege, dann der Rest
+    $queue = [];
+    foreach ($lists as $dir => $list) {
+        foreach (array_slice($list, 0, ABF_PER_DIR, true) as $i => $row) {
+            if ($row['zug'] === '') {
                 continue;
             }
-            $zug = $row['zug'];
-            $entry = $cache[$zug] ?? null;
-            if (!is_array($entry) || !isset($entry['halte']) || ($now - (int) ($entry['t'] ?? 0)) > ABF_ZUG_TTL) {
-                if ($calls >= ABF_ZUG_MAX) {
-                    continue;
-                }
-                $calls++;
-                $xml = $fetch(abf_zug_url($zug));
-                if ($xml === null) {
-                    continue;
-                }
-                $entry = ['t' => $now] + abf_parse_zug($xml);
-                $cache[$zug] = $entry;
-                $changed = true;
-            }
-            $ursache = (string) ($entry['ursache'] ?? '');
-            if ($ursache !== '' && stripos($row['hinweis'], $ursache) === false) {
-                $row['hinweis'] = trim($ursache . ($row['hinweis'] !== '' ? '. ' . $row['hinweis'] : ''));
-            }
-            $teil = abf_teilausfall($row, $entry['halte'] ?? [], $heimat, $dir);
-            if ($teil !== null && $teil['art'] === 'endet' && $teil['id'] === $heimat) {
-                // Faehrt nicht ueber den Heimatbahnhof hinaus: fuer den Pendler ein Ausfall
-                $row['ausfall'] = true;
-                $row['ist'] = null;
-                $row['hinweis'] = trim('Endet heute schon in ' . $teil['name'] . ($row['hinweis'] !== '' ? '. ' . $row['hinweis'] : ''));
-                $teil = null;
-            }
-            $row['teil'] = $teil;
+            $prio = ($row['ausfall'] || $row['verspaetung'] >= 3 || $row['zuglaufinfo']) ? 0 : 1;
+            $queue[] = [$prio, $dir, $i];
         }
+    }
+    usort($queue, function ($a, $b) {
+        return $a[0] <=> $b[0];
+    });
+
+    foreach ($queue as [$prio, $dir, $i]) {
+        $row = &$lists[$dir][$i];
+        $zug = $row['zug'];
+        $entry = $cache[$zug] ?? null;
+        if (!is_array($entry) || !isset($entry['halte']) || ($now - (int) ($entry['t'] ?? 0)) > ABF_ZUG_TTL) {
+            if ($calls >= ABF_ZUG_MAX) {
+                unset($row);
+                continue;
+            }
+            $calls++;
+            $xml = $fetch(abf_zug_url($zug));
+            if ($xml === null) {
+                unset($row);
+                continue;
+            }
+            $entry = ['t' => $now] + abf_parse_zug($xml);
+            $cache[$zug] = $entry;
+            $changed = true;
+        }
+        $ursache = (string) ($entry['ursache'] ?? '');
+        if ($ursache !== '' && stripos($row['hinweis'], $ursache) === false) {
+            $row['hinweis'] = trim($ursache . ($row['hinweis'] !== '' ? '. ' . $row['hinweis'] : ''));
+        }
+        $teil = abf_teilausfall($row, $entry['halte'] ?? [], $heimat, $dir);
+        if ($teil !== null && $teil['art'] === 'endet' && $teil['id'] === $heimat) {
+            // Faehrt nicht ueber den Heimatbahnhof hinaus: fuer den Pendler ein Ausfall
+            $row['ausfall'] = true;
+            $row['ist'] = null;
+            $row['hinweis'] = trim('Endet heute schon in ' . $teil['name'] . ($row['hinweis'] !== '' ? '. ' . $row['hinweis'] : ''));
+            $teil = null;
+        }
+        $row['teil'] = $teil;
         unset($row);
     }
-    unset($list);
 
     if ($changed) {
         foreach ($cache as $zug => $entry) {

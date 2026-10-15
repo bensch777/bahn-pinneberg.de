@@ -13,6 +13,7 @@ $assetVersion = (int) @filemtime(__DIR__ . '/../dashboard.css');
 
 $changelog = [
     ['2026-10-15', [
+        ['Teilausfälle auch bei unauffälligen Zügen', 'Der Stationsmonitor meldet einen Zug, der heute nur bis Pinneberg fährt, am Heimatbahnhof oft als ganz normale Abfahrt. Darum wird jetzt für jeden gelisteten Zug der Zuglauf geprüft, nicht mehr nur bei Ausfall, Verspätung oder Zuglaufhinweis.'],
         ['Teilausfälle erkannt', 'Endet ein Zug vorzeitig (z. B. in Pinneberg, weil die Hamburger Halte entfallen), steht das als „nur bis Pinneberg“ in der Zeile. Beginnt ein Zug ab Hamburg erst unterwegs, zeigt die Ausfallzeile „Fährt erst ab Pinneberg um …“. Die Fahrplankarte zählt solche Züge mit.'],
         ['Störungskarte kompakter', 'Liegt der Pendler-Text vor, zeigt die Störung nur noch Titel, Text und Zeitraum. Die technischen Details erscheinen nur, solange der Text fehlt.'],
         ['Verlinkte Eilmeldungen erkennbar', 'Meldungen, die noch auf nordbahn.de stehen, sind blau und unterstrichen; ältere aus der Historie bleiben Text.'],
