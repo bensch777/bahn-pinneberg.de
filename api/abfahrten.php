@@ -149,6 +149,9 @@ function abf_parse_zug($xml)
             'an'      => abf_text($halt, 'ankunft'),
             'ab'      => abf_text($halt, 'abfahrt'),
             'ausfall' => abf_bool($halt, 'ausfall') || in_array(mb_strtolower($name), $entfallen, true),
+            // Kommt der Zug dort noch an? Bei einem Endhalt steht die Ankunft als
+            // "pünktlich", nur die Abfahrt als "Halt entfällt!": der Zug wendet dort.
+            'an_ok'   => ($p = trim(abf_text($halt, 'anprognose'))) !== '' && stripos($p, 'entf') === false,
         ];
     }
     $out['ursache'] = $text;
@@ -207,12 +210,18 @@ function abf_teilausfall(array $row, array $halte, $heimat, $dir)
     $n = count($halte);
 
     if ($dir === 'hin') {
-        $letzter = null;
+        $letzter = null;   // letzter bedienter Halt hinter dem Heimatbahnhof
+        $erster = null;    // erster entfallener Halt hinter dem Heimatbahnhof
         $hamburgFaellt = false;
         for ($i = $hi + 1; $i < $n; $i++) {
             if (!$halte[$i]['ausfall']) {
                 $letzter = $i;
-            } elseif (in_array($halte[$i]['id'], ABF_STADT_IDS, true)) {
+                continue;
+            }
+            if ($erster === null) {
+                $erster = $i;
+            }
+            if (in_array($halte[$i]['id'], ABF_STADT_IDS, true)) {
                 $hamburgFaellt = true;
             }
         }
@@ -231,11 +240,21 @@ function abf_teilausfall(array $row, array $halte, $heimat, $dir)
                 return null;
             }
         }
+        if ($letzter !== null && in_array($halte[$letzter]['id'], ABF_STADT_IDS, true)) {
+            return null; // erreicht Hamburg doch noch, nur ein Zwischenhalt entfaellt
+        }
+        // Endhalt: der erste entfallene Halt, wenn der Zug dort laut Prognose noch
+        // ankommt (Nordbahn meldet "hält nicht in Pinneberg", der Zug wendet aber dort).
+        if ($erster !== null && ($letzter === null || $erster > $letzter)
+            && $halte[$erster]['an'] !== '' && !empty($halte[$erster]['an_ok'])) {
+            if (in_array($halte[$erster]['id'], ABF_STADT_IDS, true)) {
+                return null; // wendet erst in Hamburg, kommt also an
+            }
+
+            return ['art' => 'endet', 'id' => $halte[$erster]['id'], 'name' => $halte[$erster]['name'], 'zeit' => $halte[$erster]['an']];
+        }
         if ($letzter === null) {
             return ['art' => 'endet', 'id' => $heimat, 'name' => $halte[$hi]['name'], 'zeit' => ''];
-        }
-        if (in_array($halte[$letzter]['id'], ABF_STADT_IDS, true)) {
-            return null; // erreicht Hamburg doch noch, nur ein Zwischenhalt entfaellt
         }
 
         return ['art' => 'endet', 'id' => $halte[$letzter]['id'], 'name' => $halte[$letzter]['name'], 'zeit' => $halte[$letzter]['an'] ?: $halte[$letzter]['ab']];
