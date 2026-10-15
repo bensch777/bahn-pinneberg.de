@@ -1,7 +1,7 @@
 <?php
 /**
- * Gemeinsamer Footer fuer Startseite und FAQ. Erwartet $root (Pfad zum
- * Wurzelverzeichnis, "./" oder "../") und $current ("lage" oder "faq").
+ * Gemeinsamer Footer fuer Startseite, FAQ und Changelog. Erwartet $root (Pfad zum
+ * Wurzelverzeichnis, "./" oder "../") und $current ("lage", "faq" oder "changelog").
  */
 ?>
 <footer class="site-foot">
@@ -21,10 +21,14 @@
 		<div>
 			<h2 class="site-foot__head">Seite</h2>
 			<ul class="site-foot__list">
-<?php if ($current === 'faq'): ?>
+<?php if ($current !== 'lage'): ?>
 				<li><a href="<?= $root ?>">Aktuelle Lage</a></li>
-<?php else: ?>
+<?php endif; ?>
+<?php if ($current !== 'faq'): ?>
 				<li><a href="<?= $root ?>faq/">H&auml;ufige Fragen</a></li>
+<?php endif; ?>
+<?php if ($current !== 'changelog'): ?>
+				<li><a href="<?= $root ?>changelog/">Was ist neu</a></li>
 <?php endif; ?>
 				<li><a href="https://bensch777.de/" rel="noopener">bensch777.de</a></li>
 				<li>Quellen: <a href="https://www.nordbahn.de/" rel="noopener">nordbahn.de</a>, <a href="https://strecken-info.de/" rel="noopener">strecken-info.de</a></li>

@@ -444,9 +444,8 @@
 					else dest.appendChild(el('span', { class: 'dep__ziel', text: d.ziel }));
 				}
 				if (d.teil && d.teil.art === 'beginnt') {
-					// Rueckrichtung, Zug startet erst unterwegs: bis dahin S-Bahn
-					dest.appendChild(el('small', { class: 'dep__ersatz', text: 'Fährt erst ab ' + d.teil.name + (d.teil.zeit ? ' um ' + d.teil.zeit : '')
-						+ (/^AP$/.test(d.teil.id) ? ', bis dahin S-Bahn' : '') }));
+					// Rueckrichtung, Zug startet erst unterwegs
+					dest.appendChild(el('small', { class: 'dep__ersatz', text: 'Fährt erst ab ' + d.teil.name + (d.teil.zeit ? ' um ' + d.teil.zeit : '') }));
 				}
 				if (d.ersatz_fuer) {
 					dest.appendChild(el('small', { class: 'dep__ersatz', text: 'Ersatz für den ' + fmtClock(d.ersatz_fuer.zeit) + ' ab ' + d.ersatz_fuer.ab }));

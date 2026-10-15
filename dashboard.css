@@ -242,6 +242,15 @@ button { font: inherit; color: inherit; }
 .faq details[open] summary::after { content: '–'; }
 .faq p { margin: 0 0 12px; color: var(--ink-2); font-size: 14px; max-width: 720px; }
 
+/* Changelog */
+.changelog__date { margin: 22px 0 8px; font-size: 13px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+.changelog__date:first-child { margin-top: 0; }
+.changelog__list { list-style: none; margin: 0; padding: 4px 18px; }
+.changelog__list li { padding: 10px 0; border-top: 1px solid var(--line); font-size: 14.5px; line-height: 1.5; }
+.changelog__list li:first-child { border-top: 0; }
+.changelog__list strong { font-weight: 600; }
+.changelog__list span { color: var(--ink-2); }
+
 /* Zweite Zeile im Footer */
 
 

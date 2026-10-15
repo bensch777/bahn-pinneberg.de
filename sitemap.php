@@ -1,5 +1,5 @@
 <?php
-/** Sitemap der Subdomain: Startseite und FAQ. Wird als sitemap.xml ausgeliefert. */
+/** Sitemap der Subdomain: Startseite, FAQ und Changelog. Wird als sitemap.xml ausgeliefert. */
 require __DIR__ . '/api/store.php';
 
 const SITEMAP_BASE = 'https://nordbahn.bensch777.de/';
@@ -11,6 +11,7 @@ $lastmod = date('Y-m-d', max((int) @filemtime(__DIR__ . '/index.php'), (int) @fi
 $urls = [
     ['loc' => SITEMAP_BASE, 'priority' => '1.0'],
     ['loc' => SITEMAP_BASE . 'faq/', 'priority' => '0.5'],
+    ['loc' => SITEMAP_BASE . 'changelog/', 'priority' => '0.4'],
 ];
 
 echo '<?xml version="1.0" encoding="UTF-8"?>', "\n";
