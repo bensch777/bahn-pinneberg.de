@@ -226,9 +226,10 @@ button { font: inherit; color: inherit; }
 .feed__time { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .feed__time span { display: block; font-size: 11px; }
 .feed__title { margin: 0; font-weight: 500; font-size: 14.5px; }
-.feed__title a { text-decoration: none; }
-.feed__title a:hover { text-decoration: underline; }
-.feed__title a::after { content: ' \2197'; color: var(--muted); font-size: 12px; }
+/* Nur Meldungen, die noch auf nordbahn.de stehen, sind verlinkt: blau und unterstrichen */
+.feed__title a { color: var(--series); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; text-decoration-color: color-mix(in srgb, var(--series) 45%, transparent); }
+.feed__title a:hover { text-decoration-color: var(--series); }
+.feed__title a::after { content: ' \2197'; font-size: 12px; }
 .feed__empty { padding: 18px; color: var(--muted); margin: 0; }
 
 /* FAQ */
