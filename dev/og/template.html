@@ -1,0 +1,25 @@
+<!DOCTYPE html><html lang="de"><head><meta charset="utf-8">
+<style>
+@font-face { font-family: Inter; src: url('../../fonts/inter-400.woff2') format('woff2'); font-weight: 400; }
+@font-face { font-family: Inter; src: url('../../fonts/inter-600.woff2') format('woff2'); font-weight: 600; }
+@font-face { font-family: Inter; src: url('../../fonts/inter-700.woff2') format('woff2'); font-weight: 700; }
+html, body { margin: 0; }
+body { width: 1200px; height: 630px; font-family: Inter, system-ui, sans-serif; background: #f6f6f4; color: #1a1a18; position: relative; overflow: hidden; }
+.bar { position: absolute; left: 0; top: 0; bottom: 0; width: 22px; background: var(--c); }
+.wrap { position: absolute; left: 96px; top: 84px; right: 96px; bottom: 84px; display: flex; flex-direction: column; justify-content: space-between; }
+.brand { display: flex; align-items: center; gap: 18px; font-size: 30px; font-weight: 600; color: #5a5a56; }
+.brand .n { width: 56px; height: 56px; border-radius: 14px; background: #2a78d6; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 32px; }
+.status { display: flex; align-items: center; gap: 34px; }
+.icon { width: 112px; height: 112px; border-radius: 50%; background: var(--c); color: #fff; font-size: 70px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex: none; }
+.title { font-size: 70px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.05; }
+.sub { font-size: 32px; color: #5a5a56; margin-top: 14px; }
+.foot { display: flex; justify-content: space-between; font-size: 28px; color: #5a5a56; }
+.foot b { color: #1a1a18; font-weight: 600; }
+</style></head><body>
+<div class="bar"></div>
+<div class="wrap">
+  <div class="brand"><div class="n">N</div>Nordbahn Monitor</div>
+  <div class="status"><div class="icon" id="icon">✓</div><div><div class="title" id="title">Keine Störung auf der Strecke</div><div class="sub">RB61 und RB71 · Hamburg – Elmshorn – Itzehoe / Wrist</div></div></div>
+  <div class="foot"><span><b id="domain">bahn-pinneberg.de</b></span><span>Störungen, Abfahrten und Eilmeldungen, live</span></div>
+</div>
+</body></html>

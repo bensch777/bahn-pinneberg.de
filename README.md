@@ -47,6 +47,12 @@ Die Abfahrtslogik lässt sich auch gegen gespeicherte XML-Dateien prüfen:
 php api/abfahrten.php --bhf=APD heimat.xml hbf.xml altona.xml dammtor.xml [zuege/]
 ```
 
+Die Vorschaubilder für Messenger und soziale Netze (`og/*.png`) entstehen aus `dev/og/template.html`:
+
+```
+node dev/og/build.js     # braucht Playwright mit Chromium
+```
+
 ## Tests
 
 ```
