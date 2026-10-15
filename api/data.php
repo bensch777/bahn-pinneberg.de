@@ -2,7 +2,7 @@
 /**
  * Liefert die Daten des Nordbahn Monitors als JSON.
  *
- * URL: https://nordbahn.bensch777.de/api/data
+ * URL: /api/data
  *
  * Die Startseite bekommt den ersten Stand direkt im HTML und holt sich
  * hier alle paar Minuten einen frischen. Die Daten stammen aus dem letzten

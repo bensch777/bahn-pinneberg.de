@@ -3,7 +3,7 @@
  * Abfahrten fuer Pendler: vom Heimatbahnhof in die Stadt und aus der Stadt
  * zurueck.
  *
- * URL: https://nordbahn.bensch777.de/api/abfahrten?bhf=APD
+ * URL: /api/abfahrten?bhf=APD
  *      bhf ist die ID des Heimatbahnhofs aus NORDBAHN_BAHNHOEFE (store.php),
  *      ohne Angabe Prisdorf.
  *
@@ -82,7 +82,7 @@ function abf_fetch($url)
             CURLOPT_MAXREDIRS      => 3,
             CURLOPT_CONNECTTIMEOUT => ABF_TIMEOUT,
             CURLOPT_TIMEOUT        => ABF_TIMEOUT,
-            CURLOPT_USERAGENT      => 'nordbahn.bensch777.de Monitor',
+            CURLOPT_USERAGENT      => nordbahn_site_host() . ' Monitor',
             CURLOPT_HTTPHEADER     => ['Accept: application/xml, text/xml'],
         ]);
         $body = curl_exec($ch);
@@ -93,7 +93,7 @@ function abf_fetch($url)
     }
 
     $body = @file_get_contents($url, false, stream_context_create([
-        'http' => ['timeout' => ABF_TIMEOUT, 'user_agent' => 'nordbahn.bensch777.de Monitor', 'header' => "Accept: application/xml\r\n"],
+        'http' => ['timeout' => ABF_TIMEOUT, 'user_agent' => nordbahn_site_host() . ' Monitor', 'header' => "Accept: application/xml\r\n"],
     ]));
 
     return $body === false ? null : $body;

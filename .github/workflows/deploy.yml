@@ -1,0 +1,57 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: simplexml, mbstring, curl
+          coverage: none
+      - name: Syntax
+        run: find . -path ./.git -prune -o -name '*.php' -print0 | xargs -0 -n1 php -l > /dev/null
+      - name: Tests
+        run: php tests/run.php
+
+  deploy:
+    needs: tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install lftp
+        run: sudo apt-get install -y lftp
+
+      # Spiegelt das Repo ins Web-Root. config.php und cache/ liegen nur auf dem
+      # Server und bleiben durch die Ausnahmen bei --delete unangetastet.
+      - name: Deploy via SFTP
+        env:
+          DEPLOY_PASSWORD: ${{ secrets.DEPLOY_PASSWORD }}
+        run: |
+          lftp -c "
+            set sftp:auto-confirm yes;
+            set net:max-retries 3;
+            set net:reconnect-interval-base 5;
+            open sftp://${{ secrets.DEPLOY_USER }}:$DEPLOY_PASSWORD@${{ secrets.DEPLOY_HOST }};
+            mirror --reverse --delete --verbose \
+              --exclude='^\.git/' \
+              --exclude='^\.github/' \
+              --exclude='^\.claude/' \
+              --exclude='^tests/' \
+              --exclude='^dev/' \
+              --exclude='^config\.php$' \
+              --exclude='^cache/' \
+              --exclude='^README\.md$' \
+              --exclude='^php-error\.log$' \
+              --exclude='^error_log$' \
+              ./ ${{ secrets.DEPLOY_PATH }};
+            bye
+          "

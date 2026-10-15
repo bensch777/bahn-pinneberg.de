@@ -1,15 +1,14 @@
 <?php
 /**
- * Gemeinsame Funktionen fuer den Nordbahn Monitor (nordbahn.bensch777.de,
- * zugleich /nordbahn/ auf bensch777.de). Alles, was der Monitor braucht, liegt
- * in diesem Ordner, weil er das Wurzelverzeichnis der Subdomain ist; config.php
- * und cache/ der Hauptseite sind ueber das Dateisystem trotzdem erreichbar.
+ * Gemeinsame Funktionen fuer den Nordbahn Monitor. Das Wurzelverzeichnis des
+ * Repos ist zugleich das Web-Root; config.php und cache/ liegen dort, sind
+ * aber per .htaccess von aussen nicht erreichbar.
  *
  * Die Daten kommen nicht von hier, sondern aus n8n: der Workflow
  * "Nordbahn Dashboard Push" sammelt alle 2 Minuten die aktiven Stoerungen
  * (strecken-info.de), die aktuellen Eilmeldungen (nordbahn.de) und die
  * Eilmeldungs-Historie aus seiner Data Table ein und schickt alles per POST
- * an api/push. Der Webserver legt das Paket in cache/nordbahn/ ab
+ * an api/push. Der Webserver legt das Paket in cache/ ab
  * und fuehrt nebenbei ein eigenes Logbuch der Stoerungen, weil n8n aufgehobene
  * Stoerungen loescht und es sonst keinen Verlauf gaebe.
  *
@@ -20,7 +19,7 @@
 // Die Tests (tests/run.php) definieren NORDBAHN_CACHE_DIR vorher auf ein
 // Wegwerfverzeichnis, damit sie den echten Cache nicht anfassen.
 if (!defined('NORDBAHN_CACHE_DIR')) {
-    define('NORDBAHN_CACHE_DIR', __DIR__ . '/../../cache/nordbahn');
+    define('NORDBAHN_CACHE_DIR', __DIR__ . '/../cache');
 }
 define('NORDBAHN_DATA_FILE', NORDBAHN_CACHE_DIR . '/data.json');
 define('NORDBAHN_LOG_FILE', NORDBAHN_CACHE_DIR . '/stoerungen-log.json');
@@ -57,10 +56,49 @@ function nordbahn_config()
         return $config;
     }
 
-    $file = __DIR__ . '/../../config.php';
+    $file = __DIR__ . '/../config.php';
     $config = is_readable($file) ? require $file : [];
 
     return is_array($config) ? $config : [];
+}
+
+/**
+ * Oeffentliche Adresse der Seite ohne Slash am Ende, z. B. https://bahn-pinneberg.de.
+ * Aus NORDBAHN_SITE_URL in config.php, sonst aus dem aufgerufenen Host. Canonical,
+ * Open Graph, Sitemap und robots.txt bauen darauf auf; fuer Suchmaschinen sollte
+ * der Wert in config.php fest stehen, sobald die Seite unter mehr als einem
+ * Hostnamen erreichbar ist.
+ */
+function nordbahn_site_url()
+{
+    $config = nordbahn_config();
+    $url = isset($config['NORDBAHN_SITE_URL']) ? trim((string) $config['NORDBAHN_SITE_URL']) : '';
+    if ($url === '' && !empty($_SERVER['HTTP_HOST']) && preg_match('/^[a-z0-9.-]+(:\d+)?$/i', $_SERVER['HTTP_HOST'])) {
+        $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
+        $url = ($https ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'];
+    }
+    if ($url === '') {
+        $url = 'https://bahn-pinneberg.de';
+    }
+
+    return rtrim($url, '/');
+}
+
+/** Hostname der Seite, z. B. fuer User-Agent-Strings bei Abfragen. */
+function nordbahn_site_host()
+{
+    return (string) (parse_url(nordbahn_site_url(), PHP_URL_HOST) ?: 'bahn-pinneberg.de');
+}
+
+/**
+ * Script-URL fuer Plausible Analytics (NORDBAHN_PLAUSIBLE_JS in config.php).
+ * Leer bedeutet: kein Analytics-Snippet.
+ */
+function nordbahn_plausible_js()
+{
+    $config = nordbahn_config();
+
+    return array_key_exists('NORDBAHN_PLAUSIBLE_JS', $config) ? trim((string) $config['NORDBAHN_PLAUSIBLE_JS']) : '';
 }
 
 /** Liest eine JSON-Datei als Array, oder null wenn sie fehlt oder kaputt ist. */

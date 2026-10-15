@@ -1,8 +1,8 @@
 <?php
-/** Sitemap der Subdomain: Startseite, FAQ und Changelog. Wird als sitemap.xml ausgeliefert. */
+/** Sitemap: Startseite, FAQ und Changelog. Wird als sitemap.xml ausgeliefert. */
 require __DIR__ . '/api/store.php';
 
-const SITEMAP_BASE = 'https://nordbahn.bensch777.de/';
+define('SITEMAP_BASE', nordbahn_site_url() . '/');
 
 header('Content-Type: application/xml; charset=utf-8');
 header('Cache-Control: public, max-age=3600');

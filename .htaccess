@@ -1,7 +1,19 @@
-# Nordbahn Monitor. Dieser Ordner ist das Wurzelverzeichnis von
-# nordbahn.bensch777.de und zugleich /nordbahn/ auf der Hauptseite; die
-# Regeln sind deshalb relativ zum Ordner formuliert und gelten an beiden Orten.
+# Nordbahn Monitor. Das Repo-Wurzelverzeichnis ist das Web-Root.
 RewriteEngine On
+
+# www entfernen und dabei gleich auf HTTPS gehen
+RewriteCond %{HTTP_HOST} ^www\.(.+)$ [NC]
+RewriteRule ^ https://%1%{REQUEST_URI} [R=301,L]
+
+# HTTPS erzwingen
+RewriteCond %{HTTPS} off
+RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
+
+# Interne Ordner und Dateien sind von aussen nicht erreichbar
+RewriteRule ^(cache|tests|dev|\.git|\.github)(/|$) - [F,L]
+<FilesMatch "^(config\.php|config\.example\.php|README\.md|\.gitignore)$">
+	Require all denied
+</FilesMatch>
 
 # Die API-Endpunkte sind PHP-Dateien.
 RewriteRule ^api/data$ api/data.php [L]
@@ -9,5 +21,27 @@ RewriteRule ^api/push$ api/push.php [L]
 RewriteRule ^api/abfahrten$ api/abfahrten.php [L]
 RewriteRule ^api/revision$ api/revision.php [L]
 
-# Sitemap ist dynamisch (Bahnhofsliste aus store.php).
+# Sitemap und robots.txt sind dynamisch (Adresse aus config.php).
 RewriteRule ^sitemap\.xml$ sitemap.php [L]
+RewriteRule ^robots\.txt$ robots.php [L]
+
+<IfModule mod_dir.c>
+	DirectoryIndex index.php
+</IfModule>
+
+<IfModule mod_deflate.c>
+	AddOutputFilterByType DEFLATE text/html text/plain text/css text/xml
+	AddOutputFilterByType DEFLATE application/javascript application/json application/xml application/manifest+json
+	AddOutputFilterByType DEFLATE image/svg+xml
+</IfModule>
+
+# Statische Dateien einen Monat cachen; Script und Stylesheet tragen einen
+# Versionsstempel in der URL und duerfen deshalb laenger im Cache bleiben.
+<IfModule mod_expires.c>
+	ExpiresActive On
+	ExpiresByType image/png "access plus 1 month"
+	ExpiresByType image/svg+xml "access plus 1 month"
+	ExpiresByType font/woff2 "access plus 1 year"
+	ExpiresByType text/css "access plus 1 year"
+	ExpiresByType application/javascript "access plus 1 year"
+</IfModule>

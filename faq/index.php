@@ -7,7 +7,7 @@
 require __DIR__ . '/../api/store.php';
 require __DIR__ . '/../api/render.php';
 
-const SITE_URL = 'https://nordbahn.bensch777.de';
+define('SITE_URL', nordbahn_site_url());
 $root = '../';
 $assetVersion = (int) @filemtime(__DIR__ . '/../dashboard.css');
 
@@ -62,12 +62,7 @@ $description = 'Wie der Nordbahn Monitor Störungen, Abfahrten und Eilmeldungen 
 <link rel="apple-touch-icon" href="<?= $root ?>icon-180.png">
 <link rel="stylesheet" href="<?= $root ?>dashboard.css?v=<?= $assetVersion ?>">
 <script type="application/ld+json"><?= json_encode($jsonLd, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) ?></script>
-<!-- Privacy-friendly analytics by Plausible -->
-<script async src="https://plausible.io/js/pa-YR5IRACXIMdFAo0Tud1Lj.js"></script>
-<script>
-  window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};
-  plausible.init()
-</script>
+<?php require __DIR__ . '/../inc/analytics.php'; ?>
 </head>
 <body>
 

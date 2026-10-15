@@ -1,6 +1,6 @@
 <?php
 /**
- * Nordbahn Monitor (nordbahn.bensch777.de): Statusseite zu den Linien RB61
+ * Nordbahn Monitor: Statusseite zu den Linien RB61
  * und RB71 zwischen Hamburg, Elmshorn, Itzehoe und Wrist, gedacht fuer
  * Pendler entlang der Strecke.
  *
@@ -9,12 +9,12 @@
  * Bahnhof ist waehlbar und bleibt im Browser gespeichert), und die letzten
  * Eilmeldungen der Nordbahn.
  *
- * Der Ordner ist das Wurzelverzeichnis der Subdomain und zugleich als
- * /nordbahn/ auf der Hauptseite erreichbar, deshalb sind alle Links relativ.
- * Die FAQ liegt unter faq/.
+ * Das Repo-Wurzelverzeichnis ist das Web-Root; alle Links sind relativ,
+ * damit die Seite auch unter einem anderen Hostnamen laeuft. Die FAQ liegt
+ * unter faq/, der Changelog unter changelog/.
  *
  * Datenfluss: n8n pusht alle 2 Minuten nach api/push (Stoerungen,
- * Eilmeldungen, Historie), die Daten liegen in cache/nordbahn/. Lagekarten,
+ * Eilmeldungen, Historie), die Daten liegen in cache/. Lagekarten,
  * Stoerungen und Eilmeldungen werden hier schon ins HTML gerendert
  * (api/render.php), damit Suchmaschinen und Vorschauen etwas sehen; derselbe
  * Stand steckt als JSON im HTML, dashboard.js uebernimmt die Ansicht und holt
@@ -25,7 +25,7 @@
 require __DIR__ . '/api/store.php';
 require __DIR__ . '/api/render.php';
 
-const SITE_URL = 'https://nordbahn.bensch777.de';
+define('SITE_URL', nordbahn_site_url());
 
 $heimat = NORDBAHN_HEIMAT_DEFAULT;
 $root = './';
@@ -116,12 +116,7 @@ $jsonLd = [
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="stylesheet" href="<?= $root ?>dashboard.css?v=<?= $assetVersion ?>">
 <script type="application/ld+json"><?= json_encode($jsonLd, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) ?></script>
-<!-- Privacy-friendly analytics by Plausible -->
-<script async src="https://plausible.io/js/pa-YR5IRACXIMdFAo0Tud1Lj.js"></script>
-<script>
-  window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};
-  plausible.init()
-</script>
+<?php require __DIR__ . '/inc/analytics.php'; ?>
 </head>
 <body>
 

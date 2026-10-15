@@ -2,8 +2,7 @@
 /**
  * Liefert die aktuelle Revision von strecken-info.de als JSON.
  *
- * URL: https://nordbahn.bensch777.de/api/revision?token=...
- *      bis die Subdomain steht: https://bensch777.de/nordbahn/api/revision
+ * URL: /api/revision?token=...
  *
  * Hintergrund: Die Stoerungs-API von strecken-info.de (POST /api/stoerungen)
  * verlangt im Body eine Revision und liefert den Datenstand genau dieser
@@ -95,7 +94,7 @@ function rev_fetch()
         . "Sec-WebSocket-Key: {$key}\r\n"
         . "Sec-WebSocket-Version: 13\r\n"
         . 'Origin: https://' . REV_HOST . "\r\n"
-        . "User-Agent: nordbahn.bensch777.de\r\n"
+        . 'User-Agent: ' . nordbahn_site_host() . "\r\n"
         . "\r\n"
     );
 

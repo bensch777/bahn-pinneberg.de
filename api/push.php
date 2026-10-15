@@ -2,16 +2,15 @@
 /**
  * Empfaengt das Datenpaket fuer das Nordbahn-Dashboard aus n8n.
  *
- * URL: https://nordbahn.bensch777.de/api/push (POST, JSON)
- *      bis die Subdomain steht: https://bensch777.de/nordbahn/api/push
+ * URL: /api/push (POST, JSON)
  *
  * Der n8n-Workflow "Nordbahn Dashboard Push" ruft diesen Endpunkt alle fuenf
  * Minuten auf und schickt im Header X-Nordbahn-Token den Wert, der hier als
  * NORDBAHN_PUSH_TOKEN in config.php hinterlegt ist (siehe
  * config.example.php). Ohne passenden Token wird nichts angenommen.
  *
- * Das Paket wird bereinigt, als cache/nordbahn/data.json abgelegt und die
- * aktiven Stoerungen wandern ins Logbuch cache/nordbahn/stoerungen-log.json.
+ * Das Paket wird bereinigt, als cache/data.json abgelegt und die
+ * aktiven Stoerungen wandern ins Logbuch cache/stoerungen-log.json.
  * cache/ ist weder im Repo noch im Deploy, die Daten ueberleben also einen
  * Deploy, landen aber nie in Git.
  */
@@ -66,7 +65,7 @@ $now = gmdate('Y-m-d\TH:i:s\Z');
 $payload['received_at'] = $now;
 
 if (!nordbahn_write_json(NORDBAHN_DATA_FILE, $payload)) {
-    respond(500, ['ok' => false, 'error' => 'cache/nordbahn/ ist nicht beschreibbar.']);
+    respond(500, ['ok' => false, 'error' => 'cache/ ist nicht beschreibbar.']);
 }
 
 $logSize = nordbahn_update_log($payload['stoerungen'], $now);

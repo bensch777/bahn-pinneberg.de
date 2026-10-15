@@ -7,12 +7,13 @@
 require __DIR__ . '/../api/store.php';
 require __DIR__ . '/../api/render.php';
 
-const SITE_URL = 'https://nordbahn.bensch777.de';
+define('SITE_URL', nordbahn_site_url());
 $root = '../';
 $assetVersion = (int) @filemtime(__DIR__ . '/../dashboard.css');
 
 $changelog = [
     ['2026-10-15', [
+        ['Eigenes Projekt', 'Der Monitor hat ein eigenes Repository mit eigenem Deploy und läuft unabhängig von bensch777.de. Adresse und Analytics stehen in der Konfiguration, nicht mehr im Code.'],
         ['Automatische Tests für die Abfahrten', 'Alle Fälle der Abfahrtstafel sind jetzt als Tests festgehalten: Normalbetrieb, Verspätung, Gleiswechsel, Ausfall mit Ersatz ab Altona, Umleitung, Dammtor, Teilausfälle in beiden Richtungen, Heimatbahnhof-Filter und Ausfälle der Datenquelle. Sie laufen bei jeder Änderung auf GitHub, bevor etwas live geht.'],
         ['„Erst ab Pinneberg“ wie „nur bis Pinneberg“', 'Startet ein Zug der Rückrichtung erst unterwegs, ist die Zeile kein Ausfall mehr, sondern die Abfahrt dort: orangener Punkt, Chip „erst ab Pinneberg“, Abfahrtszeit und Countdown ab Pinneberg, dazu die Hamburger Planzeit als Hinweis. Auch das Gleis ist das in Pinneberg, nicht mehr das am Hbf. Die Zeile bleibt stehen, bis der Zug in Pinneberg abfährt.'],
         ['Nordbahn-Hinweis zum Zuglauf ausgewertet', 'Die Zugauskunft markiert den letzten Halt eines Zuges nicht als Ausfall, auch wenn er laut Hinweis entfällt. Darum zählt jetzt auch der Nordbahn-Text „hält heute nicht in …“. Meldet die Nordbahn „hält nicht in Pinneberg“, der Zug kommt dort laut Prognose aber noch an und wendet, gilt Pinneberg als Endhalt („nur bis Pinneberg“). Fährt ein Zug ab dem Heimatbahnhof wirklich keinen Halt mehr an, steht er als Ausfall mit dem Nordbahn-Hinweis in der Liste.'],
@@ -93,12 +94,7 @@ function nb_datum($iso)
 <link rel="apple-touch-icon" href="<?= $root ?>icon-180.png">
 <link rel="stylesheet" href="<?= $root ?>dashboard.css?v=<?= $assetVersion ?>">
 <script type="application/ld+json"><?= json_encode($jsonLd, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) ?></script>
-<!-- Privacy-friendly analytics by Plausible -->
-<script async src="https://plausible.io/js/pa-YR5IRACXIMdFAo0Tud1Lj.js"></script>
-<script>
-  window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};
-  plausible.init()
-</script>
+<?php require __DIR__ . '/../inc/analytics.php'; ?>
 </head>
 <body>
 

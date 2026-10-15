@@ -1,0 +1,22 @@
+name: Tests
+
+on:
+  pull_request:
+  push:
+    branches-ignore:
+      - main
+
+jobs:
+  php:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: simplexml, mbstring, curl
+          coverage: none
+      - name: Syntax
+        run: find . -path ./.git -prune -o -name '*.php' -print0 | xargs -0 -n1 php -l > /dev/null
+      - name: Tests
+        run: php tests/run.php
