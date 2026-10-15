@@ -427,7 +427,14 @@
 				function bahnhofClass(name) {
 					return /altona/i.test(name) ? ' dep__ab--altona' : /dammtor/i.test(name) ? ' dep__ab--dammtor' : /hbf/i.test(name) ? ' dep__ab--hbf' : '';
 				}
-				if (d.ab) {
+				if (d.teil && d.teil.art === 'beginnt' && !d.ausfall) {
+					// Rueckrichtung, Zug startet erst unterwegs (z. B. Pinneberg): die Zeile ist die Abfahrt dort
+					dest.appendChild(el('span', { class: 'dep__ab dep__ab--teil', text: 'erst ab ' + d.teil.name }));
+					dest.appendChild(document.createTextNode(' '));
+					dest.appendChild(el('span', { class: 'dep__ziel', text: d.ziel }));
+					dest.appendChild(el('small', { class: 'dep__ersatz', text: 'Startet heute erst in ' + d.teil.name
+						+ (d.zeit_plan ? ', planmäßig ' + fmtClock(d.zeit_plan) + ' ab ' + d.ab : '') }));
+				} else if (d.ab) {
 					// Rueckrichtung: der Startbahnhof ist die wichtige Information, Altona faellt auf
 					dest.appendChild(el('span', { class: 'dep__ab' + bahnhofClass(d.ab), text: 'ab ' + d.ab }));
 					dest.appendChild(document.createTextNode(' '));
@@ -443,14 +450,14 @@
 					if (zielKurz) dest.appendChild(el('span', { class: 'dep__ab' + bahnhofClass(zielKurz), text: 'nach ' + zielKurz }));
 					else dest.appendChild(el('span', { class: 'dep__ziel', text: d.ziel }));
 				}
-				if (d.teil && d.teil.art === 'beginnt') {
-					// Rueckrichtung, Zug startet erst unterwegs
-					dest.appendChild(el('small', { class: 'dep__ersatz', text: 'Fährt erst ab ' + d.teil.name + (d.teil.zeit ? ' um ' + d.teil.zeit : '') }));
+				if (d.teil && d.teil.art === 'beginnt' && d.ausfall) {
+					// Startzeit unterwegs unbekannt: die Zeile bleibt ein Ausfall mit Hinweis
+					dest.appendChild(el('small', { class: 'dep__ersatz', text: 'Fährt erst ab ' + d.teil.name }));
 				}
 				if (d.ersatz_fuer) {
 					dest.appendChild(el('small', { class: 'dep__ersatz', text: 'Ersatz für den ' + fmtClock(d.ersatz_fuer.zeit) + ' ab ' + d.ersatz_fuer.ab }));
 				}
-				if (d.dammtor && !d.ausfall) {
+				if (d.dammtor && !d.ausfall && !(d.teil && d.teil.art === 'beginnt')) {
 					// Zuege ab Hbf halten drei Minuten spaeter am Dammtor
 					var dt = d.dammtor;
 					if (dt.ausfall) dest.appendChild(el('small', { class: 'dep__dammtor dep__dammtor--ausfall', text: 'Halt am Dammtor entfällt' }));

@@ -40,6 +40,7 @@ const ABF_API        = 'https://datnet-nbe.etc-consult.de/datnet-nbe/xml_v3';
 const ABF_STADT      = ['AH' => 'Hbf', 'AA' => 'Altona']; // Startbahnhoefe fuer den Rueckweg
 const ABF_DAMMTOR    = 'ADF';                        // Zwischenhalt der Hbf-Zuege, haengt an deren Zeile
 const ABF_AUSFALL_GRACE = 5;                         // Minuten, die ein Ausfall nach seiner Zeit stehen bleibt
+const ABF_TEIL_FENSTER  = 40;                        // Minuten, die ein Ausfall vor der Zugauskunft stehen bleibt (Zug startet evtl. erst unterwegs)
 const ABF_STADT_IDS  = ['AH', 'AA', 'ADF'];          // Ziele, die "in die Stadt" bedeuten
 const ABF_TTL        = 60;                           // Sekunden, die eine Antwort gueltig bleibt
 const ABF_PER_DIR    = 8;                            // Abfahrten je Richtung in der Antwort
@@ -355,6 +356,18 @@ function abf_add_zuginfo(array &$lists, $fetch, $heimat)
             $row['hinweis'] = trim($grund . ($row['hinweis'] !== '' ? '. ' . $row['hinweis'] : ''));
             $teil = null;
         }
+        if ($teil !== null && $teil['art'] === 'beginnt' && $teil['zeit'] !== '' && $row['ausfall']) {
+            // Startet erst unterwegs: die Zeile wird zur Abfahrt dort, die Hamburger
+            // Planzeit bleibt als Hinweis erhalten
+            $start = clone $row['zeit'];
+            [$h, $m] = array_map('intval', explode(':', $teil['zeit']));
+            $start->setTime($h, $m);
+            $row['zeit_plan'] = $row['zeit'];
+            $row['zeit'] = $start;
+            $row['ist'] = null;
+            $row['verspaetung'] = 0;
+            $row['ausfall'] = false;
+        }
         $row['teil'] = $teil;
         unset($row);
     }
@@ -600,9 +613,12 @@ function abf_build($fetch = 'abf_fetch', $heimat = NORDBAHN_HEIMAT_DEFAULT)
     $vorbei = function (array $row) use ($cutoff, $cutoffAusfall) {
         return ($row['ist'] ?: $row['zeit']) < ($row['ausfall'] ? $cutoffAusfall : $cutoff);
     };
-    $upcoming = function (array $list) use ($vorbei) {
-        return array_values(array_filter($list, function ($row) use ($vorbei) {
-            return !$vorbei($row);
+    // Vor der Zugauskunft bleiben Ausfaelle laenger stehen: ein am Hbf ausgefallener
+    // Zug startet vielleicht erst in Pinneberg, dann zaehlt die Abfahrt dort.
+    $cutoffTeil = (clone $now)->modify('-' . ABF_TEIL_FENSTER . ' minutes');
+    $upcoming = function (array $list) use ($cutoff, $cutoffTeil) {
+        return array_values(array_filter($list, function ($row) use ($cutoff, $cutoffTeil) {
+            return ($row['ist'] ?: $row['zeit']) >= ($row['ausfall'] ? $cutoffTeil : $cutoff);
         }));
     };
     $rueck = $upcoming($rueck);
@@ -639,6 +655,8 @@ function abf_build($fetch = 'abf_fetch', $heimat = NORDBAHN_HEIMAT_DEFAULT)
     abf_add_zuginfo($lists, $fetch, $heimat);
     $hin = $lists['hin'];
     $rueck = $lists['rueck'];
+    usort($hin, $sort);
+    usort($rueck, $sort);
 
     $format = function (array $list) use ($vorbei) {
         $out = [];
@@ -660,6 +678,7 @@ function abf_build($fetch = 'abf_fetch', $heimat = NORDBAHN_HEIMAT_DEFAULT)
             $out[] = [
                 'zug'         => $row['zug'],
                 'zeit'        => $row['zeit']->format('c'),
+                'zeit_plan'   => isset($row['zeit_plan']) ? $row['zeit_plan']->format('c') : null,
                 'ist'         => $row['ist'] ? $row['ist']->format('c') : null,
                 'verspaetung' => $row['verspaetung'],
                 'linie'       => $row['linie'],
