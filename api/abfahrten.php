@@ -23,9 +23,11 @@
  *           ausgefallene Zeile gehaengt (und umgekehrt); der Ersatz steht
  *           zusaetzlich als eigene Zeile in der Liste.
  *
- * Fuer ausgefallene und verspaetete Zuege holt der Endpunkt zusaetzlich die
- * Ursache vom Zug-Endpunkt (?zug=Nummer, Element ursachetext), hoechstens
- * sechs Abfragen je Aufbereitung, je Zug fuenf Minuten gecacht.
+ * Fuer ausgefallene, verspaetete und mit Zuglauf-Hinweis markierte Zuege holt
+ * der Endpunkt zusaetzlich die Zugauskunft (?zug=Nummer): die Ursache und die
+ * Halte mit Ausfall-Flag. Daraus entstehen Teilausfaelle ("endet heute in
+ * Pinneberg", "beginnt erst in Pinneberg"). Hoechstens zehn Abfragen je
+ * Aufbereitung, je Zug fuenf Minuten gecacht.
  *
  * Die Antwort wird je Bahnhof eine Minute lang gecacht, damit viele Browser
  * nicht viele Anfragen an die Nordbahn ausloesen. Ist der Monitor nicht
@@ -44,7 +46,7 @@ const ABF_PER_DIR    = 8;                            // Abfahrten je Richtung in
 const ABF_TIMEOUT    = 6;                            // Sekunden je Anfrage
 const ABF_ZUG_CACHE  = NORDBAHN_CACHE_DIR . '/zuege.json'; // Ursachen je Zugnummer
 const ABF_ZUG_TTL    = 300;                                 // Sekunden, die eine Ursache gilt
-const ABF_ZUG_MAX    = 6;                                   // Zugabfragen je Aufbereitung
+const ABF_ZUG_MAX    = 10;                                  // Zugabfragen je Aufbereitung
 
 /**
  * Erreicht ein Zug mit diesem Ziel den Heimatbahnhof? Bis Elmshorn ja, sofern
@@ -108,28 +110,110 @@ function abf_zug_url($zug)
     return ABF_API . '?zug=' . rawurlencode($zug) . '&id_prod=&format=xml';
 }
 
-/** Ursache aus den Zugdetails, oder leer. */
-function abf_parse_ursache($xml)
+/**
+ * Liest die Zugauskunft (?zug=Nummer): die Ursache und alle Halte mit Zeiten und
+ * Ausfall-Flag. Ueber die Halte erkennt die Tafel Teilausfaelle, etwa wenn ein Zug
+ * heute nur bis Pinneberg faehrt oder erst dort beginnt.
+ */
+function abf_parse_zug($xml)
 {
+    $out = ['ursache' => '', 'halte' => []];
     $doc = @simplexml_load_string($xml);
     if ($doc === false) {
-        return '';
+        return $out;
     }
     $text = isset($doc->ursachetext) ? trim((string) $doc->ursachetext) : '';
     if ($text === '' && isset($doc->ursacheris)) {
         $text = trim((string) $doc->ursacheris);
     }
-    if ($text === '') {
-        foreach ($doc->halt as $halt) {
+    foreach ($doc->halt as $halt) {
+        if ($text === '') {
             $t = isset($halt->ursacheris) ? trim((string) $halt->ursacheris) : '';
             if ($t !== '') {
                 $text = $t;
-                break;
             }
+        }
+        $bhf = $halt->bhf ?? null;
+        $out['halte'][] = [
+            'id'      => $bhf !== null ? trim((string) $bhf['id']) : '',
+            'name'    => $bhf !== null ? trim((string) $bhf) : '',
+            'an'      => abf_text($halt, 'ankunft'),
+            'ab'      => abf_text($halt, 'abfahrt'),
+            'ausfall' => abf_bool($halt, 'ausfall'),
+        ];
+    }
+    $out['ursache'] = $text;
+
+    return $out;
+}
+
+/**
+ * Teilausfall aus den Halten ableiten.
+ *   hin:   Der Zug faehrt Richtung Hamburg, die Hamburger Halte entfallen. Ergebnis
+ *          "endet" am letzten Halt, der noch bedient wird (z. B. Pinneberg). Endet er
+ *          schon am Heimatbahnhof, ist er fuer den Pendler ein Ausfall.
+ *   rueck: Der Startbahnhof der Zeile (Hbf/Dammtor/Altona) entfaellt, der Zug faehrt
+ *          aber ab einem Halt vor dem Heimatbahnhof. Ergebnis "beginnt" dort. Startet
+ *          er an einem anderen Hamburger Bahnhof, ist das der Ersatz-Fall, nicht dieser.
+ */
+function abf_teilausfall(array $row, array $halte, $heimat, $dir)
+{
+    if (!$halte) {
+        return null;
+    }
+    $idx = function ($id) use ($halte) {
+        foreach ($halte as $i => $h) {
+            if ($h['id'] === $id) {
+                return $i;
+            }
+        }
+
+        return null;
+    };
+    $hi = $idx($heimat);
+    if ($hi === null) {
+        return null;
+    }
+    $n = count($halte);
+
+    if ($dir === 'hin') {
+        $letzter = null;
+        $hamburgFaellt = false;
+        for ($i = $hi + 1; $i < $n; $i++) {
+            if (!$halte[$i]['ausfall']) {
+                $letzter = $i;
+            } elseif (in_array($halte[$i]['id'], ABF_STADT_IDS, true)) {
+                $hamburgFaellt = true;
+            }
+        }
+        if (!$hamburgFaellt) {
+            return null;
+        }
+        if ($letzter === null) {
+            return ['art' => 'endet', 'id' => $heimat, 'name' => $halte[$hi]['name'], 'zeit' => ''];
+        }
+        if (in_array($halte[$letzter]['id'], ABF_STADT_IDS, true)) {
+            return null; // erreicht Hamburg doch noch, nur ein Zwischenhalt entfaellt
+        }
+
+        return ['art' => 'endet', 'id' => $halte[$letzter]['id'], 'name' => $halte[$letzter]['name'], 'zeit' => $halte[$letzter]['an'] ?: $halte[$letzter]['ab']];
+    }
+
+    $si = $row['ab_id'] !== null ? $idx($row['ab_id']) : null;
+    if ($si === null || !$halte[$si]['ausfall']) {
+        return null;
+    }
+    for ($i = $si + 1; $i < $hi; $i++) {
+        if (!$halte[$i]['ausfall']) {
+            if (in_array($halte[$i]['id'], ABF_STADT_IDS, true)) {
+                return null;
+            }
+
+            return ['art' => 'beginnt', 'id' => $halte[$i]['id'], 'name' => $halte[$i]['name'], 'zeit' => $halte[$i]['ab'] ?: $halte[$i]['an']];
         }
     }
 
-    return $text;
+    return null;
 }
 
 /**
@@ -137,7 +221,7 @@ function abf_parse_ursache($xml)
  * Antwort fuenf Minuten gecacht, pro Aufbereitung gibt es hoechstens
  * ABF_ZUG_MAX Abfragen, damit ein schlechter Tag nicht zur Lastspitze wird.
  */
-function abf_add_ursachen(array &$lists, $fetch)
+function abf_add_zuginfo(array &$lists, $fetch, $heimat)
 {
     $cache = nordbahn_read_json(ABF_ZUG_CACHE);
     if (!is_array($cache)) {
@@ -147,18 +231,20 @@ function abf_add_ursachen(array &$lists, $fetch)
     $calls = 0;
     $changed = false;
 
-    foreach ($lists as &$list) {
+    foreach ($lists as $dir => &$list) {
         $n = 0;
         foreach ($list as &$row) {
             if (++$n > ABF_PER_DIR) {
                 break;
             }
-            if ($row['zug'] === '' || (!$row['ausfall'] && $row['verspaetung'] < 3)) {
+            // Zugauskunft nur, wenn es etwas zu erklaeren gibt: Ausfall, Verspaetung
+            // oder ein Hinweis zum Zuglauf (Halte entfallen)
+            if ($row['zug'] === '' || (!$row['ausfall'] && $row['verspaetung'] < 3 && !$row['zuglaufinfo'])) {
                 continue;
             }
             $zug = $row['zug'];
             $entry = $cache[$zug] ?? null;
-            if (!is_array($entry) || ($now - (int) ($entry['t'] ?? 0)) > ABF_ZUG_TTL) {
+            if (!is_array($entry) || !isset($entry['halte']) || ($now - (int) ($entry['t'] ?? 0)) > ABF_ZUG_TTL) {
                 if ($calls >= ABF_ZUG_MAX) {
                     continue;
                 }
@@ -167,7 +253,7 @@ function abf_add_ursachen(array &$lists, $fetch)
                 if ($xml === null) {
                     continue;
                 }
-                $entry = ['t' => $now, 'ursache' => abf_parse_ursache($xml)];
+                $entry = ['t' => $now] + abf_parse_zug($xml);
                 $cache[$zug] = $entry;
                 $changed = true;
             }
@@ -175,6 +261,15 @@ function abf_add_ursachen(array &$lists, $fetch)
             if ($ursache !== '' && stripos($row['hinweis'], $ursache) === false) {
                 $row['hinweis'] = trim($ursache . ($row['hinweis'] !== '' ? '. ' . $row['hinweis'] : ''));
             }
+            $teil = abf_teilausfall($row, $entry['halte'] ?? [], $heimat, $dir);
+            if ($teil !== null && $teil['art'] === 'endet' && $teil['id'] === $heimat) {
+                // Faehrt nicht ueber den Heimatbahnhof hinaus: fuer den Pendler ein Ausfall
+                $row['ausfall'] = true;
+                $row['ist'] = null;
+                $row['hinweis'] = trim('Endet heute schon in ' . $teil['name'] . ($row['hinweis'] !== '' ? '. ' . $row['hinweis'] : ''));
+                $teil = null;
+            }
+            $row['teil'] = $teil;
         }
         unset($row);
     }
@@ -337,6 +432,9 @@ function abf_parse($xml, DateTime $now, &$stand)
             'hinweis'     => implode('. ', array_unique($hinweise)),
             'wagen'       => abf_bool($row, 'istZug') && $wagen > 0 ? $wagen : null,
             'ab'          => null,
+            'ab_id'       => null,
+            'zuglaufinfo' => abf_bool($row, 'zuglaufinfo'), // Nordbahn hat einen Hinweis zum Zuglauf
+            'teil'        => null,
             'ersatz'      => null,
             'ersatz_fuer' => null,
             'dammtor'     => null, // Halt am Dammtor, nur Zuege ab Hbf
@@ -377,6 +475,7 @@ function abf_build($fetch = 'abf_fetch', $heimat = NORDBAHN_HEIMAT_DEFAULT)
                 continue;
             }
             $row['ab'] = $label;
+            $row['ab_id'] = $id;
             $rueck[] = $row;
         }
     }
@@ -447,12 +546,13 @@ function abf_build($fetch = 'abf_fetch', $heimat = NORDBAHN_HEIMAT_DEFAULT)
             continue;
         }
         $row['ab'] = 'Dammtor';
+        $row['ab_id'] = ABF_DAMMTOR;
         $rueck[] = $row;
     }
     usort($rueck, $sort);
 
     $lists = ['hin' => $upcoming($hin), 'rueck' => $rueck];
-    abf_add_ursachen($lists, $fetch);
+    abf_add_zuginfo($lists, $fetch, $heimat);
     $hin = $lists['hin'];
     $rueck = $lists['rueck'];
 
@@ -487,6 +587,7 @@ function abf_build($fetch = 'abf_fetch', $heimat = NORDBAHN_HEIMAT_DEFAULT)
                 'wagen'       => $row['wagen'],
                 'ab'          => $row['ab'],
                 'ersatz'      => $ersatz,
+                'teil'        => $row['teil'],
                 'ersatz_fuer' => $row['ersatz_fuer']
                     ? ['ab' => $row['ersatz_fuer']['ab'], 'zeit' => $row['ersatz_fuer']['zeit']->format('c')]
                     : null,
@@ -518,8 +619,9 @@ function abf_build($fetch = 'abf_fetch', $heimat = NORDBAHN_HEIMAT_DEFAULT)
 }
 
 // Auf der Kommandozeile laesst sich die Aufbereitung gegen lokale Dateien pruefen:
-// php nordbahn/api/abfahrten.php [--bhf=APD] heimat.xml hbf.xml altona.xml dammtor.xml [zug.xml]
-// Die fuenfte Datei dient als Antwort fuer alle Zugabfragen; der Zug-Cache wird dabei nicht benutzt.
+// php nordbahn/api/abfahrten.php [--bhf=APD] heimat.xml hbf.xml altona.xml dammtor.xml [zug.xml|zugverzeichnis/]
+// Die fuenfte Angabe dient als Antwort fuer alle Zugabfragen (eine Datei) oder liefert je
+// Zugnummer <verzeichnis>/<nummer>.xml; der Zug-Cache wird dabei nicht benutzt.
 if (PHP_SAPI === 'cli') {
     $files = array_slice($argv, 1);
     $heimat = NORDBAHN_HEIMAT_DEFAULT;
@@ -534,6 +636,13 @@ if (PHP_SAPI === 'cli') {
     $index = 0;
     $result = abf_build(function ($url) use ($files, $zugFile, &$index) {
         if (strpos($url, '?zug=') !== false) {
+            // Eine Datei fuer alle Zuege, oder ein Verzeichnis mit <zugnummer>.xml
+            if ($zugFile !== null && is_dir($zugFile) && preg_match('/zug=(\d+)/', $url, $m)) {
+                $f = $zugFile . '/' . $m[1] . '.xml';
+
+                return is_readable($f) ? file_get_contents($f) : null;
+            }
+
             return $zugFile !== null && is_readable($zugFile) ? file_get_contents($zugFile) : null;
         }
         $file = $files[$index++] ?? null;

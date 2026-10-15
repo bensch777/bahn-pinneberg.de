@@ -310,6 +310,8 @@ button { font: inherit; color: inherit; }
 .dep__ab--hbf { color: #fff; background: var(--series); border-color: var(--series); }
 .dep__ab--dammtor { color: var(--series); border-color: var(--series); background: transparent; }
 .dep__ab--altona { color: #fff; background: var(--series-2); border-color: var(--series-2); }
+.dep__ab--teil { color: var(--ink); border-color: var(--warning); background: color-mix(in srgb, var(--warning) 22%, transparent); }
+.dep--teil .dep__dot { background: var(--warning); }
 .dep--cancelled .dep__ab { opacity: 0.8; }
 .dep__platform { font-size: 12.5px; color: var(--muted); white-space: nowrap; text-align: right; }
 .dep__platform--wechsel { color: var(--series-2); font-weight: 700; }

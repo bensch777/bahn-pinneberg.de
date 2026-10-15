@@ -180,6 +180,8 @@ function nb_status_betrieb($abf)
     $umleitungen = 0;
     $verspaetet = 0;
     $maxDelay = 0;
+    $teil = 0;
+    $teilOrt = '';
     foreach (['hin', 'rueck'] as $key) {
         foreach (array_slice($abf['richtungen'][$key] ?? [], 0, 6) as $d) {
             if (!empty($d['ersatz_fuer'])) {
@@ -188,7 +190,10 @@ function nb_status_betrieb($abf)
             $total++;
             $rb60 = preg_match('/RB\s?60/i', $d['linie'] ?? '');
             $altona = !$rb60 && (stripos($d['ab'] ?? '', 'altona') !== false || stripos($d['ziel'] ?? '', 'altona') !== false || !empty($d['ersatz']));
-            if (!empty($d['ausfall']) && empty($d['ersatz'])) {
+            if (!empty($d['teil'])) {
+                $teil++;
+                $teilOrt = $d['teil']['name'] ?? '';
+            } elseif (!empty($d['ausfall']) && empty($d['ersatz'])) {
                 $ausfaelle++;
             } elseif ($altona) {
                 $umleitungen++;
@@ -198,13 +203,16 @@ function nb_status_betrieb($abf)
             }
         }
     }
-    $betroffen = $ausfaelle + $umleitungen + $verspaetet;
+    $betroffen = $ausfaelle + $umleitungen + $verspaetet + $teil;
     if (!$total || !$betroffen) {
         return ['level' => 'ok', 'title' => 'Fahrplan läuft', 'detail' => ''];
     }
     $parts = [];
     if ($ausfaelle) {
         $parts[] = nb_plural($ausfaelle, 'Zugausfall', 'Zugausfälle');
+    }
+    if ($teil) {
+        $parts[] = nb_plural($teil, 'Zug', 'Züge') . ' nur ab/bis ' . $teilOrt . (stripos($teilOrt, 'pinneberg') !== false ? ', dazwischen S-Bahn' : '');
     }
     if ($umleitungen) {
         $parts[] = $umleitungen === 1 ? 'Umleitung über Altona' : $umleitungen . ' Umleitungen über Altona';

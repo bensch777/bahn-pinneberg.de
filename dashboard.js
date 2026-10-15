@@ -242,25 +242,27 @@
 		}
 		if (card) card.removeAttribute('data-ssr');
 		if (!result.richtungen) { setStatus('status-betrieb', 'unknown', 'Fahrplanlage unbekannt'); return; }
-		var total = 0, ausfaelle = 0, umleitungen = 0, verspaetet = 0, maxDelay = 0;
+		var total = 0, ausfaelle = 0, umleitungen = 0, verspaetet = 0, maxDelay = 0, teil = 0, teilOrt = '';
 		['hin', 'rueck'].forEach(function (key) {
 			(result.richtungen[key] || []).slice(0, 6).forEach(function (d) {
 				if (d.ersatz_fuer) return; // Ersatzzug ist schon ueber den Ausfall erfasst
 				total++;
 				var rb60 = /RB\s?60/i.test(d.linie || '');
 				var altona = !rb60 && (/altona/i.test(d.ab || '') || /altona/i.test(d.ziel || '') || !!d.ersatz);
-				if (d.ausfall && !d.ersatz) ausfaelle++;
+				if (d.teil) { teil++; teilOrt = d.teil.name; }
+				else if (d.ausfall && !d.ersatz) ausfaelle++;
 				else if (altona) umleitungen++;
 				else if (d.verspaetung >= 10) { verspaetet++; maxDelay = Math.max(maxDelay, d.verspaetung); }
 			});
 		});
-		var betroffen = ausfaelle + umleitungen + verspaetet;
+		var betroffen = ausfaelle + umleitungen + verspaetet + teil;
 		if (!total || !betroffen) {
 			setStatus('status-betrieb', result.ok ? 'ok' : 'unknown', result.ok ? 'Fahrplan läuft' : 'Fahrplanlage unbekannt');
 			return;
 		}
 		var parts = [];
 		if (ausfaelle) parts.push(plural(ausfaelle, 'Zugausfall', 'Zugausfälle'));
+		if (teil) parts.push(plural(teil, 'Zug', 'Züge') + ' nur ab/bis ' + teilOrt + (/pinneberg/i.test(teilOrt) ? ', dazwischen S-Bahn' : ''));
 		if (umleitungen) parts.push(umleitungen === 1 ? 'Umleitung über Altona' : umleitungen + ' Umleitungen über Altona');
 		if (verspaetet) parts.push('Verspätungen bis ' + maxDelay + ' Min');
 		var anteil = betroffen / total;
@@ -401,6 +403,7 @@
 			deps.slice(0, 6).forEach(function (d) {
 				var late = !d.ausfall && d.verspaetung >= 3;
 				var cls = 'dep' + (d.ausfall ? ' dep--cancelled' : late ? ' dep--late' : '');
+				if (d.teil && !d.ausfall) cls += ' dep--teil';
 				if (d.ersatz_fuer) cls += ' dep--ersatz';
 				if (!d.ausfall && !nextMarked) { cls += ' dep--next'; nextMarked = true; }
 
@@ -429,11 +432,21 @@
 					dest.appendChild(el('span', { class: 'dep__ab' + bahnhofClass(d.ab), text: 'ab ' + d.ab }));
 					dest.appendChild(document.createTextNode(' '));
 					dest.appendChild(el('span', { class: 'dep__ziel', text: d.ziel }));
+				} else if (d.teil && d.teil.art === 'endet' && !d.ausfall) {
+					// Hinrichtung, Zug endet vorzeitig (z. B. Stellwerk kaputt): nur bis dorthin
+					dest.appendChild(el('span', { class: 'dep__ab dep__ab--teil', text: 'nur bis ' + d.teil.name }));
+					dest.appendChild(el('small', { class: 'dep__ersatz', text: 'Endet heute in ' + d.teil.name + (d.teil.zeit ? ' (an ' + d.teil.zeit + ')' : '')
+						+ (/^AP$/.test(d.teil.id) ? ', weiter mit der S-Bahn' : '') }));
 				} else {
 					// Hinrichtung: das Hamburger Ziel als Chip, gleiche Farben wie die Startbahnhoefe
 					var zielKurz = /altona/i.test(d.ziel) ? 'Altona' : /dammtor/i.test(d.ziel) ? 'Dammtor' : /hbf|hauptbahnhof/i.test(d.ziel) ? 'Hbf' : '';
 					if (zielKurz) dest.appendChild(el('span', { class: 'dep__ab' + bahnhofClass(zielKurz), text: 'nach ' + zielKurz }));
 					else dest.appendChild(el('span', { class: 'dep__ziel', text: d.ziel }));
+				}
+				if (d.teil && d.teil.art === 'beginnt') {
+					// Rueckrichtung, Zug startet erst unterwegs: bis dahin S-Bahn
+					dest.appendChild(el('small', { class: 'dep__ersatz', text: 'Fährt erst ab ' + d.teil.name + (d.teil.zeit ? ' um ' + d.teil.zeit : '')
+						+ (/^AP$/.test(d.teil.id) ? ', bis dahin S-Bahn' : '') }));
 				}
 				if (d.ersatz_fuer) {
 					dest.appendChild(el('small', { class: 'dep__ersatz', text: 'Ersatz für den ' + fmtClock(d.ersatz_fuer.zeit) + ' ab ' + d.ersatz_fuer.ab }));
