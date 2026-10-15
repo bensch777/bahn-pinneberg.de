@@ -187,7 +187,19 @@ function abf_teilausfall(array $row, array $halte, $heimat, $dir)
             }
         }
         if (!$hamburgFaellt) {
-            return null;
+            // Variante zwei: die Hamburger Halte stehen gar nicht mehr im Zuglauf,
+            // obwohl der Monitor ein Hamburger Ziel nennt. Dann endet der Zug am
+            // letzten gelisteten Halt.
+            $zielHamburg = in_array($row['ziel_id'] ?? '', ABF_STADT_IDS, true) || stripos($row['ziel'] ?? '', 'Hamburg') !== false;
+            $hamburgGelistet = false;
+            foreach ($halte as $h) {
+                if (in_array($h['id'], ABF_STADT_IDS, true)) {
+                    $hamburgGelistet = true;
+                }
+            }
+            if (!$zielHamburg || $hamburgGelistet) {
+                return null;
+            }
         }
         if ($letzter === null) {
             return ['art' => 'endet', 'id' => $heimat, 'name' => $halte[$hi]['name'], 'zeit' => ''];
