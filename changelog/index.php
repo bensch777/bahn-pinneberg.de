@@ -13,6 +13,7 @@ $assetVersion = (int) @filemtime(__DIR__ . '/../dashboard.css');
 
 $changelog = [
     ['2026-10-15', [
+        ['Eilmeldungen mit Pendler-Titel', 'Der Eilmeldungs-Workflow lässt sich von der KI einen sprechenden Titel schreiben, zum Beispiel welcher Zug wann ausfällt statt nur „Zugausfall RB60“. Die Seite zeigt diesen Titel, der Nordbahn-Titel steht im Tooltip. Meldungen zu kurzfristigem Personalausfall landen nur noch auf der Seite, nicht mehr per Telegram.'],
         ['Abgelaufen ist nicht aufgehoben', 'strecken-info.de meldet eine Störung als „abgelaufen“, sobald ihr gemeldetes Ende vorbei ist, auch wenn sie weiter andauert. Die Workflows nahmen das bisher als erledigt. Jetzt zählt nur noch „geschlossen“; eine abgelaufene Störung bleibt aktiv und zeigt „gemeldetes Ende überschritten, dauert an“.'],
         ['Letzte Störungen', 'Unter den Eilmeldungen steht eine Liste der zuletzt aufgehobenen Infrastruktur-Störungen der letzten sieben Tage: Beginn, Ende, Dauer und der Pendler-Text. Bisher verschwand eine Störung mit ihrer Aufhebung sofort von der Seite.'],
         ['Eigenes Projekt', 'Der Monitor hat ein eigenes Repository mit eigenem Deploy und läuft unabhängig von bensch777.de. Adresse und Analytics stehen in der Konfiguration, nicht mehr im Code.'],

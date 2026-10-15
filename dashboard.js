@@ -83,17 +83,19 @@
 
 		var seen = {};
 		var items = [];
-		function push(id, title, iso, live) {
+		// Der Pendler-Titel der KI (aus der Historie) ersetzt den Nordbahn-Titel in der Anzeige
+		function push(id, title, iso, live, kiTitel) {
 			var ms = Date.parse(iso || '');
 			if (!id || isNaN(ms)) return;
 			seen[id] = true;
+			kiTitel = (kiTitel || '').trim();
 			items.push({
-				id: id, title: title || '', ms: ms,
+				id: id, title: kiTitel || title || '', original: title || '', ms: ms,
 				stand: live && live.stand ? Date.parse(live.stand) : NaN,
 				link: live && live.link ? live.link : ''
 			});
 		}
-		(data.eilmeldungen || []).forEach(function (e) { if (e) push(e.id, e.title, e.seen_at, liveById[e.id]); });
+		(data.eilmeldungen || []).forEach(function (e) { if (e) push(e.id, e.title, e.seen_at, liveById[e.id], e.ki_titel); });
 		// Meldungen, die auf der Seite stehen, aber noch nicht in der Historie sind
 		(data.eilmeldungen_live || []).forEach(function (e) { if (e && !seen[e.id]) push(e.id, e.title, e.stand, e); });
 		items.sort(function (a, b) { return a.ms - b.ms; });
@@ -332,7 +334,9 @@
 			var title = it.link
 				? el('a', { href: it.link, rel: 'noopener', text: it.title || it.id })
 				: document.createTextNode(it.title || it.id);
-			ol.appendChild(el('li', {}, [time, el('p', { class: 'feed__title' }, [title])]));
+			var p = el('p', { class: 'feed__title' }, [title]);
+			if (it.original && it.original !== it.title) p.setAttribute('title', 'Nordbahn: ' + it.original);
+			ol.appendChild(el('li', {}, [time, p]));
 		});
 	}
 

@@ -255,9 +255,12 @@ function nordbahn_clean_eilmeldung($raw)
     }
 
     return [
-        'id'      => $id,
-        'title'   => nordbahn_text($raw['title'] ?? '', 300),
-        'seen_at' => nordbahn_iso($raw['seen_at'] ?? ''),
+        'id'       => $id,
+        'title'    => nordbahn_text($raw['title'] ?? '', 300),
+        'seen_at'  => nordbahn_iso($raw['seen_at'] ?? ''),
+        // Pendler-Titel und -Text der KI aus dem Eilmeldungs-Workflow, falls vorhanden
+        'ki_titel' => nordbahn_text($raw['ki_titel'] ?? '', 160),
+        'ki_text'  => nordbahn_text($raw['ki_text'] ?? '', 600),
     ];
 }
 

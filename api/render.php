@@ -72,23 +72,27 @@ function nb_items(array $data)
     }
     $items = [];
     $seen = [];
-    $push = function ($id, $title, $iso, $l) use (&$items, &$seen) {
+    // Der Pendler-Titel der KI (aus der Historie) ersetzt den Nordbahn-Titel in der
+    // Anzeige; der Originaltitel bleibt als 'original' fuer den Tooltip erhalten.
+    $push = function ($id, $title, $iso, $l, $kiTitel = '') use (&$items, &$seen) {
         $ts = nb_ts($iso);
         if (!$id || $ts === null) {
             return;
         }
         $seen[$id] = true;
+        $kiTitel = trim((string) $kiTitel);
         $items[] = [
-            'id'    => $id,
-            'title' => (string) $title,
-            'ts'    => $ts,
-            'stand' => $l && !empty($l['stand']) ? nb_ts($l['stand']) : null,
-            'link'  => $l && !empty($l['link']) ? $l['link'] : '',
+            'id'       => $id,
+            'title'    => $kiTitel !== '' ? $kiTitel : (string) $title,
+            'original' => (string) $title,
+            'ts'       => $ts,
+            'stand'    => $l && !empty($l['stand']) ? nb_ts($l['stand']) : null,
+            'link'     => $l && !empty($l['link']) ? $l['link'] : '',
         ];
     };
     foreach ($data['eilmeldungen'] ?? [] as $e) {
         if ($e) {
-            $push($e['id'] ?? '', $e['title'] ?? '', $e['seen_at'] ?? '', $live[$e['id'] ?? ''] ?? null);
+            $push($e['id'] ?? '', $e['title'] ?? '', $e['seen_at'] ?? '', $live[$e['id'] ?? ''] ?? null, $e['ki_titel'] ?? '');
         }
     }
     foreach ($data['eilmeldungen_live'] ?? [] as $e) {
@@ -402,7 +406,8 @@ function nb_render_feed(array $items, $limit, $maxAgeDays)
     foreach ($list as $it) {
         $ts = $it['stand'] ?? $it['ts'];
         $title = $it['title'] !== '' ? $it['title'] : $it['id'];
-        $html .= '<li><div class="feed__time">' . nb_e(nb_fmt_datetime(date('c', $ts))) . '</div><p class="feed__title">';
+        $tooltip = !empty($it['original']) && $it['original'] !== $it['title'] ? ' title="Nordbahn: ' . nb_e($it['original']) . '"' : '';
+        $html .= '<li><div class="feed__time">' . nb_e(nb_fmt_datetime(date('c', $ts))) . '</div><p class="feed__title"' . $tooltip . '>';
         $html .= $it['link']
             ? '<a href="' . nb_e($it['link']) . '" rel="noopener">' . nb_e($title) . '</a>'
             : nb_e($title);

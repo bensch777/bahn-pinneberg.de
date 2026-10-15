@@ -99,3 +99,23 @@ function test_incident_zeitraum_abgelaufen()
     t_eq(true, nordbahn_clean_payload(['eilmeldungen' => [], 'stoerungen' => [['key' => 'X', 'abgelaufen' => true]]])['stoerungen'][0]['abgelaufen'], 'Flag ueberlebt die Bereinigung');
     t_eq(false, nordbahn_clean_payload(['eilmeldungen' => [], 'stoerungen' => [['key' => 'X']]])['stoerungen'][0]['abgelaufen'], 'ohne Flag false');
 }
+
+function test_eilmeldung_ki_titel_in_der_liste()
+{
+    $data = [
+        'eilmeldungen' => [
+            ['id' => 'em-1', 'title' => 'Zugausfall RB60', 'seen_at' => '2026-10-15T08:00:00Z', 'ki_titel' => 'RB60 um 16:38 ab Itzehoe fällt aus'],
+            ['id' => 'em-2', 'title' => 'Einschränkungen', 'seen_at' => '2026-10-15T09:00:00Z', 'ki_titel' => ''],
+        ],
+        'eilmeldungen_live' => [['id' => 'em-1', 'title' => 'Zugausfall RB60', 'stand' => '2026-10-15T08:30:00Z', 'link' => 'https://www.nordbahn.de/x/']],
+    ];
+    $items = nb_items($data);
+    t_eq('RB60 um 16:38 ab Itzehoe fällt aus', $items[0]['title'], 'KI-Titel ersetzt den Nordbahn-Titel');
+    t_eq('Zugausfall RB60', $items[0]['original'], 'Original bleibt erhalten');
+    t_eq('Einschränkungen', $items[1]['title'], 'ohne KI-Titel der Nordbahn-Titel');
+    $html = nb_render_feed($items, 6, 0);
+    t_contains('title="Nordbahn: Zugausfall RB60"', $html, 'Original im Tooltip');
+    t_contains('>RB60 um 16:38 ab Itzehoe fällt aus</a>', $html, 'KI-Titel verlinkt');
+    $clean = nordbahn_clean_payload(['eilmeldungen' => [['id' => 'em-1', 'title' => 'T', 'seen_at' => '2026-10-15T08:00:00Z', 'ki_titel' => 'KI', 'ki_text' => 'Text']]]);
+    t_eq('KI', $clean['eilmeldungen'][0]['ki_titel'], 'ki_titel ueberlebt die Bereinigung');
+}
