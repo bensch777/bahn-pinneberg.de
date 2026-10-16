@@ -106,7 +106,7 @@ $jsonLd = [
 	<div class="page-head">
 		<div>
 			<h1>St&ouml;rungsstatistik</h1>
-			<p class="page-head__lead">Infrastruktur-St&ouml;rungen auf der Strecke Hamburg &ndash; Elmshorn &ndash; Itzehoe / Wrist laut strecken-info.de<?php if ($stat['seit']): ?>, erfasst seit dem <?= nb_e(date('d.m.Y', $stat['seit'])) ?><?php endif; ?>. Gez&auml;hlt wird jede Meldung, vom ersten Auftreten bis zur Aufhebung.</p>
+			<p class="page-head__lead">Wie zuverl&auml;ssig die Z&uuml;ge fahren und wie oft die Strecke Hamburg &ndash; Elmshorn &ndash; Itzehoe / Wrist gest&ouml;rt ist.</p>
 		</div>
 	</div>
 
@@ -143,14 +143,14 @@ function nb_zug_tabelle(array $zuege, $mitAb)
 <?php endforeach; ?>
 		</p>
 <?php if ($zugTage === 0): ?>
-		<div class="card"><p class="feed__empty">Noch keine Beobachtungen. Die Seite sammelt ab jetzt bei jeder Abfrage der Abfahrten den letzten Stand je Zug; nach <?= (int) NB_ZUGLOG_MIN_TAGE ?> beobachteten Tagen erscheinen die ersten Werte.</p></div>
+		<div class="card"><p class="feed__empty">Noch keine Daten, die ersten Werte gibt es nach <?= (int) NB_ZUGLOG_MIN_TAGE ?> Tagen.</p></div>
 <?php else: ?>
 		<h3 class="section__sub"><?= nb_e($bhfName) ?> &rarr; Hamburg</h3>
 		<div class="card"><?= nb_zug_tabelle($zugHin, false) ?></div>
 		<h3 class="section__sub">Hamburg &rarr; <?= nb_e($bhfName) ?></h3>
 		<div class="card"><?= nb_zug_tabelle($zugRueck, true) ?></div>
 <?php endif; ?>
-		<p class="section__note">Beobachtet seit <?= $zugstat['seit'] ? nb_e(date('d.m.Y', strtotime($zugstat['seit']))) : '&ndash;' ?>, <?= (int) $zugTage ?> Tage mit Daten. Gez&auml;hlt wird je Tag der letzte Stand vor der Abfahrt: Ausfall, Teilausfall (nur bis oder erst ab einem Unterwegsbahnhof, als +n bei den Ausf&auml;llen), Verspätung ab 5 Minuten und der Durchschnitt ohne ausgefallene Tage. Beobachtet wird nur, was abgefragt wird: <?= nb_e(NORDBAHN_BAHNHOEFE[NORDBAHN_HEIMAT_DEFAULT]['name']) ?> durchgehend, andere Bahnh&ouml;fe, solange jemand die Seite mit diesem Bahnhof offen hat. Zeilen mit weniger als <?= (int) NB_ZUGLOG_MIN_TAGE ?> Tagen sind grau.</p>
+		<p class="section__note">Ausf&auml;lle: ganz ausgefallen, +n teilweise (nur bis oder erst ab einem Unterwegsbahnhof). &ge; 5 min: Tage mit mindestens f&uuml;nf Minuten Versp&auml;tung. &Oslash; und max. ohne ausgefallene Tage. Graue Zeilen haben noch wenige Tage.</p>
 	</section>
 
 	<section class="section">
@@ -200,7 +200,7 @@ function nb_zug_tabelle(array $zuege, $mitAb)
 			<p class="feed__empty">Noch keine St&ouml;rung erfasst.</p>
 <?php endif; ?>
 		</div>
-		<p class="section__note">Quelle: St&ouml;rungsmeldungen der DB InfraGO auf strecken-info.de f&uuml;r die Strecken 1210, 1220, 1225, 1232 und 6100 im Abschnitt Hamburg &ndash; Itzehoe / Wrist. Die Dauer ist die Zeit, in der eine Meldung aktiv war, nicht die tats&auml;chliche Betriebsst&ouml;rung. Eilmeldungen der Nordbahn (Zugausf&auml;lle wegen Personal oder Fahrzeugen) z&auml;hlen hier nicht mit.</p>
+		<p class="section__note">Quelle: strecken-info.de der DB InfraGO, Abschnitt Hamburg &ndash; Itzehoe / Wrist. Die Dauer ist die Zeit, in der die Meldung aktiv war. Eilmeldungen der Nordbahn z&auml;hlen hier nicht mit.</p>
 	</section>
 </main>
 
