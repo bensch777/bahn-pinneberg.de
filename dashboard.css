@@ -175,6 +175,9 @@ button { font: inherit; color: inherit; }
 .section__head { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; flex-wrap: wrap; margin-bottom: 12px; }
 .section__title { font-size: 17px; font-weight: 600; margin: 0 0 12px; letter-spacing: -0.01em; }
 .section__head .section__title { margin: 0; }
+.section__more { font-size: 13.5px; color: var(--series); text-decoration: none; }
+.section__more:hover { text-decoration: underline; }
+.section__more::after { content: ' \2192'; }
 .section__sub { margin: 0; color: var(--muted); font-size: 13px; }
 .section__tools { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
 .heimat { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
@@ -350,6 +353,7 @@ button { font: inherit; color: inherit; }
 .dep__ab--hbf { color: #fff; background: var(--series); border-color: var(--series); }
 .dep__ab--dammtor { color: var(--series); border-color: var(--series); background: transparent; }
 .dep__ab--altona { color: #fff; background: var(--series-2); border-color: var(--series-2); }
+.dep__ab--aktiv { color: var(--series-2); border-color: var(--series-2); background: transparent; vertical-align: 2px; margin-left: 4px; }
 .dep__ab--teil { color: var(--ink); border-color: var(--warning); background: color-mix(in srgb, var(--warning) 22%, transparent); }
 .dep--teil .dep__dot { background: var(--warning); }
 .dep--cancelled .dep__ab { opacity: 0.8; }

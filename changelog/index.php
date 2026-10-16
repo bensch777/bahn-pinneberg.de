@@ -15,6 +15,7 @@ $assetVersion = (int) @filemtime(__DIR__ . '/../dashboard.css');
 
 $changelog = [
     ['2026-10-16', [
+        ['Archiv für Eilmeldungen und Störungen', 'Die Startseite zeigt nur die jüngsten Einträge. Unter „Alle Eilmeldungen“ und „Alle Störungen“ gibt es jetzt je eine Seite mit der kompletten Historie, nach Tagen gegliedert. Laufende Störungen sind dort als „aktiv“ markiert. Beide Seiten stehen auch im Footer und in der Sitemap.'],
         ['Heute auf einen Blick', 'In den Listen „Letzte Eilmeldungen“ und „Letzte Störungen“ steht statt des Datums „Heute“ oder „Gestern“. Heutige Einträge sind voll ausgezeichnet, ältere treten zurück, damit Veraltetes sofort erkennbar ist. Eilmeldungen mit Pendler-Titel zeigen darunter auch den Pendler-Text.'],
         ['Benachrichtigungen auch bei geschlossener Seite', 'Web Push mit Service Worker: Wer die Glocke einschaltet, bekommt neue Störungen (mit Pendler-Text), Entwarnungen, neue Eilmeldungen und Zugausfälle am eigenen Bahnhof aufs Gerät, auch wenn die Seite zu ist. Pendelzeiten gelten weiter. Auf dem iPhone zuerst zum Home-Bildschirm hinzufügen.'],
     ]],

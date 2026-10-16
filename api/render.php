@@ -455,7 +455,7 @@ function nb_statistik(array $verlauf, $now = null)
  * stoerungen gemeldete) bleiben draussen, die stehen oben in den Karten.
  * Titel und Text nehmen den Pendler-Text der KI, wenn es ihn gibt.
  */
-function nb_verlauf_items(array $data)
+function nb_verlauf_items(array $data, $mitAktiven = false)
 {
     $aktiv = [];
     foreach ($data['stoerungen'] ?? [] as $s) {
@@ -465,7 +465,7 @@ function nb_verlauf_items(array $data)
     }
     $out = [];
     foreach ($data['stoerungen_verlauf'] ?? [] as $e) {
-        if (!is_array($e) || empty($e['key']) || isset($aktiv[$e['key']])) {
+        if (!is_array($e) || empty($e['key']) || (!$mitAktiven && isset($aktiv[$e['key']]))) {
             continue;
         }
         $start = nb_ts($e['first_seen'] ?? '');
@@ -479,6 +479,7 @@ function nb_verlauf_items(array $data)
             'text'  => trim((string) ($e['ki_text'] ?? '')),
             'start' => $start,
             'ende'  => max($start, $ende),
+            'aktiv' => isset($aktiv[$e['key']]),
         ];
     }
     usort($out, function ($a, $b) {
@@ -560,6 +561,101 @@ function nb_render_feed(array $items, $limit, $maxAgeDays, $now = null)
             $html .= '<p class="feed__meta">' . nb_e($it['text']) . '</p>';
         }
         $html .= '</div></li>';
+    }
+
+    return $html;
+}
+
+/* ---------- Archiv (eilmeldungen/, stoerungen/) ---------- */
+
+/** Berliner Kalendertag als "Y-m-d", zum Gruppieren. */
+function nb_tag_key($ts)
+{
+    return (new DateTime('@' . (int) $ts))->setTimezone(new DateTimeZone('Europe/Berlin'))->format('Y-m-d');
+}
+
+/** Tagesueberschrift: "Heute, 16.10.2026", "Gestern, 15.10.2026", sonst "Dienstag, 14.10.2026". */
+function nb_fmt_tag_lang($ts, $now = null)
+{
+    $d = (new DateTime('@' . (int) $ts))->setTimezone(new DateTimeZone('Europe/Berlin'));
+    $tag = nb_fmt_tag($ts, $now);
+    if ($tag !== 'Heute' && $tag !== 'Gestern') {
+        $wochentage = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'];
+        $tag = $wochentage[(int) $d->format('N') - 1];
+    }
+
+    return $tag . ', ' . $d->format('d.m.Y');
+}
+
+function nb_fmt_uhr($ts)
+{
+    return (new DateTime('@' . (int) $ts))->setTimezone(new DateTimeZone('Europe/Berlin'))->format('H:i') . ' Uhr';
+}
+
+/** Gruppiert Eintraege nach Berliner Kalendertag, Reihenfolge wie uebergeben. */
+function nb_nach_tag(array $items, callable $zeit)
+{
+    $gruppen = [];
+    foreach ($items as $it) {
+        $ts = $zeit($it);
+        $k = nb_tag_key($ts);
+        if (!isset($gruppen[$k])) {
+            $gruppen[$k] = ['ts' => $ts, 'items' => []];
+        }
+        $gruppen[$k]['items'][] = $it;
+    }
+
+    return $gruppen;
+}
+
+/** Alle Eilmeldungen (aus nb_items), juengste zuerst, ein Abschnitt je Tag. */
+function nb_render_archiv_eil(array $items, $now = null)
+{
+    $now = $now ?? time();
+    if (!$items) {
+        return '<section class="section"><ol class="feed card"><li><p class="feed__empty">Noch keine Eilmeldung erfasst.</p></li></ol></section>';
+    }
+    $zeit = function ($it) { return $it['stand'] ?? $it['ts']; };
+    $html = '';
+    foreach (nb_nach_tag(array_reverse($items), $zeit) as $tag) {
+        $heute = nb_ist_heute($tag['ts'], $now);
+        $html .= '<section class="section"><h2 class="section__title">' . nb_e(nb_fmt_tag_lang($tag['ts'], $now)) . '</h2><ol class="feed card">';
+        foreach ($tag['items'] as $it) {
+            $title = $it['title'] !== '' ? $it['title'] : $it['id'];
+            $tooltip = !empty($it['original']) && $it['original'] !== $it['title'] ? ' title="Nordbahn: ' . nb_e($it['original']) . '"' : '';
+            $html .= '<li' . ($heute ? ' class="is-heute"' : '') . '><div class="feed__time">' . nb_e(nb_fmt_uhr($zeit($it))) . '</div><div><p class="feed__title"' . $tooltip . '>'
+                . ($it['link'] ? '<a href="' . nb_e($it['link']) . '" rel="noopener nofollow">' . nb_e($title) . '</a>' : nb_e($title)) . '</p>'
+                . (($it['text'] ?? '') !== '' ? '<p class="feed__meta">' . nb_e($it['text']) . '</p>' : '') . '</div></li>';
+        }
+        $html .= '</ol></section>';
+    }
+
+    return $html;
+}
+
+/** Alle Infrastrukturstoerungen (aus nb_verlauf_items mit aktiven), nach Beginn, ein Abschnitt je Tag. */
+function nb_render_archiv_stoerungen(array $items, $now = null)
+{
+    $now = $now ?? time();
+    if (!$items) {
+        return '<section class="section"><ol class="feed card"><li><p class="feed__empty">Noch keine Infrastrukturstörung erfasst.</p></li></ol></section>';
+    }
+    usort($items, function ($a, $b) {
+        return $b['start'] <=> $a['start'];
+    });
+    $html = '';
+    foreach (nb_nach_tag($items, function ($it) { return $it['start']; }) as $tag) {
+        $heute = nb_ist_heute($tag['ts'], $now);
+        $html .= '<section class="section"><h2 class="section__title">' . nb_e(nb_fmt_tag_lang($tag['ts'], $now)) . '</h2><ol class="feed card">';
+        foreach ($tag['items'] as $it) {
+            $meta = !empty($it['aktiv'])
+                ? 'dauert an · bisher ' . nb_dauer(max($now, $it['ende']) - $it['start'])
+                : nb_fmt_bis($it['start'], $it['ende'], $now) . ' · ' . nb_dauer($it['ende'] - $it['start']);
+            $html .= '<li' . ($heute || !empty($it['aktiv']) ? ' class="is-heute"' : '') . '><div class="feed__time">' . nb_e(nb_fmt_uhr($it['start'])) . '</div><div>'
+                . '<p class="feed__title">' . nb_e($it['titel']) . (!empty($it['aktiv']) ? ' <span class="dep__ab dep__ab--aktiv">aktiv</span>' : '') . '</p>'
+                . '<p class="feed__meta">' . nb_e($meta) . ($it['text'] !== '' ? '<br>' . nb_e($it['text']) : '') . '</p></div></li>';
+        }
+        $html .= '</ol></section>';
     }
 
     return $html;

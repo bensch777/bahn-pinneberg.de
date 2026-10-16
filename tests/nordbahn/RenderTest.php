@@ -162,6 +162,53 @@ function test_feed_render_heute_und_ki_text()
     t_contains('<li><div class="feed__time">13.10., 08:11 Uhr</div>', $html, 'alte Stoerung mit Datum');
 }
 
+function test_archiv_eilmeldungen_nach_tagen()
+{
+    $now = strtotime('2026-10-16 10:00:00 Europe/Berlin');
+    $items = nb_items(['eilmeldungen' => [
+        ['id' => 'a', 'title' => 'Alt', 'seen_at' => '2026-10-13T06:00:00Z'],
+        ['id' => 'b', 'title' => 'Zugausfall RB60', 'seen_at' => '2026-10-16T06:50:00Z', 'ki_titel' => 'RB60 12:22 fällt aus', 'ki_text' => 'Stellwerkdefekt.'],
+        ['id' => 'c', 'title' => 'Gestern früh', 'seen_at' => '2026-10-15T05:00:00Z'],
+        ['id' => 'd', 'title' => 'Gestern spät', 'seen_at' => '2026-10-15T20:00:00Z'],
+    ]]);
+    $html = nb_render_archiv_eil($items, $now);
+    t_eq(3, substr_count($html, '<section'), 'drei Tage, drei Abschnitte');
+    t_eq(['Heute, 16.10.2026', 'Gestern, 15.10.2026', 'Dienstag, 13.10.2026'], t_titles($html), 'Reihenfolge und Tagesnamen');
+    t_contains('<li class="is-heute"><div class="feed__time">08:50 Uhr</div>', $html, 'heute nur Uhrzeit, markiert');
+    t_contains('<p class="feed__meta">Stellwerkdefekt.</p>', $html, 'KI-Text');
+    t_eq(strpos($html, 'Gestern spät') < strpos($html, 'Gestern früh'), true, 'innerhalb eines Tages juengste zuerst');
+    t_contains('Noch keine Eilmeldung erfasst.', nb_render_archiv_eil([], $now), 'leer');
+}
+
+function test_archiv_stoerungen_mit_aktiven()
+{
+    $now = strtotime('2026-10-16 10:00:00 Europe/Berlin');
+    $data = ['stoerungen' => [['key' => 'AKTIV']], 'stoerungen_verlauf' => [
+        ['key' => 'AKTIV', 'titel' => 'Weichenstörung', 'first_seen' => '2026-10-16T06:00:00Z', 'last_seen' => '2026-10-16T07:58:00Z'],
+        ['key' => 'A', 'titel' => 'Signalstörung', 'ki_titel' => 'Störungen in Eidelstedt', 'ki_text' => 'Signal kaputt.', 'first_seen' => '2026-10-16T02:52:00Z', 'last_seen' => '2026-10-16T05:47:00Z'],
+        ['key' => 'B', 'titel' => 'Personenunfall', 'first_seen' => '2026-10-13T06:11:00Z', 'last_seen' => '2026-10-13T08:42:00Z'],
+    ]];
+    $items = nb_verlauf_items($data, true);
+    t_eq(3, count($items), 'aktive sind dabei');
+    t_eq(2, count(nb_verlauf_items($data)), 'ohne Schalter wie bisher ohne aktive');
+    $html = nb_render_archiv_stoerungen($items, $now);
+    t_eq(['Heute, 16.10.2026', 'Dienstag, 13.10.2026'], t_titles($html), 'nach Beginn gruppiert');
+    t_eq(strpos($html, 'Weichenstörung') < strpos($html, 'Störungen in Eidelstedt'), true, 'juengster Beginn zuerst');
+    t_contains('Weichenstörung <span class="dep__ab dep__ab--aktiv">aktiv</span>', $html, 'aktiv markiert');
+    t_contains('dauert an · bisher 2 Std.', $html, 'laufende Dauer bis jetzt');
+    t_contains('bis 07:47 Uhr · 2 Std. 55 Min.<br>Signal kaputt.', $html, 'aufgehobene mit Text');
+    t_contains('<div class="feed__time">08:11 Uhr</div>', $html, 'alte mit Uhrzeit');
+    t_contains('Noch keine Infrastrukturstörung erfasst.', nb_render_archiv_stoerungen([], $now), 'leer');
+}
+
+/** Alle section__title-Texte eines HTML-Schnipsels. */
+function t_titles($html)
+{
+    preg_match_all('~<h2 class="section__title">([^<]*)</h2>~', $html, $m);
+
+    return $m[1];
+}
+
 /* ---------- Statistik ---------- */
 
 function test_statistik_kennzahlen()
