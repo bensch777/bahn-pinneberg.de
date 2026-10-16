@@ -63,7 +63,7 @@ function t_verlauf_data()
 function test_verlauf_items_aufgehobene_juengste_zuerst()
 {
     $items = nb_verlauf_items(t_verlauf_data());
-    t_eq(['C', 'B', 'ALT'], array_column($items, 'key'), 'aktive und kaputte Eintraege fehlen, Reihenfolge nach Ende');
+    t_eq(['C', 'B', 'ALT'], array_column($items, 'key'), 'aktive und kaputte Eintraege fehlen, Reihenfolge nach Beginn');
     t_eq('Verspätungen in Elmshorn', $items[1]['titel'], 'KI-Titel vor technischem Titel');
     t_eq('Bauarbeiten', $items[0]['titel'], 'ohne KI-Titel der technische');
     t_eq(2 * 3600, $items[1]['ende'] - $items[1]['start'], 'Dauer aus first_seen und last_seen');
@@ -118,6 +118,31 @@ function test_eilmeldung_ki_titel_in_der_liste()
     t_contains('>RB60 um 16:38 ab Itzehoe fällt aus</a>', $html, 'KI-Titel verlinkt');
     $clean = nordbahn_clean_payload(['eilmeldungen' => [['id' => 'em-1', 'title' => 'T', 'seen_at' => '2026-10-15T08:00:00Z', 'ki_titel' => 'KI', 'ki_text' => 'Text']]]);
     t_eq('KI', $clean['eilmeldungen'][0]['ki_titel'], 'ki_titel ueberlebt die Bereinigung');
+}
+
+function test_listen_nach_angezeigter_zeit()
+{
+    // Eilmeldung spaeter erfasst, aber mit aelterem Nordbahn-Stand: die Anzeige folgt dem Stand
+    $items = nb_items([
+        'eilmeldungen' => [
+            ['id' => 'a', 'title' => 'Alt im Stand', 'seen_at' => '2026-10-16T09:00:00Z'],
+            ['id' => 'b', 'title' => 'Neu im Stand', 'seen_at' => '2026-10-16T08:00:00Z'],
+        ],
+        'eilmeldungen_live' => [
+            ['id' => 'a', 'title' => 'Alt im Stand', 'stand' => '2026-10-16T06:00:00Z', 'link' => 'https://x/a'],
+            ['id' => 'b', 'title' => 'Neu im Stand', 'stand' => '2026-10-16T08:30:00Z', 'link' => 'https://x/b'],
+        ],
+    ]);
+    t_eq(['a', 'b'], array_column($items, 'id'), 'aelteste zuerst nach Stand');
+    $html = nb_render_feed($items, 5, 0, strtotime('2026-10-16 12:00:00 Europe/Berlin'));
+    t_eq(true, strpos($html, 'Neu im Stand') < strpos($html, 'Alt im Stand'), 'Liste zeigt die juengste zuerst');
+
+    // Stoerungen: Beginn entscheidet, nicht das Ende
+    $v = nb_verlauf_items(['stoerungen' => [], 'stoerungen_verlauf' => [
+        ['key' => 'FRUEH_LANG', 'titel' => 'Früh begonnen, spät beendet', 'first_seen' => '2026-10-15T03:00:00Z', 'last_seen' => '2026-10-15T14:43:00Z'],
+        ['key' => 'SPAET_KURZ', 'titel' => 'Später begonnen, früh beendet', 'first_seen' => '2026-10-15T03:05:00Z', 'last_seen' => '2026-10-15T05:59:00Z'],
+    ]]);
+    t_eq(['SPAET_KURZ', 'FRUEH_LANG'], array_column($v, 'key'), 'juengster Beginn zuerst');
 }
 
 function test_feed_tag_heute_gestern()

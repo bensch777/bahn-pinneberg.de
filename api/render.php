@@ -143,8 +143,9 @@ function nb_items(array $data)
             $push($e['id'] ?? '', $e['title'] ?? '', $e['stand'] ?? '', $e);
         }
     }
+    // Nach der angezeigten Zeit: Stand der Nordbahn, sonst Erfassung; aelteste zuerst
     usort($items, function ($a, $b) {
-        return $a['ts'] <=> $b['ts'];
+        return ($a['stand'] ?? $a['ts']) <=> ($b['stand'] ?? $b['ts']);
     });
 
     return $items;
@@ -482,8 +483,9 @@ function nb_verlauf_items(array $data, $mitAktiven = false)
             'aktiv' => isset($aktiv[$e['key']]),
         ];
     }
+    // Juengster Beginn zuerst, wie im Archiv
     usort($out, function ($a, $b) {
-        return $b['ende'] <=> $a['ende'];
+        return $b['start'] <=> $a['start'];
     });
 
     return $out;

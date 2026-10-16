@@ -133,7 +133,8 @@
 		(data.eilmeldungen || []).forEach(function (e) { if (e) push(e.id, e.title, e.seen_at, liveById[e.id], e.ki_titel, e.ki_text); });
 		// Meldungen, die auf der Seite stehen, aber noch nicht in der Historie sind
 		(data.eilmeldungen_live || []).forEach(function (e) { if (e && !seen[e.id]) push(e.id, e.title, e.stand, e); });
-		items.sort(function (a, b) { return a.ms - b.ms; });
+		// Nach der angezeigten Zeit: Stand der Nordbahn, sonst Erfassung; aelteste zuerst
+		items.sort(function (a, b) { return (isNaN(a.stand) ? a.ms : a.stand) - (isNaN(b.stand) ? b.ms : b.stand); });
 
 		state.items = items;
 	}
@@ -388,7 +389,7 @@
 			if (isNaN(start) || isNaN(ende)) return;
 			out.push({ key: e.key, titel: (e.ki_titel || e.titel || 'Störung').trim(), text: (e.ki_text || '').trim(), start: start, ende: Math.max(start, ende) });
 		});
-		return out.sort(function (a, b) { return b.ende - a.ende; });
+		return out.sort(function (a, b) { return b.start - a.start; }); // juengster Beginn zuerst
 	}
 
 	function fmtDauer(ms) {
