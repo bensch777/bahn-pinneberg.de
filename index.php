@@ -133,6 +133,7 @@ $jsonLd = [
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Nordbahn">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="alternate" type="text/markdown" href="<?= $root ?>lage.md" title="Aktuelle Lage als Text">
 <link rel="stylesheet" href="<?= $root ?>dashboard.css?v=<?= $assetVersion ?>">
 <script type="application/ld+json"><?= json_encode($jsonLd, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) ?></script>
 <?php require __DIR__ . '/inc/analytics.php'; ?>

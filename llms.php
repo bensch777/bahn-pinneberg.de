@@ -1,0 +1,43 @@
+<?php
+/**
+ * /llms.txt: Kurzbeschreibung der Seite fuer KI-Assistenten und Crawler nach dem
+ * llms.txt-Vorschlag (Markdown: Titel, Zusammenfassung, Abschnitte mit Links).
+ */
+
+require __DIR__ . '/api/store.php';
+
+$site = nordbahn_site_url();
+$bahnhoefe = [];
+foreach (NORDBAHN_BAHNHOEFE as $id => $bhf) {
+    $bahnhoefe[] = $id . ' = ' . $bhf['name'];
+}
+
+header('Content-Type: text/markdown; charset=utf-8');
+header('Cache-Control: public, max-age=3600');
+header('Access-Control-Allow-Origin: *');
+
+echo "# Nordbahn Monitor (bahn-pinneberg.de)\n\n";
+echo "> Statusseite für Pendler auf den Nordbahn-Linien RB61 (Itzehoe – Hamburg Hbf), RB71 (Wrist – Hamburg Hbf) und RB60 (Itzehoe – Hamburg-Altona) zwischen Hamburg, Pinneberg, Elmshorn, Itzehoe und Wrist: aktive Infrastrukturstörungen, die nächsten Züge vom eigenen Bahnhof nach Hamburg und zurück, Eilmeldungen der Nordbahn. Privates Projekt, keine offizielle Seite der Nordbahn (NBE Nordbahn Eisenbahngesellschaft).\n\n";
+echo "Die Daten werden alle zwei Minuten (Störungen, Eilmeldungen) bzw. jede Minute (Abfahrten) aktualisiert. Zeiten sind Ortszeit Europe/Berlin. Verbindliche Auskünfte gibt nur die Nordbahn.\n\n";
+
+echo "## Aktuelle Lage als Text\n\n";
+echo "- [Lage als Markdown](" . $site . "/lage.md): Status, aktive Störungen, nächste Züge, letzte Eilmeldungen, zuletzt aufgehobene Störungen. Mit `?bhf=KÜRZEL` für einen anderen Heimatbahnhof, z. B. `" . $site . "/lage.md?bhf=AEL`.\n";
+echo "- Bahnhofskürzel: " . implode(', ', $bahnhoefe) . ". Hamburg: AH = Hamburg Hbf, ADF = Hamburg Dammtor, AA = Hamburg-Altona.\n\n";
+
+echo "## Daten als JSON\n\n";
+echo "- [api/data](" . $site . "/api/data): Lagebild mit `stoerungen` (aktive Infrastrukturstörungen mit `titel`, `text`, `ki_titel`, `ki_text` in Alltagssprache, `beginn`, `ende`, `abgelaufen`), `eilmeldungen_live` (aktuell auf nordbahn.de), `eilmeldungen` (Historie) und `stoerungen_verlauf` (Logbuch mit `first_seen`, `last_seen`).\n";
+echo "- [api/abfahrten?bhf=APD](" . $site . "/api/abfahrten?bhf=APD): nächste Züge in `richtungen.hin` (Heimat → Hamburg) und `richtungen.rueck` (Hamburg → Heimat). Je Zug `zeit` (ISO 8601, mit Verspätung), `verspaetung` (Minuten), `linie`, `ziel`, `gleis`, `gleis_plan`, `ausfall`, `hinweis`, `ab` (Hbf, Dammtor oder Altona), `teil` (Teilausfall: `art` endet/beginnt mit `name`), `ersatz` (Ersatzabfahrt bei Ausfall).\n";
+echo "- Beide Endpunkte sind öffentlich, ohne Schlüssel, nur lesend. Bitte nicht häufiger als einmal pro Minute abrufen.\n\n";
+
+echo "## Seiten\n\n";
+echo "- [Startseite](" . $site . "/): Lagebild, Abfahrtstafel, letzte Meldungen (JavaScript für Live-Aktualisierung).\n";
+echo "- [Häufige Fragen](" . $site . "/faq/): Datenquellen, Bedeutung der Statusstufen, Bahnhöfe, Benachrichtigungen.\n";
+echo "- [Alle Eilmeldungen](" . $site . "/eilmeldungen/) und [alle Infrastrukturstörungen](" . $site . "/stoerungen/): Archiv nach Tagen, 50 Einträge je Seite (`?seite=N`).\n";
+echo "- [Störungsstatistik](" . $site . "/statistik/): Störungen und Dauer der letzten 30 Tage, Verlauf nach Kalenderwochen, häufigste Ursachen.\n";
+echo "- [Was ist neu](" . $site . "/changelog/): Änderungen der Seite.\n\n";
+
+echo "## Begriffe\n\n";
+echo "- Infrastrukturstörung: Meldung der DB InfraGO von strecken-info.de für den Abschnitt Hamburg – Elmshorn – Itzehoe/Wrist (Signale, Weichen, Oberleitung, Personen im Gleis). `abgelaufen` heißt: das gemeldete Ende ist vorbei, die Störung dauert aber an.\n";
+echo "- Eilmeldung: Kurzmeldung der Nordbahn auf nordbahn.de, meist Zugausfälle wegen Personal oder Fahrzeugen. `ki_titel`/`ki_text` sind von einem Sprachmodell formulierte Pendler-Fassungen, der Originaltitel steht in `title`.\n";
+echo "- „nur bis Pinneberg“ / „erst ab Pinneberg“: Teilausfall, der Zug fährt nur einen Teil des Weges; ab Pinneberg fährt die S-Bahn nach Hamburg.\n";
+echo "- Quellen: Stationsmonitor der Nordbahn (Abfahrten), nordbahn.de (Eilmeldungen), strecken-info.de (Störungen). Betreiber und Kontakt: " . $site . "/impressum/\n";

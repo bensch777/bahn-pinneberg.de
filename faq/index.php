@@ -26,6 +26,8 @@ $faq = [
      'Ja, über die Glocke oben rechts, wahlweise nur zu Pendelzeiten. Gemeldet werden Zugausfälle am eigenen Bahnhof, neue und aufgehobene Störungen sowie Eilmeldungen, per Web Push auch bei geschlossener Seite. Auf dem iPhone geht das nur, wenn die Seite über „Teilen“ zum Home-Bildschirm hinzugefügt und von dort geöffnet wird. Unabhängig davon gibt es die Telegram-Kanäle „Nordbahn Eilmeldungen“ und „Prisdorf Pendler“.'],
     ['Kann ich die Seite als App nutzen?',
      'Ja. Auf dem iPhone über Teilen und „Zum Home-Bildschirm“, auf Android über „App installieren“ im Browsermenü. Die Seite startet dann im Vollbild und aktualisiert sich selbst.'],
+    ['Gibt es die Daten auch für Programme oder KI-Assistenten?',
+     'Ja. Unter /lage.md steht die aktuelle Lage als Text (Markdown), unter /llms.txt eine Beschreibung der Seite und der Datenfelder, und /api/data sowie /api/abfahrten?bhf=APD liefern alles als JSON. Alles öffentlich und ohne Schlüssel, bitte nicht häufiger als einmal pro Minute abrufen.'],
     ['Ist das eine offizielle Seite der Nordbahn?',
      'Nein. Der Nordbahn Monitor ist ein privates Projekt von bensch777.de ohne Verbindung zur NBE Nordbahn Eisenbahngesellschaft. Verbindliche Auskünfte gibt es auf nordbahn.de.'],
 ];

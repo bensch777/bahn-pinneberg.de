@@ -717,3 +717,155 @@ function nb_render_seitennav(array $s, $basis)
 
     return '<nav class="pager" aria-label="Seiten">' . $neuere . '<span class="pager__info">Seite ' . (int) $s['seite'] . ' von ' . (int) $s['seiten'] . '</span>' . $aeltere . '</nav>';
 }
+
+/* ---------- Lage als Markdown (lage.md, fuer KI-Assistenten und Skripte) ---------- */
+
+/** "08:12 Uhr" in deutscher Zeit aus einem ISO-Zeitstempel. */
+function nb_md_uhr($iso)
+{
+    $ts = nb_ts($iso);
+
+    return $ts === null ? '' : nb_fmt_uhr($ts);
+}
+
+/** Eine Abfahrtszeile als Markdown-Listenpunkt. */
+function nb_md_zug(array $d)
+{
+    $linie = trim((string) ($d['linie'] ?? ''));
+    $ziel = trim((string) ($d['ziel'] ?? ''));
+    $kopf = ($linie !== '' ? $linie . ' ' : '') . ($ziel !== '' ? 'nach ' . $ziel : '');
+    $ab = !empty($d['ab']) ? ' ab ' . $d['ab'] : '';
+    $teile = [];
+    if (!empty($d['ausfall'])) {
+        $teile[] = nb_md_uhr($d['zeit'] ?? '') . $ab . ': ' . $kopf . ' fällt aus';
+        if (!empty($d['ersatz'])) {
+            $teile[] = 'Ersatz ab ' . $d['ersatz']['ab'] . ' um ' . nb_md_uhr($d['ersatz']['zeit'] ?? '');
+        }
+    } else {
+        $zeit = nb_md_uhr($d['zeit'] ?? '');
+        $v = (int) ($d['verspaetung'] ?? 0);
+        $teile[] = $zeit . ($v > 0 ? ' (+' . $v . ' min)' : '') . $ab . ': ' . $kopf;
+        if (!empty($d['gleis'])) {
+            $teile[] = 'Gleis ' . $d['gleis'] . (!empty($d['gleis_plan']) && $d['gleis_plan'] !== $d['gleis'] ? ' statt ' . $d['gleis_plan'] : '');
+        }
+        if (!empty($d['teil']['art']) && !empty($d['teil']['name'])) {
+            $teile[] = $d['teil']['art'] === 'beginnt' ? 'erst ab ' . $d['teil']['name'] : 'nur bis ' . $d['teil']['name'];
+        }
+    }
+    if (!empty($d['hinweis'])) {
+        $teile[] = trim((string) $d['hinweis']);
+    }
+
+    return '- ' . implode('. ', array_map('trim', $teile)) . '.';
+}
+
+/**
+ * Die ganze Lage als Markdown: Status, aktive Stoerungen, naechste Zuege in beide
+ * Richtungen, letzte Eilmeldungen und aufgehobene Stoerungen. $abf ist die Antwort
+ * von abf_cached() oder null.
+ */
+function nb_lage_md(array $data, $abf, $heimat, $now = null)
+{
+    $now = $now ?? time();
+    $site = nordbahn_site_url();
+    $name = NORDBAHN_BAHNHOEFE[$heimat]['name'] ?? $heimat;
+    $items = nb_items($data);
+    $stand = !empty($data['received_at']) ? nb_fmt_wann(nb_ts($data['received_at']), $now) : 'unbekannt';
+
+    $md = "# Nordbahn Monitor: aktuelle Lage\n\n";
+    $md .= "Störungen, Abfahrten und Eilmeldungen der Nordbahn-Linien RB61 (Itzehoe – Hamburg Hbf), RB71 (Wrist – Hamburg Hbf) und RB60 (Itzehoe – Hamburg-Altona). Privates Projekt, keine offizielle Seite der Nordbahn. Stand der Störungs- und Eilmeldungsdaten: " . $stand . ".\n\n";
+
+    $md .= "## Lage auf einen Blick\n\n";
+    $infra = nb_status_infra($data);
+    $eil = nb_status_eil($data, $items);
+    $betrieb = nb_status_betrieb($abf);
+    $zeile = function ($label, $st) {
+        return '- ' . $label . ': ' . $st['title'] . ($st['detail'] !== '' ? ' (' . $st['detail'] . ')' : '') . "\n";
+    };
+    $md .= $zeile('Infrastruktur', $infra) . $zeile('Eilmeldungen', $eil) . $zeile('Betrieb ab ' . $name, $betrieb) . "\n";
+
+    $md .= "## Aktive Infrastrukturstörungen\n\n";
+    $aktive = $data['stoerungen'] ?? [];
+    if (!$aktive) {
+        $md .= "Keine aktive Störung laut strecken-info.de.\n\n";
+    }
+    foreach ($aktive as $s) {
+        $titel = $s['ki_titel'] !== '' ? $s['ki_titel'] : $s['titel'];
+        $text = $s['ki_text'] !== '' ? $s['ki_text'] : $s['text'];
+        $md .= '### ' . $titel . "\n\n";
+        if ($text !== '') {
+            $md .= $text . "\n\n";
+        }
+        $zeit = [];
+        if (!empty($s['beginn'])) {
+            $zeit[] = 'seit ' . nb_fmt_wann(nb_ts($s['beginn']), $now, true);
+        }
+        if (!empty($s['ende'])) {
+            $zeit[] = !empty($s['abgelaufen'])
+                ? 'gemeldetes Ende ' . nb_fmt_wann(nb_ts($s['ende']), $now, true) . ' überschritten, dauert an'
+                : 'voraussichtlich bis ' . nb_fmt_wann(nb_ts($s['ende']), $now, true);
+        }
+        if ($zeit) {
+            $md .= '- Zeitraum: ' . implode(', ', $zeit) . "\n";
+        }
+        if (!empty($s['wirkungen'])) {
+            $md .= '- Auswirkung: ' . implode(', ', $s['wirkungen']) . "\n";
+        }
+        $md .= "\n";
+    }
+
+    $md .= '## Nächste Züge ab ' . $name . "\n\n";
+    if (!$abf || empty($abf['ok']) || empty($abf['richtungen'])) {
+        $md .= "Keine aktuellen Abfahrtsdaten.\n\n";
+    } else {
+        $md .= 'Stand ' . nb_fmt_wann(nb_ts($abf['fetched_at']), $now) . ". Andere Bahnhöfe über `?bhf=KÜRZEL` (siehe llms.txt).\n\n";
+        $md .= '### ' . $name . " → Hamburg\n\n";
+        $hin = array_slice($abf['richtungen']['hin'] ?? [], 0, 6);
+        $md .= ($hin ? implode("\n", array_map('nb_md_zug', $hin)) : '- Keine Abfahrten in der nächsten Zeit.') . "\n\n";
+        $md .= '### Hamburg → ' . $name . "\n\n";
+        $rueck = array_slice($abf['richtungen']['rueck'] ?? [], 0, 6);
+        $md .= ($rueck ? implode("\n", array_map('nb_md_zug', $rueck)) : '- Keine Abfahrten in der nächsten Zeit.') . "\n\n";
+    }
+
+    $md .= "## Letzte Eilmeldungen der Nordbahn\n\n";
+    $cutoff = $now - 3 * 86400;
+    $eilmeldungen = array_reverse(array_values(array_filter($items, function ($it) use ($cutoff) {
+        return ($it['stand'] ?? $it['ts']) >= $cutoff;
+    })));
+    $eilmeldungen = array_slice($eilmeldungen, 0, 5);
+    if (!$eilmeldungen) {
+        $md .= "Keine Eilmeldung in den letzten 3 Tagen.\n\n";
+    }
+    foreach ($eilmeldungen as $it) {
+        $md .= '- ' . nb_fmt_wann($it['stand'] ?? $it['ts'], $now) . ': ' . ($it['title'] !== '' ? $it['title'] : $it['id'])
+            . (($it['text'] ?? '') !== '' ? '. ' . $it['text'] : '')
+            . ($it['link'] ? ' (' . $it['link'] . ')' : '') . "\n";
+    }
+    if ($eilmeldungen) {
+        $md .= "\n";
+    }
+
+    $md .= "## Zuletzt aufgehobene Infrastrukturstörungen\n\n";
+    $cutoff = $now - 7 * 86400;
+    $verlauf = array_slice(array_values(array_filter(nb_verlauf_items($data), function ($it) use ($cutoff) {
+        return $it['ende'] >= $cutoff;
+    })), 0, 5);
+    if (!$verlauf) {
+        $md .= "Keine aufgehobene Störung in den letzten 7 Tagen.\n\n";
+    }
+    foreach ($verlauf as $it) {
+        $md .= '- ' . nb_fmt_wann($it['start'], $now) . ' ' . nb_fmt_bis($it['start'], $it['ende'], $now) . ' (' . nb_dauer($it['ende'] - $it['start']) . '): ' . $it['titel']
+            . ($it['text'] !== '' ? '. ' . $it['text'] : '') . "\n";
+    }
+    if ($verlauf) {
+        $md .= "\n";
+    }
+
+    $md .= "## Quellen und Links\n\n";
+    $md .= "- Website: " . $site . "/\n";
+    $md .= "- Beschreibung für Assistenten: " . $site . "/llms.txt\n";
+    $md .= "- Archiv: " . $site . "/eilmeldungen/ und " . $site . "/stoerungen/, Statistik: " . $site . "/statistik/\n";
+    $md .= "- Quellen: Stationsmonitor der Nordbahn (Abfahrten), nordbahn.de (Eilmeldungen), strecken-info.de der DB InfraGO (Infrastrukturstörungen). Verbindliche Auskünfte gibt nur die Nordbahn.\n";
+
+    return $md;
+}

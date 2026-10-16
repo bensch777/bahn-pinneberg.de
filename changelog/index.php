@@ -15,6 +15,7 @@ $assetVersion = (int) @filemtime(__DIR__ . '/../dashboard.css');
 
 $changelog = [
     ['2026-10-16', [
+        ['Für KI-Assistenten lesbar', 'Unter /llms.txt beschreibt die Seite sich selbst samt Datenfeldern, unter /lage.md gibt es die aktuelle Lage als Text: Status, aktive Störungen, nächste Züge, letzte Eilmeldungen. Wer einem Assistenten „Wie sieht es auf der Nordbahn aus?“ fragt, kann ihm diese Adresse geben.'],
         ['Abfahrten laden schneller', 'Der Server fragt die vier Tafeln und bis zu 16 Zugauskünfte jetzt gleichzeitig ab statt nacheinander, aus bis zu 20 Wartezeiten werden zwei. Ist der letzte Stand bis zu drei Minuten alt, kommt er sofort und wird im Hintergrund erneuert. Der n8n-Push wärmt alle zwei Minuten die Abfahrten für Prisdorf vor.'],
         ['Heimatbahnhof in der Statistik', 'Plausible bekommt zu jedem Seitenaufruf den gewählten Heimatbahnhof als Eigenschaft „heimat“ mit, ohne Cookies und ohne Personenbezug. So ist sichtbar, aus welchen Orten die Pendler kommen. Wer nie einen Bahnhof gewählt hat, zählt als „Prisdorf (Vorgabe)“.'],
         ['Archiv für Eilmeldungen und Störungen', 'Die Startseite zeigt nur die jüngsten Einträge. Unter „Alle Eilmeldungen“ und „Alle Störungen“ gibt es jetzt je eine Seite mit der kompletten Historie, nach Tagen gegliedert. Laufende Störungen sind dort als „aktiv“ markiert. Beide Seiten stehen auch im Footer und in der Sitemap.'],

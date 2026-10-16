@@ -35,6 +35,8 @@ RewriteRule ^api/push-key$ api/push-key.php [L]
 
 # Sitemap und robots.txt sind dynamisch (Adresse aus config.php).
 RewriteRule ^sitemap\.xml$ sitemap.php [L]
+RewriteRule ^llms\.txt$ llms.php [L]
+RewriteRule ^lage\.md$ lage.php [L]
 RewriteRule ^robots\.txt$ robots.php [L]
 
 <IfModule mod_dir.c>

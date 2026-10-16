@@ -231,6 +231,44 @@ function t_titles($html)
     return $m[1];
 }
 
+function test_lage_markdown()
+{
+    $now = strtotime('2026-10-16 10:00:00 Europe/Berlin');
+    $data = nordbahn_clean_payload([
+        'stoerungen' => [['key' => 'X', 'titel' => 'Störung an Signalanlagen', 'text' => 'ggl mit zs 6', 'ki_titel' => 'Verspätungen bei Eidelstedt', 'ki_text' => 'Signalstörung, Züge fahren auf dem Gegengleis.', 'beginn' => '2026-10-16T05:00:00Z', 'ende' => '2026-10-16T07:00:00Z', 'abgelaufen' => true, 'wirkungen' => ['Verspätungen']]],
+        'eilmeldungen' => [['id' => 'em-1', 'title' => 'Zugausfall RB60', 'seen_at' => '2026-10-16T06:50:00Z', 'ki_titel' => 'RB60 12:22 ab Altona fällt aus', 'ki_text' => 'Stellwerkdefekt.']],
+        'eilmeldungen_live' => [['id' => 'em-1', 'title' => 'Zugausfall RB60', 'stand' => '2026-10-16T06:50:00Z', 'link' => 'https://www.nordbahn.de/x/']],
+    ]);
+    $data['received_at'] = '2026-10-16T07:58:00Z';
+    $data['stoerungen_verlauf'] = [['key' => 'ALT', 'titel' => 'Weichenstörung', 'first_seen' => '2026-10-15T05:00:00Z', 'last_seen' => '2026-10-15T06:30:00Z']];
+    $abf = ['ok' => true, 'fetched_at' => '2026-10-16T07:59:00Z', 'richtungen' => [
+        'hin' => [
+            ['zug' => '1', 'zeit' => '2026-10-16T08:12:00+02:00', 'verspaetung' => 3, 'linie' => 'RB61', 'ziel' => 'Hamburg Hbf', 'gleis' => '2', 'gleis_plan' => '1', 'ausfall' => false, 'hinweis' => '', 'ab' => null, 'ersatz' => null, 'teil' => ['art' => 'endet', 'name' => 'Pinneberg']],
+            ['zug' => '2', 'zeit' => '2026-10-16T08:40:00+02:00', 'verspaetung' => 0, 'linie' => 'RB71', 'ziel' => 'Hamburg Hbf', 'gleis' => null, 'gleis_plan' => null, 'ausfall' => true, 'hinweis' => 'Kurzfristiger Personalausfall', 'ab' => null, 'ersatz' => null, 'teil' => null],
+        ],
+        'rueck' => [
+            ['zug' => '3', 'zeit' => '2026-10-16T08:15:00+02:00', 'verspaetung' => 0, 'linie' => 'RB61', 'ziel' => 'Itzehoe', 'gleis' => '12', 'gleis_plan' => '12', 'ausfall' => false, 'hinweis' => '', 'ab' => 'Hbf', 'ersatz' => null, 'teil' => null],
+        ],
+    ]];
+    $md = nb_lage_md($data, $abf, 'APD', $now);
+    t_contains("# Nordbahn Monitor: aktuelle Lage", $md, 'Titel');
+    t_contains('- Infrastruktur: 1 Infrastrukturstörung', $md, 'Statuszeile');
+    t_contains("### Verspätungen bei Eidelstedt\n\nSignalstörung, Züge fahren auf dem Gegengleis.", $md, 'Pendler-Titel und -Text');
+    t_contains('gemeldetes Ende heute, 09:00 Uhr überschritten, dauert an', $md, 'abgelaufen');
+    t_contains('- 08:12 Uhr (+3 min): RB61 nach Hamburg Hbf. Gleis 2 statt 1. nur bis Pinneberg.', $md, 'Abfahrt mit Verspätung, Gleiswechsel, Teilausfall');
+    t_contains('- 08:40 Uhr: RB71 nach Hamburg Hbf fällt aus. Kurzfristiger Personalausfall.', $md, 'Ausfall mit Hinweis');
+    t_contains('- 08:15 Uhr ab Hbf: RB61 nach Itzehoe. Gleis 12.', $md, 'Rueckrichtung ab Hbf');
+    t_contains('- Heute, 08:50 Uhr: RB60 12:22 ab Altona fällt aus. Stellwerkdefekt. (https://www.nordbahn.de/x/)', $md, 'Eilmeldung');
+    t_contains('- Gestern, 07:00 Uhr bis 08:30 Uhr (1 Std. 30 Min.): Weichenstörung', $md, 'aufgehobene Stoerung');
+    t_contains('/llms.txt', $md, 'Verweis auf llms.txt');
+
+    $leer = nb_lage_md(['received_at' => null, 'stoerungen' => [], 'eilmeldungen' => [], 'eilmeldungen_live' => [], 'stoerungen_verlauf' => []], null, 'AEL', $now);
+    t_contains('## Nächste Züge ab Elmshorn', $leer, 'Bahnhofsname');
+    t_contains('Keine aktuellen Abfahrtsdaten.', $leer, 'ohne Abfahrten');
+    t_contains('Keine aktive Störung laut strecken-info.de.', $leer, 'ohne Stoerung');
+    t_contains('Keine Eilmeldung in den letzten 3 Tagen.', $leer, 'ohne Eilmeldung');
+}
+
 /* ---------- Statistik ---------- */
 
 function test_statistik_kennzahlen()
