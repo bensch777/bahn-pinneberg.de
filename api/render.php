@@ -755,6 +755,9 @@ function nb_md_zug(array $d)
     if (!empty($d['hinweis'])) {
         $teile[] = trim((string) $d['hinweis']);
     }
+    if (!empty($d['statistik']['text'])) {
+        $teile[] = $d['statistik']['text'];
+    }
 
     return '- ' . implode('. ', array_map('trim', $teile)) . '.';
 }

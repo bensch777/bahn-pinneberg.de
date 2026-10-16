@@ -8,6 +8,7 @@
 require __DIR__ . '/../api/store.php';
 require __DIR__ . '/../api/render.php';
 require __DIR__ . '/../inc/security.php';
+require __DIR__ . '/../api/zuglog.php';
 nb_send_security_headers();
 
 define('SITE_URL', nordbahn_site_url());
@@ -19,6 +20,33 @@ $stat = nb_statistik($data['stoerungen_verlauf'] ?? []);
 $t30 = $stat['tage30'];
 $maxWoche = max(1, max(array_column($stat['wochen'], 'n') ?: [0]));
 $maxUrsache = max(1, max(array_column($stat['ursachen'], 'n') ?: [0]));
+
+// Zuverlaessigkeit je Zug: Heimatbahnhof per ?bhf=, Hamburger Abfahrten (Hbf/Altona) je nach Ziel
+$bhf = isset($_GET['bhf']) ? strtoupper(trim((string) $_GET['bhf'])) : NORDBAHN_HEIMAT_DEFAULT;
+if (!isset(NORDBAHN_BAHNHOEFE[$bhf])) {
+    $bhf = NORDBAHN_HEIMAT_DEFAULT;
+}
+$bhfName = NORDBAHN_BAHNHOEFE[$bhf]['name'];
+$zugstat = zl_statistik();
+$zugHin = $zugstat['zuege'][$bhf]['hin'] ?? [];
+$zugRueck = [];
+foreach (['AH', 'AA', 'ADF'] as $hh) {
+    foreach ($zugstat['zuege'][$hh]['rueck'] ?? [] as $zug => $z) {
+        // Nur Zuege, die den gewaehlten Bahnhof erreichen (Ast), sonst zaehlt Itzehoe-Zuege fuer Wrist mit
+        $ast = NORDBAHN_BAHNHOEFE[$bhf]['ast'];
+        if ($ast === 'itzehoe' && stripos($z['ziel'], 'Wrist') !== false) {
+            continue;
+        }
+        if ($ast === 'wrist' && stripos($z['ziel'], 'Itzehoe') !== false) {
+            continue;
+        }
+        $zugRueck[$hh . '|' . $zug] = $z;
+    }
+}
+uasort($zugRueck, function ($a, $b) {
+    return strcmp($a['plan'], $b['plan']);
+});
+$zugTage = (int) ($zugstat['beobachtete_tage'] ?? 0);
 
 $title = 'Störungsstatistik Nordbahn RB61/RB71 – Hamburg, Pinneberg, Elmshorn, Itzehoe, Wrist';
 $description = $t30['n'] . ' Infrastruktur-Störung' . ($t30['n'] === 1 ? '' : 'en') . ' in den letzten 30 Tagen auf der Nordbahn-Strecke'
@@ -81,6 +109,49 @@ $jsonLd = [
 			<p class="page-head__lead">Infrastruktur-St&ouml;rungen auf der Strecke Hamburg &ndash; Elmshorn &ndash; Itzehoe / Wrist laut strecken-info.de<?php if ($stat['seit']): ?>, erfasst seit dem <?= nb_e(date('d.m.Y', $stat['seit'])) ?><?php endif; ?>. Gez&auml;hlt wird jede Meldung, vom ersten Auftreten bis zur Aufhebung.</p>
 		</div>
 	</div>
+
+<?php
+/** Tabelle der Zuverlaessigkeit je Zug fuer eine Richtung. */
+function nb_zug_tabelle(array $zuege, $mitAb)
+{
+    if (!$zuege) {
+        return '<p class="feed__empty">Noch keine Beobachtungen.</p>';
+    }
+    $h = '<table class="bars bars--zuege"><tr><th scope="col">Zug</th>' . ($mitAb ? '<th scope="col">ab</th>' : '') . '<th scope="col" class="num">Tage</th><th scope="col" class="num">Ausf&auml;lle</th><th scope="col" class="bar"><span class="visually-hidden">Ausfallquote</span></th><th scope="col" class="num">&ge; 5 min</th><th scope="col" class="num">&Oslash; Versp.</th><th scope="col" class="num col-max">max.</th></tr>';
+    foreach ($zuege as $z) {
+        $wenig = $z['tage'] < NB_ZUGLOG_MIN_TAGE;
+        $h .= '<tr' . ($wenig ? ' class="is-wenig"' : '') . '><th scope="row">' . nb_e($z['plan']) . ' ' . nb_e($z['linie']) . ' <span class="zug__ziel">' . nb_e($z['ziel']) . '</span></th>'
+            . ($mitAb ? '<td>' . nb_e($z['ab']) . '</td>' : '')
+            . '<td class="num">' . (int) $z['tage'] . '</td>'
+            . '<td class="num">' . (int) $z['ausfaelle'] . ($z['teil'] ? ' <span class="zug__teil" title="Teilausf&auml;lle">+' . (int) $z['teil'] . '</span>' : '') . '</td>'
+            . '<td class="bar"><div class="bar__track" aria-hidden="true"><div class="bar__fill bar__fill--rot' . ($z['ausfaelle'] ? '' : ' bar__fill--leer') . '" data-w="' . nb_bar_stufe($z['ausfaelle'], max(1, $z['tage'])) . '"></div></div></td>'
+            . '<td class="num">' . (int) $z['spaet'] . '</td>'
+            . '<td class="num">' . ($z['schnitt'] >= 0.05 ? '+' . nb_e(number_format($z['schnitt'], 1, ',', '')) : '0') . '</td>'
+            . '<td class="num col-max">' . ($z['max'] ? '+' . (int) $z['max'] : '0') . '</td></tr>';
+    }
+
+    return $h . '</table>';
+}
+?>
+	<section class="section" id="zuege">
+		<div class="section__head">
+			<h2 class="section__title">Zuverl&auml;ssigkeit je Zug, letzte <?= (int) NB_ZUGLOG_TAGE ?> Tage</h2>
+		</div>
+		<p class="section__note zug__wahl">Bahnhof:
+<?php foreach (NORDBAHN_BAHNHOEFE as $id => $b): ?>
+			<?php if ($id === $bhf): ?><strong><?= nb_e($b['name']) ?></strong><?php else: ?><a href="?bhf=<?= $id ?>#zuege"><?= nb_e($b['name']) ?></a><?php endif; ?>
+<?php endforeach; ?>
+		</p>
+<?php if ($zugTage === 0): ?>
+		<div class="card"><p class="feed__empty">Noch keine Beobachtungen. Die Seite sammelt ab jetzt bei jeder Abfrage der Abfahrten den letzten Stand je Zug; nach <?= (int) NB_ZUGLOG_MIN_TAGE ?> beobachteten Tagen erscheinen die ersten Werte.</p></div>
+<?php else: ?>
+		<h3 class="section__sub"><?= nb_e($bhfName) ?> &rarr; Hamburg</h3>
+		<div class="card"><?= nb_zug_tabelle($zugHin, false) ?></div>
+		<h3 class="section__sub">Hamburg &rarr; <?= nb_e($bhfName) ?></h3>
+		<div class="card"><?= nb_zug_tabelle($zugRueck, true) ?></div>
+<?php endif; ?>
+		<p class="section__note">Beobachtet seit <?= $zugstat['seit'] ? nb_e(date('d.m.Y', strtotime($zugstat['seit']))) : '&ndash;' ?>, <?= (int) $zugTage ?> Tage mit Daten. Gez&auml;hlt wird je Tag der letzte Stand vor der Abfahrt: Ausfall, Teilausfall (nur bis oder erst ab einem Unterwegsbahnhof, als +n bei den Ausf&auml;llen), Verspätung ab 5 Minuten und der Durchschnitt ohne ausgefallene Tage. Beobachtet wird nur, was abgefragt wird: <?= nb_e(NORDBAHN_BAHNHOEFE[NORDBAHN_HEIMAT_DEFAULT]['name']) ?> durchgehend, andere Bahnh&ouml;fe, solange jemand die Seite mit diesem Bahnhof offen hat. Zeilen mit weniger als <?= (int) NB_ZUGLOG_MIN_TAGE ?> Tagen sind grau.</p>
+	</section>
 
 	<section class="section">
 		<h2 class="section__title">Letzte 30 Tage</h2>

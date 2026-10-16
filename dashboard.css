@@ -265,6 +265,18 @@ button { font: inherit; color: inherit; }
 .bar__track { height: 10px; border-radius: 4px; background: color-mix(in srgb, var(--line) 60%, transparent); overflow: hidden; }
 .bar__fill { height: 100%; border-radius: 4px; background: var(--series); min-width: 2px; }
 .bar__fill--leer { background: transparent; min-width: 0; }
+.bar__fill--rot { background: var(--critical-text); }
+.section__sub { font-size: 14px; font-weight: 600; margin: 14px 0 8px; color: var(--ink-2); }
+.zug__ziel { font-weight: 400; color: var(--muted); }
+.zug__teil { color: var(--muted); font-size: 12px; }
+.zug__wahl a { color: var(--series); margin-right: 8px; } .zug__wahl strong { margin-right: 8px; }
+.bars tr.is-wenig th, .bars tr.is-wenig td { color: var(--muted); }
+@media (max-width: 560px) {
+	.bars--zuege td.bar, .bars--zuege th.bar, .bars--zuege .col-max { display: none; }
+	.bars--zuege th, .bars--zuege td { padding: 8px 6px; }
+	.bars--zuege th[scope="row"] { white-space: nowrap; }
+	.zug__ziel { display: block; white-space: normal; font-size: 12.5px; }
+}
 .bar__fill[data-w="0"] { width: 0; min-width: 0; }
 .bar__fill[data-w="0"] { width: 0%; } .bar__fill[data-w="5"] { width: 5%; } .bar__fill[data-w="10"] { width: 10%; } .bar__fill[data-w="15"] { width: 15%; } .bar__fill[data-w="20"] { width: 20%; } .bar__fill[data-w="25"] { width: 25%; } .bar__fill[data-w="30"] { width: 30%; } .bar__fill[data-w="35"] { width: 35%; } .bar__fill[data-w="40"] { width: 40%; } .bar__fill[data-w="45"] { width: 45%; } .bar__fill[data-w="50"] { width: 50%; } .bar__fill[data-w="55"] { width: 55%; } .bar__fill[data-w="60"] { width: 60%; } .bar__fill[data-w="65"] { width: 65%; } .bar__fill[data-w="70"] { width: 70%; } .bar__fill[data-w="75"] { width: 75%; } .bar__fill[data-w="80"] { width: 80%; } .bar__fill[data-w="85"] { width: 85%; } .bar__fill[data-w="90"] { width: 90%; } .bar__fill[data-w="95"] { width: 95%; } .bar__fill[data-w="100"] { width: 100%; }
 .prose { padding: 6px 18px 16px; line-height: 1.5; }
@@ -347,6 +359,8 @@ button { font: inherit; color: inherit; }
 .dep--next::before { content: ''; position: absolute; left: -18px; top: 8px; bottom: 8px; width: 3px; border-radius: 0 2px 2px 0; background: var(--series); }
 .dep--next .dep__time { color: var(--ink); }
 .dep__ersatz { color: var(--ink) !important; font-weight: 500; }
+.dep__stat { color: var(--muted); }
+.dep__stat--schlecht { color: var(--critical-text); }
 .dep__dammtor--ausfall { color: var(--critical-text) !important; font-weight: 600; }
 .dep--ersatz .dep__dot { background: var(--series-2); }
 .dep--cancelled .dep__time small { color: var(--critical-text); }

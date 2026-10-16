@@ -556,6 +556,8 @@
 					}
 				}
 				if (d.hinweis) dest.appendChild(el('small', { text: d.hinweis }));
+				// Zuverlaessigkeit der letzten Tage, sobald der Zug oft genug beobachtet wurde
+				if (d.statistik && d.statistik.text) dest.appendChild(el('small', { class: 'dep__stat' + (d.statistik.ausfallquote >= 0.2 ? ' dep__stat--schlecht' : ''), text: d.statistik.text }));
 				if (d.ersatz) {
 					var e = d.ersatz;
 					var eLate = e.verspaetung >= 3;
