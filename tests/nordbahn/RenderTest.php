@@ -165,7 +165,7 @@ function test_feed_render_heute_und_ki_text()
 function test_archiv_eilmeldungen_nach_tagen()
 {
     $now = strtotime('2026-10-16 10:00:00 Europe/Berlin');
-    $items = nb_items(['eilmeldungen' => [
+    $items = nb_archiv_eil(['eilmeldungen' => [
         ['id' => 'a', 'title' => 'Alt', 'seen_at' => '2026-10-13T06:00:00Z'],
         ['id' => 'b', 'title' => 'Zugausfall RB60', 'seen_at' => '2026-10-16T06:50:00Z', 'ki_titel' => 'RB60 12:22 fällt aus', 'ki_text' => 'Stellwerkdefekt.'],
         ['id' => 'c', 'title' => 'Gestern früh', 'seen_at' => '2026-10-15T05:00:00Z'],
@@ -188,7 +188,7 @@ function test_archiv_stoerungen_mit_aktiven()
         ['key' => 'A', 'titel' => 'Signalstörung', 'ki_titel' => 'Störungen in Eidelstedt', 'ki_text' => 'Signal kaputt.', 'first_seen' => '2026-10-16T02:52:00Z', 'last_seen' => '2026-10-16T05:47:00Z'],
         ['key' => 'B', 'titel' => 'Personenunfall', 'first_seen' => '2026-10-13T06:11:00Z', 'last_seen' => '2026-10-13T08:42:00Z'],
     ]];
-    $items = nb_verlauf_items($data, true);
+    $items = nb_archiv_stoerungen($data);
     t_eq(3, count($items), 'aktive sind dabei');
     t_eq(2, count(nb_verlauf_items($data)), 'ohne Schalter wie bisher ohne aktive');
     $html = nb_render_archiv_stoerungen($items, $now);
@@ -199,6 +199,25 @@ function test_archiv_stoerungen_mit_aktiven()
     t_contains('bis 07:47 Uhr · 2 Std. 55 Min.<br>Signal kaputt.', $html, 'aufgehobene mit Text');
     t_contains('<div class="feed__time">08:11 Uhr</div>', $html, 'alte mit Uhrzeit');
     t_contains('Noch keine Infrastrukturstörung erfasst.', nb_render_archiv_stoerungen([], $now), 'leer');
+}
+
+function test_archiv_seiten()
+{
+    $items = range(1, 120);
+    $s = nb_seite($items, 50, 1);
+    t_eq([1, 3, 120, 50], [$s['seite'], $s['seiten'], $s['gesamt'], count($s['items'])], 'erste Seite');
+    t_eq([101, 120], [nb_seite($items, 50, 3)['items'][0], end(nb_seite($items, 50, 3)['items'])], 'letzte Seite mit Rest');
+    t_eq(3, nb_seite($items, 50, 99)['seite'], 'zu grosse Seite wird begrenzt');
+    t_eq(1, nb_seite($items, 50, 'x')['seite'], 'Unsinn wird Seite 1');
+    t_eq([1, 1, 0], [nb_seite([], 50, 4)['seite'], nb_seite([], 50, 4)['seiten'], count(nb_seite([], 50, 4)['items'])], 'leer');
+    t_eq('', nb_render_seitennav(nb_seite(range(1, 10), 50, 1), './'), 'eine Seite: keine Navigation');
+    $html = nb_render_seitennav(nb_seite($items, 50, 2), './');
+    t_contains('<a class="pager__link" href="./" rel="prev">', $html, 'Neuere fuehrt auf Seite 1 ohne Parameter');
+    t_contains('<a class="pager__link" href="./?seite=3" rel="next">', $html, 'Aeltere');
+    t_contains('Seite 2 von 3', $html, 'Position');
+    $html = nb_render_seitennav(nb_seite($items, 50, 3), './');
+    t_contains('<span class="pager__link pager__link--aus">&Auml;ltere', $html, 'letzte Seite ohne Aeltere-Link');
+    t_contains('href="./?seite=2" rel="prev"', $html, 'Neuere auf Seite 2');
 }
 
 /** Alle section__title-Texte eines HTML-Schnipsels. */

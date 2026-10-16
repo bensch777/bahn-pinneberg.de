@@ -14,19 +14,26 @@ $root = '../';
 $assetVersion = (int) @filemtime(__DIR__ . '/../dashboard.css');
 
 $data = nordbahn_dataset();
-$items = nb_items($data);
-$anzahl = count($items);
-$seit = $items ? $items[0]['ts'] : null;
+$alle = nb_archiv_eil($data);
+$anzahl = count($alle);
+$seit = $alle ? $alle[$anzahl - 1]['ts'] : null;
+$blatt = nb_seite($alle, 50, $_GET['seite'] ?? 1);
+$items = $blatt['items'];
+$basis = SITE_URL . '/eilmeldungen/';
+$pageUrl = nb_seite_url($basis, $blatt['seite']);
 
 $title = 'Eilmeldungen der Nordbahn – Archiv RB61/RB71 Hamburg, Pinneberg, Elmshorn, Itzehoe, Wrist';
 $description = 'Alle ' . $anzahl . ' Eilmeldungen der Nordbahn zu Zugausfällen und Verspätungen auf RB61 und RB71'
     . ($seit ? ' seit dem ' . date('d.m.Y', $seit) : '') . ', nach Tagen sortiert, mit Pendler-Titel und Link zur Originalmeldung.';
+if ($blatt['seite'] > 1) {
+    $title .= ' – Seite ' . $blatt['seite'];
+}
 $jsonLd = [
     '@context' => 'https://schema.org',
     '@type' => 'CollectionPage',
     'name' => $title,
     'description' => $description,
-    'url' => SITE_URL . '/eilmeldungen/',
+    'url' => $pageUrl,
     'inLanguage' => 'de',
     'isPartOf' => ['@type' => 'WebSite', 'name' => 'Nordbahn Monitor', 'url' => SITE_URL . '/'],
 ];
@@ -38,7 +45,13 @@ $jsonLd = [
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title><?= nb_e($title) ?></title>
 <meta name="description" content="<?= nb_e($description) ?>">
-<link rel="canonical" href="<?= SITE_URL ?>/eilmeldungen/">
+<link rel="canonical" href="<?= nb_e($pageUrl) ?>">
+<?php if ($blatt['seite'] > 1): ?>
+<link rel="prev" href="<?= nb_e(nb_seite_url($basis, $blatt['seite'] - 1)) ?>">
+<?php endif; ?>
+<?php if ($blatt['seite'] < $blatt['seiten']): ?>
+<link rel="next" href="<?= nb_e(nb_seite_url($basis, $blatt['seite'] + 1)) ?>">
+<?php endif; ?>
 <meta name="robots" content="index, follow">
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#f6f6f4" media="(prefers-color-scheme: light)">
@@ -46,7 +59,7 @@ $jsonLd = [
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Nordbahn Monitor">
 <meta property="og:locale" content="de_DE">
-<meta property="og:url" content="<?= SITE_URL ?>/eilmeldungen/">
+<meta property="og:url" content="<?= nb_e($pageUrl) ?>">
 <meta property="og:title" content="<?= nb_e($title) ?>">
 <meta property="og:description" content="<?= nb_e($description) ?>">
 <meta property="og:image" content="<?= SITE_URL ?>/og/info.png">
@@ -77,7 +90,9 @@ $jsonLd = [
 		</div>
 	</div>
 
+<?= nb_render_seitennav($blatt, './') ?>
 <?= nb_render_archiv_eil($items) ?>
+<?= nb_render_seitennav($blatt, './') ?>
 
 	<section class="section">
 		<p class="section__note">Quelle: Eilmeldungen auf nordbahn.de, alle zwei Minuten abgeholt. Steht ein Pendler-Titel aus dem Alert-Workflow bereit, zeigt die Liste ihn; der Originaltitel der Nordbahn steht im Tooltip. Die Uhrzeit ist der Stand der Nordbahn, sonst der Zeitpunkt der Erfassung.</p>

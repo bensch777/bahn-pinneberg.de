@@ -14,20 +14,27 @@ $root = '../';
 $assetVersion = (int) @filemtime(__DIR__ . '/../dashboard.css');
 
 $data = nordbahn_dataset();
-$items = nb_verlauf_items($data, true);
-$anzahl = count($items);
-$seit = $items ? min(array_column($items, 'start')) : null;
-$aktiv = count(array_filter($items, function ($it) { return $it['aktiv']; }));
+$alle = nb_archiv_stoerungen($data);
+$anzahl = count($alle);
+$seit = $alle ? min(array_column($alle, 'start')) : null;
+$aktiv = count(array_filter($alle, function ($it) { return $it['aktiv']; }));
+$blatt = nb_seite($alle, 50, $_GET['seite'] ?? 1);
+$items = $blatt['items'];
+$basis = SITE_URL . '/stoerungen/';
+$pageUrl = nb_seite_url($basis, $blatt['seite']);
 
 $title = 'Infrastrukturstörungen der Nordbahn – Archiv RB61/RB71 Hamburg, Pinneberg, Elmshorn, Itzehoe, Wrist';
 $description = 'Alle ' . $anzahl . ' Infrastrukturstörungen auf der Nordbahn-Strecke Hamburg – Elmshorn – Itzehoe / Wrist'
     . ($seit ? ' seit dem ' . date('d.m.Y', $seit) : '') . ', nach Tagen sortiert, mit Beginn, Ende, Dauer und Pendler-Text aus den Meldungen von strecken-info.de.';
+if ($blatt['seite'] > 1) {
+    $title .= ' – Seite ' . $blatt['seite'];
+}
 $jsonLd = [
     '@context' => 'https://schema.org',
     '@type' => 'CollectionPage',
     'name' => $title,
     'description' => $description,
-    'url' => SITE_URL . '/stoerungen/',
+    'url' => $pageUrl,
     'inLanguage' => 'de',
     'isPartOf' => ['@type' => 'WebSite', 'name' => 'Nordbahn Monitor', 'url' => SITE_URL . '/'],
 ];
@@ -39,7 +46,13 @@ $jsonLd = [
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title><?= nb_e($title) ?></title>
 <meta name="description" content="<?= nb_e($description) ?>">
-<link rel="canonical" href="<?= SITE_URL ?>/stoerungen/">
+<link rel="canonical" href="<?= nb_e($pageUrl) ?>">
+<?php if ($blatt['seite'] > 1): ?>
+<link rel="prev" href="<?= nb_e(nb_seite_url($basis, $blatt['seite'] - 1)) ?>">
+<?php endif; ?>
+<?php if ($blatt['seite'] < $blatt['seiten']): ?>
+<link rel="next" href="<?= nb_e(nb_seite_url($basis, $blatt['seite'] + 1)) ?>">
+<?php endif; ?>
 <meta name="robots" content="index, follow">
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#f6f6f4" media="(prefers-color-scheme: light)">
@@ -47,7 +60,7 @@ $jsonLd = [
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Nordbahn Monitor">
 <meta property="og:locale" content="de_DE">
-<meta property="og:url" content="<?= SITE_URL ?>/stoerungen/">
+<meta property="og:url" content="<?= nb_e($pageUrl) ?>">
 <meta property="og:title" content="<?= nb_e($title) ?>">
 <meta property="og:description" content="<?= nb_e($description) ?>">
 <meta property="og:image" content="<?= SITE_URL ?>/og/info.png">
@@ -78,7 +91,9 @@ $jsonLd = [
 		</div>
 	</div>
 
+<?= nb_render_seitennav($blatt, './') ?>
 <?= nb_render_archiv_stoerungen($items) ?>
+<?= nb_render_seitennav($blatt, './') ?>
 
 	<section class="section">
 		<p class="section__note">Quelle: St&ouml;rungsmeldungen der DB InfraGO auf strecken-info.de f&uuml;r den Abschnitt Hamburg &ndash; Itzehoe / Wrist. Beginn ist das erste Auftreten der Meldung, Ende ihre Aufhebung. Eilmeldungen der Nordbahn stehen im <a href="<?= $root ?>eilmeldungen/">Eilmeldungs-Archiv</a>.</p>

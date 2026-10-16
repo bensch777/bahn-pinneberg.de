@@ -608,7 +608,7 @@ function nb_nach_tag(array $items, callable $zeit)
     return $gruppen;
 }
 
-/** Alle Eilmeldungen (aus nb_items), juengste zuerst, ein Abschnitt je Tag. */
+/** Eilmeldungen (juengste zuerst, siehe nb_archiv_eil), ein Abschnitt je Tag. */
 function nb_render_archiv_eil(array $items, $now = null)
 {
     $now = $now ?? time();
@@ -617,7 +617,7 @@ function nb_render_archiv_eil(array $items, $now = null)
     }
     $zeit = function ($it) { return $it['stand'] ?? $it['ts']; };
     $html = '';
-    foreach (nb_nach_tag(array_reverse($items), $zeit) as $tag) {
+    foreach (nb_nach_tag($items, $zeit) as $tag) {
         $heute = nb_ist_heute($tag['ts'], $now);
         $html .= '<section class="section"><h2 class="section__title">' . nb_e(nb_fmt_tag_lang($tag['ts'], $now)) . '</h2><ol class="feed card">';
         foreach ($tag['items'] as $it) {
@@ -633,16 +633,13 @@ function nb_render_archiv_eil(array $items, $now = null)
     return $html;
 }
 
-/** Alle Infrastrukturstoerungen (aus nb_verlauf_items mit aktiven), nach Beginn, ein Abschnitt je Tag. */
+/** Infrastrukturstoerungen (nach Beginn absteigend, siehe nb_archiv_stoerungen), ein Abschnitt je Tag. */
 function nb_render_archiv_stoerungen(array $items, $now = null)
 {
     $now = $now ?? time();
     if (!$items) {
         return '<section class="section"><ol class="feed card"><li><p class="feed__empty">Noch keine Infrastrukturstörung erfasst.</p></li></ol></section>';
     }
-    usort($items, function ($a, $b) {
-        return $b['start'] <=> $a['start'];
-    });
     $html = '';
     foreach (nb_nach_tag($items, function ($it) { return $it['start']; }) as $tag) {
         $heute = nb_ist_heute($tag['ts'], $now);
@@ -659,4 +656,58 @@ function nb_render_archiv_stoerungen(array $items, $now = null)
     }
 
     return $html;
+}
+
+/** Alle Eilmeldungen fuer das Archiv, juengste zuerst (nach Stand der Nordbahn, sonst Erfassung). */
+function nb_archiv_eil(array $data)
+{
+    $items = nb_items($data);
+    usort($items, function ($a, $b) {
+        return ($b['stand'] ?? $b['ts']) <=> ($a['stand'] ?? $a['ts']);
+    });
+
+    return $items;
+}
+
+/** Alle Infrastrukturstoerungen fuer das Archiv, aktive eingeschlossen, nach Beginn absteigend. */
+function nb_archiv_stoerungen(array $data)
+{
+    $items = nb_verlauf_items($data, true);
+    usort($items, function ($a, $b) {
+        return $b['start'] <=> $a['start'];
+    });
+
+    return $items;
+}
+
+/** Seitenausschnitt: $seite wird auf 1..Seitenzahl begrenzt. */
+function nb_seite(array $items, $proSeite, $seite)
+{
+    $seiten = max(1, (int) ceil(count($items) / max(1, $proSeite)));
+    $seite = min($seiten, max(1, (int) $seite));
+
+    return [
+        'items'  => array_slice($items, ($seite - 1) * $proSeite, $proSeite),
+        'seite'  => $seite,
+        'seiten' => $seiten,
+        'gesamt' => count($items),
+    ];
+}
+
+/** URL einer Archivseite: Seite 1 ohne Parameter. */
+function nb_seite_url($basis, $seite)
+{
+    return $seite > 1 ? $basis . '?seite=' . (int) $seite : $basis;
+}
+
+/** Blaettern: "Neuere" / "Seite 2 von 7" / "Ältere"; leer bei nur einer Seite. */
+function nb_render_seitennav(array $s, $basis)
+{
+    if ($s['seiten'] <= 1) {
+        return '';
+    }
+    $neuere = $s['seite'] > 1 ? '<a class="pager__link" href="' . nb_e(nb_seite_url($basis, $s['seite'] - 1)) . '" rel="prev">&larr; Neuere</a>' : '<span class="pager__link pager__link--aus">&larr; Neuere</span>';
+    $aeltere = $s['seite'] < $s['seiten'] ? '<a class="pager__link" href="' . nb_e(nb_seite_url($basis, $s['seite'] + 1)) . '" rel="next">&Auml;ltere &rarr;</a>' : '<span class="pager__link pager__link--aus">&Auml;ltere &rarr;</span>';
+
+    return '<nav class="pager" aria-label="Seiten">' . $neuere . '<span class="pager__info">Seite ' . (int) $s['seite'] . ' von ' . (int) $s['seiten'] . '</span>' . $aeltere . '</nav>';
 }
