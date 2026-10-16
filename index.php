@@ -226,8 +226,8 @@ $jsonLd = [
 			<h2 id="latest-h" class="section__title">Letzte Eilmeldungen</h2>
 			<a class="section__more" href="<?= $root ?>eilmeldungen/">Alle Eilmeldungen</a>
 		</div>
-		<ol class="feed card" id="feed" data-limit="6" data-max-age-days="3">
-			<?= nb_render_feed($items, 6, 3) ?>
+		<ol class="feed card" id="feed" data-limit="5" data-max-age-days="3">
+			<?= nb_render_feed($items, 5, 3) ?>
 
 		</ol>
 	</section>
@@ -237,8 +237,8 @@ $jsonLd = [
 			<h2 id="verlauf-h" class="section__title">Letzte Infrastrukturst&ouml;rungen</h2>
 			<a class="section__more" href="<?= $root ?>stoerungen/">Alle St&ouml;rungen</a>
 		</div>
-		<ol class="feed card" id="verlauf-feed" data-limit="6" data-max-age-days="7">
-			<?= nb_render_verlauf(nb_verlauf_items($data), 6, 7) ?>
+		<ol class="feed card" id="verlauf-feed" data-limit="5" data-max-age-days="7">
+			<?= nb_render_verlauf(nb_verlauf_items($data), 5, 7) ?>
 
 		</ol>
 	</section>
