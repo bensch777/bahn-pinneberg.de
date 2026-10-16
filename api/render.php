@@ -592,6 +592,12 @@ function nb_fmt_uhr($ts)
     return (new DateTime('@' . (int) $ts))->setTimezone(new DateTimeZone('Europe/Berlin'))->format('H:i') . ' Uhr';
 }
 
+/** HTML-id fuer einen Archiveintrag, damit Push-Nachrichten direkt darauf verlinken koennen. */
+function nb_anker($id)
+{
+    return preg_replace('/[^A-Za-z0-9_.-]+/', '-', (string) $id);
+}
+
 /** Gruppiert Eintraege nach Berliner Kalendertag, Reihenfolge wie uebergeben. */
 function nb_nach_tag(array $items, callable $zeit)
 {
@@ -623,7 +629,7 @@ function nb_render_archiv_eil(array $items, $now = null)
         foreach ($tag['items'] as $it) {
             $title = $it['title'] !== '' ? $it['title'] : $it['id'];
             $tooltip = !empty($it['original']) && $it['original'] !== $it['title'] ? ' title="Nordbahn: ' . nb_e($it['original']) . '"' : '';
-            $html .= '<li' . ($heute ? ' class="is-heute"' : '') . '><div class="feed__time">' . nb_e(nb_fmt_uhr($zeit($it))) . '</div><div><p class="feed__title"' . $tooltip . '>'
+            $html .= '<li id="' . nb_e(nb_anker($it['id'])) . '"' . ($heute ? ' class="is-heute"' : '') . '><div class="feed__time">' . nb_e(nb_fmt_uhr($zeit($it))) . '</div><div><p class="feed__title"' . $tooltip . '>'
                 . ($it['link'] ? '<a href="' . nb_e($it['link']) . '" rel="noopener nofollow">' . nb_e($title) . '</a>' : nb_e($title)) . '</p>'
                 . (($it['text'] ?? '') !== '' ? '<p class="feed__meta">' . nb_e($it['text']) . '</p>' : '') . '</div></li>';
         }
@@ -648,7 +654,7 @@ function nb_render_archiv_stoerungen(array $items, $now = null)
             $meta = !empty($it['aktiv'])
                 ? 'dauert an · bisher ' . nb_dauer(max($now, $it['ende']) - $it['start'])
                 : nb_fmt_bis($it['start'], $it['ende'], $now) . ' · ' . nb_dauer($it['ende'] - $it['start']);
-            $html .= '<li' . ($heute || !empty($it['aktiv']) ? ' class="is-heute"' : '') . '><div class="feed__time">' . nb_e(nb_fmt_uhr($it['start'])) . '</div><div>'
+            $html .= '<li id="' . nb_e(nb_anker($it['key'])) . '"' . ($heute || !empty($it['aktiv']) ? ' class="is-heute"' : '') . '><div class="feed__time">' . nb_e(nb_fmt_uhr($it['start'])) . '</div><div>'
                 . '<p class="feed__title">' . nb_e($it['titel']) . (!empty($it['aktiv']) ? ' <span class="dep__ab dep__ab--aktiv">aktiv</span>' : '') . '</p>'
                 . '<p class="feed__meta">' . nb_e($meta) . ($it['text'] !== '' ? '<br>' . nb_e($it['text']) : '') . '</p></div></li>';
         }

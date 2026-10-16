@@ -246,6 +246,9 @@ button { font: inherit; color: inherit; }
 .feed > li.is-heute .feed__time { color: var(--ink); font-weight: 500; }
 .feed > li:not(.is-heute) .feed__title { color: color-mix(in srgb, var(--ink) 62%, var(--muted)); }
 .feed > li:not(.is-heute) .feed__title a { color: color-mix(in srgb, var(--series) 70%, var(--muted)); }
+/* Ziel eines Ankers aus einer Push-Nachricht (eilmeldungen/#em-123, stoerungen/#BZI_1): hervorheben */
+.feed > li:target { scroll-margin-top: 72px; background: color-mix(in srgb, var(--series) 10%, transparent); box-shadow: 0 0 0 18px color-mix(in srgb, var(--series) 10%, transparent); border-radius: 4px; }
+.feed > li:target .feed__title { color: var(--ink); }
 
 /* Statistik: Kennzahlen und einfache Balken, eine Farbe, Werte als Text */
 .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 0 0 20px; }

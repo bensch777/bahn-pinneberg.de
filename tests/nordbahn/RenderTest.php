@@ -174,7 +174,7 @@ function test_archiv_eilmeldungen_nach_tagen()
     $html = nb_render_archiv_eil($items, $now);
     t_eq(3, substr_count($html, '<section'), 'drei Tage, drei Abschnitte');
     t_eq(['Heute, 16.10.2026', 'Gestern, 15.10.2026', 'Dienstag, 13.10.2026'], t_titles($html), 'Reihenfolge und Tagesnamen');
-    t_contains('<li class="is-heute"><div class="feed__time">08:50 Uhr</div>', $html, 'heute nur Uhrzeit, markiert');
+    t_contains('<li id="b" class="is-heute"><div class="feed__time">08:50 Uhr</div>', $html, 'heute nur Uhrzeit, markiert, Anker aus der id');
     t_contains('<p class="feed__meta">Stellwerkdefekt.</p>', $html, 'KI-Text');
     t_eq(strpos($html, 'Gestern spät') < strpos($html, 'Gestern früh'), true, 'innerhalb eines Tages juengste zuerst');
     t_contains('Noch keine Eilmeldung erfasst.', nb_render_archiv_eil([], $now), 'leer');
@@ -195,6 +195,9 @@ function test_archiv_stoerungen_mit_aktiven()
     t_eq(['Heute, 16.10.2026', 'Dienstag, 13.10.2026'], t_titles($html), 'nach Beginn gruppiert');
     t_eq(strpos($html, 'Weichenstörung') < strpos($html, 'Störungen in Eidelstedt'), true, 'juengster Beginn zuerst');
     t_contains('Weichenstörung <span class="dep__ab dep__ab--aktiv">aktiv</span>', $html, 'aktiv markiert');
+    t_contains('<li id="AKTIV" class="is-heute">', $html, 'Anker aus dem Key');
+    t_eq('BZI_33475', nb_anker('BZI_33475'), 'Key bleibt');
+    t_eq('a-b-c', nb_anker('a b/c'), 'Sonderzeichen werden Bindestrich');
     t_contains('dauert an · bisher 2 Std.', $html, 'laufende Dauer bis jetzt');
     t_contains('bis 07:47 Uhr · 2 Std. 55 Min.<br>Signal kaputt.', $html, 'aufgehobene mit Text');
     t_contains('<div class="feed__time">08:11 Uhr</div>', $html, 'alte mit Uhrzeit');
