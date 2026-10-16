@@ -514,6 +514,12 @@ function nb_dauer($sekunden)
     return $h . ' Std.' . ($rest ? ' ' . $rest . ' Min.' : '');
 }
 
+/** "in den letzten 24 Stunden" bzw. "in den letzten 3 Tagen" (wie zeitraumText im Script). */
+function nb_zeitraum_text($maxAgeDays)
+{
+    return (int) $maxAgeDays === 1 ? 'in den letzten 24 Stunden' : 'in den letzten ' . (int) $maxAgeDays . ' Tagen';
+}
+
 /** Liste der aufgehobenen Stoerungen fuer die Startseite (wie renderVerlauf im Script). */
 function nb_render_verlauf(array $items, $limit, $maxAgeDays, $now = null)
 {
@@ -523,7 +529,7 @@ function nb_render_verlauf(array $items, $limit, $maxAgeDays, $now = null)
         return $it['ende'] >= $cutoff;
     })), 0, $limit);
     if (!$list) {
-        return '<li><p class="feed__empty">' . ($maxAgeDays ? 'Keine aufgehobene Infrastrukturstörung in den letzten ' . $maxAgeDays . ' Tagen.' : 'Noch keine Infrastrukturstörung erfasst.') . '</p></li>';
+        return '<li><p class="feed__empty">' . ($maxAgeDays ? 'Keine aufgehobene Infrastrukturstörung ' . nb_zeitraum_text($maxAgeDays) . '.' : 'Noch keine Infrastrukturstörung erfasst.') . '</p></li>';
     }
     $html = '';
     foreach ($list as $it) {
@@ -546,7 +552,7 @@ function nb_render_feed(array $items, $limit, $maxAgeDays, $now = null)
     }));
     $list = array_reverse(array_slice($list, -$limit));
     if (!$list) {
-        return '<li><p class="feed__empty">' . ($maxAgeDays ? 'Keine Eilmeldung in den letzten ' . $maxAgeDays . ' Tagen.' : 'Noch keine Eilmeldungen erfasst.') . '</p></li>';
+        return '<li><p class="feed__empty">' . ($maxAgeDays ? 'Keine Eilmeldung ' . nb_zeitraum_text($maxAgeDays) . '.' : 'Noch keine Eilmeldungen erfasst.') . '</p></li>';
     }
     $html = '';
     foreach ($list as $it) {
@@ -833,13 +839,13 @@ function nb_lage_md(array $data, $abf, $heimat, $now = null)
     }
 
     $md .= "## Letzte Eilmeldungen der Nordbahn\n\n";
-    $cutoff = $now - 3 * 86400;
+    $cutoff = $now - 86400;
     $eilmeldungen = array_reverse(array_values(array_filter($items, function ($it) use ($cutoff) {
         return ($it['stand'] ?? $it['ts']) >= $cutoff;
     })));
     $eilmeldungen = array_slice($eilmeldungen, 0, 5);
     if (!$eilmeldungen) {
-        $md .= "Keine Eilmeldung in den letzten 3 Tagen.\n\n";
+        $md .= "Keine Eilmeldung in den letzten 24 Stunden.\n\n";
     }
     foreach ($eilmeldungen as $it) {
         $md .= '- ' . nb_fmt_wann($it['stand'] ?? $it['ts'], $now) . ': ' . ($it['title'] !== '' ? $it['title'] : $it['id'])
@@ -851,12 +857,12 @@ function nb_lage_md(array $data, $abf, $heimat, $now = null)
     }
 
     $md .= "## Zuletzt aufgehobene Infrastrukturstörungen\n\n";
-    $cutoff = $now - 7 * 86400;
+    $cutoff = $now - 86400;
     $verlauf = array_slice(array_values(array_filter(nb_verlauf_items($data), function ($it) use ($cutoff) {
         return $it['ende'] >= $cutoff;
     })), 0, 5);
     if (!$verlauf) {
-        $md .= "Keine aufgehobene Störung in den letzten 7 Tagen.\n\n";
+        $md .= "Keine aufgehobene Störung in den letzten 24 Stunden.\n\n";
     }
     foreach ($verlauf as $it) {
         $md .= '- ' . nb_fmt_wann($it['start'], $now) . ' ' . nb_fmt_bis($it['start'], $it['ende'], $now) . ' (' . nb_dauer($it['ende'] - $it['start']) . '): ' . $it['titel']

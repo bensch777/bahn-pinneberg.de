@@ -346,6 +346,11 @@
 
 	/* ---------- Feed ---------- */
 
+	/** "in den letzten 24 Stunden" bzw. "in den letzten 3 Tagen" (wie nb_zeitraum_text) */
+	function zeitraumText(maxAgeDays) {
+		return maxAgeDays === 1 ? 'in den letzten 24 Stunden' : 'in den letzten ' + maxAgeDays + ' Tagen';
+	}
+
 	function renderFeed() {
 		var ol = document.getElementById('feed');
 		if (!ol) return;
@@ -360,7 +365,7 @@
 		}).slice(-limit).reverse();
 		if (!items.length) {
 			ol.appendChild(el('li', {}, [el('p', { class: 'feed__empty', text: maxAgeDays
-				? 'Keine Eilmeldung in den letzten ' + maxAgeDays + ' Tagen.'
+				? 'Keine Eilmeldung ' + zeitraumText(maxAgeDays) + '.'
 				: 'Noch keine Eilmeldungen erfasst.' })]));
 			return;
 		}
@@ -409,7 +414,7 @@
 		var items = verlaufItems(state.data).filter(function (it) { return it.ende >= cutoff; }).slice(0, limit);
 		if (!items.length) {
 			ol.appendChild(el('li', {}, [el('p', { class: 'feed__empty', text: maxAgeDays
-				? 'Keine aufgehobene Infrastrukturstörung in den letzten ' + maxAgeDays + ' Tagen.'
+				? 'Keine aufgehobene Infrastrukturstörung ' + zeitraumText(maxAgeDays) + '.'
 				: 'Noch keine Infrastrukturstörung erfasst.' })]));
 			return;
 		}

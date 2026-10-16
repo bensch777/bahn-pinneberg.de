@@ -80,6 +80,8 @@ function test_verlauf_render_mit_alter_und_limit()
     t_contains('1 Std. 20 Min.', $html, 'Dauer mit Minuten');
     t_eq(1, substr_count(nb_render_verlauf($items, 1, 7), '<li'), 'Limit');
     t_contains('Keine aufgehobene Infrastrukturstörung in den letzten 7 Tagen.', nb_render_verlauf([], 6, 7), 'leer');
+    t_contains('Keine aufgehobene Infrastrukturstörung in den letzten 24 Stunden.', nb_render_verlauf([], 6, 1), 'leer, ein Tag');
+    t_eq(2, substr_count(nb_render_verlauf($items, 6, 1), '<li'), 'ein Tag: C (vor 40 Min.) und B (vor 3 Std.) bleiben, ALT nicht');
     t_contains('Noch keine Infrastrukturstörung erfasst.', nb_render_verlauf([], 6, 0), 'leer ohne Altersgrenze');
 }
 
@@ -265,7 +267,10 @@ function test_lage_markdown()
         'eilmeldungen_live' => [['id' => 'em-1', 'title' => 'Zugausfall RB60', 'stand' => '2026-10-16T06:50:00Z', 'link' => 'https://www.nordbahn.de/x/']],
     ]);
     $data['received_at'] = '2026-10-16T07:58:00Z';
-    $data['stoerungen_verlauf'] = [['key' => 'ALT', 'titel' => 'Weichenstörung', 'first_seen' => '2026-10-15T05:00:00Z', 'last_seen' => '2026-10-15T06:30:00Z']];
+    $data['stoerungen_verlauf'] = [
+        ['key' => 'ALT', 'titel' => 'Weichenstörung', 'first_seen' => '2026-10-15T08:00:00Z', 'last_seen' => '2026-10-15T09:30:00Z'],
+        ['key' => 'ZUALT', 'titel' => 'Vorgestern', 'first_seen' => '2026-10-14T08:00:00Z', 'last_seen' => '2026-10-14T09:30:00Z'],
+    ];
     $abf = ['ok' => true, 'fetched_at' => '2026-10-16T07:59:00Z', 'richtungen' => [
         'hin' => [
             ['zug' => '1', 'zeit' => '2026-10-16T08:12:00+02:00', 'verspaetung' => 3, 'linie' => 'RB61', 'ziel' => 'Hamburg Hbf', 'gleis' => '2', 'gleis_plan' => '1', 'ausfall' => false, 'hinweis' => '', 'ab' => null, 'ersatz' => null, 'teil' => ['art' => 'endet', 'name' => 'Pinneberg']],
@@ -284,7 +289,8 @@ function test_lage_markdown()
     t_contains('- 08:40 Uhr: RB71 nach Hamburg Hbf fällt aus. Kurzfristiger Personalausfall.', $md, 'Ausfall mit Hinweis');
     t_contains('- 08:15 Uhr ab Hbf: RB61 nach Itzehoe. Gleis 12.', $md, 'Rueckrichtung ab Hbf');
     t_contains('- Heute, 08:50 Uhr: RB60 12:22 ab Altona fällt aus. Stellwerkdefekt. (https://www.nordbahn.de/x/)', $md, 'Eilmeldung');
-    t_contains('- Gestern, 07:00 Uhr bis 08:30 Uhr (1 Std. 30 Min.): Weichenstörung', $md, 'aufgehobene Stoerung');
+    t_contains('- Gestern, 10:00 Uhr bis 11:30 Uhr (1 Std. 30 Min.): Weichenstörung', $md, 'aufgehobene Stoerung der letzten 24 Stunden');
+    t_eq(false, strpos($md, 'Vorgestern'), 'aeltere aufgehobene Stoerung fehlt');
     t_contains('/llms.txt', $md, 'Verweis auf llms.txt');
 
     $leer = nb_lage_md(['received_at' => null, 'stoerungen' => [], 'eilmeldungen' => [], 'eilmeldungen_live' => [], 'stoerungen_verlauf' => []], null, 'AEL', $now);
