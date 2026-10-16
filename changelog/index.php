@@ -15,6 +15,7 @@ $assetVersion = (int) @filemtime(__DIR__ . '/../dashboard.css');
 
 $changelog = [
     ['2026-10-16', [
+        ['Abfahrten laden schneller', 'Der Server fragt die vier Tafeln und bis zu 16 Zugauskünfte jetzt gleichzeitig ab statt nacheinander, aus bis zu 20 Wartezeiten werden zwei. Ist der letzte Stand bis zu drei Minuten alt, kommt er sofort und wird im Hintergrund erneuert. Der n8n-Push wärmt alle zwei Minuten die Abfahrten für Prisdorf vor.'],
         ['Heimatbahnhof in der Statistik', 'Plausible bekommt zu jedem Seitenaufruf den gewählten Heimatbahnhof als Eigenschaft „heimat“ mit, ohne Cookies und ohne Personenbezug. So ist sichtbar, aus welchen Orten die Pendler kommen. Wer nie einen Bahnhof gewählt hat, zählt als „Prisdorf (Vorgabe)“.'],
         ['Archiv für Eilmeldungen und Störungen', 'Die Startseite zeigt nur die jüngsten Einträge. Unter „Alle Eilmeldungen“ und „Alle Störungen“ gibt es jetzt je eine Seite mit der kompletten Historie, nach Tagen gegliedert. Laufende Störungen sind dort als „aktiv“ markiert. Beide Seiten stehen auch im Footer und in der Sitemap.'],
         ['Heute auf einen Blick', 'In den Listen „Letzte Eilmeldungen“ und „Letzte Störungen“ steht statt des Datums „Heute“ oder „Gestern“. Heutige Einträge sind voll ausgezeichnet, ältere treten zurück, damit Veraltetes sofort erkennbar ist. Eilmeldungen mit Pendler-Titel zeigen darunter auch den Pendler-Text.'],

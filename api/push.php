@@ -100,3 +100,11 @@ if (function_exists('fastcgi_finish_request')) {
 }
 
 nb_push_run(is_array($vorher) ? $vorher : [], $payload);
+
+// Abfahrten des Vorgabe-Bahnhofs vorwaermen (alle zwei Minuten mit dem n8n-Push), damit
+// der erste Besucher nicht auf den Stationsmonitor wartet
+if (!defined('NORDBAHN_ABF_LIB')) {
+    define('NORDBAHN_ABF_LIB', true);
+}
+require_once __DIR__ . '/abfahrten.php';
+abf_cached(NORDBAHN_HEIMAT_DEFAULT);

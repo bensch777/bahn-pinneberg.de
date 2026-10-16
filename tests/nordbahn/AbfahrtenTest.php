@@ -321,6 +321,32 @@ function test_zugauskunft_wird_gecacht()
     t_eq('Signalstörung', t_zeile(t_build($q), 'hin', '81871')['hinweis'], 'Ursache auch aus dem Cache');
 }
 
+function test_abfragen_gebuendelt()
+{
+    // Tafeln und Zuege werden in zwei Buendeln geholt: erst die vier Bahnhoefe, dann alle Zuege
+    t_build(t_standard(['zug:81871' => t_lauf_81871(['ursache' => 'Signalstörung'])]), 'APD', null, $calls);
+    $arten = array_map(function ($u) { return strpos($u, '?zug=') !== false ? 'zug' : 'bhf'; }, $calls);
+    t_eq(['bhf', 'bhf', 'bhf', 'bhf'], array_slice($arten, 0, 4), 'erst die vier Tafeln');
+    t_eq(0, count(array_filter(array_slice($arten, 4), function ($a) { return $a === 'bhf'; })), 'danach nur Zuege');
+    t_eq(count($calls), count(array_unique($calls)), 'keine URL doppelt');
+
+    $antworten = abf_fetch_many(['a', 'b', 'a'], function ($u) { return strtoupper($u); });
+    t_eq(['a' => 'A', 'b' => 'B'], $antworten, 'abf_fetch_many ohne curl: nacheinander, doppelte nur einmal');
+}
+
+function test_alter_stand_wird_sofort_geliefert()
+{
+    $now = strtotime('2026-10-15 10:00:00 Europe/Berlin');
+    $stand = function ($sek, $ok = true) use ($now) {
+        return ['ok' => $ok, 'fetched_at' => gmdate('c', $now - $sek), 'richtungen' => []];
+    };
+    t_eq(false, abf_sofort_liefern($stand(30), $now), 'frisch: normal ueber abf_cached');
+    t_eq(true, abf_sofort_liefern($stand(90), $now), 'aelter als ABF_TTL: sofort liefern, dann erneuern');
+    t_eq(false, abf_sofort_liefern($stand(ABF_STALE_TTL + 1), $now), 'zu alt: Besucher wartet auf frische Daten');
+    t_eq(false, abf_sofort_liefern($stand(90, false), $now), 'kaputter Stand wird nicht geliefert');
+    t_eq(false, abf_sofort_liefern(null, $now), 'ohne Cache');
+}
+
 function test_quellen_ausgefallen()
 {
     t_eq(null, t_build([]), 'ohne jede Quelle keine Antwort');

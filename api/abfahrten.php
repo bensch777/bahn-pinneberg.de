@@ -43,6 +43,7 @@ const ABF_AUSFALL_GRACE = 5;                         // Minuten, die ein Ausfall
 const ABF_TEIL_FENSTER  = 40;                        // Minuten, die ein Ausfall vor der Zugauskunft stehen bleibt (Zug startet evtl. erst unterwegs)
 const ABF_STADT_IDS  = ['AH', 'AA', 'ADF'];          // Ziele, die "in die Stadt" bedeuten
 const ABF_TTL        = 60;                           // Sekunden, die eine Antwort gueltig bleibt
+const ABF_STALE_TTL  = 180;                          // Sekunden, die ein alter Stand sofort ausgeliefert und dann im Hintergrund erneuert wird
 const ABF_PER_DIR    = 8;                            // Abfahrten je Richtung in der Antwort
 const ABF_TIMEOUT    = 6;                            // Sekunden je Anfrage
 const ABF_ZUG_CACHE  = NORDBAHN_CACHE_DIR . '/zuege.json'; // Ursachen je Zugnummer
@@ -71,20 +72,26 @@ function abf_erreicht($zielId, $heimat)
     return array_search($heimat, $reihe, true) <= array_search($zielId, $reihe, true);
 }
 
+/** curl-Optionen fuer den Stationsmonitor (einzeln und parallel). */
+function abf_curl_opts()
+{
+    return [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_FOLLOWLOCATION => true,
+        CURLOPT_MAXREDIRS      => 3,
+        CURLOPT_CONNECTTIMEOUT => ABF_TIMEOUT,
+        CURLOPT_TIMEOUT        => ABF_TIMEOUT,
+        CURLOPT_USERAGENT      => nordbahn_site_host() . ' Monitor',
+        CURLOPT_HTTPHEADER     => ['Accept: application/xml, text/xml'],
+    ];
+}
+
 /** Holt eine URL als Text, oder null bei Fehler. */
 function abf_fetch($url)
 {
     if (function_exists('curl_init')) {
         $ch = curl_init($url);
-        curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_MAXREDIRS      => 3,
-            CURLOPT_CONNECTTIMEOUT => ABF_TIMEOUT,
-            CURLOPT_TIMEOUT        => ABF_TIMEOUT,
-            CURLOPT_USERAGENT      => nordbahn_site_host() . ' Monitor',
-            CURLOPT_HTTPHEADER     => ['Accept: application/xml, text/xml'],
-        ]);
+        curl_setopt_array($ch, abf_curl_opts());
         $body = curl_exec($ch);
         $status = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
         curl_close($ch);
@@ -97,6 +104,48 @@ function abf_fetch($url)
     ]));
 
     return $body === false ? null : $body;
+}
+
+/**
+ * Holt mehrere URLs gleichzeitig (curl_multi); Ergebnis je URL wie bei abf_fetch,
+ * doppelte URLs nur einmal. Mit einem anderen Fetch (Tests, Kommandozeile) laeuft
+ * es nacheinander in der uebergebenen Reihenfolge.
+ */
+function abf_fetch_many(array $urls, $fetch = 'abf_fetch')
+{
+    $urls = array_values(array_unique($urls));
+    $out = [];
+    if ($fetch !== 'abf_fetch' || !function_exists('curl_multi_init')) {
+        foreach ($urls as $url) {
+            $out[$url] = $fetch($url);
+        }
+
+        return $out;
+    }
+    $mh = curl_multi_init();
+    $handles = [];
+    foreach ($urls as $url) {
+        $ch = curl_init($url);
+        curl_setopt_array($ch, abf_curl_opts());
+        curl_multi_add_handle($mh, $ch);
+        $handles[$url] = $ch;
+    }
+    do {
+        $status = curl_multi_exec($mh, $active);
+        if ($active) {
+            curl_multi_select($mh, 1.0);
+        }
+    } while ($active && $status === CURLM_OK);
+    foreach ($handles as $url => $ch) {
+        $body = curl_multi_getcontent($ch);
+        $code = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+        $out[$url] = is_string($body) && $body !== '' && $code === 200 ? $body : null;
+        curl_multi_remove_handle($mh, $ch);
+        curl_close($ch);
+    }
+    curl_multi_close($mh);
+
+    return $out;
 }
 
 /** URL der Abfahrtstafel eines Bahnhofs. */
@@ -306,7 +355,6 @@ function abf_add_zuginfo(array &$lists, $fetch, $heimat)
         $cache = [];
     }
     $now = time();
-    $calls = 0;
     $changed = false;
 
     // Reihenfolge der Abfragen: erst die auffaelligen Zuege, dann der Rest
@@ -324,24 +372,41 @@ function abf_add_zuginfo(array &$lists, $fetch, $heimat)
         return $a[0] <=> $b[0];
     });
 
+    $gueltig = function ($entry) use ($now) {
+        return is_array($entry) && isset($entry['halte']) && ($now - (int) ($entry['t'] ?? 0)) <= ABF_ZUG_TTL;
+    };
+
+    // Erst alle fehlenden Zugauskuenfte auf einmal holen (in Prioritaetsreihenfolge,
+    // hoechstens ABF_ZUG_MAX), dann die Zeilen damit anreichern
+    $fehlend = [];
+    foreach ($queue as [$prio, $dir, $i]) {
+        $zug = $lists[$dir][$i]['zug'];
+        if ($gueltig($cache[$zug] ?? null) || in_array($zug, $fehlend, true)) {
+            continue;
+        }
+        if (count($fehlend) >= ABF_ZUG_MAX) {
+            break;
+        }
+        $fehlend[] = $zug;
+    }
+    if ($fehlend) {
+        $antworten = abf_fetch_many(array_map('abf_zug_url', $fehlend), $fetch);
+        foreach ($fehlend as $zug) {
+            $xml = $antworten[abf_zug_url($zug)] ?? null;
+            if ($xml !== null) {
+                $cache[$zug] = ['t' => $now] + abf_parse_zug($xml);
+                $changed = true;
+            }
+        }
+    }
+
     foreach ($queue as [$prio, $dir, $i]) {
         $row = &$lists[$dir][$i];
-        $zug = $row['zug'];
-        $entry = $cache[$zug] ?? null;
-        if (!is_array($entry) || !isset($entry['halte']) || ($now - (int) ($entry['t'] ?? 0)) > ABF_ZUG_TTL) {
-            if ($calls >= ABF_ZUG_MAX) {
-                unset($row);
-                continue;
-            }
-            $calls++;
-            $xml = $fetch(abf_zug_url($zug));
-            if ($xml === null) {
-                unset($row);
-                continue;
-            }
-            $entry = ['t' => $now] + abf_parse_zug($xml);
-            $cache[$zug] = $entry;
-            $changed = true;
+        $entry = $cache[$row['zug']] ?? null;
+        if (!$gueltig($entry)) {
+            // Ausserhalb des Budgets oder Abfrage fehlgeschlagen: Zeile bleibt, wie sie ist
+            unset($row);
+            continue;
         }
         $ursache = (string) ($entry['ursache'] ?? '');
         if ($ursache !== '' && stripos($row['hinweis'], $ursache) === false) {
@@ -553,8 +618,11 @@ function abf_build($fetch = 'abf_fetch', $heimat = NORDBAHN_HEIMAT_DEFAULT, ?Dat
     $stand = '';
     $quellen = [];
 
+    // Alle vier Tafeln auf einmal holen (Heimat, Hbf, Altona, Dammtor)
+    $tafeln = abf_fetch_many(array_map('abf_url', array_merge([$heimat], array_keys(ABF_STADT), [ABF_DAMMTOR])), $fetch);
+
     $hin = [];
-    $xml = $fetch(abf_url($heimat));
+    $xml = $tafeln[abf_url($heimat)] ?? null;
     $rows = $xml !== null ? abf_parse($xml, $now, $stand) : null;
     $quellen[$heimat] = $rows !== null;
     foreach ($rows ?? [] as $row) {
@@ -565,7 +633,7 @@ function abf_build($fetch = 'abf_fetch', $heimat = NORDBAHN_HEIMAT_DEFAULT, ?Dat
 
     $rueck = [];
     foreach (ABF_STADT as $id => $label) {
-        $xml = $fetch(abf_url($id));
+        $xml = $tafeln[abf_url($id)] ?? null;
         $rows = $xml !== null ? abf_parse($xml, $now, $stand) : null;
         $quellen[$id] = $rows !== null;
         foreach ($rows ?? [] as $row) {
@@ -586,7 +654,7 @@ function abf_build($fetch = 'abf_fetch', $heimat = NORDBAHN_HEIMAT_DEFAULT, ?Dat
     // haengen als Zwischenhalt an der Hbf-Zeile; ist ein Zug am Hbf schon weg,
     // steht er als eigene Zeile "ab Dammtor", solange er dort noch kommt.
     $dammtor = [];
-    $xml = $fetch(abf_url(ABF_DAMMTOR));
+    $xml = $tafeln[abf_url(ABF_DAMMTOR)] ?? null;
     $rows = $xml !== null ? abf_parse($xml, $now, $stand) : null;
     $quellen[ABF_DAMMTOR] = $rows !== null;
     foreach ($rows ?? [] as $row) {
@@ -766,6 +834,37 @@ function abf_cached($heimat)
     return $cached;
 }
 
+/**
+ * Darf ein alter Stand sofort ausgeliefert werden? Ja, wenn er brauchbar und
+ * zwischen ABF_TTL und ABF_STALE_TTL Sekunden alt ist: der Besucher wartet dann
+ * nicht, der Endpunkt erneuert den Stand nach der Antwort im Hintergrund.
+ */
+function abf_sofort_liefern($cached, $now = null)
+{
+    if (!is_array($cached) || empty($cached['ok']) || empty($cached['fetched_at'])) {
+        return false;
+    }
+    $alter = ($now ?? time()) - (int) strtotime($cached['fetched_at']);
+
+    return $alter >= ABF_TTL && $alter < ABF_STALE_TTL;
+}
+
+/** Antwort komplett rausschicken und die Verbindung beenden; danach darf noch gearbeitet werden. */
+function abf_antworten($json)
+{
+    ignore_user_abort(true);
+    set_time_limit(60);
+    header('Content-Length: ' . strlen($json));
+    header('Connection: close');
+    echo $json;
+    if (function_exists('fastcgi_finish_request')) {
+        fastcgi_finish_request();
+    } else {
+        @ob_end_flush();
+        flush();
+    }
+}
+
 // Auf der Kommandozeile laesst sich die Aufbereitung gegen lokale Dateien pruefen:
 // php nordbahn/api/abfahrten.php [--bhf=APD] heimat.xml hbf.xml altona.xml dammtor.xml [zug.xml|zugverzeichnis/]
 // Die fuenfte Angabe dient als Antwort fuer alle Zugabfragen (eine Datei) oder liefert je
@@ -804,6 +903,11 @@ if (PHP_SAPI === 'cli') {
     exit;
 }
 
+// Als Bibliothek eingebunden (push.php, notify.php setzen NORDBAHN_ABF_LIB): kein Endpunkt
+if (defined('NORDBAHN_ABF_LIB')) {
+    return;
+}
+
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: public, max-age=30');
 header('X-Robots-Tag: noindex');
@@ -812,6 +916,14 @@ $heimat = isset($_GET['bhf']) ? strtoupper(trim((string) $_GET['bhf'])) : NORDBA
 if (!isset(NORDBAHN_BAHNHOEFE[$heimat])) {
     http_response_code(400);
     echo json_encode(['ok' => false, 'error' => 'Unbekannter Bahnhof.', 'bahnhoefe' => array_keys(NORDBAHN_BAHNHOEFE)]);
+    exit;
+}
+$cached = nordbahn_read_json(NORDBAHN_CACHE_DIR . '/abfahrten-' . $heimat . '.json');
+if (abf_sofort_liefern($cached)) {
+    // Alten Stand sofort liefern, dann im Hintergrund erneuern (abf_cached sperrt, damit
+    // nur ein Prozess den Stationsmonitor fragt)
+    abf_antworten(json_encode($cached, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+    abf_cached($heimat);
     exit;
 }
 echo json_encode(abf_cached($heimat), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);

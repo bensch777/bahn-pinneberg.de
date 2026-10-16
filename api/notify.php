@@ -305,6 +305,9 @@ function nb_push_run_mit(array $alt, array $neu, $now, ?callable $abfahrten, ?ca
         $heimaten[$sub['heimat'] ?? NORDBAHN_HEIMAT_DEFAULT] = true;
     }
     $abfahrten = $abfahrten ?? function ($heimat) {
+        if (!defined('NORDBAHN_ABF_LIB')) {
+            define('NORDBAHN_ABF_LIB', true);
+        }
         require_once __DIR__ . '/abfahrten.php';
 
         return abf_cached($heimat);

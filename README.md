@@ -12,7 +12,7 @@ Das Wurzelverzeichnis des Repos ist das Web-Root. Reines PHP ohne Framework, kei
 | --- | --- |
 | `index.php` | Startseite, rendert Lagekarten, Störungen und Eilmeldungen server-seitig |
 | `dashboard.js`, `dashboard.css` | Aktualisiert die Seite im Browser, Abfahrtstafeln, Benachrichtigungen |
-| `api/abfahrten.php` | Nächste Züge aus dem Stationsmonitor, mit Teilausfall-Erkennung |
+| `api/abfahrten.php` | Nächste Züge aus dem Stationsmonitor, mit Teilausfall-Erkennung. Tafeln und Zugauskünfte parallel per curl_multi, Cache 60 s; ein bis zu 3 Minuten alter Stand wird sofort geliefert und im Hintergrund erneuert |
 | `api/push.php` | Nimmt alle 2 Minuten das Datenpaket aus n8n an (Token-geschützt) |
 | `api/data.php` | Liefert das letzte Paket an den Browser |
 | `api/revision.php` | Holt die aktuelle Revision von strecken-info.de für n8n |
