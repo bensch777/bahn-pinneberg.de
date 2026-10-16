@@ -31,7 +31,7 @@ $faq = [
     ['Gibt es die Daten auch für Programme oder KI-Assistenten?',
      'Ja. Unter /lage.md steht die aktuelle Lage als Text (Markdown), unter /llms.txt eine Beschreibung der Seite und der Datenfelder, und /api/data sowie /api/abfahrten?bhf=APD liefern alles als JSON. Alles öffentlich und ohne Schlüssel, bitte nicht häufiger als einmal pro Minute abrufen.'],
     ['Ist das eine offizielle Seite der Nordbahn?',
-     'Nein. Der Nordbahn Monitor ist ein privates Projekt von bensch777.de ohne Verbindung zur NBE Nordbahn Eisenbahngesellschaft. Verbindliche Auskünfte gibt es auf nordbahn.de.'],
+     'Nein. Der Nordbahn Monitor ist ein privates Projekt ohne Verbindung zur NBE Nordbahn Eisenbahngesellschaft, Betreiber siehe Impressum. Verbindliche Auskünfte gibt es auf nordbahn.de.'],
 ];
 $jsonLd = [
     '@context' => 'https://schema.org',

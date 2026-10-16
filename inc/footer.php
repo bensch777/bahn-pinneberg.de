@@ -42,7 +42,6 @@
 <?php if ($current !== 'impressum'): ?>
 				<li><a href="<?= $root ?>impressum/" rel="nofollow">Impressum &amp; Datenschutz</a></li>
 <?php endif; ?>
-				<li><a href="https://bensch777.de/" rel="noopener">bensch777.de</a></li>
 				<li>Quellen: <a href="https://www.nordbahn.de/" rel="noopener">nordbahn.de</a>, <a href="https://strecken-info.de/" rel="noopener">strecken-info.de</a></li>
 			</ul>
 		</div>
