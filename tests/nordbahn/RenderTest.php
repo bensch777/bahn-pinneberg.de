@@ -297,7 +297,7 @@ function test_lage_markdown()
     t_contains('## Nächste Züge ab Elmshorn', $leer, 'Bahnhofsname');
     t_contains('Keine aktuellen Abfahrtsdaten.', $leer, 'ohne Abfahrten');
     t_contains('Keine aktive Störung laut strecken-info.de.', $leer, 'ohne Stoerung');
-    t_contains('Keine Eilmeldung in den letzten 3 Tagen.', $leer, 'ohne Eilmeldung');
+    t_contains('Keine Eilmeldung in den letzten 24 Stunden.', $leer, 'ohne Eilmeldung');
 }
 
 /* ---------- Statistik ---------- */
