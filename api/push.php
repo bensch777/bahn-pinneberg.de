@@ -16,6 +16,7 @@
  */
 
 require __DIR__ . '/store.php';
+require __DIR__ . '/notify.php';
 
 const PUSH_MAX_BYTES = 4 * 1024 * 1024;
 
@@ -64,17 +65,38 @@ if ($payload === null) {
 $now = gmdate('Y-m-d\TH:i:s\Z');
 $payload['received_at'] = $now;
 
+// Das vorige Paket braucht der Push-Versand, um Neues zu erkennen
+$vorher = nordbahn_read_json(NORDBAHN_DATA_FILE);
+
 if (!nordbahn_write_json(NORDBAHN_DATA_FILE, $payload)) {
     respond(500, ['ok' => false, 'error' => 'cache/ ist nicht beschreibbar.']);
 }
 
 $logSize = nordbahn_update_log($payload['stoerungen'], $now);
 
-respond(200, [
+// Antwort an n8n sofort, der Push-Versand laeuft danach weiter
+$antwort = json_encode([
     'ok'           => true,
     'received_at'  => $now,
     'stoerungen'   => count($payload['stoerungen']),
     'eilmeldungen' => count($payload['eilmeldungen']),
     'live'         => count($payload['eilmeldungen_live']),
     'log'          => $logSize,
-]);
+], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+ignore_user_abort(true);
+set_time_limit(90);
+http_response_code(200);
+header('Content-Type: application/json; charset=utf-8');
+header('Cache-Control: no-store');
+header('X-Robots-Tag: noindex');
+header('Content-Length: ' . strlen($antwort));
+header('Connection: close');
+echo $antwort;
+if (function_exists('fastcgi_finish_request')) {
+    fastcgi_finish_request();
+} else {
+    @ob_end_flush();
+    flush();
+}
+
+nb_push_run(is_array($vorher) ? $vorher : [], $payload);

@@ -726,6 +726,46 @@ function abf_build($fetch = 'abf_fetch', $heimat = NORDBAHN_HEIMAT_DEFAULT, ?Dat
     ];
 }
 
+/**
+ * Abfahrten fuer einen Heimatbahnhof aus dem Cache (ABF_TTL Sekunden), sonst
+ * frisch vom Stationsmonitor. Nur ein Prozess holt neue Daten, alle anderen
+ * liefern derweil den alten Stand. Wird vom Endpunkt und vom Push-Versand genutzt.
+ */
+function abf_cached($heimat)
+{
+    $cacheFile = NORDBAHN_CACHE_DIR . '/abfahrten-' . $heimat . '.json';
+    $lockFile  = NORDBAHN_CACHE_DIR . '/abfahrten-' . $heimat . '.lock';
+
+    $cached = nordbahn_read_json($cacheFile);
+    $fresh = is_array($cached) && isset($cached['fetched_at']) && (time() - strtotime($cached['fetched_at'])) < ABF_TTL;
+    if ($fresh) {
+        return $cached;
+    }
+    if (!is_dir(NORDBAHN_CACHE_DIR)) {
+        @mkdir(NORDBAHN_CACHE_DIR, 0775, true);
+    }
+    $lock = @fopen($lockFile, 'c');
+    if ($lock !== false && flock($lock, LOCK_EX | LOCK_NB)) {
+        $result = abf_build('abf_fetch', $heimat);
+        if ($result !== null) {
+            nordbahn_write_json($cacheFile, $result);
+            $cached = $result;
+        } elseif (is_array($cached)) {
+            $cached['ok'] = false;
+        } else {
+            $cached = ['ok' => false, 'fetched_at' => null, 'richtungen' => null];
+        }
+        flock($lock, LOCK_UN);
+    } elseif (!is_array($cached)) {
+        $cached = ['ok' => false, 'fetched_at' => null, 'richtungen' => null];
+    }
+    if ($lock !== false) {
+        fclose($lock);
+    }
+
+    return $cached;
+}
+
 // Auf der Kommandozeile laesst sich die Aufbereitung gegen lokale Dateien pruefen:
 // php nordbahn/api/abfahrten.php [--bhf=APD] heimat.xml hbf.xml altona.xml dammtor.xml [zug.xml|zugverzeichnis/]
 // Die fuenfte Angabe dient als Antwort fuer alle Zugabfragen (eine Datei) oder liefert je
@@ -774,35 +814,4 @@ if (!isset(NORDBAHN_BAHNHOEFE[$heimat])) {
     echo json_encode(['ok' => false, 'error' => 'Unbekannter Bahnhof.', 'bahnhoefe' => array_keys(NORDBAHN_BAHNHOEFE)]);
     exit;
 }
-$cacheFile = NORDBAHN_CACHE_DIR . '/abfahrten-' . $heimat . '.json';
-$lockFile  = NORDBAHN_CACHE_DIR . '/abfahrten-' . $heimat . '.lock';
-
-$cached = nordbahn_read_json($cacheFile);
-$fresh = is_array($cached) && isset($cached['fetched_at']) && (time() - strtotime($cached['fetched_at'])) < ABF_TTL;
-
-if (!$fresh) {
-    // Nur ein Prozess holt neue Daten, alle anderen liefern derweil den alten Stand.
-    if (!is_dir(NORDBAHN_CACHE_DIR)) {
-        @mkdir(NORDBAHN_CACHE_DIR, 0775, true);
-    }
-    $lock = @fopen($lockFile, 'c');
-    if ($lock !== false && flock($lock, LOCK_EX | LOCK_NB)) {
-        $result = abf_build('abf_fetch', $heimat);
-        if ($result !== null) {
-            nordbahn_write_json($cacheFile, $result);
-            $cached = $result;
-        } elseif (is_array($cached)) {
-            $cached['ok'] = false;
-        } else {
-            $cached = ['ok' => false, 'fetched_at' => null, 'richtungen' => null];
-        }
-        flock($lock, LOCK_UN);
-    } elseif (!is_array($cached)) {
-        $cached = ['ok' => false, 'fetched_at' => null, 'richtungen' => null];
-    }
-    if ($lock !== false) {
-        fclose($lock);
-    }
-}
-
-echo json_encode($cached, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+echo json_encode(abf_cached($heimat), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);

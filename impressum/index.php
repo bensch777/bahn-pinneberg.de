@@ -113,8 +113,8 @@ $description = 'Anbieterkennzeichnung und Datenschutzerklärung des Nordbahn Mon
 			<h2>Einstellungen im Browser</h2>
 			<p>Heimatbahnhof und Benachrichtigungseinstellungen werden ausschlie&szlig;lich im lokalen Speicher Ihres Browsers (localStorage) abgelegt. Diese Daten verlassen Ihr Ger&auml;t nicht und lassen sich &uuml;ber die Browser-Einstellungen l&ouml;schen.</p>
 
-			<h2>Benachrichtigungen</h2>
-			<p>Wenn Sie Benachrichtigungen einschalten, erzeugt Ihr Browser diese lokal aus den Daten, die die Seite ohnehin l&auml;dt. Es gibt keinen Push-Dienst und keine Registrierung auf einem Server; die Freigabe k&ouml;nnen Sie jederzeit im Browser widerrufen.</p>
+			<h2>Benachrichtigungen (Web Push)</h2>
+			<p>Wenn Sie Benachrichtigungen einschalten, richtet Ihr Browser ein Push-Abo beim Push-Dienst seines Herstellers ein (z. B. Google f&uuml;r Chrome, Apple f&uuml;r Safari, Mozilla f&uuml;r Firefox). Auf dem Server dieser Seite werden dazu die Abo-Adresse, die vom Browser erzeugten Verschl&uuml;sselungsschl&uuml;ssel, Ihr gew&auml;hlter Heimatbahnhof und die Zeitregel gespeichert, sonst nichts; eine Zuordnung zu Ihrer Person ist damit nicht m&ouml;glich. Nachrichten werden Ende-zu-Ende verschl&uuml;sselt an den Push-Dienst &uuml;bergeben, der nur die Abo-Adresse kennt. Rechtsgrundlage ist Ihre Einwilligung (Art. 6 Abs. 1 lit. a DSGVO), die Sie jederzeit &uuml;ber die Glocke oder die Browser-Einstellungen widerrufen; das Abo wird dann gel&ouml;scht, nicht mehr erreichbare Abos l&ouml;schen wir automatisch.</p>
 
 			<h2>Datenquellen und externe Dienste</h2>
 			<p>Die Seite l&auml;dt St&ouml;rungen, Abfahrten und Eilmeldungen serverseitig von nordbahn.de und strecken-info.de; Ihr Browser verbindet sich dabei nicht mit diesen Diensten. Links zu Telegram, X, nordbahn.de und strecken-info.de f&uuml;hren zu Angeboten Dritter mit eigenen Datenschutzbestimmungen.</p>

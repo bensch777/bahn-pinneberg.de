@@ -581,6 +581,7 @@
 		var rueck = document.getElementById('board-title-rueck');
 		if (hin) hin.textContent = heimatState.name + ' → Hamburg';
 		if (rueck) rueck.textContent = rueckTitel();
+		pushSync();
 	}
 
 	/** Hinter Elmshorn faehrt nur noch ein Ast, davor beide. */
@@ -671,6 +672,7 @@
 	var NOTIFY_KEY = 'nordbahn.notify';       // "1" = eingeschaltet
 	var NOTIFY_ZEIT_KEY = 'nordbahn.notify.zeit'; // "pendel" (Vorgabe) oder "immer"
 	var SEEN_KEY = 'nordbahn.notified';       // bereits gemeldete Ereignisse
+	var PUSH_KEY = 'nordbahn.push';           // "1" = Push-Abo beim Server angelegt
 	var seen = null;
 
 	function storage(action, key, value) {
@@ -683,6 +685,72 @@
 
 	function notifyEnabled() {
 		return 'Notification' in window && Notification.permission === 'granted' && storage('get', NOTIFY_KEY) === '1';
+	}
+
+	/* ---------- Web Push ---------- */
+
+	function pushKey() {
+		return document.body.getAttribute('data-push-key') || '';
+	}
+
+	/** Push geht nur mit Service Worker, PushManager, HTTPS und eingerichtetem Schluessel. */
+	function pushSupported() {
+		return !!pushKey() && 'serviceWorker' in navigator && 'PushManager' in window && window.isSecureContext;
+	}
+
+	function pushActive() {
+		return pushSupported() && storage('get', PUSH_KEY) === '1' && notifyEnabled();
+	}
+
+	function isIosOhneApp() {
+		var ua = navigator.userAgent || '';
+		var ios = /iP(hone|ad|od)/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+		var standalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
+		return ios && !standalone;
+	}
+
+	function keyBytes(b64url) {
+		var pad = '='.repeat((4 - b64url.length % 4) % 4);
+		var raw = window.atob((b64url + pad).replace(/-/g, '+').replace(/_/g, '/'));
+		var out = new Uint8Array(raw.length);
+		for (var i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
+		return out;
+	}
+
+	function pushPost(body) {
+		return fetch(root() + 'api/subscribe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+			.then(function (res) { if (!res.ok) throw new Error('subscribe ' + res.status); return res.json(); });
+	}
+
+	/** Service Worker registrieren, beim Push-Dienst abonnieren, Abo dem Server melden. */
+	function pushSubscribe() {
+		if (!pushSupported()) return Promise.reject(new Error('kein Push'));
+		return navigator.serviceWorker.register(root() + 'sw.js').then(function (reg) {
+			return navigator.serviceWorker.ready.then(function () { return reg.pushManager.getSubscription(); }).then(function (sub) {
+				return sub || reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(pushKey()) });
+			});
+		}).then(function (sub) {
+			return pushPost({ action: 'subscribe', subscription: sub.toJSON(), heimat: heimatState.id, zeit: notifyZeit() });
+		}).then(function () {
+			storage('set', PUSH_KEY, '1');
+		});
+	}
+
+	function pushUnsubscribe() {
+		storage('set', PUSH_KEY, '0');
+		if (!('serviceWorker' in navigator)) return Promise.resolve();
+		return navigator.serviceWorker.getRegistration(root() + 'sw.js').then(function (reg) {
+			return reg ? reg.pushManager.getSubscription() : null;
+		}).then(function (sub) {
+			if (!sub) return;
+			return pushPost({ action: 'unsubscribe', endpoint: sub.endpoint }).catch(function () { /* egal */ }).then(function () { return sub.unsubscribe(); });
+		}).catch(function () { /* egal */ });
+	}
+
+	/** Heimat oder Zeitregel geaendert: Abo beim Server nachziehen. */
+	function pushSync() {
+		if (!pushActive()) return;
+		pushSubscribe().catch(function () { /* beim naechsten Mal */ });
 	}
 
 	function notifyZeit() {
@@ -747,7 +815,7 @@
 		fresh.forEach(function (ev) { list[ev.id] = Date.now(); });
 		if (fresh.length) storage('set', SEEN_KEY, JSON.stringify(list));
 		if (!notifyPrimed) { notifyPrimed = true; return; }
-		if (!notifyEnabled() || !notifyAllowedNow()) return;
+		if (!notifyEnabled() || !notifyAllowedNow() || pushActive()) return;
 		fresh.slice(0, 3).forEach(function (ev) {
 			try {
 				var n = new Notification(ev.title, { body: ev.body, icon: root() + 'favicon.svg', tag: ev.id, lang: 'de' });
@@ -771,6 +839,16 @@
 			if (hint) { hint.textContent = 'Im Browser blockiert. Erlaube Benachrichtigungen für diese Seite in den Einstellungen.'; hint.hidden = false; }
 		} else if (hint) {
 			hint.hidden = true;
+		}
+		var pushHint = document.getElementById('notify-push-hint');
+		if (pushHint) {
+			var ph = '';
+			if (on && pushActive()) ph = 'Kommt auch bei geschlossener Seite aufs Gerät.';
+			else if (on && pushSupported()) ph = 'Meldungen nur, solange die Seite offen ist.';
+			else if (isIosOhneApp()) ph = 'Auf dem iPhone: Seite über „Teilen“ zum Home-Bildschirm hinzufügen und von dort öffnen, dann kommen Meldungen auch bei geschlossener App.';
+			else if (!pushSupported()) ph = 'Dieser Browser meldet nur, solange die Seite offen ist.';
+			pushHint.textContent = ph;
+			pushHint.hidden = ph === '';
 		}
 		if (box) box.checked = on;
 		Array.prototype.forEach.call(document.querySelectorAll('input[name="notify-zeit"]'), function (r) { r.checked = r.value === notifyZeit(); });
@@ -799,21 +877,30 @@
 		if (box) box.addEventListener('change', function () {
 			if (!box.checked) {
 				storage('set', NOTIFY_KEY, '0');
+				pushUnsubscribe().then(renderNotifyButton);
 				renderNotifyButton();
 				return;
 			}
 			Notification.requestPermission().then(function (perm) {
-				if (perm === 'granted') {
-					storage('set', NOTIFY_KEY, '1');
-					try { new Notification('Nordbahn Monitor', { body: 'Du bekommst jetzt eine Meldung bei neuen Zugausfällen und Störungen.', icon: root() + 'favicon.svg', lang: 'de' }); } catch (e) { /* egal */ }
-					track('Benachrichtigung an');
-				}
-				renderNotifyButton();
+				if (perm !== 'granted') { renderNotifyButton(); return; }
+				storage('set', NOTIFY_KEY, '1');
+				track('Benachrichtigung an');
+				var done = function () {
+					try {
+						var body = pushActive()
+							? 'Du bekommst jetzt eine Meldung bei neuen Zugausfällen und Störungen, auch wenn die Seite zu ist.'
+							: 'Du bekommst jetzt eine Meldung bei neuen Zugausfällen und Störungen, solange die Seite offen ist.';
+						new Notification('Nordbahn Monitor', { body: body, icon: root() + 'favicon.svg', lang: 'de' });
+					} catch (e) { /* egal */ }
+					renderNotifyButton();
+				};
+				if (pushSupported()) pushSubscribe().then(done, function () { storage('set', PUSH_KEY, '0'); done(); });
+				else done();
 			});
 		});
 		Array.prototype.forEach.call(document.querySelectorAll('input[name="notify-zeit"]'), function (r) {
 			r.addEventListener('change', function () {
-				if (r.checked) { storage('set', NOTIFY_ZEIT_KEY, r.value); renderNotifyButton(); }
+				if (r.checked) { storage('set', NOTIFY_ZEIT_KEY, r.value); renderNotifyButton(); pushSync(); }
 			});
 		});
 	}

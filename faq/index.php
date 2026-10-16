@@ -23,7 +23,7 @@ $faq = [
     ['Was bedeuten „ab Hbf“, „ab Dammtor“ und „ab Altona“?',
      'Züge Richtung Norden starten am Hamburg Hbf und halten drei Minuten später am Dammtor; die Zeile zeigt beides. Fällt ein Zug am Hbf aus, fährt er oft stattdessen ab Hamburg-Altona. Das steht als Hinweis am Ausfall und als eigene, orange markierte Zeile.'],
     ['Kann ich mich bei Zugausfällen benachrichtigen lassen?',
-     'Ja, über die Glocke oben rechts, wahlweise nur zu Pendelzeiten. Die Meldung kommt, solange die Seite geöffnet ist. Unabhängig davon gibt es die Telegram-Kanäle „Nordbahn Eilmeldungen“ und „Prisdorf Pendler“.'],
+     'Ja, über die Glocke oben rechts, wahlweise nur zu Pendelzeiten. Gemeldet werden Zugausfälle am eigenen Bahnhof, neue und aufgehobene Störungen sowie Eilmeldungen, per Web Push auch bei geschlossener Seite. Auf dem iPhone geht das nur, wenn die Seite über „Teilen“ zum Home-Bildschirm hinzugefügt und von dort geöffnet wird. Unabhängig davon gibt es die Telegram-Kanäle „Nordbahn Eilmeldungen“ und „Prisdorf Pendler“.'],
     ['Kann ich die Seite als App nutzen?',
      'Ja. Auf dem iPhone über Teilen und „Zum Home-Bildschirm“, auf Android über „App installieren“ im Browsermenü. Die Seite startet dann im Vollbild und aktualisiert sich selbst.'],
     ['Ist das eine offizielle Seite der Nordbahn?',

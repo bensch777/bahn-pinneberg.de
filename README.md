@@ -16,6 +16,8 @@ Das Wurzelverzeichnis des Repos ist das Web-Root. Reines PHP ohne Framework, kei
 | `api/push.php` | Nimmt alle 2 Minuten das Datenpaket aus n8n an (Token-geschützt) |
 | `api/data.php` | Liefert das letzte Paket an den Browser |
 | `api/revision.php` | Holt die aktuelle Revision von strecken-info.de für n8n |
+| `api/subscribe.php`, `api/notify.php`, `api/webpush.php` | Web Push: Abos annehmen, Ereignisse erkennen, verschlüsselt versenden (VAPID, aes128gcm, ohne Fremdpakete) |
+| `sw.js` | Service Worker, zeigt Push-Nachrichten an |
 | `api/store.php`, `api/render.php` | Gemeinsame Funktionen, Konfiguration, Bahnhofsliste |
 | `faq/`, `changelog/` | Eigene Seiten, nur aus dem Footer verlinkt |
 | `cache/` | Daten auf dem Server (nicht im Repo, nicht im Deploy) |
@@ -30,10 +32,15 @@ Die Daten kommen aus zwei n8n-Workflows: „Nordbahn Dashboard Push“ sammelt S
 - `NORDBAHN_PUSH_TOKEN`: muss mit dem Token in den n8n-Workflows übereinstimmen
 - `NORDBAHN_SITE_URL`: öffentliche Adresse, Grundlage für Canonical, Open Graph, Sitemap und robots.txt
 - `NORDBAHN_PLAUSIBLE_JS`: Script-URL der Plausible-Site, leer für kein Analytics
+- `NORDBAHN_VAPID_PUBLIC`, `NORDBAHN_VAPID_PRIVATE`, `NORDBAHN_VAPID_SUBJECT`: Schlüsselpaar für Web Push, erzeugen mit `php dev/vapid.php`; ohne Schlüssel gibt es nur Benachrichtigungen bei geöffnetem Tab
 - `NORDBAHN_GOOGLE_VERIFICATION`, `NORDBAHN_BING_VERIFICATION`: Verifizierungs-Codes für Search Console und Bing Webmaster Tools
 - `NORDBAHN_IMPRESSUM`: optional, überschreibt die Impressumsangaben Feld für Feld (`name`, `zusatz`, `strasse`, `ort`, `land`, `email`, `hoster`)
 
 `cache/` muss für PHP beschreibbar sein; der Ordner wird beim ersten Push angelegt.
+
+## Web Push
+
+Wer Benachrichtigungen einschaltet, bekommt sie auch bei geschlossener Seite: der Browser registriert `sw.js`, abonniert beim Push-Dienst seines Herstellers und meldet das Abo an `api/subscribe` (Endpunkt, Schlüssel, Heimatbahnhof, Zeitregel). Der Versand hängt am n8n-Push: `api/push.php` antwortet n8n und ruft danach `nb_push_run()` auf, das neue Störungen (sobald der Pendler-Text da ist, spätestens nach sechs Minuten), aufgehobene Störungen, neue Eilmeldungen (ohne stumme) und Zugausfälle am Heimatbahnhof der Abonnenten erkennt und verschlüsselt verschickt. Abos mit 404/410 werden gelöscht. Auf dem iPhone funktioniert Push nur, wenn die Seite zum Home-Bildschirm hinzugefügt wurde.
 
 ## Lokal entwickeln
 

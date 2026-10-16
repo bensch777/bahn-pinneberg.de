@@ -22,6 +22,14 @@ return [
     // Script-URL der Plausible-Site fuer diese Domain. Leer: kein Analytics.
     'NORDBAHN_PLAUSIBLE_JS' => '',
 
+    // Web Push: VAPID-Schluesselpaar, einmal erzeugen mit  php dev/vapid.php
+    // und beide Werte hier eintragen. Ohne privaten Schluessel ist Web Push aus,
+    // die Seite meldet dann nur bei geoeffnetem Tab. SUBJECT ist die Kontakt-
+    // adresse fuer die Push-Dienste (mailto:...).
+    'NORDBAHN_VAPID_PUBLIC' => '',
+    'NORDBAHN_VAPID_PRIVATE' => '',
+    'NORDBAHN_VAPID_SUBJECT' => 'mailto:hallo@bahn-pinneberg.de',
+
     // Verifizierungs-Codes fuer Google Search Console und Bing Webmaster Tools
     // (nur der content-Wert des Meta-Tags). Leer: kein Tag.
     'NORDBAHN_GOOGLE_VERIFICATION' => '',

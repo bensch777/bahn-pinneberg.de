@@ -25,6 +25,7 @@
 require __DIR__ . '/api/store.php';
 require __DIR__ . '/api/render.php';
 require __DIR__ . '/inc/security.php';
+require __DIR__ . '/api/notify.php';
 nb_send_security_headers();
 
 define('SITE_URL', nordbahn_site_url());
@@ -136,7 +137,7 @@ $jsonLd = [
 <script type="application/ld+json"><?= json_encode($jsonLd, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) ?></script>
 <?php require __DIR__ . '/inc/analytics.php'; ?>
 </head>
-<body>
+<body data-push-key="<?= nb_e(nb_push_public_key()) ?>">
 
 <header class="site-head">
 	<div class="wrap site-head__row">
@@ -154,6 +155,7 @@ $jsonLd = [
 				<div class="menu" id="notify-menu" hidden>
 					<label class="menu__row"><input type="checkbox" id="notify-on"> <span>Bei Ausf&auml;llen und St&ouml;rungen benachrichtigen</span></label>
 					<p class="menu__hint" id="notify-hint" hidden></p>
+					<p class="menu__hint" id="notify-push-hint" hidden></p>
 					<fieldset class="menu__group">
 						<legend>Wann</legend>
 						<label class="menu__row"><input type="radio" name="notify-zeit" value="pendel"> <span>Nur zu Pendelzeiten<small>Mo&ndash;Fr, 6&ndash;9 und 16&ndash;19 Uhr</small></span></label>

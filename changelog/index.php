@@ -14,6 +14,9 @@ $root = '../';
 $assetVersion = (int) @filemtime(__DIR__ . '/../dashboard.css');
 
 $changelog = [
+    ['2026-10-16', [
+        ['Benachrichtigungen auch bei geschlossener Seite', 'Web Push mit Service Worker: Wer die Glocke einschaltet, bekommt neue Störungen (mit Pendler-Text), Entwarnungen, neue Eilmeldungen und Zugausfälle am eigenen Bahnhof aufs Gerät, auch wenn die Seite zu ist. Pendelzeiten gelten weiter. Auf dem iPhone zuerst zum Home-Bildschirm hinzufügen.'],
+    ]],
     ['2026-10-15', [
         ['Störungsstatistik', 'Neue Seite mit Kennzahlen aus dem Logbuch: Störungen und Gesamtdauer der letzten 30 Tage, Verlauf über acht Kalenderwochen und die häufigsten Ursachen. Verlinkt im Footer.'],
         ['Impressum und Datenschutz', 'Eigene Seite mit Anbieterkennzeichnung und Datenschutzerklärung (Hosting, Plausible, lokale Einstellungen, Benachrichtigungen). Die Kontaktangaben kommen aus der Konfiguration.'],
