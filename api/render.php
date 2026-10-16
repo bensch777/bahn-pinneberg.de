@@ -61,6 +61,48 @@ function nb_ts($iso)
     return $ts === false ? null : $ts;
 }
 
+/** "Heute", "Gestern" oder "13.10." in deutscher Zeit, bezogen auf $now. */
+function nb_fmt_tag($ts, $now = null, $klein = false)
+{
+    $tz = new DateTimeZone('Europe/Berlin');
+    $tag = (new DateTime('@' . (int) $ts))->setTimezone($tz)->format('Y-m-d');
+    $heute = (new DateTime('@' . (int) ($now ?? time())))->setTimezone($tz);
+    if ($tag === $heute->format('Y-m-d')) {
+        return $klein ? 'heute' : 'Heute';
+    }
+    if ($tag === $heute->modify('-1 day')->format('Y-m-d')) {
+        return $klein ? 'gestern' : 'Gestern';
+    }
+
+    return (new DateTime('@' . (int) $ts))->setTimezone($tz)->format('d.m.');
+}
+
+function nb_ist_heute($ts, $now = null)
+{
+    return nb_fmt_tag($ts, $now) === 'Heute';
+}
+
+/** "Heute, 08:50 Uhr" bzw. "13.10., 18:14 Uhr" (wie fmtWann im Script). */
+function nb_fmt_wann($ts, $now = null, $klein = false)
+{
+    $uhr = (new DateTime('@' . (int) $ts))->setTimezone(new DateTimeZone('Europe/Berlin'))->format('H:i');
+
+    return nb_fmt_tag($ts, $now, $klein) . ', ' . $uhr . ' Uhr';
+}
+
+/** Ende einer Stoerung: am selben Tag nur die Uhrzeit, sonst mit Tag. */
+function nb_fmt_bis($start, $ende, $now = null)
+{
+    $tz = new DateTimeZone('Europe/Berlin');
+    $a = (new DateTime('@' . (int) $start))->setTimezone($tz);
+    $b = (new DateTime('@' . (int) $ende))->setTimezone($tz);
+    if ($a->format('Y-m-d') === $b->format('Y-m-d')) {
+        return 'bis ' . $b->format('H:i') . ' Uhr';
+    }
+
+    return 'bis ' . nb_fmt_wann($ende, $now, true);
+}
+
 /** Eilmeldungen aus Historie und Live-Liste zusammengefuehrt, aelteste zuerst (wie prepare im Script). */
 function nb_items(array $data)
 {
@@ -74,7 +116,7 @@ function nb_items(array $data)
     $seen = [];
     // Der Pendler-Titel der KI (aus der Historie) ersetzt den Nordbahn-Titel in der
     // Anzeige; der Originaltitel bleibt als 'original' fuer den Tooltip erhalten.
-    $push = function ($id, $title, $iso, $l, $kiTitel = '') use (&$items, &$seen) {
+    $push = function ($id, $title, $iso, $l, $kiTitel = '', $kiText = '') use (&$items, &$seen) {
         $ts = nb_ts($iso);
         if (!$id || $ts === null) {
             return;
@@ -85,6 +127,7 @@ function nb_items(array $data)
             'id'       => $id,
             'title'    => $kiTitel !== '' ? $kiTitel : (string) $title,
             'original' => (string) $title,
+            'text'     => trim((string) $kiText),
             'ts'       => $ts,
             'stand'    => $l && !empty($l['stand']) ? nb_ts($l['stand']) : null,
             'link'     => $l && !empty($l['link']) ? $l['link'] : '',
@@ -92,7 +135,7 @@ function nb_items(array $data)
     };
     foreach ($data['eilmeldungen'] ?? [] as $e) {
         if ($e) {
-            $push($e['id'] ?? '', $e['title'] ?? '', $e['seen_at'] ?? '', $live[$e['id'] ?? ''] ?? null, $e['ki_titel'] ?? '');
+            $push($e['id'] ?? '', $e['title'] ?? '', $e['seen_at'] ?? '', $live[$e['id'] ?? ''] ?? null, $e['ki_titel'] ?? '', $e['ki_text'] ?? '');
         }
     }
     foreach ($data['eilmeldungen_live'] ?? [] as $e) {
@@ -469,9 +512,10 @@ function nb_dauer($sekunden)
 }
 
 /** Liste der aufgehobenen Stoerungen fuer die Startseite (wie renderVerlauf im Script). */
-function nb_render_verlauf(array $items, $limit, $maxAgeDays)
+function nb_render_verlauf(array $items, $limit, $maxAgeDays, $now = null)
 {
-    $cutoff = $maxAgeDays ? time() - $maxAgeDays * 86400 : 0;
+    $now = $now ?? time();
+    $cutoff = $maxAgeDays ? $now - $maxAgeDays * 86400 : 0;
     $list = array_slice(array_values(array_filter($items, function ($it) use ($cutoff) {
         return $it['ende'] >= $cutoff;
     })), 0, $limit);
@@ -480,18 +524,20 @@ function nb_render_verlauf(array $items, $limit, $maxAgeDays)
     }
     $html = '';
     foreach ($list as $it) {
-        $html .= '<li><div class="feed__time">' . nb_e(nb_fmt_datetime(date('c', $it['start']))) . '</div><div>'
+        $html .= '<li' . (nb_ist_heute($it['ende'], $now) ? ' class="is-heute"' : '') . '>'
+            . '<div class="feed__time">' . nb_e(nb_fmt_wann($it['start'], $now)) . '</div><div>'
             . '<p class="feed__title">' . nb_e($it['titel']) . '</p>'
-            . '<p class="feed__meta">bis ' . nb_e(nb_fmt_datetime(date('c', $it['ende']))) . ' · ' . nb_e(nb_dauer($it['ende'] - $it['start']))
+            . '<p class="feed__meta">' . nb_e(nb_fmt_bis($it['start'], $it['ende'], $now)) . ' · ' . nb_e(nb_dauer($it['ende'] - $it['start']))
             . ($it['text'] !== '' ? '<br>' . nb_e($it['text']) : '') . '</p></div></li>';
     }
 
     return $html;
 }
 
-function nb_render_feed(array $items, $limit, $maxAgeDays)
+function nb_render_feed(array $items, $limit, $maxAgeDays, $now = null)
 {
-    $cutoff = $maxAgeDays ? time() - $maxAgeDays * 86400 : 0;
+    $now = $now ?? time();
+    $cutoff = $maxAgeDays ? $now - $maxAgeDays * 86400 : 0;
     $list = array_values(array_filter($items, function ($it) use ($cutoff) {
         return ($it['stand'] ?? $it['ts']) >= $cutoff;
     }));
@@ -504,11 +550,16 @@ function nb_render_feed(array $items, $limit, $maxAgeDays)
         $ts = $it['stand'] ?? $it['ts'];
         $title = $it['title'] !== '' ? $it['title'] : $it['id'];
         $tooltip = !empty($it['original']) && $it['original'] !== $it['title'] ? ' title="Nordbahn: ' . nb_e($it['original']) . '"' : '';
-        $html .= '<li><div class="feed__time">' . nb_e(nb_fmt_datetime(date('c', $ts))) . '</div><p class="feed__title"' . $tooltip . '>';
+        $html .= '<li' . (nb_ist_heute($ts, $now) ? ' class="is-heute"' : '') . '>'
+            . '<div class="feed__time">' . nb_e(nb_fmt_wann($ts, $now)) . '</div><div><p class="feed__title"' . $tooltip . '>';
         $html .= $it['link']
             ? '<a href="' . nb_e($it['link']) . '" rel="noopener nofollow">' . nb_e($title) . '</a>'
             : nb_e($title);
-        $html .= '</p></li>';
+        $html .= '</p>';
+        if (($it['text'] ?? '') !== '') {
+            $html .= '<p class="feed__meta">' . nb_e($it['text']) . '</p>';
+        }
+        $html .= '</div></li>';
     }
 
     return $html;

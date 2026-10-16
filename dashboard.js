@@ -59,6 +59,41 @@
 		return dt.toLocaleString('de-DE', opts).replace(', ', ', ') + ' Uhr';
 	}
 
+	/** "YYYY-MM-DD" in deutscher Zeit */
+	function tagKey(ms) {
+		return new Date(ms).toLocaleDateString('en-CA', { timeZone: TZ });
+	}
+
+	/** "Heute", "Gestern" oder "13.10." (wie nb_fmt_tag) */
+	function fmtTag(ms, klein) {
+		var now = Date.now();
+		var heute = tagKey(now);
+		var t = tagKey(ms);
+		if (t === heute) return klein ? 'heute' : 'Heute';
+		var p = heute.split('-');
+		var gestern = new Date(Date.UTC(+p[0], +p[1] - 1, +p[2] - 1)).toISOString().slice(0, 10);
+		if (t === gestern) return klein ? 'gestern' : 'Gestern';
+		return new Date(ms).toLocaleDateString('de-DE', { timeZone: TZ, day: '2-digit', month: '2-digit' });
+	}
+
+	function istHeute(ms) {
+		return tagKey(ms) === tagKey(Date.now());
+	}
+
+	function fmtUhr(ms) {
+		return new Date(ms).toLocaleTimeString('de-DE', { timeZone: TZ, hour: '2-digit', minute: '2-digit' }) + ' Uhr';
+	}
+
+	/** "Heute, 08:50 Uhr" bzw. "13.10., 18:14 Uhr" (wie nb_fmt_wann) */
+	function fmtWann(ms, klein) {
+		return fmtTag(ms, klein) + ', ' + fmtUhr(ms);
+	}
+
+	/** Ende einer Stoerung: am selben Tag nur die Uhrzeit (wie nb_fmt_bis) */
+	function fmtBis(start, ende) {
+		return 'bis ' + (tagKey(start) === tagKey(ende) ? fmtUhr(ende) : fmtWann(ende, true));
+	}
+
 	function relTime(ms) {
 		var diff = Date.now() - ms;
 		if (diff < 0) diff = 0;
@@ -84,18 +119,18 @@
 		var seen = {};
 		var items = [];
 		// Der Pendler-Titel der KI (aus der Historie) ersetzt den Nordbahn-Titel in der Anzeige
-		function push(id, title, iso, live, kiTitel) {
+		function push(id, title, iso, live, kiTitel, kiText) {
 			var ms = Date.parse(iso || '');
 			if (!id || isNaN(ms)) return;
 			seen[id] = true;
 			kiTitel = (kiTitel || '').trim();
 			items.push({
-				id: id, title: kiTitel || title || '', original: title || '', ms: ms,
+				id: id, title: kiTitel || title || '', original: title || '', text: (kiText || '').trim(), ms: ms,
 				stand: live && live.stand ? Date.parse(live.stand) : NaN,
 				link: live && live.link ? live.link : ''
 			});
 		}
-		(data.eilmeldungen || []).forEach(function (e) { if (e) push(e.id, e.title, e.seen_at, liveById[e.id], e.ki_titel); });
+		(data.eilmeldungen || []).forEach(function (e) { if (e) push(e.id, e.title, e.seen_at, liveById[e.id], e.ki_titel, e.ki_text); });
 		// Meldungen, die auf der Seite stehen, aber noch nicht in der Historie sind
 		(data.eilmeldungen_live || []).forEach(function (e) { if (e && !seen[e.id]) push(e.id, e.title, e.stand, e); });
 		items.sort(function (a, b) { return a.ms - b.ms; });
@@ -329,14 +364,16 @@
 			return;
 		}
 		items.forEach(function (it) {
-			var hasStand = !isNaN(it.stand);
-			var time = el('div', { class: 'feed__time' }, [fmtDateTime(new Date(hasStand ? it.stand : it.ms).toISOString())]);
+			var ms = isNaN(it.stand) ? it.ms : it.stand;
+			var time = el('div', { class: 'feed__time' }, [fmtWann(ms)]);
 			var title = it.link
 				? el('a', { href: it.link, rel: 'noopener nofollow', text: it.title || it.id })
 				: document.createTextNode(it.title || it.id);
 			var p = el('p', { class: 'feed__title' }, [title]);
 			if (it.original && it.original !== it.title) p.setAttribute('title', 'Nordbahn: ' + it.original);
-			ol.appendChild(el('li', {}, [time, p]));
+			var body = [p];
+			if (it.text) body.push(el('p', { class: 'feed__meta', text: it.text }));
+			ol.appendChild(el('li', istHeute(ms) ? { class: 'is-heute' } : {}, [time, el('div', {}, body)]));
 		});
 	}
 
@@ -376,10 +413,10 @@
 			return;
 		}
 		items.forEach(function (it) {
-			var meta = el('p', { class: 'feed__meta', text: 'bis ' + fmtDateTime(new Date(it.ende).toISOString()) + ' · ' + fmtDauer(it.ende - it.start) });
+			var meta = el('p', { class: 'feed__meta', text: fmtBis(it.start, it.ende) + ' · ' + fmtDauer(it.ende - it.start) });
 			if (it.text) { meta.appendChild(el('br')); meta.appendChild(document.createTextNode(it.text)); }
-			ol.appendChild(el('li', {}, [
-				el('div', { class: 'feed__time' }, [fmtDateTime(new Date(it.start).toISOString())]),
+			ol.appendChild(el('li', istHeute(it.ende) ? { class: 'is-heute' } : {}, [
+				el('div', { class: 'feed__time' }, [fmtWann(it.start)]),
 				el('div', {}, [el('p', { class: 'feed__title', text: it.titel }), meta])
 			]));
 		});

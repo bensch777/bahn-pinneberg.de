@@ -73,12 +73,12 @@ function test_verlauf_render_mit_alter_und_limit()
 {
     $items = nb_verlauf_items(t_verlauf_data());
     $html = nb_render_verlauf($items, 6, 7);
-    t_eq(2, substr_count($html, '<li>'), 'zehn Tage alte Stoerung faellt raus');
+    t_eq(2, substr_count($html, '<li'), 'zehn Tage alte Stoerung faellt raus');
     t_contains('Verspätungen in Elmshorn', $html, 'Titel');
     t_contains('Ein Signal war kaputt.', $html, 'Pendler-Text');
     t_contains('2 Std.', $html, 'Dauer');
     t_contains('1 Std. 20 Min.', $html, 'Dauer mit Minuten');
-    t_eq(1, substr_count(nb_render_verlauf($items, 1, 7), '<li>'), 'Limit');
+    t_eq(1, substr_count(nb_render_verlauf($items, 1, 7), '<li'), 'Limit');
     t_contains('Keine aufgehobene Störung in den letzten 7 Tagen.', nb_render_verlauf([], 6, 7), 'leer');
     t_contains('Noch keine Störung erfasst.', nb_render_verlauf([], 6, 0), 'leer ohne Altersgrenze');
 }
@@ -118,6 +118,48 @@ function test_eilmeldung_ki_titel_in_der_liste()
     t_contains('>RB60 um 16:38 ab Itzehoe fällt aus</a>', $html, 'KI-Titel verlinkt');
     $clean = nordbahn_clean_payload(['eilmeldungen' => [['id' => 'em-1', 'title' => 'T', 'seen_at' => '2026-10-15T08:00:00Z', 'ki_titel' => 'KI', 'ki_text' => 'Text']]]);
     t_eq('KI', $clean['eilmeldungen'][0]['ki_titel'], 'ki_titel ueberlebt die Bereinigung');
+}
+
+function test_feed_tag_heute_gestern()
+{
+    $now = strtotime('2026-10-16 10:00:00 Europe/Berlin');
+    t_eq('Heute', nb_fmt_tag(strtotime('2026-10-16 00:10:00 Europe/Berlin'), $now), 'kurz nach Mitternacht ist heute');
+    t_eq('Gestern', nb_fmt_tag(strtotime('2026-10-15 23:50:00 Europe/Berlin'), $now), 'kurz vor Mitternacht ist gestern');
+    t_eq('14.10.', nb_fmt_tag(strtotime('2026-10-14 12:00:00 Europe/Berlin'), $now), 'aelter mit Datum');
+    t_eq('Heute, 08:50 Uhr', nb_fmt_wann(strtotime('2026-10-16 08:50:00 Europe/Berlin'), $now), 'mit Uhrzeit');
+    t_eq('bis 07:47 Uhr', nb_fmt_bis(strtotime('2026-10-16 04:52:00 Europe/Berlin'), strtotime('2026-10-16 07:47:00 Europe/Berlin'), $now), 'Ende am selben Tag ohne Datum');
+    t_eq('bis heute, 01:10 Uhr', nb_fmt_bis(strtotime('2026-10-15 23:00:00 Europe/Berlin'), strtotime('2026-10-16 01:10:00 Europe/Berlin'), $now), 'Ende ueber Mitternacht mit Tag');
+    t_eq('bis 14.10., 00:32 Uhr', nb_fmt_bis(strtotime('2026-10-13 23:30:00 Europe/Berlin'), strtotime('2026-10-14 00:32:00 Europe/Berlin'), $now), 'alte Stoerung ueber Mitternacht mit Datum');
+    // DST-Wechsel: Tagesgrenze in Berlin, nicht UTC
+    $dst = strtotime('2026-03-29 00:30:00 Europe/Berlin');
+    t_eq('Gestern', nb_fmt_tag(strtotime('2026-03-28 23:30:00 Europe/Berlin'), $dst), 'gestern ueber den Zeitumstellungstag');
+}
+
+function test_feed_render_heute_und_ki_text()
+{
+    $now = strtotime('2026-10-16 10:00:00 Europe/Berlin');
+    $data = ['eilmeldungen' => [
+        ['id' => 'alt', 'title' => 'Zugausfall RB60', 'seen_at' => '2026-10-15T09:45:00Z'],
+        ['id' => 'neu', 'title' => 'Zugausfall RB60', 'seen_at' => '2026-10-16T06:50:00Z', 'ki_titel' => 'RB60 ab Altona: 12:22 Ausfall', 'ki_text' => 'Die RB60 um 12:22 ab Hamburg-Altona fällt wegen eines Stellwerkdefekts aus.'],
+    ]];
+    $items = nb_items($data);
+    t_eq('Die RB60 um 12:22 ab Hamburg-Altona fällt wegen eines Stellwerkdefekts aus.', $items[1]['text'], 'KI-Text im Item');
+    t_eq('', $items[0]['text'], 'ohne KI-Text leer');
+    $html = nb_render_feed($items, 6, 3, $now);
+    t_contains('<li class="is-heute"><div class="feed__time">Heute, 08:50 Uhr</div>', $html, 'heutiger Eintrag markiert');
+    t_contains('<li><div class="feed__time">Gestern, 11:45 Uhr</div>', $html, 'gestriger Eintrag ohne Markierung');
+    t_contains('<p class="feed__meta">Die RB60 um 12:22 ab Hamburg-Altona fällt wegen eines Stellwerkdefekts aus.</p>', $html, 'KI-Text unter dem Titel');
+    t_eq(1, substr_count($html, 'feed__meta'), 'kein Meta ohne KI-Text');
+    t_contains('Keine Eilmeldung in den letzten 3 Tagen.', nb_render_feed($items, 6, 3, $now + 5 * 86400), 'Altersgrenze mit now');
+
+    $verlauf = nb_verlauf_items(['stoerungen' => [], 'stoerungen_verlauf' => [
+        ['key' => 'A', 'titel' => 'Störungen in Eidelstedt', 'first_seen' => '2026-10-16T02:52:00Z', 'last_seen' => '2026-10-16T05:47:00Z'],
+        ['key' => 'B', 'titel' => 'Personenunfall', 'first_seen' => '2026-10-13T06:11:00Z', 'last_seen' => '2026-10-13T08:42:00Z'],
+    ]]);
+    $html = nb_render_verlauf($verlauf, 6, 7, $now);
+    t_contains('<li class="is-heute"><div class="feed__time">Heute, 04:52 Uhr</div>', $html, 'heute aufgehoben');
+    t_contains('bis 07:47 Uhr · 2 Std. 55 Min.', $html, 'Ende am selben Tag nur Uhrzeit');
+    t_contains('<li><div class="feed__time">13.10., 08:11 Uhr</div>', $html, 'alte Stoerung mit Datum');
 }
 
 /* ---------- Statistik ---------- */
