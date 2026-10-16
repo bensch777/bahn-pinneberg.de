@@ -520,7 +520,7 @@ function nb_render_verlauf(array $items, $limit, $maxAgeDays, $now = null)
         return $it['ende'] >= $cutoff;
     })), 0, $limit);
     if (!$list) {
-        return '<li><p class="feed__empty">' . ($maxAgeDays ? 'Keine aufgehobene Störung in den letzten ' . $maxAgeDays . ' Tagen.' : 'Noch keine Störung erfasst.') . '</p></li>';
+        return '<li><p class="feed__empty">' . ($maxAgeDays ? 'Keine aufgehobene Infrastrukturstörung in den letzten ' . $maxAgeDays . ' Tagen.' : 'Noch keine Infrastrukturstörung erfasst.') . '</p></li>';
     }
     $html = '';
     foreach ($list as $it) {

@@ -79,8 +79,8 @@ function test_verlauf_render_mit_alter_und_limit()
     t_contains('2 Std.', $html, 'Dauer');
     t_contains('1 Std. 20 Min.', $html, 'Dauer mit Minuten');
     t_eq(1, substr_count(nb_render_verlauf($items, 1, 7), '<li'), 'Limit');
-    t_contains('Keine aufgehobene Störung in den letzten 7 Tagen.', nb_render_verlauf([], 6, 7), 'leer');
-    t_contains('Noch keine Störung erfasst.', nb_render_verlauf([], 6, 0), 'leer ohne Altersgrenze');
+    t_contains('Keine aufgehobene Infrastrukturstörung in den letzten 7 Tagen.', nb_render_verlauf([], 6, 7), 'leer');
+    t_contains('Noch keine Infrastrukturstörung erfasst.', nb_render_verlauf([], 6, 0), 'leer ohne Altersgrenze');
 }
 
 function test_dauer_format()

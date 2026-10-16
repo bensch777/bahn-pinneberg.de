@@ -408,8 +408,8 @@
 		var items = verlaufItems(state.data).filter(function (it) { return it.ende >= cutoff; }).slice(0, limit);
 		if (!items.length) {
 			ol.appendChild(el('li', {}, [el('p', { class: 'feed__empty', text: maxAgeDays
-				? 'Keine aufgehobene Störung in den letzten ' + maxAgeDays + ' Tagen.'
-				: 'Noch keine Störung erfasst.' })]));
+				? 'Keine aufgehobene Infrastrukturstörung in den letzten ' + maxAgeDays + ' Tagen.'
+				: 'Noch keine Infrastrukturstörung erfasst.' })]));
 			return;
 		}
 		items.forEach(function (it) {

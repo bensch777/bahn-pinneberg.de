@@ -233,7 +233,7 @@ $jsonLd = [
 
 	<section id="verlauf" class="section" aria-labelledby="verlauf-h">
 		<div class="section__head">
-			<h2 id="verlauf-h" class="section__title">Letzte St&ouml;rungen</h2>
+			<h2 id="verlauf-h" class="section__title">Letzte Infrastrukturst&ouml;rungen</h2>
 		</div>
 		<ol class="feed card" id="verlauf-feed" data-limit="6" data-max-age-days="7">
 			<?= nb_render_verlauf(nb_verlauf_items($data), 6, 7) ?>
