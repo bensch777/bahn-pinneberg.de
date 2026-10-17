@@ -81,6 +81,8 @@ function test_verlauf_render_mit_alter_und_limit()
     t_eq(1, substr_count(nb_render_verlauf($items, 1, 7), '<li'), 'Limit');
     t_contains('Keine aufgehobene Infrastrukturstörung in den letzten 7 Tagen.', nb_render_verlauf([], 6, 7), 'leer');
     t_contains('Keine aufgehobene Infrastrukturstörung in den letzten 24 Stunden.', nb_render_verlauf([], 6, 1), 'leer, ein Tag');
+    t_contains('Keine Störung in den letzten 24 Stunden aufgehoben, eine läuft noch (siehe oben).', nb_render_verlauf([], 6, 1, null, 1), 'leer, aber eine aktive');
+    t_contains('Keine Störung in den letzten 24 Stunden aufgehoben, 2 laufen noch (siehe oben).', nb_render_verlauf([], 6, 1, null, 2), 'leer, zwei aktive');
     t_eq(2, substr_count(nb_render_verlauf($items, 6, 1), '<li'), 'ein Tag: C (vor 40 Min.) und B (vor 3 Std.) bleiben, ALT nicht');
     t_contains('Noch keine Infrastrukturstörung erfasst.', nb_render_verlauf([], 6, 0), 'leer ohne Altersgrenze');
 }

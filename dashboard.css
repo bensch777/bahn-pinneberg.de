@@ -284,7 +284,7 @@ button { font: inherit; color: inherit; }
 .prose p { margin: 0 0 10px; }
 .prose a { color: var(--series); }
 .section__note { color: var(--muted); font-size: 13.5px; margin: 8px 0 0; }
-.feed__empty { padding: 18px; color: var(--muted); margin: 0; }
+.feed__empty { padding: 18px; color: var(--muted); margin: 0; grid-column: 1 / -1; }
 
 /* FAQ */
 .faq { padding: 4px 18px; }

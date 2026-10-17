@@ -520,8 +520,19 @@ function nb_zeitraum_text($maxAgeDays)
     return (int) $maxAgeDays === 1 ? 'in den letzten 24 Stunden' : 'in den letzten ' . (int) $maxAgeDays . ' Tagen';
 }
 
+/** Leer-Text der Stoerungsliste; nennt laufende Stoerungen, damit "keine" nicht nach "alles gut" klingt (wie verlaufLeerText im Script). */
+function nb_verlauf_leer_text($maxAgeDays, $aktiv = 0)
+{
+    if ($aktiv > 0) {
+        return ($maxAgeDays ? 'Keine Störung ' . nb_zeitraum_text($maxAgeDays) . ' aufgehoben, ' : 'Noch keine Störung aufgehoben, ')
+            . ($aktiv === 1 ? 'eine läuft noch' : $aktiv . ' laufen noch') . ' (siehe oben).';
+    }
+
+    return $maxAgeDays ? 'Keine aufgehobene Infrastrukturstörung ' . nb_zeitraum_text($maxAgeDays) . '.' : 'Noch keine Infrastrukturstörung erfasst.';
+}
+
 /** Liste der aufgehobenen Stoerungen fuer die Startseite (wie renderVerlauf im Script). */
-function nb_render_verlauf(array $items, $limit, $maxAgeDays, $now = null)
+function nb_render_verlauf(array $items, $limit, $maxAgeDays, $now = null, $aktiv = 0)
 {
     $now = $now ?? time();
     $cutoff = $maxAgeDays ? $now - $maxAgeDays * 86400 : 0;
@@ -529,7 +540,7 @@ function nb_render_verlauf(array $items, $limit, $maxAgeDays, $now = null)
         return $it['ende'] >= $cutoff;
     })), 0, $limit);
     if (!$list) {
-        return '<li><p class="feed__empty">' . ($maxAgeDays ? 'Keine aufgehobene Infrastrukturstörung ' . nb_zeitraum_text($maxAgeDays) . '.' : 'Noch keine Infrastrukturstörung erfasst.') . '</p></li>';
+        return '<li><p class="feed__empty">' . nb_e(nb_verlauf_leer_text($maxAgeDays, $aktiv)) . '</p></li>';
     }
     $html = '';
     foreach ($list as $it) {

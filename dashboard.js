@@ -404,6 +404,15 @@
 		return h + ' Std.' + (rest ? ' ' + rest + ' Min.' : '');
 	}
 
+	/** Leer-Text der Stoerungsliste; nennt laufende Stoerungen (wie nb_verlauf_leer_text) */
+	function verlaufLeerText(maxAgeDays, aktiv) {
+		if (aktiv > 0) {
+			return (maxAgeDays ? 'Keine Störung ' + zeitraumText(maxAgeDays) + ' aufgehoben, ' : 'Noch keine Störung aufgehoben, ')
+				+ (aktiv === 1 ? 'eine läuft noch' : aktiv + ' laufen noch') + ' (siehe oben).';
+		}
+		return maxAgeDays ? 'Keine aufgehobene Infrastrukturstörung ' + zeitraumText(maxAgeDays) + '.' : 'Noch keine Infrastrukturstörung erfasst.';
+	}
+
 	function renderVerlauf() {
 		var ol = document.getElementById('verlauf-feed');
 		if (!ol || !state.data) return;
@@ -413,9 +422,7 @@
 		var cutoff = maxAgeDays ? Date.now() - maxAgeDays * 86400000 : 0;
 		var items = verlaufItems(state.data).filter(function (it) { return it.ende >= cutoff; }).slice(0, limit);
 		if (!items.length) {
-			ol.appendChild(el('li', {}, [el('p', { class: 'feed__empty', text: maxAgeDays
-				? 'Keine aufgehobene Infrastrukturstörung ' + zeitraumText(maxAgeDays) + '.'
-				: 'Noch keine Infrastrukturstörung erfasst.' })]));
+			ol.appendChild(el('li', {}, [el('p', { class: 'feed__empty', text: verlaufLeerText(maxAgeDays, (state.data.stoerungen || []).length) })]));
 			return;
 		}
 		items.forEach(function (it) {

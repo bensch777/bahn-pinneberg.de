@@ -239,7 +239,7 @@ $jsonLd = [
 			<a class="section__more" href="<?= $root ?>stoerungen/">Alle St&ouml;rungen</a>
 		</div>
 		<ol class="feed card" id="verlauf-feed" data-limit="5" data-max-age-days="1">
-			<?= nb_render_verlauf(nb_verlauf_items($data), 5, 1) ?>
+			<?= nb_render_verlauf(nb_verlauf_items($data), 5, 1, null, count($data['stoerungen'] ?? [])) ?>
 
 		</ol>
 	</section>
