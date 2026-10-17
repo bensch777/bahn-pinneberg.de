@@ -634,12 +634,15 @@ function abf_parse($xml, DateTime $now, &$stand)
         // Prognose-Minute, der Rest kann ein Hinweis sein. Den Gleiswechsel zeigt
         // die Tafel ueber das Gleisfeld, nicht als Text.
         $prognose = abf_text($row, 'prognose');
+        $bus = abf_bool($row, 'sev') || abf_bool($row, 'istBus');
         $rest = $ausfall ? '' : trim(preg_replace('/^(pünktlich|punktlich|\+?\s*\d+\s*min\.?)\s*[,;.]?\s*/iu', '', $prognose));
-        if ($rest !== '' && !preg_match('/^heute\s+gleis/iu', $rest)) {
+        // Bei Bussen sagt die Prognose nur "Ersatzverkehr ist eingerichtet"; das steht
+        // deutlicher als eigenes Merkmal (bus) und Hinweis
+        if ($rest !== '' && !preg_match('/^heute\s+gleis/iu', $rest) && !($bus && preg_match('/ersatzverkehr/i', $rest))) {
             $hinweise[] = $rest;
         }
-        if ((abf_bool($row, 'sev') || abf_bool($row, 'istBus')) && !preg_grep('/ersatzverkehr/i', $hinweise)) {
-            $hinweise[] = 'Ersatzverkehr mit Bus';
+        if ($bus) {
+            $hinweise[] = 'Schienenersatzverkehr mit Bus';
         }
         if ($gleisNeu === '' && $wechsel === 'true') {
             $hinweise[] = 'Gleiswechsel';
@@ -666,6 +669,7 @@ function abf_parse($xml, DateTime $now, &$stand)
             'gleis'       => $gleisNeu !== '' ? $gleisNeu : $gleisPlan,
             'gleis_plan'  => $gleisNeu !== '' ? $gleisPlan : null,
             'ausfall'     => $ausfall,
+            'bus'         => $bus,
             'hinweis'     => implode('. ', array_unique(array_map(function ($h) { return rtrim($h, '. '); }, $hinweise))),
             'wagen'       => abf_bool($row, 'istZug') && $wagen > 0 ? $wagen : null,
             'ab'          => null,
@@ -867,6 +871,7 @@ function abf_build($fetch = 'abf_fetch', $heimat = NORDBAHN_HEIMAT_DEFAULT, ?Dat
                 'gleis'       => $row['gleis'],
                 'gleis_plan'  => $row['gleis_plan'],
                 'ausfall'     => $row['ausfall'],
+                'bus'         => !empty($row['bus']),
                 'hinweis'     => $row['hinweis'],
                 'wagen'       => $row['wagen'],
                 'ab'          => $row['ab'],

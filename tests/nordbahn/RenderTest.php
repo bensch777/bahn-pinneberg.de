@@ -289,6 +289,8 @@ function test_lage_markdown()
     t_contains('gemeldetes Ende heute, 09:00 Uhr überschritten, dauert an', $md, 'abgelaufen');
     t_contains('- 08:12 Uhr (+3 min): RB61 nach Hamburg Hbf. Gleis 2 statt 1. nur bis Pinneberg.', $md, 'Abfahrt mit Verspätung, Gleiswechsel, Teilausfall');
     t_contains('- 08:40 Uhr: RB71 nach Hamburg Hbf fällt aus. Kurzfristiger Personalausfall.', $md, 'Ausfall mit Hinweis');
+    $busMd = nb_md_zug(['zug' => '9', 'zeit' => '2026-10-16T08:50:00+02:00', 'verspaetung' => 0, 'linie' => 'RB61', 'ziel' => 'Hamburg Hbf', 'bus' => true, 'hinweis' => 'Schienenersatzverkehr mit Bus']);
+    t_eq('- 08:50 Uhr: Bus (Schienenersatzverkehr) RB61 nach Hamburg Hbf. Schienenersatzverkehr mit Bus.', $busMd, 'Bus in lage.md');
     t_contains('- 08:15 Uhr ab Hbf: RB61 nach Itzehoe. Gleis 12.', $md, 'Rueckrichtung ab Hbf');
     t_contains('- Heute, 08:50 Uhr: RB60 12:22 ab Altona fällt aus. Stellwerkdefekt. (https://www.nordbahn.de/x/)', $md, 'Eilmeldung');
     t_contains('- Gestern, 10:00 Uhr bis 11:30 Uhr (1 Std. 30 Min.): Weichenstörung', $md, 'aufgehobene Stoerung der letzten 24 Stunden');

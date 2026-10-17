@@ -522,8 +522,11 @@
 
 				var line = el('div', { class: 'dep__line' }, [d.linie]);
 				if (d.wagen) line.appendChild(el('small', { text: plural(d.wagen, 'Wagen', 'Wagen') }));
+				else if (d.bus) line.appendChild(el('small', { text: 'SEV' }));
 
 				var dest = el('div', { class: 'dep__dest', title: d.ziel }, []);
+				// Schienenersatzverkehr: der Bus faellt als Chip auf, nicht nur im Hinweistext
+				if (d.bus) { dest.appendChild(el('span', { class: 'dep__ab dep__ab--bus', text: 'Bus' })); dest.appendChild(document.createTextNode(' ')); }
 				// Jeder Hamburger Bahnhof hat seine Farbe: Hbf blau, Dammtor blau umrandet (gleicher Zug), Altona orange
 				function bahnhofClass(name) {
 					return /altona/i.test(name) ? ' dep__ab--altona' : /dammtor/i.test(name) ? ' dep__ab--dammtor' : /hbf/i.test(name) ? ' dep__ab--hbf' : '';
@@ -595,7 +598,7 @@
 					dest,
 					platform
 				]);
-				var sr = (d.ausfall ? 'Fällt aus: ' : late ? 'Verspätet um ' + d.verspaetung + ' Minuten: ' : '');
+				var sr = (d.ausfall ? 'Fällt aus: ' : late ? 'Verspätet um ' + d.verspaetung + ' Minuten: ' : '') + (d.bus ? 'Bus statt Zug: ' : '');
 				if (d.ersatz_fuer) sr = 'Ersatz für ' + fmtClock(d.ersatz_fuer.zeit) + ' ab ' + d.ersatz_fuer.ab + ': ';
 				if (sr) row.setAttribute('aria-label', sr + fmtClock(d.zeit) + ' ' + d.linie + ' nach ' + d.ziel + (d.ab ? ' ab ' + d.ab : '') + (d.gleis_plan ? ', heute Gleis ' + d.gleis + ' statt ' + d.gleis_plan : ''));
 				list.appendChild(row);

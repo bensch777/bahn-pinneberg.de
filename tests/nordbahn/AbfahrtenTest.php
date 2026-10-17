@@ -80,7 +80,7 @@ function test_ersatzverkehr_mit_bus_und_freitext()
     $r = t_build(t_standard([
         'APD' => t_tafel('Prisdorf', [['zeit' => '10:18', 'zug' => '81871', 'sev' => true, 'freitext' => 'Bus hält am ZOB']]),
     ]));
-    t_eq('Ersatzverkehr mit Bus. Bus hält am ZOB', t_zeile($r, 'hin', '81871')['hinweis'], 'Bus und Freitext');
+    t_eq('Schienenersatzverkehr mit Bus. Bus hält am ZOB', t_zeile($r, 'hin', '81871')['hinweis'], 'Bus und Freitext');
 }
 
 function test_vergangenes_verschwindet_ausfall_bleibt_fuenf_minuten()
@@ -233,7 +233,9 @@ function test_prisdorf_nachts_echte_tafel()
     t_eq(['81895', '35539', '81897'], t_zuege($r, 'hin'), 'Pinneberg-Zug, Bus 00:08 und RB71 00:17 nach Hamburg; Itzehoe und Elmshorn nicht');
     $bus = t_zeile($r, 'hin', '35539');
     t_eq('2026-10-18T00:08:54+02:00', $bus['zeit'], 'falsches Datum des Monitors korrigiert');
-    t_eq('Ersatzverkehr ist eingerichtet', $bus['hinweis'], 'Bus-Hinweis ohne Doppelung und Doppelpunkt');
+    t_eq('Schienenersatzverkehr mit Bus', $bus['hinweis'], 'Bus-Hinweis statt der Prognosefloskel');
+    t_eq(true, $bus['bus'], 'Bus-Merkmal gesetzt');
+    t_eq(false, t_zeile($r, 'hin', '81897')['bus'], 'Zug ohne Bus-Merkmal');
     t_eq(true, t_zeile($r, 'hin', '81895')['teil']['plan'], 'planmaessig nur bis Pinneberg');
     t_eq('2026-10-18T00:17:42+02:00', t_zeile($r, 'hin', '81897')['zeit'], 'RB71 00:17 am naechsten Tag');
 

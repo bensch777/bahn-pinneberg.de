@@ -378,6 +378,7 @@ button { font: inherit; color: inherit; }
 .dep__ab--aktiv { color: var(--series-2); border-color: var(--series-2); background: transparent; vertical-align: 2px; margin-left: 4px; }
 .dep__ab--teil { color: var(--ink); border-color: var(--warning); background: color-mix(in srgb, var(--warning) 22%, transparent); }
 .dep__ab--plan { color: var(--ink-2); border-color: var(--line); background: transparent; }
+.dep__ab--bus { color: #1a1a1a; background: var(--warning); border-color: var(--warning); }
 .dep--teil .dep__dot { background: var(--warning); }
 .dep--cancelled .dep__ab { opacity: 0.8; }
 .dep__platform { font-size: 12.5px; color: var(--muted); white-space: nowrap; text-align: right; }

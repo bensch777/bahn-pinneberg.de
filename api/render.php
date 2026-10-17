@@ -752,7 +752,7 @@ function nb_md_zug(array $d)
 {
     $linie = trim((string) ($d['linie'] ?? ''));
     $ziel = trim((string) ($d['ziel'] ?? ''));
-    $kopf = ($linie !== '' ? $linie . ' ' : '') . ($ziel !== '' ? 'nach ' . $ziel : '');
+    $kopf = (!empty($d['bus']) ? 'Bus (Schienenersatzverkehr) ' : '') . ($linie !== '' ? $linie . ' ' : '') . ($ziel !== '' ? 'nach ' . $ziel : '');
     $ab = !empty($d['ab']) ? ' ab ' . $d['ab'] : '';
     $teile = [];
     if (!empty($d['ausfall'])) {
