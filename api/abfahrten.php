@@ -539,8 +539,20 @@ function abf_time($zeitstempel, $zeitsek, DateTime $now)
         return null;
     }
     $dt = DateTime::createFromFormat('Y-m-d H:i:s', $date . ' ' . $time, new DateTimeZone('Europe/Berlin'));
+    if (!$dt instanceof DateTime) {
+        return null;
+    }
+    // Der Stationsmonitor traegt nach Mitternacht manchmal das falsche Datum (00:08 Uhr
+    // mit dem Datum von gestern). Die Tafel zeigt nur die naechsten Stunden, also liegt
+    // eine Zeit, die mehr als zwoelf Stunden daneben ist, am anderen Tag.
+    $diff = $dt->getTimestamp() - $now->getTimestamp();
+    if ($diff < -12 * 3600) {
+        $dt->modify('+1 day');
+    } elseif ($diff > 12 * 3600) {
+        $dt->modify('-1 day');
+    }
 
-    return $dt instanceof DateTime ? $dt : null;
+    return $dt;
 }
 
 /** Text eines Kindelements, getrimmt. */
@@ -594,7 +606,7 @@ function abf_parse($xml, DateTime $now, &$stand)
         if ($rest !== '' && !preg_match('/^heute\s+gleis/iu', $rest)) {
             $hinweise[] = $rest;
         }
-        if (abf_bool($row, 'sev') || abf_bool($row, 'istBus')) {
+        if ((abf_bool($row, 'sev') || abf_bool($row, 'istBus')) && !preg_grep('/ersatzverkehr/i', $hinweise)) {
             $hinweise[] = 'Ersatzverkehr mit Bus';
         }
         if ($gleisNeu === '' && $wechsel === 'true') {
@@ -622,7 +634,7 @@ function abf_parse($xml, DateTime $now, &$stand)
             'gleis'       => $gleisNeu !== '' ? $gleisNeu : $gleisPlan,
             'gleis_plan'  => $gleisNeu !== '' ? $gleisPlan : null,
             'ausfall'     => $ausfall,
-            'hinweis'     => implode('. ', array_unique($hinweise)),
+            'hinweis'     => implode('. ', array_unique(array_map(function ($h) { return rtrim($h, '. '); }, $hinweise))),
             'wagen'       => abf_bool($row, 'istZug') && $wagen > 0 ? $wagen : null,
             'ab'          => null,
             'ab_id'       => null,
@@ -656,9 +668,10 @@ function abf_build($fetch = 'abf_fetch', $heimat = NORDBAHN_HEIMAT_DEFAULT, ?Dat
             continue;
         }
         if (!in_array($row['ziel_id'], ABF_STADT_IDS, true) && stripos($row['ziel'], 'Hamburg') === false) {
-            // Endet laut Tafel schon unterwegs (z. B. Pinneberg): als Teilausfall zeigen,
-            // die Zugauskunft kann das spaeter praezisieren
-            $row['teil'] = ['art' => 'endet', 'id' => $row['ziel_id'], 'name' => $row['ziel'], 'zeit' => ''];
+            // Endet laut Tafel schon unterwegs (z. B. nachts planmaessig in Pinneberg, dann
+            // S-Bahn): als "nur bis" zeigen, aber nicht als Stoerung zaehlen ('plan'). Die
+            // Zugauskunft ersetzt das, wenn dort Halte entfallen.
+            $row['teil'] = ['art' => 'endet', 'id' => $row['ziel_id'], 'name' => $row['ziel'], 'zeit' => '', 'plan' => true];
         }
         $hin[] = $row;
     }

@@ -238,7 +238,7 @@ function nb_status_betrieb($abf)
             $total++;
             $rb60 = preg_match('/RB\s?60/i', $d['linie'] ?? '');
             $altona = !$rb60 && (stripos($d['ab'] ?? '', 'altona') !== false || stripos($d['ziel'] ?? '', 'altona') !== false || !empty($d['ersatz']));
-            if (!empty($d['teil'])) {
+            if (!empty($d['teil']) && empty($d['teil']['plan'])) {
                 $teil++;
                 $teilOrt = $d['teil']['name'] ?? '';
             } elseif (!empty($d['ausfall']) && empty($d['ersatz'])) {
@@ -768,7 +768,7 @@ function nb_md_zug(array $d)
             $teile[] = 'Gleis ' . $d['gleis'] . (!empty($d['gleis_plan']) && $d['gleis_plan'] !== $d['gleis'] ? ' statt ' . $d['gleis_plan'] : '');
         }
         if (!empty($d['teil']['art']) && !empty($d['teil']['name'])) {
-            $teile[] = $d['teil']['art'] === 'beginnt' ? 'erst ab ' . $d['teil']['name'] : 'nur bis ' . $d['teil']['name'];
+            $teile[] = ($d['teil']['art'] === 'beginnt' ? 'erst ab ' : 'nur bis ') . $d['teil']['name'] . (!empty($d['teil']['plan']) ? ' (planmäßig)' : '');
         }
     }
     if (!empty($d['hinweis'])) {

@@ -287,7 +287,7 @@
 				total++;
 				var rb60 = /RB\s?60/i.test(d.linie || '');
 				var altona = !rb60 && (/altona/i.test(d.ab || '') || /altona/i.test(d.ziel || '') || !!d.ersatz);
-				if (d.teil) { teil++; teilOrt = d.teil.name; }
+				if (d.teil && !d.teil.plan) { teil++; teilOrt = d.teil.name; }
 				else if (d.ausfall && !d.ersatz) ausfaelle++;
 				else if (altona) umleitungen++;
 				else if (d.verspaetung >= 10) { verspaetet++; maxDelay = Math.max(maxDelay, d.verspaetung); }
@@ -504,7 +504,7 @@
 			deps.slice(0, 6).forEach(function (d) {
 				var late = !d.ausfall && d.verspaetung >= 3;
 				var cls = 'dep' + (d.ausfall ? ' dep--cancelled' : late ? ' dep--late' : '');
-				if (d.teil && !d.ausfall) cls += ' dep--teil';
+				if (d.teil && !d.teil.plan && !d.ausfall) cls += ' dep--teil';
 				if (d.ersatz_fuer) cls += ' dep--ersatz';
 				if (!d.ausfall && !nextMarked) { cls += ' dep--next'; nextMarked = true; }
 
@@ -541,9 +541,10 @@
 					dest.appendChild(document.createTextNode(' '));
 					dest.appendChild(el('span', { class: 'dep__ziel', text: d.ziel }));
 				} else if (d.teil && d.teil.art === 'endet' && !d.ausfall) {
-					// Hinrichtung, Zug endet vorzeitig (z. B. Stellwerk kaputt): nur bis dorthin
-					dest.appendChild(el('span', { class: 'dep__ab dep__ab--teil', text: 'nur bis ' + d.teil.name }));
-					dest.appendChild(el('small', { class: 'dep__ersatz', text: 'Endet heute in ' + d.teil.name + (d.teil.zeit ? ' (an ' + d.teil.zeit + ')' : '')
+					// Hinrichtung, Zug endet vorzeitig (Stellwerk kaputt) oder planmaessig (nachts
+					// nur bis Pinneberg): nur bis dorthin, planmaessig ohne Warnfarbe
+					dest.appendChild(el('span', { class: 'dep__ab ' + (d.teil.plan ? 'dep__ab--plan' : 'dep__ab--teil'), text: 'nur bis ' + d.teil.name }));
+					dest.appendChild(el('small', { class: d.teil.plan ? '' : 'dep__ersatz', text: (d.teil.plan ? 'Endet planmäßig in ' : 'Endet heute in ') + d.teil.name + (d.teil.zeit ? ' (an ' + d.teil.zeit + ')' : '')
 						+ (/^AP$/.test(d.teil.id) ? ', weiter mit der S-Bahn' : '') }));
 				} else {
 					// Hinrichtung: das Hamburger Ziel als Chip, gleiche Farben wie die Startbahnhoefe

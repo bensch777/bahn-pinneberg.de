@@ -71,7 +71,8 @@ function zl_merge(array $logs, array $result, $heimat, $now)
             $key = $station . '|' . $dir . '|' . $row['zug'];
             $alt = $logs[$tag][$key] ?? null;
             $versp = (int) ($row['verspaetung'] ?? 0);
-            $teil = !empty($row['teil']['art']) ? (string) $row['teil']['art'] : '';
+            // Planmaessige Kurzlaeufe (nachts nur bis Pinneberg) sind kein Teilausfall
+            $teil = !empty($row['teil']['art']) && empty($row['teil']['plan']) ? (string) $row['teil']['art'] : '';
             $eintrag = [
                 'zug'     => (string) $row['zug'],
                 'linie'   => (string) ($row['linie'] ?? ''),

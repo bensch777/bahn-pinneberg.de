@@ -212,7 +212,7 @@ function test_hin_zuege_mit_ziel_unterwegs_richtung_hamburg()
         ]),
     ]));
     t_eq(['99901', '99903'], t_zuege($r, 'hin'), 'Pinneberg-Zug bleibt, Elmshorn (Gegenrichtung) und Prisdorf (endet hier) nicht');
-    t_eq(['art' => 'endet', 'id' => 'AP', 'name' => 'Pinneberg', 'zeit' => ''], t_zeile($r, 'hin', '99901')['teil'], 'nur bis Pinneberg aus der Tafel');
+    t_eq(['art' => 'endet', 'id' => 'AP', 'name' => 'Pinneberg', 'zeit' => '', 'plan' => true], t_zeile($r, 'hin', '99901')['teil'], 'nur bis Pinneberg aus der Tafel, planmaessig');
     t_eq(null, t_zeile($r, 'hin', '99903')['teil'], 'Hamburg-Zug ohne Teilausfall');
 
     t_eq(true, abf_richtung_hamburg('AP', 'Pinneberg', 'AEL'), 'Elmshorn: Pinneberg liegt Richtung Hamburg');
@@ -221,6 +221,35 @@ function test_hin_zuege_mit_ziel_unterwegs_richtung_hamburg()
     t_eq(false, abf_richtung_hamburg('ATM', 'Tornesch', 'AP'), 'Pinneberg: Tornesch liegt nach Norden');
     t_eq(true, abf_richtung_hamburg('AA', 'Hamburg-Altona', 'APD'), 'Altona ist Hamburg');
     t_eq(false, abf_richtung_hamburg('XYZ', 'Unbekannt', 'APD'), 'unbekanntes Ziel nicht');
+}
+
+function test_prisdorf_nachts_echte_tafel()
+{
+    // Echte Tafel vom 17.10.2026, 23:16 Uhr: Zuege enden planmaessig in Pinneberg, Busse als
+    // Ersatzverkehr, und der Monitor traegt bei 00:08 und 00:17 das Datum von gestern.
+    $xml = file_get_contents(__DIR__ . '/../fixtures-prisdorf-nacht.xml');
+    $now = new DateTime('2026-10-17 23:16:00', new DateTimeZone('Europe/Berlin'));
+    $r = t_build(t_standard(['APD' => $xml]), 'APD', $now);
+    t_eq(['81895', '35539', '81897'], t_zuege($r, 'hin'), 'Pinneberg-Zug, Bus 00:08 und RB71 00:17 nach Hamburg; Itzehoe und Elmshorn nicht');
+    $bus = t_zeile($r, 'hin', '35539');
+    t_eq('2026-10-18T00:08:54+02:00', $bus['zeit'], 'falsches Datum des Monitors korrigiert');
+    t_eq('Ersatzverkehr ist eingerichtet', $bus['hinweis'], 'Bus-Hinweis ohne Doppelung und Doppelpunkt');
+    t_eq(true, t_zeile($r, 'hin', '81895')['teil']['plan'], 'planmaessig nur bis Pinneberg');
+    t_eq('2026-10-18T00:17:42+02:00', t_zeile($r, 'hin', '81897')['zeit'], 'RB71 00:17 am naechsten Tag');
+
+    // Statuskarte: planmaessige Kurzlaeufe sind keine Stoerung
+    $st = nb_status_betrieb(['ok' => true, 'richtungen' => $r['richtungen']]);
+    t_eq('ok', $st['level'], 'Fahrplan laeuft: ' . $st['title']);
+}
+
+function test_zeit_datum_vom_monitor_ueber_mitternacht()
+{
+    $now = new DateTime('2026-10-17 23:16:00', new DateTimeZone('Europe/Berlin'));
+    t_eq('2026-10-18T00:08:54+02:00', abf_time('2026-10-17T00:08Z', '00:08:54', $now)->format('c'), 'gestern datiert, gemeint ist morgen');
+    t_eq('2026-10-17T23:19:48+02:00', abf_time('2026-10-17T23:19Z', '23:19:48', $now)->format('c'), 'heute bleibt heute');
+    t_eq('2026-10-18T00:07:12+02:00', abf_time('2026-10-18T00:07Z', '00:07:12', $now)->format('c'), 'morgen bleibt morgen');
+    $frueh = new DateTime('2026-10-18 00:30:00', new DateTimeZone('Europe/Berlin'));
+    t_eq('2026-10-17T23:50:00+02:00', abf_time('2026-10-18T23:50Z', '23:50:00', $frueh)->format('c'), 'kurz nach Mitternacht: 23:50 mit heutigem Datum war gestern');
 }
 
 function test_teilausfall_hin_heimat_pinneberg_ist_ausfall()

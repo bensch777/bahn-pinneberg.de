@@ -32,6 +32,8 @@ function test_zuglog_merge_letzter_stand_zaehlt()
     $r3 = ['ok' => true, 'richtungen' => ['hin' => [], 'rueck' => [t_zl_zeile('28542', '2026-10-15T08:20:00+02:00', ['zeit_plan' => '2026-10-15T08:03:00+02:00', 'ab' => 'Hbf', 'teil' => ['art' => 'beginnt', 'name' => 'Pinneberg']])]]];
     $e = zl_merge([], $r3, 'APD', $now)['2026-10-15']['AH|rueck|28542'];
     t_eq(['08:03', 'beginnt'], [$e['plan'], $e['teil']], 'Planzeit und Teilausfall');
+    $r4 = ['ok' => true, 'richtungen' => ['hin' => [t_zl_zeile('81895', '2026-10-15T23:20:00+02:00', ['ziel' => 'Pinneberg', 'teil' => ['art' => 'endet', 'name' => 'Pinneberg', 'plan' => true]])], 'rueck' => []]];
+    t_eq('', zl_merge([], $r4, 'APD', $now)['2026-10-15']['APD|hin|81895']['teil'], 'planmaessiger Kurzlauf ist kein Teilausfall');
     t_eq([], zl_merge([], ['ok' => true, 'richtungen' => ['hin' => [t_zl_zeile('', '2026-10-15T07:42:00+02:00')]]], 'APD', $now), 'ohne Zugnummer nichts');
 }
 
