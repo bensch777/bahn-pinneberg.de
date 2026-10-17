@@ -32,7 +32,7 @@ function zl_station($dir, array $row, $heimat)
     if ($dir === 'hin') {
         return $heimat;
     }
-    $map = ['Hbf' => 'AH', 'Altona' => 'AA', 'Dammtor' => 'ADF'];
+    $map = ['Hbf' => 'AH', 'Altona' => 'AA', 'Dammtor' => 'ADF', 'Pinneberg' => 'AP', 'Elmshorn' => 'AEL'];
 
     return $map[$row['ab'] ?? ''] ?? 'AH';
 }

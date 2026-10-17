@@ -15,6 +15,7 @@ $assetVersion = (int) @filemtime(__DIR__ . '/../dashboard.css');
 
 $changelog = [
     ['2026-10-17', [
+        ['Züge ab Pinneberg in der Rückrichtung', 'Nachts beginnen die Züge nach Norden regulär in Pinneberg und standen deshalb nicht unter „Hamburg → Prisdorf“. Jetzt liest die Seite zusätzlich die Pinneberger Tafel (für die Äste auch Elmshorn) und zeigt diese Züge als „ab Pinneberg“ mit Hinweis „Beginnt planmäßig in Pinneberg, aus Hamburg mit der S-Bahn“. Die Zugauskunft bestätigt den Start, Züge, die Hamburg schon verlassen haben, erscheinen nicht doppelt.'],
         ['Nachtzüge und Busse vollständig', 'Der Stationsmonitor der Nordbahn trägt bei Abfahrten kurz nach Mitternacht manchmal das Datum von gestern; diese Züge und Ersatzbusse fehlten dann in der Liste. Das wird jetzt erkannt. Züge, die planmäßig nur bis Pinneberg fahren (nachts, weiter mit der S-Bahn), stehen als „nur bis Pinneberg“ ohne Warnfarbe in der Liste und zählen nicht als Störung, auch nicht in der Zuverlässigkeit je Zug.'],
         ['Züge nach Pinneberg zählen als Züge nach Hamburg', 'Wenden die Züge wegen einer Störung in Pinneberg, führt die Tafel sie mit Ziel „Pinneberg“. Bisher fielen sie damit aus der Liste Richtung Hamburg, die Seite zeigte „Keine Abfahrt“. Jetzt stehen sie drin, markiert als „nur bis Pinneberg“, ab dort geht es mit der S-Bahn weiter. Gilt allgemein für jedes Ziel, das vom eigenen Bahnhof aus Richtung Hamburg liegt.'],
     ]],

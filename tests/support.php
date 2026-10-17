@@ -183,6 +183,7 @@ function t_uhr($iso)
 function t_standard(array $override = [])
 {
     return $override + [
+        'AP'  => t_tafel('Pinneberg', []), // Startbahnhof: nachts beginnen hier Zuege, tagsueber leer
         'APD' => t_tafel('Prisdorf', [
             ['zeit' => '10:18', 'zug' => '81871', 'linie' => 'RB 71'],
             ['zeit' => '10:40', 'zug' => '75515', 'linie' => 'RB 61', 'wagen' => 2],

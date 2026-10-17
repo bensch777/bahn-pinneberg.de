@@ -768,7 +768,11 @@ function nb_md_zug(array $d)
             $teile[] = 'Gleis ' . $d['gleis'] . (!empty($d['gleis_plan']) && $d['gleis_plan'] !== $d['gleis'] ? ' statt ' . $d['gleis_plan'] : '');
         }
         if (!empty($d['teil']['art']) && !empty($d['teil']['name'])) {
-            $teile[] = ($d['teil']['art'] === 'beginnt' ? 'erst ab ' : 'nur bis ') . $d['teil']['name'] . (!empty($d['teil']['plan']) ? ' (planmäßig)' : '');
+            if (!empty($d['teil']['plan']) && $d['teil']['art'] === 'beginnt' && ($d['ab'] ?? '') === $d['teil']['name']) {
+                $teile[] = 'beginnt planmäßig dort';
+            } else {
+                $teile[] = ($d['teil']['art'] === 'beginnt' ? 'erst ab ' : 'nur bis ') . $d['teil']['name'] . (!empty($d['teil']['plan']) ? ' (planmäßig)' : '');
+            }
         }
     }
     if (!empty($d['hinweis'])) {

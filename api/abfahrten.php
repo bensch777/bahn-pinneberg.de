@@ -98,6 +98,23 @@ function abf_richtung_hamburg($zielId, $ziel, $heimat)
     return array_search($zielId, $reihe, true) < array_search($heimat, $reihe, true);
 }
 
+/**
+ * Bahnhoefe, an denen Zuege Richtung Norden regulaer beginnen koennen (nachts: Pinneberg,
+ * auf den Aesten auch Elmshorn), sofern sie vom Heimatbahnhof aus Richtung Hamburg liegen.
+ * Deren Tafeln liefern die Zuege, die auf den Hamburger Tafeln fehlen.
+ */
+function abf_startbahnhoefe($heimat)
+{
+    $out = [];
+    foreach (['AP' => 'Pinneberg', 'AEL' => 'Elmshorn'] as $id => $name) {
+        if (abf_richtung_hamburg($id, $name, $heimat)) {
+            $out[$id] = $name;
+        }
+    }
+
+    return $out;
+}
+
 /** curl-Optionen fuer den Stationsmonitor (einzeln und parallel). */
 function abf_curl_opts()
 {
@@ -390,7 +407,7 @@ function abf_add_zuginfo(array &$lists, $fetch, $heimat)
             if ($row['zug'] === '') {
                 continue;
             }
-            $prio = ($row['ausfall'] || $row['verspaetung'] >= 3 || $row['zuglaufinfo']) ? 0 : 1;
+            $prio = ($row['ausfall'] || $row['verspaetung'] >= 3 || $row['zuglaufinfo'] || !empty($row['start_pruefen'])) ? 0 : 1;
             $queue[] = [$prio, $dir, $i];
         }
     }
@@ -430,9 +447,24 @@ function abf_add_zuginfo(array &$lists, $fetch, $heimat)
         $row = &$lists[$dir][$i];
         $entry = $cache[$row['zug']] ?? null;
         if (!$gueltig($entry)) {
-            // Ausserhalb des Budgets oder Abfrage fehlgeschlagen: Zeile bleibt, wie sie ist
+            // Ausserhalb des Budgets oder Abfrage fehlgeschlagen: Zeile bleibt, wie sie ist.
+            // Ein unbestaetigter Startkandidat faellt weg, sonst stuende ein Durchfahrer
+            // faelschlich als "ab Pinneberg" in der Liste.
+            if (!empty($row['start_pruefen'])) {
+                $row['verwerfen'] = true;
+            }
             unset($row);
             continue;
+        }
+        if (!empty($row['start_pruefen'])) {
+            // Beginnt der Zug laut Zuglauf in Hamburg, hat er Hamburg schon verlassen:
+            // fuer die Liste "Hamburg → Heimat" vorbei
+            $ersterHalt = (string) ($entry['halte'][0]['id'] ?? '');
+            if ($ersterHalt === '' || in_array($ersterHalt, ABF_STADT_IDS, true)) {
+                $row['verwerfen'] = true;
+                unset($row);
+                continue;
+            }
         }
         $ursache = (string) ($entry['ursache'] ?? '');
         if ($ursache !== '' && stripos($row['hinweis'], $ursache) === false) {
@@ -657,7 +689,8 @@ function abf_build($fetch = 'abf_fetch', $heimat = NORDBAHN_HEIMAT_DEFAULT, ?Dat
     $quellen = [];
 
     // Alle vier Tafeln auf einmal holen (Heimat, Hbf, Altona, Dammtor)
-    $tafeln = abf_fetch_many(array_map('abf_url', array_merge([$heimat], array_keys(ABF_STADT), [ABF_DAMMTOR])), $fetch);
+    $starts = abf_startbahnhoefe($heimat);
+    $tafeln = abf_fetch_many(array_map('abf_url', array_merge([$heimat], array_keys(ABF_STADT), [ABF_DAMMTOR], array_keys($starts))), $fetch);
 
     $hin = [];
     $xml = $tafeln[abf_url($heimat)] ?? null;
@@ -767,12 +800,42 @@ function abf_build($fetch = 'abf_fetch', $heimat = NORDBAHN_HEIMAT_DEFAULT, ?Dat
         $row['ab_id'] = ABF_DAMMTOR;
         $rueck[] = $row;
     }
+
+    // Zuege, die erst unterwegs beginnen (nachts regulaer ab Pinneberg, auf den Aesten
+    // auch ab Elmshorn): stehen auf keiner Hamburger Tafel, aber auf der des
+    // Startbahnhofs. Kandidat ist, was dort nach Norden faehrt und keine Hamburger
+    // Zugnummer traegt; die Zugauskunft bestaetigt den Start (start_pruefen), sonst
+    // war es ein Durchfahrer, der Hamburg schon verlassen hat.
+    foreach ($dammtor as $d) {
+        $gesehen[$d['zug']] = true;
+    }
+    foreach ($starts as $id => $name) {
+        $xml = $tafeln[abf_url($id)] ?? null;
+        $rows = $xml !== null ? abf_parse($xml, $now, $stand) : null;
+        $quellen[$id] = $rows !== null;
+        foreach ($upcoming($rows ?? []) as $row) {
+            if ($row['zug'] === '' || isset($gesehen[$row['zug']]) || $row['ausfall']) {
+                continue;
+            }
+            if (abf_richtung_hamburg($row['ziel_id'], $row['ziel'], $heimat) || !abf_erreicht($row['ziel_id'], $heimat)) {
+                continue;
+            }
+            $gesehen[$row['zug']] = true;
+            $row['ab'] = $name;
+            $row['ab_id'] = $id;
+            $row['teil'] = ['art' => 'beginnt', 'id' => $id, 'name' => $name, 'zeit' => $row['zeit']->format('H:i'), 'gleis' => (string) ($row['gleis'] ?? ''), 'plan' => true];
+            $row['start_pruefen'] = true;
+            $rueck[] = $row;
+        }
+    }
     usort($rueck, $sort);
 
     $lists = ['hin' => $upcoming($hin), 'rueck' => $rueck];
     abf_add_zuginfo($lists, $fetch, $heimat);
     $hin = $lists['hin'];
-    $rueck = $lists['rueck'];
+    $rueck = array_values(array_filter($lists['rueck'], function ($row) {
+        return empty($row['verwerfen']);
+    }));
     usort($hin, $sort);
     usort($rueck, $sort);
 

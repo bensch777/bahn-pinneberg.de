@@ -13,7 +13,7 @@ function test_normale_abfahrten_beide_richtungen()
 
     t_eq(true, $r['ok'], 'Antwort ok');
     t_eq(['id' => 'APD', 'name' => 'Prisdorf'], $r['heimat'], 'Heimat');
-    t_eq(['APD' => true, 'AH' => true, 'AA' => true, 'ADF' => true], $r['quellen'], 'alle Quellen gelesen');
+    t_eq(['APD' => true, 'AH' => true, 'AA' => true, 'ADF' => true, 'AP' => true], $r['quellen'], 'alle Quellen gelesen, Pinneberg als Startbahnhof dabei');
 
     // Hin: nur Zuege nach Hamburg, der nach Wrist bleibt draussen
     t_eq(['81871', '75515'], t_zuege($r, 'hin'), 'Hinrichtung nach Zeit sortiert, nur Hamburg-Ziele');
@@ -252,6 +252,39 @@ function test_zeit_datum_vom_monitor_ueber_mitternacht()
     t_eq('2026-10-17T23:50:00+02:00', abf_time('2026-10-18T23:50Z', '23:50:00', $frueh)->format('c'), 'kurz nach Mitternacht: 23:50 mit heutigem Datum war gestern');
 }
 
+function test_rueck_zuege_ab_pinneberg()
+{
+    // Nachts beginnen Zuege regulaer in Pinneberg: sie stehen auf keiner Hamburger Tafel,
+    // kommen aber von der Pinneberger Tafel als "ab Pinneberg" in die Rueckrichtung.
+    // Durchfahrer (laut Zuglauf ab Hamburg) und unbestaetigte Kandidaten bleiben draussen.
+    $r = t_build(t_standard([
+        'AP' => t_tafel('Pinneberg', [
+            ['zeit' => '10:30', 'zug' => '90001', 'linie' => 'RB 71', 'ziel' => ['AWST', 'Wrist'], 'gleis' => '2'],   // startet hier
+            ['zeit' => '10:33', 'zug' => '90002', 'linie' => 'RB 61', 'ziel' => ['AIZ', 'Itzehoe'], 'gleis' => '1'], // Durchfahrer aus Hamburg
+            ['zeit' => '10:36', 'zug' => '90003', 'linie' => 'RB 61', 'ziel' => ['AIZ', 'Itzehoe'], 'gleis' => '1'], // ohne Zugauskunft
+            ['zeit' => '10:40', 'zug' => '90004', 'linie' => 'RB 61', 'ziel' => ['AH', 'Hamburg Hbf'], 'gleis' => '3'], // Gegenrichtung
+            ['zeit' => '11:15', 'zug' => '75514', 'linie' => 'RB 61', 'ziel' => ['AIZ', 'Itzehoe'], 'gleis' => '1'], // steht schon auf der Hbf-Tafel
+        ]),
+        'zug:90001' => t_zug('90001', 'RB 71', '', [['AP', 'Pinneberg', '', '10:30'], ['APD', 'Prisdorf', '10:33', '10:34'], ['AEL', 'Elmshorn', '10:43', '10:44'], ['AWST', 'Wrist', '11:10', '']]),
+        'zug:90002' => t_zug('90002', 'RB 61', '', [['AH', 'Hamburg Hbf', '', '10:08'], ['AP', 'Pinneberg', '10:32', '10:33'], ['APD', 'Prisdorf', '10:36', '10:37'], ['AIZ', 'Itzehoe', '11:20', '']]),
+    ]));
+    $zuege = t_zuege($r, 'rueck');
+    t_eq(true, in_array('90001', $zuege, true), 'Startzug ab Pinneberg ist dabei');
+    t_eq(false, in_array('90002', $zuege, true), 'Durchfahrer aus Hamburg nicht');
+    t_eq(false, in_array('90003', $zuege, true), 'ohne Zugauskunft nicht');
+    t_eq(false, in_array('90004', $zuege, true), 'Gegenrichtung nicht');
+    t_eq(1, count(array_keys($zuege, '75514', true)), 'Hbf-Zug nur einmal, nicht nochmal ab Pinneberg');
+    $z = t_zeile($r, 'rueck', '90001');
+    t_eq(['Pinneberg', 'AP'], [$z['ab'], $r['richtungen']['rueck'][array_search('90001', $zuege, true)]['ab'] === 'Pinneberg' ? 'AP' : ''], 'ab Pinneberg');
+    t_eq(['art' => 'beginnt', 'id' => 'AP', 'name' => 'Pinneberg', 'zeit' => '10:30', 'gleis' => '2', 'plan' => true], $z['teil'], 'planmaessiger Beginn in Pinneberg');
+    t_eq('2', $z['gleis'], 'Gleis in Pinneberg');
+    t_eq('ok', nb_status_betrieb(['ok' => true, 'richtungen' => $r['richtungen']])['level'], 'kein Stoerungszaehler');
+
+    t_eq(['AP' => 'Pinneberg'], abf_startbahnhoefe('APD'), 'Prisdorf: nur Pinneberg');
+    t_eq(['AP' => 'Pinneberg', 'AEL' => 'Elmshorn'], abf_startbahnhoefe('AIZ'), 'Itzehoe: Pinneberg und Elmshorn');
+    t_eq([], abf_startbahnhoefe('AP'), 'Pinneberg selbst: keine');
+}
+
 function test_teilausfall_hin_heimat_pinneberg_ist_ausfall()
 {
     $r = t_build(t_standard([
@@ -379,8 +412,8 @@ function test_abfragen_gebuendelt()
     // Tafeln und Zuege werden in zwei Buendeln geholt: erst die vier Bahnhoefe, dann alle Zuege
     t_build(t_standard(['zug:81871' => t_lauf_81871(['ursache' => 'Signalstörung'])]), 'APD', null, $calls);
     $arten = array_map(function ($u) { return strpos($u, '?zug=') !== false ? 'zug' : 'bhf'; }, $calls);
-    t_eq(['bhf', 'bhf', 'bhf', 'bhf'], array_slice($arten, 0, 4), 'erst die vier Tafeln');
-    t_eq(0, count(array_filter(array_slice($arten, 4), function ($a) { return $a === 'bhf'; })), 'danach nur Zuege');
+    t_eq(['bhf', 'bhf', 'bhf', 'bhf', 'bhf'], array_slice($arten, 0, 5), 'erst die fuenf Tafeln (Heimat, Hbf, Altona, Dammtor, Pinneberg)');
+    t_eq(0, count(array_filter(array_slice($arten, 5), function ($a) { return $a === 'bhf'; })), 'danach nur Zuege');
     t_eq(count($calls), count(array_unique($calls)), 'keine URL doppelt');
 
     $antworten = abf_fetch_many(['a', 'b', 'a'], function ($u) { return strtoupper($u); });

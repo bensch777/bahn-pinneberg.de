@@ -528,7 +528,13 @@
 				function bahnhofClass(name) {
 					return /altona/i.test(name) ? ' dep__ab--altona' : /dammtor/i.test(name) ? ' dep__ab--dammtor' : /hbf/i.test(name) ? ' dep__ab--hbf' : '';
 				}
-				if (d.teil && d.teil.art === 'beginnt' && !d.ausfall) {
+				if (d.teil && d.teil.art === 'beginnt' && d.teil.plan && !d.ausfall) {
+					// Rueckrichtung, Zug beginnt planmaessig unterwegs (nachts ab Pinneberg): neutral
+					dest.appendChild(el('span', { class: 'dep__ab dep__ab--plan', text: 'ab ' + d.teil.name }));
+					dest.appendChild(document.createTextNode(' '));
+					dest.appendChild(el('span', { class: 'dep__ziel', text: d.ziel }));
+					dest.appendChild(el('small', { text: 'Beginnt planmäßig in ' + d.teil.name + (/^AP$/.test(d.teil.id) ? ', aus Hamburg mit der S-Bahn' : '') }));
+				} else if (d.teil && d.teil.art === 'beginnt' && !d.ausfall) {
 					// Rueckrichtung, Zug startet erst unterwegs (z. B. Pinneberg): die Zeile ist die Abfahrt dort
 					dest.appendChild(el('span', { class: 'dep__ab dep__ab--teil', text: 'erst ab ' + d.teil.name }));
 					dest.appendChild(document.createTextNode(' '));
