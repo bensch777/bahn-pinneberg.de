@@ -14,6 +14,9 @@ $root = '../';
 $assetVersion = (int) @filemtime(__DIR__ . '/../dashboard.css');
 
 $changelog = [
+    ['2026-10-17', [
+        ['Züge nach Pinneberg zählen als Züge nach Hamburg', 'Wenden die Züge wegen einer Störung in Pinneberg, führt die Tafel sie mit Ziel „Pinneberg“. Bisher fielen sie damit aus der Liste Richtung Hamburg, die Seite zeigte „Keine Abfahrt“. Jetzt stehen sie drin, markiert als „nur bis Pinneberg“, ab dort geht es mit der S-Bahn weiter. Gilt allgemein für jedes Ziel, das vom eigenen Bahnhof aus Richtung Hamburg liegt.'],
+    ]],
     ['2026-10-16', [
         ['Zuverlässigkeit je Zug', 'Die Seite merkt sich bei jeder Abfrage je Tag und Zug den letzten Stand vor der Abfahrt. Nach fünf beobachteten Tagen steht unter der Abfahrtszeile „Letzte 30 Tage: 2× ausgefallen, Ø +3 min“, und die Statistikseite zeigt je Bahnhof eine Tabelle aller Züge mit Ausfällen, Teilausfällen, Verspätungen ab 5 Minuten, Durchschnitt und Maximum. Die Sammlung beginnt mit diesem Update, die ersten Werte gibt es also in einer Woche.'],
         ['Für KI-Assistenten lesbar', 'Unter /llms.txt beschreibt die Seite sich selbst samt Datenfeldern, unter /lage.md gibt es die aktuelle Lage als Text: Status, aktive Störungen, nächste Züge, letzte Eilmeldungen. Wer einem Assistenten „Wie sieht es auf der Nordbahn aus?“ fragt, kann ihm diese Adresse geben.'],

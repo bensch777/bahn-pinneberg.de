@@ -199,6 +199,30 @@ function test_teilausfall_hin_wendehalt_pinneberg()
     t_eq('Defektes Stellwerk', $z['hinweis'], 'nur die Ursache als Hinweis');
 }
 
+function test_hin_zuege_mit_ziel_unterwegs_richtung_hamburg()
+{
+    // Wendet der Zug laut Tafel schon in Pinneberg ("RB71 Pinneberg"), ist er ab Prisdorf
+    // trotzdem der Zug Richtung Hamburg: er bleibt in der Liste, als "nur bis Pinneberg".
+    $r = t_build(t_standard([
+        'APD' => t_tafel('Prisdorf', [
+            ['zeit' => '10:30', 'zug' => '99901', 'linie' => 'RB 71', 'ziel' => ['AP', 'Pinneberg'], 'gleis' => '1'],
+            ['zeit' => '10:35', 'zug' => '99902', 'linie' => 'RB 61', 'ziel' => ['AEL', 'Elmshorn'], 'gleis' => '2'],
+            ['zeit' => '10:40', 'zug' => '99903', 'linie' => 'RB 61', 'ziel' => ['AH', 'Hamburg Hbf'], 'gleis' => '1'],
+            ['zeit' => '10:45', 'zug' => '99904', 'linie' => 'RB 61', 'ziel' => ['APD', 'Prisdorf'], 'gleis' => '1'],
+        ]),
+    ]));
+    t_eq(['99901', '99903'], t_zuege($r, 'hin'), 'Pinneberg-Zug bleibt, Elmshorn (Gegenrichtung) und Prisdorf (endet hier) nicht');
+    t_eq(['art' => 'endet', 'id' => 'AP', 'name' => 'Pinneberg', 'zeit' => ''], t_zeile($r, 'hin', '99901')['teil'], 'nur bis Pinneberg aus der Tafel');
+    t_eq(null, t_zeile($r, 'hin', '99903')['teil'], 'Hamburg-Zug ohne Teilausfall');
+
+    t_eq(true, abf_richtung_hamburg('AP', 'Pinneberg', 'AEL'), 'Elmshorn: Pinneberg liegt Richtung Hamburg');
+    t_eq(true, abf_richtung_hamburg('AEL', 'Elmshorn', 'AIZ'), 'Itzehoe: Elmshorn liegt Richtung Hamburg');
+    t_eq(false, abf_richtung_hamburg('AKM', 'Krempe', 'AHOT'), 'Horst: Krempe liegt auf dem anderen Ast');
+    t_eq(false, abf_richtung_hamburg('ATM', 'Tornesch', 'AP'), 'Pinneberg: Tornesch liegt nach Norden');
+    t_eq(true, abf_richtung_hamburg('AA', 'Hamburg-Altona', 'APD'), 'Altona ist Hamburg');
+    t_eq(false, abf_richtung_hamburg('XYZ', 'Unbekannt', 'APD'), 'unbekanntes Ziel nicht');
+}
+
 function test_teilausfall_hin_heimat_pinneberg_ist_ausfall()
 {
     $r = t_build(t_standard([

@@ -73,6 +73,31 @@ function abf_erreicht($zielId, $heimat)
     return array_search($heimat, $reihe, true) <= array_search($zielId, $reihe, true);
 }
 
+/**
+ * Faehrt ein Zug vom Heimatbahnhof aus Richtung Hamburg? Ja bei Hamburger Zielen
+ * und bei Zielen, die auf dem Weg nach Hamburg liegen (z. B. "RB71 Pinneberg" ab
+ * Prisdorf, wenn die Zuege wegen einer Stoerung in Pinneberg wenden). Auf einem
+ * Ast zaehlen nur Ziele desselben Asts oder des Stamms; der Heimatbahnhof selbst
+ * als Ziel ist keine Abfahrt.
+ */
+function abf_richtung_hamburg($zielId, $ziel, $heimat)
+{
+    if (in_array($zielId, ABF_STADT_IDS, true) || stripos((string) $ziel, 'Hamburg') !== false) {
+        return true;
+    }
+    $bahnhoefe = NORDBAHN_BAHNHOEFE;
+    if (!isset($bahnhoefe[$zielId]) || $zielId === $heimat) {
+        return false;
+    }
+    $zielAst = $bahnhoefe[$zielId]['ast'];
+    if ($zielAst !== 'stamm' && $zielAst !== $bahnhoefe[$heimat]['ast']) {
+        return false;
+    }
+    $reihe = array_keys($bahnhoefe);
+
+    return array_search($zielId, $reihe, true) < array_search($heimat, $reihe, true);
+}
+
 /** curl-Optionen fuer den Stationsmonitor (einzeln und parallel). */
 function abf_curl_opts()
 {
@@ -439,7 +464,7 @@ function abf_add_zuginfo(array &$lists, $fetch, $heimat)
             $row['gleis_plan'] = null;
             unset($teil['gleis']);
         }
-        $row['teil'] = $teil;
+        $row['teil'] = $teil ?? ($row['teil'] ?? null);
         unset($row);
     }
 
@@ -627,9 +652,15 @@ function abf_build($fetch = 'abf_fetch', $heimat = NORDBAHN_HEIMAT_DEFAULT, ?Dat
     $rows = $xml !== null ? abf_parse($xml, $now, $stand) : null;
     $quellen[$heimat] = $rows !== null;
     foreach ($rows ?? [] as $row) {
-        if (in_array($row['ziel_id'], ABF_STADT_IDS, true) || stripos($row['ziel'], 'Hamburg') !== false) {
-            $hin[] = $row;
+        if (!abf_richtung_hamburg($row['ziel_id'], $row['ziel'], $heimat)) {
+            continue;
         }
+        if (!in_array($row['ziel_id'], ABF_STADT_IDS, true) && stripos($row['ziel'], 'Hamburg') === false) {
+            // Endet laut Tafel schon unterwegs (z. B. Pinneberg): als Teilausfall zeigen,
+            // die Zugauskunft kann das spaeter praezisieren
+            $row['teil'] = ['art' => 'endet', 'id' => $row['ziel_id'], 'name' => $row['ziel'], 'zeit' => ''];
+        }
+        $hin[] = $row;
     }
 
     $rueck = [];
