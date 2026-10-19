@@ -107,7 +107,7 @@ if (!$gefunden) {
 			<p class="artikel__dachzeile">
 				<span class="artikel__rubrik artikel__rubrik--eil">Eilmeldung der Nordbahn</span>
 <?php if (!$em['link']): ?>
-				<span class="pill pill--aufgehoben">Zur&uuml;ckgezogen</span>
+				<span class="pill pill--aufgehoben">Erledigt</span>
 <?php endif; ?>
 			</p>
 			<h1 class="artikel__titel"><?= nb_e($titel) ?></h1>
@@ -134,7 +134,7 @@ if (!$gefunden) {
 <?php if ($em['link']): ?>
 				<p class="quelle__fuss"><a href="<?= nb_e($em['link']) ?>" rel="noopener nofollow">Originalmeldung lesen &#8599;</a></p>
 <?php else: ?>
-				<p class="quelle__fuss">Die Nordbahn hat die Meldung inzwischen von ihrer Seite genommen.</p>
+				<p class="quelle__fuss">Die Meldung ist erledigt, die Nordbahn zeigt sie nicht mehr an.</p>
 <?php endif; ?>
 			</blockquote>
 		</section>
