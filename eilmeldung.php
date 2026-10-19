@@ -11,7 +11,8 @@ require __DIR__ . '/inc/security.php';
 nb_send_security_headers();
 
 define('SITE_URL', nordbahn_site_url());
-$root = '../../';
+// Absoluter Wurzelpfad: die Adresse hat mit Slug drei Ebenen, ohne zwei
+$root = rtrim((string) parse_url(nordbahn_site_url(), PHP_URL_PATH), '/') . '/';
 nb_root($root);
 $assetVersion = (int) @filemtime(__DIR__ . '/dashboard.css');
 
