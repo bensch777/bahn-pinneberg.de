@@ -41,8 +41,18 @@
 	}
 
 	/** Link auf eine Ereignisseite (wie nb_link) */
-	function ereignisLink(art, id) {
-		return root() + art + '/' + encodeURIComponent(anker(id)) + '/';
+	// Lesbarer Zusatz wie nb_slug() auf dem Server: Kleinbuchstaben, Umlaute umschrieben,
+	// alles andere Bindestrich, hoechstens 60 Zeichen an einer Wortgrenze
+	function slug(text) {
+		var s = String(text || '').trim().toLowerCase().replace(/[äöüß]/g, function (c) { return { 'ä': 'ae', 'ö': 'oe', 'ü': 'ue', 'ß': 'ss' }[c]; });
+		s = s.replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+		if (s.length > 60) { s = s.slice(0, 60); s = s.indexOf('-') >= 0 ? s.slice(0, s.lastIndexOf('-')) : s; }
+		return s;
+	}
+
+	function ereignisLink(art, id, titel) {
+		var s = slug(titel);
+		return root() + art + '/' + encodeURIComponent(anker(id)) + '/' + (s ? s + '/' : '');
 	}
 
 	/** Zaehlt ein Ereignis in Plausible, wenn das Script geladen ist. */
@@ -351,7 +361,7 @@
 			el('h4', { class: 'incident__title', text: titel }),
 			text ? el('p', { class: 'incident__text', text: text }) : null,
 			meta,
-			s.key ? el('p', { class: 'incident__link' }, [el('a', { href: ereignisLink('stoerung', s.key), text: 'Details und Verlauf' })]) : null
+			s.key ? el('p', { class: 'incident__link' }, [el('a', { href: ereignisLink('stoerung', s.key, s.ki_titel || s.titel), text: 'Details und Verlauf' })]) : null
 		]);
 	}
 
@@ -383,7 +393,7 @@
 		items.forEach(function (it) {
 			var ms = isNaN(it.stand) ? it.ms : it.stand;
 			var time = el('div', { class: 'feed__time' }, [fmtWann(ms)]);
-			var title = el('a', { href: ereignisLink('eilmeldung', it.id), text: it.title || it.id });
+			var title = el('a', { href: ereignisLink('eilmeldung', it.id, it.title), text: it.title || it.id });
 			var p = el('p', { class: 'feed__title' }, [title]);
 			if (it.original && it.original !== it.title) p.setAttribute('title', 'Nordbahn: ' + it.original);
 			var body = [p];
@@ -439,7 +449,7 @@
 			if (it.text) { meta.appendChild(el('br')); meta.appendChild(document.createTextNode(it.text)); }
 			ol.appendChild(el('li', istHeute(it.ende) ? { class: 'is-heute' } : {}, [
 				el('div', { class: 'feed__time' }, [fmtWann(it.start)]),
-				el('div', {}, [el('p', { class: 'feed__title' }, [el('a', { href: ereignisLink('stoerung', it.key), text: it.titel })]), meta])
+				el('div', {}, [el('p', { class: 'feed__title' }, [el('a', { href: ereignisLink('stoerung', it.key, it.titel), text: it.titel })]), meta])
 			]));
 		});
 	}

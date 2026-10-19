@@ -24,14 +24,14 @@ $grenze = time() - 60 * 86400;
 $n = 0;
 foreach (nb_verlauf_items($data, true) as $it) {
     if ($it['ende'] >= $grenze && $n++ < 300) {
-        $urls[] = ['loc' => nb_ereignis_url('stoerung', $it['key']), 'priority' => '0.5', 'lastmod' => date('Y-m-d', $it['ende'])];
+        $urls[] = ['loc' => nb_ereignis_url('stoerung', $it['key'], $it['titel']), 'priority' => '0.5', 'lastmod' => date('Y-m-d', $it['ende'])];
     }
 }
 $n = 0;
 foreach (array_reverse(nb_items($data)) as $it) {
     $ts = $it['stand'] ?? $it['ts'];
     if ($ts >= $grenze && $n++ < 300) {
-        $urls[] = ['loc' => nb_ereignis_url('eilmeldung', $it['id']), 'priority' => '0.4', 'lastmod' => date('Y-m-d', $ts)];
+        $urls[] = ['loc' => nb_ereignis_url('eilmeldung', $it['id'], $it['title']), 'priority' => '0.4', 'lastmod' => date('Y-m-d', $ts)];
     }
 }
 

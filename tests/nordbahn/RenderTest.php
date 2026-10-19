@@ -223,7 +223,7 @@ function test_archiv_stoerungen_mit_aktiven()
     $html = nb_render_archiv_stoerungen($items, $now);
     t_eq(['Heute, 16.10.2026', 'Dienstag, 13.10.2026'], t_titles($html), 'nach Beginn gruppiert');
     t_eq(strpos($html, 'Weichenstörung') < strpos($html, 'Störungen in Eidelstedt'), true, 'juengster Beginn zuerst');
-    t_contains('<a href="./stoerung/AKTIV/">Weichenstörung</a> <span class="dep__ab dep__ab--aktiv">aktiv</span>', $html, 'aktiv markiert, Titel auf die Ereignisseite verlinkt');
+    t_contains('<a href="./stoerung/AKTIV/weichenstoerung/">Weichenstörung</a> <span class="dep__ab dep__ab--aktiv">aktiv</span>', $html, 'aktiv markiert, Titel auf die Ereignisseite verlinkt');
     t_contains('<li id="AKTIV" class="is-heute">', $html, 'Anker aus dem Key');
     t_eq('BZI_33475', nb_anker('BZI_33475'), 'Key bleibt');
     t_eq('a-b-c', nb_anker('a b/c'), 'Sonderzeichen werden Bindestrich');
@@ -292,8 +292,8 @@ function test_lage_markdown()
     $busMd = nb_md_zug(['zug' => '9', 'zeit' => '2026-10-16T08:50:00+02:00', 'verspaetung' => 0, 'linie' => 'RB61', 'ziel' => 'Hamburg Hbf', 'bus' => true, 'hinweis' => 'Schienenersatzverkehr mit Bus']);
     t_eq('- 08:50 Uhr: Bus (Schienenersatzverkehr) RB61 nach Hamburg Hbf. Schienenersatzverkehr mit Bus.', $busMd, 'Bus in lage.md');
     t_contains('- 08:15 Uhr ab Hbf: RB61 nach Itzehoe. Gleis 12.', $md, 'Rueckrichtung ab Hbf');
-    t_contains('- Heute, 08:50 Uhr: RB60 12:22 ab Altona fällt aus. Stellwerkdefekt. (https://bahn-pinneberg.de/eilmeldung/em-1/)', $md, 'Eilmeldung mit Ereignisseite');
-    t_contains('- Seite: https://bahn-pinneberg.de/stoerung/X/', $md, 'Stoerung mit Ereignisseite');
+    t_contains('- Heute, 08:50 Uhr: RB60 12:22 ab Altona fällt aus. Stellwerkdefekt. (https://bahn-pinneberg.de/eilmeldung/em-1/rb60-12-22-ab-altona-faellt-aus/)', $md, 'Eilmeldung mit Ereignisseite');
+    t_contains('- Seite: https://bahn-pinneberg.de/stoerung/X/verspaetungen-bei-eidelstedt/', $md, 'Stoerung mit Ereignisseite');
     t_contains('- Gestern, 10:00 Uhr bis 11:30 Uhr (1 Std. 30 Min.): Weichenstörung', $md, 'aufgehobene Stoerung der letzten 24 Stunden');
     t_eq(false, strpos($md, 'Vorgestern'), 'aeltere aufgehobene Stoerung fehlt');
     t_contains('/llms.txt', $md, 'Verweis auf llms.txt');

@@ -35,7 +35,8 @@ if (!$gefunden) {
     $title = $titel . ' – Eilmeldung der Nordbahn vom ' . date('d.m.Y', $ts) . ' – Nordbahn Monitor';
     $ogTitle = $titel;
     $description = mb_substr(($em['text'] !== '' ? $em['text'] . ' ' : '') . 'Eilmeldung der Nordbahn vom ' . nb_fmt_datetime(date('c', $ts)) . ($em['original'] !== '' && $em['original'] !== $titel ? ' („' . $em['original'] . '“).' : '.'), 0, 300);
-    $pageUrl = nb_ereignis_url('eilmeldung', $id);
+    $pageUrl = nb_ereignis_url('eilmeldung', $id, $titel);
+    nb_slug_pruefen($pageUrl, $titel);
     $ogBild = 'warn';
     $jsonLd = [
         '@context' => 'https://schema.org',

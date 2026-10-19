@@ -19,15 +19,55 @@ function nb_root($neu = null)
 }
 
 /** Relativer Link auf eine Ereignisseite: stoerung/<key>/ oder eilmeldung/<id>/. */
-function nb_link($art, $id)
+/**
+ * Lesbarer Zusatz fuer die Adresse einer Ereignisseite: Kleinbuchstaben, Umlaute
+ * umschrieben, alles andere wird Bindestrich, hoechstens 60 Zeichen an einer
+ * Wortgrenze. Gleiche Regel wie slug() im Script und in den n8n-Workflows.
+ */
+function nb_slug($text)
 {
-    return nb_root() . $art . '/' . rawurlencode(nb_anker($id)) . '/';
+    $s = mb_strtolower(trim((string) $text), 'UTF-8');
+    $s = strtr($s, ['ä' => 'ae', 'ö' => 'oe', 'ü' => 'ue', 'ß' => 'ss']);
+    $s = trim(preg_replace('/[^a-z0-9]+/', '-', $s), '-');
+    if (strlen($s) > 60) {
+        $s = substr($s, 0, 60);
+        $s = strpos($s, '-') !== false ? substr($s, 0, strrpos($s, '-')) : $s;
+    }
+
+    return $s;
+}
+
+/** Pfad einer Ereignisseite: /<art>/<id>/<slug>/, der Slug ist optional. */
+function nb_ereignis_pfad($art, $id, $titel = '')
+{
+    $slug = nb_slug($titel);
+
+    return $art . '/' . rawurlencode(nb_anker($id)) . '/' . ($slug !== '' ? $slug . '/' : '');
+}
+
+/**
+ * Fehlt der Slug in der aufgerufenen Adresse oder ist er veraltet (der Titel kann
+ * sich aendern), geht es per 301 auf die kanonische Adresse. Alte Links aus
+ * Telegram und X bleiben so gueltig.
+ */
+function nb_slug_pruefen($kanonisch, $titel)
+{
+    $ist = isset($_GET['slug']) ? (string) $_GET['slug'] : '';
+    if ($ist !== nb_slug($titel) && PHP_SAPI !== 'cli' && !headers_sent()) {
+        header('Location: ' . $kanonisch, true, 301);
+        exit;
+    }
+}
+
+function nb_link($art, $id, $titel = '')
+{
+    return nb_root() . nb_ereignis_pfad($art, $id, $titel);
 }
 
 /** Absoluter Link (Push-Nachrichten, lage.md, Sitemap, Canonical). */
-function nb_ereignis_url($art, $id)
+function nb_ereignis_url($art, $id, $titel = '')
 {
-    return nordbahn_site_url() . '/' . $art . '/' . rawurlencode(nb_anker($id)) . '/';
+    return nordbahn_site_url() . '/' . nb_ereignis_pfad($art, $id, $titel);
 }
 
 /** Klarname eines Bahnhofskuerzels, Hamburger Bahnhoefe eingeschlossen. */

@@ -348,7 +348,7 @@ function nb_render_incident(array $s)
     }
 
     $html = '<li class="card incident"><h4 class="incident__title">' . nb_e($titel) . '</h4>';
-    $link = !empty($s['key']) && function_exists('nb_link') ? nb_link('stoerung', $s['key']) : '';
+    $link = !empty($s['key']) && function_exists('nb_link') ? nb_link('stoerung', $s['key'], $titel) : '';
     if ($text !== '') {
         $html .= '<p class="incident__text">' . nb_e($text) . '</p>';
     }
@@ -551,7 +551,7 @@ function nb_render_verlauf(array $items, $limit, $maxAgeDays, $now = null, $akti
     foreach ($list as $it) {
         $html .= '<li' . (nb_ist_heute($it['ende'], $now) ? ' class="is-heute"' : '') . '>'
             . '<div class="feed__time">' . nb_e(nb_fmt_wann($it['start'], $now)) . '</div><div>'
-            . '<p class="feed__title"><a href="' . nb_e(nb_link('stoerung', $it['key'])) . '">' . nb_e($it['titel']) . '</a></p>'
+            . '<p class="feed__title"><a href="' . nb_e(nb_link('stoerung', $it['key'], $it['titel'])) . '">' . nb_e($it['titel']) . '</a></p>'
             . '<p class="feed__meta">' . nb_e(nb_fmt_bis($it['start'], $it['ende'], $now)) . ' · ' . nb_e(nb_dauer($it['ende'] - $it['start']))
             . ($it['text'] !== '' ? '<br>' . nb_e($it['text']) : '') . '</p></div></li>';
     }
@@ -577,7 +577,7 @@ function nb_render_feed(array $items, $limit, $maxAgeDays, $now = null)
         $tooltip = !empty($it['original']) && $it['original'] !== $it['title'] ? ' title="Nordbahn: ' . nb_e($it['original']) . '"' : '';
         $html .= '<li' . (nb_ist_heute($ts, $now) ? ' class="is-heute"' : '') . '>'
             . '<div class="feed__time">' . nb_e(nb_fmt_wann($ts, $now)) . '</div><div><p class="feed__title"' . $tooltip . '>';
-        $html .= '<a href="' . nb_e(nb_link('eilmeldung', $it['id'])) . '">' . nb_e($title) . '</a>';
+        $html .= '<a href="' . nb_e(nb_link('eilmeldung', $it['id'], $title)) . '">' . nb_e($title) . '</a>';
         $html .= '</p>';
         if (($it['text'] ?? '') !== '') {
             $html .= '<p class="feed__meta">' . nb_e($it['text']) . '</p>';
@@ -652,7 +652,7 @@ function nb_render_archiv_eil(array $items, $now = null)
             $title = $it['title'] !== '' ? $it['title'] : $it['id'];
             $tooltip = !empty($it['original']) && $it['original'] !== $it['title'] ? ' title="Nordbahn: ' . nb_e($it['original']) . '"' : '';
             $html .= '<li id="' . nb_e(nb_anker($it['id'])) . '"' . ($heute ? ' class="is-heute"' : '') . '><div class="feed__time">' . nb_e(nb_fmt_uhr($zeit($it))) . '</div><div><p class="feed__title"' . $tooltip . '>'
-                . '<a href="' . nb_e(nb_link('eilmeldung', $it['id'])) . '">' . nb_e($title) . '</a></p>'
+                . '<a href="' . nb_e(nb_link('eilmeldung', $it['id'], $title)) . '">' . nb_e($title) . '</a></p>'
                 . (($it['text'] ?? '') !== '' ? '<p class="feed__meta">' . nb_e($it['text']) . '</p>' : '') . '</div></li>';
         }
         $html .= '</ol></section>';
@@ -677,7 +677,7 @@ function nb_render_archiv_stoerungen(array $items, $now = null)
                 ? 'dauert an · bisher ' . nb_dauer(max($now, $it['ende']) - $it['start'])
                 : nb_fmt_bis($it['start'], $it['ende'], $now) . ' · ' . nb_dauer($it['ende'] - $it['start']);
             $html .= '<li id="' . nb_e(nb_anker($it['key'])) . '"' . ($heute || !empty($it['aktiv']) ? ' class="is-heute"' : '') . '><div class="feed__time">' . nb_e(nb_fmt_uhr($it['start'])) . '</div><div>'
-                . '<p class="feed__title"><a href="' . nb_e(nb_link('stoerung', $it['key'])) . '">' . nb_e($it['titel']) . '</a>' . (!empty($it['aktiv']) ? ' <span class="dep__ab dep__ab--aktiv">aktiv</span>' : '') . '</p>'
+                . '<p class="feed__title"><a href="' . nb_e(nb_link('stoerung', $it['key'], $it['titel'])) . '">' . nb_e($it['titel']) . '</a>' . (!empty($it['aktiv']) ? ' <span class="dep__ab dep__ab--aktiv">aktiv</span>' : '') . '</p>'
                 . '<p class="feed__meta">' . nb_e($meta) . ($it['text'] !== '' ? '<br>' . nb_e($it['text']) : '') . '</p></div></li>';
         }
         $html .= '</ol></section>';
@@ -825,7 +825,7 @@ function nb_lage_md(array $data, $abf, $heimat, $now = null)
         if ($text !== '') {
             $md .= $text . "\n\n";
         }
-        $md .= '- Seite: ' . nb_ereignis_url('stoerung', $s['key']) . "\n";
+        $md .= '- Seite: ' . nb_ereignis_url('stoerung', $s['key'], $titel) . "\n";
         $zeit = [];
         if (!empty($s['beginn'])) {
             $zeit[] = 'seit ' . nb_fmt_wann(nb_ts($s['beginn']), $now, true);
@@ -869,7 +869,7 @@ function nb_lage_md(array $data, $abf, $heimat, $now = null)
     foreach ($eilmeldungen as $it) {
         $md .= '- ' . nb_fmt_wann($it['stand'] ?? $it['ts'], $now) . ': ' . ($it['title'] !== '' ? $it['title'] : $it['id'])
             . (($it['text'] ?? '') !== '' ? '. ' . $it['text'] : '')
-            . ' (' . nb_ereignis_url('eilmeldung', $it['id']) . ')' . "\n";
+            . ' (' . nb_ereignis_url('eilmeldung', $it['id'], $it['title']) . ')' . "\n";
     }
     if ($eilmeldungen) {
         $md .= "\n";
@@ -885,7 +885,7 @@ function nb_lage_md(array $data, $abf, $heimat, $now = null)
     }
     foreach ($verlauf as $it) {
         $md .= '- ' . nb_fmt_wann($it['start'], $now) . ' ' . nb_fmt_bis($it['start'], $it['ende'], $now) . ' (' . nb_dauer($it['ende'] - $it['start']) . '): ' . $it['titel']
-            . ($it['text'] !== '' ? '. ' . $it['text'] : '') . ' (' . nb_ereignis_url('stoerung', $it['key']) . ')' . "\n";
+            . ($it['text'] !== '' ? '. ' . $it['text'] : '') . ' (' . nb_ereignis_url('stoerung', $it['key'], $it['titel']) . ')' . "\n";
     }
     if ($verlauf) {
         $md .= "\n";

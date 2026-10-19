@@ -36,7 +36,8 @@ if (!$gefunden) {
     $description = ($st['ki_text'] !== '' ? $st['ki_text'] : ($st['text'] !== '' ? $st['text'] : $st['titel_technisch']))
         . ' Störung auf der Nordbahn-Strecke ' . ($st['aktiv'] ? 'seit ' : 'vom ') . nb_fmt_datetime(date('c', $st['start'])) . ($st['aktiv'] ? ', dauert an.' : ', aufgehoben nach ' . $dauer . '.');
     $description = mb_substr($description, 0, 300);
-    $pageUrl = nb_ereignis_url('stoerung', $key);
+    $pageUrl = nb_ereignis_url('stoerung', $key, $st['titel']);
+    nb_slug_pruefen($pageUrl, $st['titel']);
     $ogBild = $st['aktiv'] ? 'alert' : 'ok';
     $jsonLd = [
         '@context' => 'https://schema.org',

@@ -14,6 +14,9 @@ $root = '../';
 $assetVersion = (int) @filemtime(__DIR__ . '/../dashboard.css');
 
 $changelog = [
+    ['2026-10-19', [
+        ['Ereignisseiten im Artikel-Layout mit lesbaren Adressen', 'Störungen und Eilmeldungen haben jetzt eine Lesespalte mit Vorspann, Faktenbox, Originalmeldung als Zitat, Zeitleiste und Teilen-Zeile. Die Adressen tragen den Titel, etwa /eilmeldung/em-123456/rb61-elmshorn-altona-faellt-aus/. Alte Links ohne Titel leiten weiter.'],
+    ]],
     ['2026-10-18', [
         ['Eine Seite je Störung und je Eilmeldung', 'Jede Infrastrukturstörung hat jetzt eine eigene Seite mit Pendler-Text, Originalmeldung, Verlauf (neuer Stand, geändertes Ende), den auffälligen Zügen im Zeitraum, Eilmeldungen und weiteren Störungen zur selben Zeit. Eilmeldungen bekommen ebenfalls eine Seite mit Pendler-Text, Nordbahn-Titel und der Lage zu dieser Zeit. Alle Listen, die Störungskarte und die Push-Nachrichten verlinken dorthin, die Seiten stehen in der Sitemap.'],
     ]],

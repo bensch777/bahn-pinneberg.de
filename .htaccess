@@ -37,8 +37,8 @@ RewriteRule ^api/push-key$ api/push-key.php [L]
 RewriteRule ^sitemap\.xml$ sitemap.php [L]
 RewriteRule ^llms\.txt$ llms.php [L]
 RewriteRule ^lage\.md$ lage.php [L]
-RewriteRule ^stoerung/([A-Za-z0-9_.-]+)/?$ stoerung.php?key=$1 [L,QSA]
-RewriteRule ^eilmeldung/([A-Za-z0-9_.-]+)/?$ eilmeldung.php?id=$1 [L,QSA]
+RewriteRule ^stoerung/([A-Za-z0-9_.-]+)(?:/([a-z0-9-]*))?/?$ stoerung.php?key=$1&slug=$2 [L,QSA]
+RewriteRule ^eilmeldung/([A-Za-z0-9_.-]+)(?:/([a-z0-9-]*))?/?$ eilmeldung.php?id=$1&slug=$2 [L,QSA]
 RewriteRule ^robots\.txt$ robots.php [L]
 
 <IfModule mod_dir.c>

@@ -60,11 +60,22 @@ function test_stoerung_finden_und_zeitraeume()
     t_eq('RB61 7:42 fällt aus', $em['title'], 'Eilmeldung gefunden');
     t_eq(null, nb_eilmeldung_finden($data, 'em-9'), 'Eilmeldung unbekannt');
 
-    t_eq('./stoerung/BZI_1/', nb_link('stoerung', 'BZI_1'), 'relativer Link');
+    t_eq('./stoerung/BZI_1/', nb_link('stoerung', 'BZI_1'), 'relativer Link ohne Titel');
+    t_eq('./stoerung/BZI_1/stoerung-in-hamburg-eidelstedt/', nb_link('stoerung', 'BZI_1', 'Störung in Hamburg-Eidelstedt'), 'relativer Link mit Slug');
     nb_root('../../');
     t_eq('../../eilmeldung/em-1/', nb_link('eilmeldung', 'em-1'), 'relativer Link von einer Unterseite');
     nb_root('./');
     t_eq('https://bahn-pinneberg.de/stoerung/BZI_1/', nb_ereignis_url('stoerung', 'BZI_1'), 'absoluter Link');
+    t_eq('https://bahn-pinneberg.de/eilmeldung/em-1/rb61-05-17-elmshorn-altona-faellt-aus-kurzfristiger/', nb_ereignis_url('eilmeldung', 'em-1', 'RB61 05:17 Elmshorn – Altona fällt aus (kurzfristiger Personalausfall)'), 'absoluter Link, Slug an Wortgrenze gekuerzt');
+}
+
+function test_slug()
+{
+    t_eq('rb61-rb71-bis-06-00-uhr-zuege-enden-in-pinneberg', nb_slug('RB61/RB71 bis 06:00 Uhr: Züge enden in Pinneberg'), 'Umlaute, Satzzeichen, Doppelpunkt');
+    t_eq('grosse-stoerung-oeffnung', nb_slug('Große Störung Öffnung'), 'Grossbuchstaben mit Umlaut und sz');
+    t_eq('', nb_slug('   '), 'leer bleibt leer');
+    t_eq('ohne-rand', nb_slug('– ohne Rand –'), 'keine Bindestriche am Rand');
+    t_eq(true, strlen(nb_slug(str_repeat('wort ', 30))) <= 60, 'hoechstens 60 Zeichen');
 }
 
 function test_betroffene_zuege_im_zeitraum()
