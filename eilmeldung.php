@@ -87,7 +87,7 @@ if (!$gefunden) {
 	<div class="wrap site-head__row">
 		<a class="site-head__brand" href="<?= $root ?>">Nordbahn Monitor <span class="site-head__domain"><?= htmlspecialchars(nordbahn_site_host(), ENT_QUOTES, 'UTF-8') ?></span></a>
 		<nav class="site-head__tools" aria-label="Zur&uuml;ck">
-			<a class="tool" href="<?= $root ?>">Zur Lage</a>
+			<a class="zurueck" href="<?= $root ?>"><svg class="zurueck__icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11H7.8l5.6-5.6L12 4l-8 8 8 8 1.4-1.4L7.8 13H20v-2Z"/></svg><span class="zurueck__lang">Zur&uuml;ck zur Startseite</span><span class="zurueck__kurz">Startseite</span></a>
 		</nav>
 	</div>
 </header>
@@ -156,7 +156,7 @@ if (!$gefunden) {
 
 		<footer class="artikel__fuss">
 			<?= nb_render_teilen($pageUrl, $titel) ?>
-			<?= nb_render_weiter(['Aktuelle Lage' => $root, 'Alle Eilmeldungen' => $root . 'eilmeldungen/#' . nb_anker($id), 'Störungsstatistik' => $root . 'statistik/']) ?>
+			<?= nb_render_weiter(['Zurück zur Startseite' => $root, 'Alle Eilmeldungen' => $root . 'eilmeldungen/#' . nb_anker($id), 'Störungsstatistik' => $root . 'statistik/']) ?>
 			<p class="artikel__hinweis">Titel und Pendler-Text werden automatisch aus der Eilmeldung der Nordbahn formuliert. Ma&szlig;geblich ist die Originalmeldung.</p>
 		</footer>
 	</article>
