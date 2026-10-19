@@ -94,54 +94,72 @@ if (!$gefunden) {
 
 <main class="wrap">
 <?php if (!$gefunden): ?>
-	<div class="page-head"><div><h1>Eilmeldung nicht gefunden</h1><p class="page-head__lead">Diese Eilmeldung ist nicht im Archiv. Alle erfassten Eilmeldungen stehen unter <a href="<?= $root ?>eilmeldungen/">Alle Eilmeldungen</a>.</p></div></div>
+	<article class="artikel">
+		<header class="artikel__kopf">
+			<p class="artikel__dachzeile"><span class="artikel__rubrik artikel__rubrik--eil">Eilmeldung</span></p>
+			<h1 class="artikel__titel">Eilmeldung nicht gefunden</h1>
+			<p class="artikel__vorspann">Diese Eilmeldung ist nicht im Archiv. Alle erfassten Eilmeldungen stehen unter <a href="<?= $root ?>eilmeldungen/">Alle Eilmeldungen</a>.</p>
+		</header>
+	</article>
 <?php else: ?>
-	<div class="page-head">
-		<div>
-			<p class="section__note">Eilmeldung der Nordbahn · Stand <?= nb_e(nb_fmt_wann($ts, $now)) ?></p>
-			<h1><?= nb_e($titel) ?></h1>
-<?php if ($em['original'] !== '' && $em['original'] !== $titel): ?>
-			<p class="page-head__lead">Nordbahn-Titel: <?= nb_e($em['original']) ?></p>
+	<article class="artikel">
+		<header class="artikel__kopf">
+			<p class="artikel__dachzeile">
+				<span class="artikel__rubrik artikel__rubrik--eil">Eilmeldung der Nordbahn</span>
+<?php if (!$em['link']): ?>
+				<span class="pill pill--aufgehoben">Zur&uuml;ckgezogen</span>
 <?php endif; ?>
-		</div>
-	</div>
-
-	<section class="section">
-		<div class="card prose">
+			</p>
+			<h1 class="artikel__titel"><?= nb_e($titel) ?></h1>
 <?php if ($em['text'] !== ''): ?>
-			<p class="ereignis__text"><?= nb_e($em['text']) ?></p>
+			<p class="artikel__vorspann"><?= nb_e($em['text']) ?></p>
 <?php else: ?>
-			<p class="ereignis__text">Zu dieser Meldung liegt kein Pendler-Text vor.</p>
+			<p class="artikel__vorspann artikel__vorspann--leer">Zu dieser Meldung liegt kein Pendler-Text vor. Was die Nordbahn gemeldet hat, steht unten.</p>
 <?php endif; ?>
+			<p class="artikel__meta">
+				<span>Stand <time datetime="<?= date('c', $ts) ?>"><?= nb_e(nb_fmt_tag_lang($ts, $now)) ?>, <?= nb_e(nb_fmt_uhr($ts)) ?></time></span>
 <?php if ($em['link']): ?>
-			<p><a href="<?= nb_e($em['link']) ?>" rel="noopener nofollow">Originalmeldung auf nordbahn.de &#8599;</a></p>
+				<span>Quelle <a href="<?= nb_e($em['link']) ?>" rel="noopener nofollow">nordbahn.de</a></span>
 <?php else: ?>
-			<p class="section__note">Die Nordbahn hat die Meldung inzwischen von ihrer Seite genommen.</p>
+				<span>Quelle nordbahn.de</span>
 <?php endif; ?>
-		</div>
-	</section>
+			</p>
+		</header>
+
+		<section class="section">
+			<h2 class="section__title">Was die Nordbahn gemeldet hat</h2>
+			<blockquote class="quelle quelle--eil">
+				<p class="quelle__label">Eilmeldung auf nordbahn.de</p>
+				<p class="quelle__titel"><?= nb_e($em['original'] !== '' ? $em['original'] : $titel) ?></p>
+<?php if ($em['link']): ?>
+				<p class="quelle__fuss"><a href="<?= nb_e($em['link']) ?>" rel="noopener nofollow">Originalmeldung lesen &#8599;</a></p>
+<?php else: ?>
+				<p class="quelle__fuss">Die Nordbahn hat die Meldung inzwischen von ihrer Seite genommen.</p>
+<?php endif; ?>
+			</blockquote>
+		</section>
 
 <?php if ($stoerungen): ?>
-	<section class="section">
-		<h2 class="section__title">Infrastrukturst&ouml;rungen zu dieser Zeit</h2>
-		<ol class="feed card"><?= nb_render_verlauf($stoerungen, 10, 0, $now) ?></ol>
-	</section>
+		<section class="section">
+			<h2 class="section__title">Infrastrukturst&ouml;rungen zu dieser Zeit</h2>
+			<ol class="feed card"><?= nb_render_verlauf($stoerungen, 10, 0, $now) ?></ol>
+		</section>
 <?php endif; ?>
 
 <?php if ($zuege['gesamt']): ?>
-	<section class="section">
-		<h2 class="section__title">Auff&auml;llige Z&uuml;ge rund um die Meldung</h2>
-		<div class="card"><?= nb_render_zuege_liste($zuege) ?></div>
-	</section>
+		<section class="section">
+			<h2 class="section__title">Auff&auml;llige Z&uuml;ge rund um die Meldung</h2>
+			<div class="card zuege-wrap"><?= nb_render_zuege_liste($zuege) ?></div>
+			<p class="section__note">Beobachtet an den Bahnh&ouml;fen, die in dieser Zeit abgefragt wurden. Ohne Beobachtung fehlt ein Zug hier, auch wenn er betroffen war.</p>
+		</section>
 <?php endif; ?>
 
-	<section class="section">
-		<ul class="ereignis__links">
-			<li><a href="<?= $root ?>">Aktuelle Lage</a></li>
-			<li><a href="<?= $root ?>eilmeldungen/#<?= nb_e(nb_anker($id)) ?>">Im Archiv</a></li>
-			<li><a href="https://t.me/prisdorfpendler" rel="noopener">Diskutiert mit auf Telegram</a></li>
-		</ul>
-	</section>
+		<footer class="artikel__fuss">
+			<?= nb_render_teilen($pageUrl, $titel) ?>
+			<?= nb_render_weiter(['Aktuelle Lage' => $root, 'Alle Eilmeldungen' => $root . 'eilmeldungen/#' . nb_anker($id), 'Störungsstatistik' => $root . 'statistik/']) ?>
+			<p class="artikel__hinweis">Titel und Pendler-Text werden automatisch aus der Eilmeldung der Nordbahn formuliert. Ma&szlig;geblich ist die Originalmeldung.</p>
+		</footer>
+	</article>
 <?php endif; ?>
 </main>
 

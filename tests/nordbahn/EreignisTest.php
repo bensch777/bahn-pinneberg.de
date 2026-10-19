@@ -24,10 +24,10 @@ function test_logbuch_verlauf_schritte()
     t_eq(['neu', 'text', 'ende'], array_column($schritte, 'art'), 'nachgetragener Pendler-Text ist kein eigener Schritt');
     t_eq('Schwere Störung.', $schritte[0]['ki_text'], 'Pendler-Text im ersten Schritt eingearbeitet');
     $html = nb_render_verlauf_schritte($schritte, strtotime('2026-10-17 06:00:00 Europe/Berlin'));
-    t_contains('Gemeldet', $html, 'Schritt neu');
+    t_contains('Störung gemeldet', $html, 'Schritt neu');
     t_contains('Neuer Stand', $html, 'Schritt Text');
-    t_contains('Ende geändert', $html, 'Schritt Ende');
-    t_contains('gemeldetes Ende heute, 12:00 Uhr', $html, 'Ende im Schritt');
+    t_contains('Neues voraussichtliches Ende', $html, 'Schritt Ende');
+    t_contains('Gemeldetes Ende: heute, 12:00 Uhr', $html, 'Ende im Schritt');
     unlink(NORDBAHN_LOG_FILE);
 }
 
@@ -89,9 +89,9 @@ function test_betroffene_zuege_im_zeitraum()
     t_eq([3, 1, 1, 1], [$z['gesamt'], $z['ausfaelle'], $z['teil'], $z['spaet']], 'Zaehler');
     t_eq('Hamburg Hbf', $z['zuege'][1]['ab'], 'Hamburger Bahnhof als Klarname');
     $html = nb_render_zuege_liste($z);
-    t_contains('RB61 ab Prisdorf nach Hamburg Hbf <span class="zug__status zug--ausfall">ausgefallen</span>', $html, 'Ausfall');
-    t_contains('+9 min (zeitweise +14)', $html, 'Verspaetung mit Spitze');
-    t_contains('erst unterwegs gestartet', $html, 'Teilausfall');
+    t_contains('<span class="zuege__zug">RB61</span> <span class="zuege__weg">ab Prisdorf nach Hamburg Hbf</span></td><td class="zuege__status"><span class="pill pill--ausfall">Ausgefallen</span>', $html, 'Ausfall');
+    t_contains('<span class="pill pill--spaet">+9 min</span><small>zeitweise +14</small>', $html, 'Verspaetung mit Spitze');
+    t_contains('Erst unterwegs gestartet', $html, 'Teilausfall');
     t_contains('Keine auffälligen Züge', nb_render_zuege_liste(nb_zuege_im_zeitraum($start + 10 * 86400, $ende + 10 * 86400)), 'leer');
     unlink(NB_ZUGLOG_DIR . '/2026-10-17.json');
 }

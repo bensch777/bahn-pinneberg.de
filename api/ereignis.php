@@ -225,29 +225,34 @@ function nb_verlauf_schritte(array $verlauf)
 
 /* ---------- HTML ---------- */
 
-/** Liste betroffener Zuege (aus nb_zuege_im_zeitraum). */
+/** Betroffene Zuege (aus nb_zuege_im_zeitraum) als Tabelle mit Status-Pille. */
 function nb_render_zuege_liste(array $info)
 {
     if (!$info['zuege']) {
         return '<p class="feed__empty">Keine auffälligen Züge im Zeitraum beobachtet.</p>';
     }
-    $h = '<ol class="feed">';
+    $h = '<table class="zuege">';
     foreach ($info['zuege'] as $z) {
+        $klein = '';
         if ($z['ausfall']) {
-            $status = 'ausgefallen';
-            $cls = ' zug--ausfall';
+            $status = 'Ausgefallen';
+            $cls = 'ausfall';
         } elseif ($z['teil'] !== '') {
-            $status = $z['teil'] === 'beginnt' ? 'erst unterwegs gestartet' : 'vorzeitig geendet';
-            $cls = ' zug--teil';
+            $status = $z['teil'] === 'beginnt' ? 'Erst unterwegs gestartet' : 'Vorzeitig geendet';
+            $cls = 'teil';
         } else {
-            $status = '+' . $z['versp'] . ' min' . ($z['max'] > $z['versp'] ? ' (zeitweise +' . $z['max'] . ')' : '');
-            $cls = ' zug--spaet';
+            $status = '+' . $z['versp'] . ' min';
+            $cls = 'spaet';
+            if ($z['max'] > $z['versp']) {
+                $klein = 'zeitweise +' . $z['max'];
+            }
         }
-        $h .= '<li><div class="feed__time">' . nb_e(nb_fmt_uhr($z['ts'])) . '</div><div><p class="feed__title">' . nb_e(trim($z['linie'] . ' ab ' . $z['ab'] . ' nach ' . $z['ziel']))
-            . ' <span class="zug__status' . $cls . '">' . nb_e($status) . '</span></p></div></li>';
+        $h .= '<tr><td class="zuege__zeit">' . nb_e(nb_fmt_uhr($z['ts'])) . '</td>'
+            . '<td><span class="zuege__zug">' . nb_e($z['linie']) . '</span> <span class="zuege__weg">' . nb_e(trim('ab ' . $z['ab'] . ' nach ' . $z['ziel'])) . '</span></td>'
+            . '<td class="zuege__status"><span class="pill pill--' . $cls . '">' . nb_e($status) . '</span>' . ($klein !== '' ? '<small>' . nb_e($klein) . '</small>' : '') . '</td></tr>';
     }
 
-    return $h . '</ol>';
+    return $h . '</table>';
 }
 
 /** Verlauf einer Stoerung als Zeitleiste. */
@@ -256,18 +261,68 @@ function nb_render_verlauf_schritte(array $schritte, $now = null)
     if (!$schritte) {
         return '';
     }
-    $label = ['neu' => 'Gemeldet', 'ende' => 'Ende geändert', 'text' => 'Neuer Stand', 'ki' => 'Pendler-Text aktualisiert'];
-    $h = '<ol class="feed">';
+    $label = ['neu' => 'Störung gemeldet', 'ende' => 'Neues voraussichtliches Ende', 'text' => 'Neuer Stand', 'ki' => 'Pendler-Text aktualisiert'];
+    $h = '<ol class="zeitleiste">';
+    $vorText = null;
+    $vorTitel = null;
+    $vorEnde = null;
     foreach ($schritte as $s) {
+        // Unveraenderte Texte und Titel nicht in jedem Schritt wiederholen
         $text = $s['ki_text'] !== '' ? $s['ki_text'] : $s['text'];
-        $meta = [];
-        if ($s['ende'] !== '') {
-            $meta[] = 'gemeldetes Ende ' . nb_fmt_wann(nb_ts($s['ende']), $now, true);
+        if ($text === $vorText) {
+            $text = '';
+        } else {
+            $vorText = $text;
         }
-        $h .= '<li><div class="feed__time">' . nb_e(nb_fmt_wann($s['ts'], $now)) . '</div><div><p class="feed__title">' . nb_e($label[$s['art']] ?? 'Aktualisiert')
-            . ($s['ki_titel'] !== '' && $s['art'] !== 'neu' ? ': ' . nb_e($s['ki_titel']) : '') . '</p>'
-            . ($text !== '' || $meta ? '<p class="feed__meta">' . nb_e($text) . ($meta ? ($text !== '' ? '<br>' : '') . nb_e(implode(', ', $meta)) : '') . '</p>' : '') . '</div></li>';
+        $hinweis = $s['ende'] !== '' && $s['ende'] !== $vorEnde ? 'Gemeldetes Ende: ' . nb_fmt_wann(nb_ts($s['ende']), $now, true) : '';
+        $vorEnde = $s['ende'];
+        $titel = $label[$s['art']] ?? 'Aktualisiert';
+        if ($s['ki_titel'] !== '' && $s['art'] !== 'neu' && $s['ki_titel'] !== $vorTitel) {
+            $titel .= ': ' . $s['ki_titel'];
+        }
+        if ($s['ki_titel'] !== '') {
+            $vorTitel = $s['ki_titel'];
+        }
+        $h .= '<li class="ist-' . $s['art'] . '"><time class="zeitleiste__zeit">' . nb_e(nb_fmt_wann($s['ts'], $now)) . '</time><p class="zeitleiste__titel">' . nb_e($titel) . '</p>'
+            . ($text !== '' || $hinweis !== '' ? '<p class="zeitleiste__text">' . nb_e($text) . ($hinweis !== '' ? '<span class="zeitleiste__hinweis">' . nb_e($hinweis) . '</span>' : '') . '</p>' : '') . '</li>';
     }
 
     return $h . '</ol>';
+}
+
+/** Teilen-Zeile: WhatsApp, Telegram, X und Mail mit Titel und Seitenadresse. */
+function nb_render_teilen($url, $titel)
+{
+    $text = rawurlencode($titel);
+    $u = rawurlencode($url);
+    $icons = [
+        'whatsapp' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 1.8a8.2 8.2 0 1 1-4.2 15.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 0 1 12 3.8Zm-3 4.4c-.2 0-.5.1-.7.3-.3.3-1 1-1 2.3s1 2.7 1.1 2.9c.2.2 2 3.1 4.9 4.2 2.4.9 2.9.8 3.4.7.5 0 1.7-.7 1.9-1.4.2-.7.2-1.2.2-1.4-.1-.1-.3-.2-.6-.3l-2-1c-.3-.1-.5-.2-.7.2-.2.3-.8 1-.9 1.1-.2.2-.3.2-.6.1-.3-.2-1.2-.5-2.3-1.5-.9-.8-1.5-1.7-1.6-2-.2-.3 0-.5.1-.6l.4-.5.3-.5v-.5l-.9-2.2c-.2-.5-.4-.5-.6-.5H9Z"/></svg>',
+        'telegram' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21.6 3.3 2.9 10.6c-1.1.4-1.1 1.1-.2 1.4l4.7 1.5 1.8 5.6c.2.6.1.9.8.9.5 0 .7-.2 1-.5l2.3-2.3 4.8 3.6c.9.5 1.5.2 1.7-.8l3.2-15c.3-1.3-.5-1.9-1.4-1.7ZM8.4 13.1l9.6-6c.5-.3.9-.1.5.2l-7.9 7.2-.3 3.3-1.9-4.7Z"/></svg>',
+        'x'        => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.2 2.3h3.3l-7.2 8.2 8.5 11.2h-6.6l-5.2-6.8-6 6.8H1.7l7.7-8.8L1.3 2.3H8l4.7 6.2 5.5-6.2Zm-1.2 19.4h1.8L7.1 4.1H5.2l11.8 17.6Z"/></svg>',
+        'mail'     => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Zm1 2.4V17h16V7.4l-8 5.3-8-5.3ZM5.1 7l6.9 4.6L18.9 7H5.1Z"/></svg>',
+    ];
+    $links = [
+        ['WhatsApp', 'https://wa.me/?text=' . rawurlencode($titel . ' ' . $url), $icons['whatsapp']],
+        ['Telegram', 'https://t.me/share/url?url=' . $u . '&text=' . $text, $icons['telegram']],
+        ['X', 'https://x.com/intent/post?text=' . $text . '&url=' . $u, $icons['x']],
+        ['Mail', 'mailto:?subject=' . $text . '&body=' . rawurlencode($titel . "\n" . $url), $icons['mail']],
+    ];
+    $h = '<div class="teilen"><span class="teilen__label">Teilen</span>';
+    foreach ($links as $l) {
+        $h .= '<a class="teilen__link" href="' . nb_e($l[1]) . '"' . ($l[0] !== 'Mail' ? ' rel="noopener" target="_blank"' : '') . '>' . $l[2] . nb_e($l[0]) . '</a>';
+    }
+
+    return $h . '</div>';
+}
+
+/** Weiterlesen-Zeile aus [Text => URL]. */
+function nb_render_weiter(array $links)
+{
+    $h = '<ul class="weiter">';
+    foreach ($links as $text => $url) {
+        $extern = strpos($url, 'http') === 0;
+        $h .= '<li><a href="' . nb_e($url) . '"' . ($extern ? ' rel="noopener nofollow"' : '') . '>' . nb_e($text) . '</a></li>';
+    }
+
+    return $h . '</ul>';
 }
