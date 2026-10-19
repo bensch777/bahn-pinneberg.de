@@ -12,6 +12,7 @@ Das Wurzelverzeichnis des Repos ist das Web-Root. Reines PHP ohne Framework, kei
 | --- | --- |
 | `index.php` | Startseite, rendert Lagekarten, Störungen und Eilmeldungen server-seitig |
 | `dashboard.js`, `dashboard.css` | Aktualisiert die Seite im Browser, Abfahrtstafeln, Benachrichtigungen |
+| `news/index.php` | Wichtige Meldungen: Störungen und Eilmeldungen nach den Regeln `nb_wichtig_stoerung`/`nb_wichtig_eilmeldung` in `api/render.php`; die Startseite zeigt davon die letzten 24 Stunden |
 | `stoerung.php`, `eilmeldung.php`, `api/ereignis.php` | Ereignisseiten `/stoerung/<key>/` und `/eilmeldung/<id>/`: Verlauf aus dem Logbuch (`verlauf` je Eintrag), betroffene Züge aus dem Zuglog, Eilmeldungen und Störungen im Zeitraum |
 | `llms.php`, `lage.php` | `/llms.txt` (Beschreibung für KI-Assistenten) und `/lage.md` (aktuelle Lage als Markdown, `?bhf=` für den Bahnhof) |
 | `api/zuglog.php` | Zuverlässigkeit je Zug: Tageslogs in `cache/zuglog/`, Auswertung der letzten 30 Tage in `cache/zugstat.json` (30 Min. gecacht), hängt an jede Abfahrtszeile `statistik` |

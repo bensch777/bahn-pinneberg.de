@@ -13,6 +13,7 @@ $urls = [
     ['loc' => SITEMAP_BASE . 'faq/', 'priority' => '0.5'],
     ['loc' => SITEMAP_BASE . 'eilmeldungen/', 'priority' => '0.6'],
     ['loc' => SITEMAP_BASE . 'stoerungen/', 'priority' => '0.6'],
+    ['loc' => SITEMAP_BASE . 'news/', 'priority' => '0.7'],
     ['loc' => SITEMAP_BASE . 'statistik/', 'priority' => '0.6'],
     ['loc' => SITEMAP_BASE . 'changelog/', 'priority' => '0.4'],
 ];

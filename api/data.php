@@ -11,9 +11,10 @@
  */
 
 require __DIR__ . '/store.php';
+require __DIR__ . '/render.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: public, max-age=20');
 header('X-Robots-Tag: noindex');
 
-echo json_encode(nordbahn_dataset(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+echo json_encode(nb_wichtig_markieren(nordbahn_dataset()), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);

@@ -139,7 +139,7 @@
 		var seen = {};
 		var items = [];
 		// Der Pendler-Titel der KI (aus der Historie) ersetzt den Nordbahn-Titel in der Anzeige
-		function push(id, title, iso, live, kiTitel, kiText) {
+		function push(id, title, iso, live, kiTitel, kiText, wichtig) {
 			var ms = Date.parse(iso || '');
 			if (!id || isNaN(ms)) return;
 			seen[id] = true;
@@ -147,12 +147,13 @@
 			items.push({
 				id: id, title: kiTitel || title || '', original: title || '', text: (kiText || '').trim(), ms: ms,
 				stand: live && live.stand ? Date.parse(live.stand) : NaN,
-				link: live && live.link ? live.link : ''
+				link: live && live.link ? live.link : '',
+				wichtig: !!wichtig // Einstufung kommt vom Server (nb_wichtig_markieren)
 			});
 		}
-		(data.eilmeldungen || []).forEach(function (e) { if (e) push(e.id, e.title, e.seen_at, liveById[e.id], e.ki_titel, e.ki_text); });
+		(data.eilmeldungen || []).forEach(function (e) { if (e) push(e.id, e.title, e.seen_at, liveById[e.id], e.ki_titel, e.ki_text, e.wichtig); });
 		// Meldungen, die auf der Seite stehen, aber noch nicht in der Historie sind
-		(data.eilmeldungen_live || []).forEach(function (e) { if (e && !seen[e.id]) push(e.id, e.title, e.stand, e); });
+		(data.eilmeldungen_live || []).forEach(function (e) { if (e && !seen[e.id]) push(e.id, e.title, e.stand, e, '', '', e.wichtig); });
 		// Nach der angezeigten Zeit: Stand der Nordbahn, sonst Erfassung; aelteste zuerst
 		items.sort(function (a, b) { return (isNaN(a.stand) ? a.ms : a.stand) - (isNaN(b.stand) ? b.ms : b.stand); });
 
@@ -402,18 +403,51 @@
 		});
 	}
 
-	/** Aufgehobene Stoerungen aus dem Logbuch, juengste zuerst (wie nb_verlauf_items). */
-	function verlaufItems(data) {
+	/** Stoerungen aus dem Logbuch, juengste zuerst (wie nb_verlauf_items); ohne mitAktiven nur die aufgehobenen. */
+	function verlaufItems(data, mitAktiven) {
 		var aktiv = {};
 		(data.stoerungen || []).forEach(function (s) { if (s.key) aktiv[s.key] = true; });
 		var out = [];
 		(data.stoerungen_verlauf || []).forEach(function (e) {
-			if (!e || !e.key || aktiv[e.key]) return;
+			if (!e || !e.key || (!mitAktiven && aktiv[e.key])) return;
 			var start = Date.parse(e.first_seen), ende = Date.parse(e.last_seen);
 			if (isNaN(start) || isNaN(ende)) return;
-			out.push({ key: e.key, titel: (e.ki_titel || e.titel || 'Störung').trim(), text: (e.ki_text || '').trim(), start: start, ende: Math.max(start, ende) });
+			out.push({ key: e.key, titel: (e.ki_titel || e.titel || 'Störung').trim(), text: (e.ki_text || '').trim(), start: start, ende: Math.max(start, ende), aktiv: !!aktiv[e.key], wichtig: !!e.wichtig });
 		});
 		return out.sort(function (a, b) { return b.start - a.start; }); // juengster Beginn zuerst
+	}
+
+	/** Wichtige Meldungen der letzten 24 Stunden (wie nb_wichtig_heute); laufende Stoerungen stehen schon in den Lagekarten. */
+	function renderWichtig() {
+		var section = document.getElementById('wichtig');
+		var ol = document.getElementById('wichtig-feed');
+		if (!section || !ol || !state.data) return;
+		var limit = parseInt(ol.getAttribute('data-limit'), 10) || 3;
+		var cutoff = Date.now() - 86400000;
+		var items = [];
+		verlaufItems(state.data, true).forEach(function (it) {
+			if (it.wichtig && !it.aktiv && it.start >= cutoff) items.push({ art: 'stoerung', ts: it.start, titel: it.titel, text: it.text, link: ereignisLink('stoerung', it.key, it.titel), meta: fmtBis(it.start, it.ende) + ' · ' + fmtDauer(it.ende - it.start) });
+		});
+		state.items.forEach(function (it) {
+			var ms = isNaN(it.stand) ? it.ms : it.stand;
+			if (it.wichtig && ms >= cutoff) items.push({ art: 'eilmeldung', ts: ms, titel: it.title || it.id, text: it.text, link: ereignisLink('eilmeldung', it.id, it.title), meta: '' });
+		});
+		items.sort(function (a, b) { return b.ts - a.ts; });
+		items = items.slice(0, limit);
+		section.hidden = !items.length;
+		clear(ol);
+		items.forEach(function (it) {
+			var meta = el('p', { class: 'feed__meta' }, [it.meta]);
+			if (it.text) { if (it.meta) meta.appendChild(el('br')); meta.appendChild(document.createTextNode(it.text)); }
+			ol.appendChild(el('li', istHeute(it.ts) ? { class: 'is-heute' } : {}, [
+				el('div', { class: 'feed__time' }, [fmtWann(it.ts)]),
+				el('div', {}, [
+					el('p', { class: 'feed__kicker feed__kicker--' + it.art, text: it.art === 'stoerung' ? 'Infrastrukturstörung' : 'Eilmeldung der Nordbahn' }),
+					el('p', { class: 'feed__title' }, [el('a', { href: it.link, text: it.titel })]),
+					it.meta || it.text ? meta : null
+				])
+			]));
+		});
 	}
 
 	function fmtDauer(ms) {
@@ -991,6 +1025,7 @@
 	function renderAll() {
 		renderFreshness();
 		renderStatus();
+		renderWichtig();
 		renderFeed();
 		renderVerlauf();
 	}

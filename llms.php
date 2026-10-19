@@ -34,6 +34,7 @@ echo "- [Startseite](" . $site . "/): Lagebild, Abfahrtstafel, letzte Meldungen 
 echo "- [Häufige Fragen](" . $site . "/faq/): Datenquellen, Bedeutung der Statusstufen, Bahnhöfe, Benachrichtigungen.\n";
 echo "- [Alle Eilmeldungen](" . $site . "/eilmeldungen/) und [alle Infrastrukturstörungen](" . $site . "/stoerungen/): Archiv nach Tagen, 50 Einträge je Seite (`?seite=N`).\n";
 echo "- Ereignisseiten: `" . $site . "/stoerung/<key>/` (z. B. BZI_33570) mit Pendler-Text, Originalmeldung, Verlauf, betroffenen Zügen und Eilmeldungen im Zeitraum; `" . $site . "/eilmeldung/<id>/` (z. B. em-123456) je Eilmeldung. lage.md und die Archive verlinken darauf.\n";
+echo "- [Wichtige Meldungen](" . $site . "/news/): nur die Störungen mit schwerer Einschränkung, Ausfällen, Umleitungen oder Ersatzverkehr und die Eilmeldungen zu Ersatzverkehr, Sperrungen, Bauarbeiten oder mehreren Zügen; einzelne kurzfristige Zugausfälle fehlen hier bewusst.\n";
 echo "- [Störungsstatistik](" . $site . "/statistik/): Störungen und Dauer der letzten 30 Tage, Verlauf nach Kalenderwochen, häufigste Ursachen.\n";
 echo "- [Was ist neu](" . $site . "/changelog/): Änderungen der Seite.\n\n";
 

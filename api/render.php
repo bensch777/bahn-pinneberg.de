@@ -116,7 +116,7 @@ function nb_items(array $data)
     $seen = [];
     // Der Pendler-Titel der KI (aus der Historie) ersetzt den Nordbahn-Titel in der
     // Anzeige; der Originaltitel bleibt als 'original' fuer den Tooltip erhalten.
-    $push = function ($id, $title, $iso, $l, $kiTitel = '', $kiText = '') use (&$items, &$seen) {
+    $push = function ($id, $title, $iso, $l, $kiTitel = '', $kiText = '', $wichtig = null) use (&$items, &$seen) {
         $ts = nb_ts($iso);
         if (!$id || $ts === null) {
             return;
@@ -131,16 +131,17 @@ function nb_items(array $data)
             'ts'       => $ts,
             'stand'    => $l && !empty($l['stand']) ? nb_ts($l['stand']) : null,
             'link'     => $l && !empty($l['link']) ? $l['link'] : '',
+            'wichtig'  => $wichtig !== null ? (bool) $wichtig : nb_wichtig_eilmeldung($kiTitel, $kiText, $title),
         ];
     };
     foreach ($data['eilmeldungen'] ?? [] as $e) {
         if ($e) {
-            $push($e['id'] ?? '', $e['title'] ?? '', $e['seen_at'] ?? '', $live[$e['id'] ?? ''] ?? null, $e['ki_titel'] ?? '', $e['ki_text'] ?? '');
+            $push($e['id'] ?? '', $e['title'] ?? '', $e['seen_at'] ?? '', $live[$e['id'] ?? ''] ?? null, $e['ki_titel'] ?? '', $e['ki_text'] ?? '', $e['wichtig'] ?? null);
         }
     }
     foreach ($data['eilmeldungen_live'] ?? [] as $e) {
         if ($e && empty($seen[$e['id'] ?? ''])) {
-            $push($e['id'] ?? '', $e['title'] ?? '', $e['stand'] ?? '', $e);
+            $push($e['id'] ?? '', $e['title'] ?? '', $e['stand'] ?? '', $e, '', '', $e['wichtig'] ?? null);
         }
     }
     // Nach der angezeigten Zeit: Stand der Nordbahn, sonst Erfassung; aelteste zuerst
@@ -479,13 +480,15 @@ function nb_verlauf_items(array $data, $mitAktiven = false)
         if ($start === null || $ende === null) {
             continue;
         }
+        $laeuft = isset($aktiv[$e['key']]);
         $out[] = [
-            'key'   => $e['key'],
-            'titel' => trim((string) (($e['ki_titel'] ?? '') !== '' ? $e['ki_titel'] : ($e['titel'] ?? 'Störung'))),
-            'text'  => trim((string) ($e['ki_text'] ?? '')),
-            'start' => $start,
-            'ende'  => max($start, $ende),
-            'aktiv' => isset($aktiv[$e['key']]),
+            'key'     => $e['key'],
+            'titel'   => trim((string) (($e['ki_titel'] ?? '') !== '' ? $e['ki_titel'] : ($e['titel'] ?? 'Störung'))),
+            'text'    => trim((string) ($e['ki_text'] ?? '')),
+            'start'   => $start,
+            'ende'    => max($start, $ende),
+            'aktiv'   => $laeuft,
+            'wichtig' => nb_wichtig_stoerung($e, $start, $laeuft ? time() : max($start, $ende)),
         ];
     }
     // Juengster Beginn zuerst, wie im Archiv
@@ -494,6 +497,150 @@ function nb_verlauf_items(array $data, $mitAktiven = false)
     });
 
     return $out;
+}
+
+/* ---------- Wichtige Meldungen ----------
+ * Die Rubrik "Wichtig" filtert aus Stoerungen und Eilmeldungen das heraus, was
+ * viele Pendler betrifft. Ein explizites Feld 'wichtig' (z. B. aus n8n) gewinnt,
+ * sonst gelten die Regeln unten. Die FAQ beschreibt sie in Alltagssprache. */
+
+/** Stoerung: schwere Einschraenkung, Ausfall/Umleitung/Ersatzverkehr/Sperrung als Wirkung oder ab zwei Stunden Dauer. */
+function nb_wichtig_stoerung(array $s, $start, $ende)
+{
+    if (isset($s['wichtig'])) {
+        return (bool) $s['wichtig'];
+    }
+    if (mb_strtolower(trim((string) ($s['einschraenkung'] ?? ''))) === 'schwer') {
+        return true;
+    }
+    foreach ((array) ($s['wirkungen'] ?? []) as $w) {
+        if (preg_match('/ausfall|umleitung|ersatzverkehr|sperr|zurückgehalten/iu', (string) $w)) {
+            return true;
+        }
+    }
+
+    return $ende - $start >= 2 * 3600;
+}
+
+/** Eilmeldung: Ersatzverkehr, Sperrung, Streik, Bauarbeiten, Unwetter, Infrastruktur oder mehrere Zuege bzw. ein Zeitraum; einzelne kurzfristige Zugausfaelle nicht. */
+function nb_wichtig_eilmeldung($titel, $text, $original = '')
+{
+    $t = mb_strtolower(trim($titel . ' ' . $original . ' ' . $text), 'UTF-8');
+
+    return (bool) preg_match('/ersatzverkehr|schienenersatz|\bsev\b|sperr|streik|sonderfahrplan|bauarbeiten|baustell|unwetter|sturm|hochwasser|stellwerk|signalst|oberleitung|weichenst|polizei|feuerwehr|notarzt|personen im gleis|unfall|brand|evakuier|mehrere z|alle z|keine z|sämtliche|ganztägig|den ganzen tag|bis \d{1,2}([:.]\d{2})? uhr|bis (ca\. )?\d{1,2} uhr/u', $t);
+}
+
+/** Setzt 'wichtig' an allen Meldungen im Datensatz, damit das Script dieselbe Einstufung bekommt. */
+function nb_wichtig_markieren(array $data, $now = null)
+{
+    $now = $now ?? time();
+    foreach (['stoerungen', 'stoerungen_verlauf'] as $liste) {
+        foreach ($data[$liste] ?? [] as $i => $s) {
+            if (!is_array($s)) {
+                continue;
+            }
+            $start = nb_ts($s['first_seen'] ?? ($s['beginn'] ?? '')) ?? $now;
+            $ende = $liste === 'stoerungen' ? $now : (nb_ts($s['last_seen'] ?? '') ?? $start);
+            $data[$liste][$i]['wichtig'] = nb_wichtig_stoerung($s, $start, max($start, $ende));
+        }
+    }
+    foreach (['eilmeldungen', 'eilmeldungen_live'] as $liste) {
+        foreach ($data[$liste] ?? [] as $i => $e) {
+            if (is_array($e) && !isset($e['wichtig'])) {
+                $data[$liste][$i]['wichtig'] = nb_wichtig_eilmeldung($e['ki_titel'] ?? '', $e['ki_text'] ?? '', $e['title'] ?? '');
+            }
+        }
+    }
+
+    return $data;
+}
+
+/**
+ * Wichtige Stoerungen (auch laufende) und Eilmeldungen in einer Liste, juengste
+ * zuerst. Felder: art (stoerung|eilmeldung), ts, titel, text, link, dazu key/start/
+ * ende/aktiv bei Stoerungen und id bei Eilmeldungen.
+ */
+function nb_wichtig_items(array $data, $now = null)
+{
+    $now = $now ?? time();
+    $out = [];
+    foreach (nb_verlauf_items($data, true) as $it) {
+        if ($it['wichtig']) {
+            $out[] = ['art' => 'stoerung', 'ts' => $it['start'], 'titel' => $it['titel'], 'text' => $it['text'], 'link' => nb_link('stoerung', $it['key'], $it['titel']),
+                'key' => $it['key'], 'start' => $it['start'], 'ende' => $it['aktiv'] ? $now : $it['ende'], 'aktiv' => $it['aktiv']];
+        }
+    }
+    foreach (nb_items($data) as $it) {
+        if ($it['wichtig']) {
+            $titel = $it['title'] !== '' ? $it['title'] : $it['id'];
+            $out[] = ['art' => 'eilmeldung', 'ts' => $it['stand'] ?? $it['ts'], 'titel' => $titel, 'text' => $it['text'], 'link' => nb_link('eilmeldung', $it['id'], $titel), 'id' => $it['id']];
+        }
+    }
+    usort($out, function ($a, $b) {
+        return $b['ts'] <=> $a['ts'];
+    });
+
+    return $out;
+}
+
+/** Ein Eintrag der Wichtig-Listen (Rubrik, Titel, Text, bei Stoerungen Ende und Dauer). */
+function nb_render_wichtig_eintrag(array $it, $now, $mitTag = true)
+{
+    $zeit = $mitTag ? nb_fmt_wann($it['ts'], $now) : nb_fmt_uhr($it['ts']);
+    $rubrik = $it['art'] === 'stoerung' ? 'Infrastrukturst&ouml;rung' : 'Eilmeldung der Nordbahn';
+    $meta = [];
+    if ($it['art'] === 'stoerung') {
+        $meta[] = $it['aktiv'] ? 'dauert an, bisher ' . nb_dauer($it['ende'] - $it['start']) : nb_fmt_bis($it['start'], $it['ende'], $now) . ' · ' . nb_dauer($it['ende'] - $it['start']);
+    }
+
+    return '<li' . (nb_ist_heute($it['ts'], $now) ? ' class="is-heute"' : '') . '><div class="feed__time">' . nb_e($zeit) . '</div><div>'
+        . '<p class="feed__kicker feed__kicker--' . $it['art'] . '">' . $rubrik . ($it['art'] === 'stoerung' && $it['aktiv'] ? ' <span class="dep__ab dep__ab--aktiv">aktiv</span>' : '') . '</p>'
+        . '<p class="feed__title"><a href="' . nb_e($it['link']) . '">' . nb_e($it['titel']) . '</a></p>'
+        . ($meta || $it['text'] !== '' ? '<p class="feed__meta">' . nb_e(implode('', $meta)) . ($meta && $it['text'] !== '' ? '<br>' : '') . nb_e($it['text']) . '</p>' : '')
+        . '</div></li>';
+}
+
+/** Wichtige Meldungen der letzten 24 Stunden fuer die Startseite; laufende Stoerungen stehen schon in den Lagekarten. */
+function nb_wichtig_heute(array $items, $now = null, $limit = 3)
+{
+    $now = $now ?? time();
+    $out = [];
+    foreach ($items as $it) {
+        if ($it['ts'] >= $now - 86400 && empty($it['aktiv'])) {
+            $out[] = $it;
+        }
+    }
+
+    return array_slice($out, 0, $limit);
+}
+
+function nb_render_wichtig_heute(array $items, $now = null)
+{
+    $html = '';
+    foreach ($items as $it) {
+        $html .= nb_render_wichtig_eintrag($it, $now ?? time());
+    }
+
+    return $html;
+}
+
+/** Seite /news/: ein Abschnitt je Tag. */
+function nb_render_news(array $items, $now = null)
+{
+    $now = $now ?? time();
+    if (!$items) {
+        return '<section class="section"><ol class="feed card"><li><p class="feed__empty">Noch keine wichtige Meldung erfasst.</p></li></ol></section>';
+    }
+    $html = '';
+    foreach (nb_nach_tag($items, function ($it) { return $it['ts']; }) as $tag) {
+        $html .= '<section class="section"><h2 class="section__title">' . nb_e(nb_fmt_tag_lang($tag['ts'], $now)) . '</h2><ol class="feed card">';
+        foreach ($tag['items'] as $it) {
+            $html .= nb_render_wichtig_eintrag($it, $now, false);
+        }
+        $html .= '</ol></section>';
+    }
+
+    return $html;
 }
 
 /** Balkenbreite in 5-Prozent-Stufen (0..100) fuer data-w, CSP-konform ohne Inline-Style. */

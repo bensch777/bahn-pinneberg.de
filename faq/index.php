@@ -26,6 +26,8 @@ $faq = [
      'Ja, über die Glocke oben rechts, wahlweise nur zu Pendelzeiten. Gemeldet werden Zugausfälle am eigenen Bahnhof, neue und aufgehobene Störungen sowie Eilmeldungen, per Web Push auch bei geschlossener Seite. Auf dem iPhone geht das nur, wenn die Seite über „Teilen“ zum Home-Bildschirm hinzugefügt und von dort geöffnet wird. Unabhängig davon gibt es die Telegram-Kanäle „Nordbahn Eilmeldungen“ und „Prisdorf Pendler“.'],
     ['Kann ich die Seite als App nutzen?',
      'Ja. Auf dem iPhone über Teilen und „Zum Home-Bildschirm“, auf Android über „App installieren“ im Browsermenü. Die Seite startet dann im Vollbild und aktualisiert sich selbst.'],
+    ['Was zählt als „wichtige Meldung“?',
+     'Die Seite „Wichtige Meldungen“ filtert nach festen Regeln: Infrastrukturstörungen mit schwerer Einschränkung, mit Ausfällen, Umleitungen, Ersatzverkehr oder Sperrungen als Auswirkung oder mit mindestens zwei Stunden Dauer. Bei den Eilmeldungen der Nordbahn alles zu Ersatzverkehr, Sperrungen, Streik, Bauarbeiten, Unwetter, Stellwerk- oder Signalstörungen sowie Meldungen, die mehrere Züge oder einen Zeitraum betreffen. Einzelne kurzfristige Zugausfälle, etwa wegen Personalausfall, stehen nur im Archiv der Eilmeldungen.'],
     ['Was steht auf der Seite einer einzelnen Störung?',
      'Jede Störung und jede Eilmeldung hat eine eigene Seite, erreichbar über den Titel in den Listen: der Pendler-Text, die Originalmeldung von strecken-info.de, der Verlauf mit jedem neuen Stand, die in dieser Zeit beobachteten Ausfälle und Verspätungen sowie Eilmeldungen und weitere Störungen zur selben Zeit. Die Push-Nachrichten auf Telegram und X verlinken direkt dorthin.'],
     ['Woher kommen die Werte „Letzte 30 Tage: 2× ausgefallen, Ø +3 min“?',

@@ -334,3 +334,55 @@ function test_statistik_kennzahlen()
     t_eq(5, nb_bar_stufe(1, 100), 'mindestens 5 Prozent, wenn ueberhaupt etwas da ist');
     t_eq(40, nb_bar_stufe(2, 5), 'gerundet auf 5er-Stufe');
 }
+
+function test_wichtig_regeln()
+{
+    t_eq(true, nb_wichtig_stoerung(['einschraenkung' => 'schwer'], 0, 60), 'schwere Einschraenkung');
+    t_eq(true, nb_wichtig_stoerung(['einschraenkung' => 'leicht', 'wirkungen' => ['Züge werden zurückgehalten', 'Ausfall']], 0, 60), 'Ausfall als Wirkung');
+    t_eq(false, nb_wichtig_stoerung(['einschraenkung' => 'leicht', 'wirkungen' => ['Verspätungen']], 0, 3600), 'nur Verspaetungen, eine Stunde');
+    t_eq(true, nb_wichtig_stoerung(['einschraenkung' => 'leicht', 'wirkungen' => ['Verspätungen']], 0, 2 * 3600), 'ab zwei Stunden Dauer');
+    t_eq(false, nb_wichtig_stoerung(['einschraenkung' => 'schwer', 'wichtig' => false], 0, 60), 'explizites Feld gewinnt');
+
+    t_eq(false, nb_wichtig_eilmeldung('05:17 Elmshorn – Altona fällt aus (kurzfristiger Personalausfall)', 'Der Zug NBE81819 ab 05:17 Uhr entfällt. Bitte den Nachfolgetakt NBE 75503 nutzen.', 'Zugausfall RB60'), 'einzelner Zugausfall nicht wichtig');
+    t_eq(true, nb_wichtig_eilmeldung('RB61/RB71 bis 06:00 Uhr: Züge enden in Pinneberg (Signalstörung)', 'Weiter mit der S-Bahn.', 'Zugausfall RB61/RB71'), 'Zeitraum und Signalstoerung');
+    t_eq(true, nb_wichtig_eilmeldung('', '', 'Ersatzverkehr zwischen Elmshorn und Wrist'), 'Ersatzverkehr im Nordbahn-Titel');
+    t_eq(true, nb_wichtig_eilmeldung('RB71 heute: mehrere Züge fallen aus', '', ''), 'mehrere Zuege');
+}
+
+function test_wichtig_items_und_startseite()
+{
+    $jetzt = nb_ts(T_NOW);
+    $iso = function ($ts) { return gmdate('Y-m-d\TH:i:s\Z', $ts); };
+    $data = [
+        'stoerungen' => [['key' => 'LAEUFT', 'titel' => 'Signalstörung', 'einschraenkung' => 'schwer', 'wirkungen' => [], 'beginn' => $iso($jetzt - 1800), 'ende' => '', 'ki_titel' => 'Störung in Eidelstedt', 'ki_text' => '']],
+        'stoerungen_verlauf' => [
+            ['key' => 'LAEUFT', 'titel' => 'Signalstörung', 'einschraenkung' => 'schwer', 'first_seen' => $iso($jetzt - 1800), 'last_seen' => $iso($jetzt), 'ki_titel' => 'Störung in Eidelstedt'],
+            ['key' => 'GROSS', 'titel' => 'Weichenstörung', 'einschraenkung' => 'leicht', 'wirkungen' => ['Ausfall'], 'first_seen' => $iso($jetzt - 7200), 'last_seen' => $iso($jetzt - 3600), 'ki_titel' => 'Ausfälle bei Tornesch', 'ki_text' => 'Weiche klemmte.'],
+            ['key' => 'KLEIN', 'titel' => 'Weichenstörung', 'einschraenkung' => 'leicht', 'wirkungen' => ['Verspätungen'], 'first_seen' => $iso($jetzt - 5400), 'last_seen' => $iso($jetzt - 5000), 'ki_titel' => 'Kurze Verspätungen'],
+            ['key' => 'ALT', 'titel' => 'Oberleitung', 'einschraenkung' => 'schwer', 'first_seen' => $iso($jetzt - 3 * 86400), 'last_seen' => $iso($jetzt - 3 * 86400 + 3600), 'ki_titel' => 'Oberleitungsschaden'],
+        ],
+        'eilmeldungen_live' => [],
+        'eilmeldungen' => [
+            ['id' => 'em-1', 'title' => 'Zugausfall RB61', 'seen_at' => $iso($jetzt - 600), 'ki_titel' => 'RB61 7:42 fällt aus (kurzfristiger Personalausfall)', 'ki_text' => 'Nächster Zug 8:12.'],
+            ['id' => 'em-2', 'title' => 'Ersatzverkehr RB71', 'seen_at' => $iso($jetzt - 900), 'ki_titel' => 'RB71: Ersatzverkehr Elmshorn – Wrist bis 18 Uhr', 'ki_text' => 'Busse fahren ab Bahnhofsvorplatz.'],
+        ],
+    ];
+    $items = nb_wichtig_items($data, $jetzt);
+    t_eq(['em-2', 'LAEUFT', 'GROSS', 'ALT'], array_map(function ($it) { return $it['art'] === 'stoerung' ? $it['key'] : $it['id']; }, $items), 'wichtige Meldungen, juengste zuerst, ohne kleine Stoerung und einzelnen Ausfall');
+    t_eq(true, $items[1]['aktiv'], 'laufende Stoerung markiert');
+
+    $heute = nb_wichtig_heute($items, $jetzt);
+    t_eq(['em-2', 'GROSS'], array_map(function ($it) { return $it['art'] === 'stoerung' ? $it['key'] : $it['id']; }, $heute), 'Startseite: letzte 24 Stunden ohne laufende Stoerung');
+    $html = nb_render_wichtig_heute($heute, $jetzt);
+    t_contains('<p class="feed__kicker feed__kicker--eilmeldung">Eilmeldung der Nordbahn</p><p class="feed__title"><a href="./eilmeldung/em-2/rb71-ersatzverkehr-elmshorn-wrist-bis-18-uhr/">RB71: Ersatzverkehr Elmshorn – Wrist bis 18 Uhr</a></p>', $html, 'Eilmeldung mit Rubrik und Link');
+    t_contains('<p class="feed__kicker feed__kicker--stoerung">Infrastrukturst&ouml;rung</p><p class="feed__title"><a href="./stoerung/GROSS/ausfaelle-bei-tornesch/">Ausfälle bei Tornesch</a></p><p class="feed__meta">bis 09:00 Uhr · 1 Std.<br>Weiche klemmte.</p>', $html, 'Stoerung mit Ende, Dauer und Text');
+
+    $markiert = nb_wichtig_markieren($data, $jetzt);
+    t_eq(true, $markiert['stoerungen'][0]['wichtig'], 'laufende Stoerung markiert');
+    t_eq(false, $markiert['stoerungen_verlauf'][2]['wichtig'], 'kleine Stoerung nicht markiert');
+    t_eq([false, true], array_column($markiert['eilmeldungen'], 'wichtig'), 'Eilmeldungen markiert');
+
+    $news = nb_render_news(array_slice($items, 0, 2), $jetzt);
+    t_contains('<h2 class="section__title">Heute, 15.10.2026</h2>', $news, 'Tagesabschnitt');
+    t_contains('Infrastrukturst&ouml;rung <span class="dep__ab dep__ab--aktiv">aktiv</span>', $news, 'laufende Stoerung in der Rubrikzeile');
+}

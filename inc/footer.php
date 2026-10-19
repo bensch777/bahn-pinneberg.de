@@ -1,7 +1,7 @@
 <?php
 /**
  * Gemeinsamer Footer fuer Startseite, FAQ und Changelog. Erwartet $root (Pfad zum
- * Wurzelverzeichnis, "./" oder "../") und $current ("lage", "faq", "eilmeldungen", "stoerungen", "statistik", "changelog", "impressum" oder "ereignis").
+ * Wurzelverzeichnis, "./" oder "../") und $current ("lage", "faq", "news", "eilmeldungen", "stoerungen", "statistik", "changelog", "impressum" oder "ereignis").
  */
 ?>
 <footer class="site-foot">
@@ -26,6 +26,9 @@
 <?php endif; ?>
 <?php if ($current !== 'faq'): ?>
 				<li><a href="<?= $root ?>faq/">H&auml;ufige Fragen</a></li>
+<?php endif; ?>
+<?php if ($current !== 'news'): ?>
+				<li><a href="<?= $root ?>news/">Wichtige Meldungen</a></li>
 <?php endif; ?>
 <?php if ($current !== 'eilmeldungen'): ?>
 				<li><a href="<?= $root ?>eilmeldungen/">Alle Eilmeldungen</a></li>

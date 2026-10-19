@@ -15,6 +15,7 @@ $assetVersion = (int) @filemtime(__DIR__ . '/../dashboard.css');
 
 $changelog = [
     ['2026-10-19', [
+        ['Rubrik „Wichtige Meldungen“', 'Unter /news/ stehen nur noch die Störungen und Eilmeldungen, die viele Pendler betreffen: schwere Einschränkungen, Ausfälle, Umleitungen, Ersatzverkehr, Sperrungen, Bauarbeiten oder Meldungen zu mehreren Zügen. Die Startseite zeigt die wichtigen Meldungen der letzten 24 Stunden oberhalb der Abfahrten. Die Regeln stehen in den häufigen Fragen.'],
         ['Ereignisseiten im Artikel-Layout mit lesbaren Adressen', 'Störungen und Eilmeldungen haben jetzt eine Lesespalte mit Vorspann, Faktenbox, Originalmeldung als Zitat, Zeitleiste und Teilen-Zeile. Die Adressen tragen den Titel, etwa /eilmeldung/em-123456/rb61-elmshorn-altona-faellt-aus/. Alte Links ohne Titel leiten weiter.'],
     ]],
     ['2026-10-18', [

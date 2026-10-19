@@ -37,7 +37,8 @@ $bahnhof = NORDBAHN_BAHNHOEFE[$heimat];
 $pageUrl = SITE_URL . '/';
 $rueckTitel = 'Hamburg → Wrist / Itzehoe';
 
-$data = nordbahn_dataset();
+$data = nb_wichtig_markieren(nordbahn_dataset());
+$wichtig = nb_wichtig_heute(nb_wichtig_items($data));
 
 // JSON_HEX_TAG sorgt dafuer, dass ein "</script>" in einem Meldungstext den
 // Skriptblock nicht beenden kann.
@@ -190,6 +191,17 @@ $jsonLd = [
 
 <?php endforeach; ?>
 		</ul>
+	</section>
+
+	<section id="wichtig" class="section" aria-labelledby="wichtig-h"<?= $wichtig ? '' : ' hidden' ?>>
+		<div class="section__head">
+			<h2 id="wichtig-h" class="section__title">Wichtig in den letzten 24 Stunden</h2>
+			<a class="section__more" href="<?= $root ?>news/">Alle wichtigen Meldungen</a>
+		</div>
+		<ol class="feed card" id="wichtig-feed" data-limit="3">
+			<?= nb_render_wichtig_heute($wichtig) ?>
+
+		</ol>
 	</section>
 
 	<section id="abfahrten" class="section" aria-labelledby="abfahrten-h" data-root="<?= $root ?>" data-endpoint="<?= $root ?>api/abfahrten" data-data-endpoint="<?= $root ?>api/data" data-heimat-default="<?= $heimat ?>">
