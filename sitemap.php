@@ -19,7 +19,7 @@ $urls = [
 ];
 
 // Ereignisseiten der letzten 60 Tage: Stoerungen aus dem Logbuch, Eilmeldungen aus der Historie
-require __DIR__ . '/api/render.php';
+require_once __DIR__ . '/api/render.php';
 $data = nordbahn_dataset();
 $grenze = time() - 60 * 86400;
 $n = 0;

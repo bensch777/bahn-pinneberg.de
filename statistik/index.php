@@ -6,9 +6,9 @@
  */
 
 require __DIR__ . '/../api/store.php';
-require __DIR__ . '/../api/render.php';
+require_once __DIR__ . '/../api/render.php';
 require __DIR__ . '/../inc/security.php';
-require __DIR__ . '/../api/zuglog.php';
+require_once __DIR__ . '/../api/zuglog.php';
 nb_send_security_headers();
 
 define('SITE_URL', nordbahn_site_url());

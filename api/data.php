@@ -11,7 +11,7 @@
  */
 
 require __DIR__ . '/store.php';
-require __DIR__ . '/render.php';
+require_once __DIR__ . '/render.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: public, max-age=20');
