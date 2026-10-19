@@ -365,6 +365,25 @@ function nordbahn_update_log(array $stoerungen, $nowIso)
         foreach (['key', 'titel', 'text', 'abschnitte', 'wirkungen', 'einschraenkung', 'beginn', 'ende', 'ki_titel', 'ki_text'] as $field) {
             $entry[$field] = $s[$field];
         }
+        // Verlauf fuer die Ereignisseite: jeder Stand von Text, Pendler-Text oder
+        // gemeldetem Ende als Schritt, hoechstens 30
+        $stand = ['t' => $nowIso, 'titel' => $s['titel'], 'text' => $s['text'], 'ki_titel' => $s['ki_titel'], 'ki_text' => $s['ki_text'], 'ende' => $s['ende']];
+        $verlauf = is_array($entry['verlauf'] ?? null) ? $entry['verlauf'] : [];
+        $letzter = $verlauf ? end($verlauf) : null;
+        $neu = $letzter === null;
+        foreach (['text', 'ki_titel', 'ki_text', 'ende'] as $f) {
+            if (!$neu && trim((string) ($letzter[$f] ?? '')) !== trim((string) $stand[$f])) {
+                $neu = true;
+            }
+        }
+        if ($neu) {
+            $stand['t'] = $letzter === null ? $entry['first_seen'] : $nowIso;
+            $verlauf[] = $stand;
+            if (count($verlauf) > 30) {
+                $verlauf = array_merge([$verlauf[0]], array_slice($verlauf, -29));
+            }
+        }
+        $entry['verlauf'] = $verlauf;
         $log[$key] = $entry;
     }
 

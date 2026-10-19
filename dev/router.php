@@ -32,6 +32,12 @@ if (preg_match('#^/(cache|tests|dev|\.git)(/|$)#', $path) || preg_match('#^/(con
     http_response_code(403);
     return true;
 }
+if (preg_match('#^/(stoerung|eilmeldung)/([A-Za-z0-9_.-]+)/?$#', $path, $m)) {
+    $_GET[$m[1] === 'stoerung' ? 'key' : 'id'] = $m[2];
+    chdir($root);
+    require $root . '/' . $m[1] . '.php';
+    return true;
+}
 if (isset($map[$path])) {
     chdir(dirname($root . $map[$path]));
     require $root . $map[$path];

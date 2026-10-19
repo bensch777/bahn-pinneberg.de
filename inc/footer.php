@@ -1,7 +1,7 @@
 <?php
 /**
  * Gemeinsamer Footer fuer Startseite, FAQ und Changelog. Erwartet $root (Pfad zum
- * Wurzelverzeichnis, "./" oder "../") und $current ("lage", "faq", "eilmeldungen", "stoerungen", "statistik", "changelog" oder "impressum").
+ * Wurzelverzeichnis, "./" oder "../") und $current ("lage", "faq", "eilmeldungen", "stoerungen", "statistik", "changelog", "impressum" oder "ereignis").
  */
 ?>
 <footer class="site-foot">

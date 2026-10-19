@@ -26,6 +26,8 @@ $faq = [
      'Ja, über die Glocke oben rechts, wahlweise nur zu Pendelzeiten. Gemeldet werden Zugausfälle am eigenen Bahnhof, neue und aufgehobene Störungen sowie Eilmeldungen, per Web Push auch bei geschlossener Seite. Auf dem iPhone geht das nur, wenn die Seite über „Teilen“ zum Home-Bildschirm hinzugefügt und von dort geöffnet wird. Unabhängig davon gibt es die Telegram-Kanäle „Nordbahn Eilmeldungen“ und „Prisdorf Pendler“.'],
     ['Kann ich die Seite als App nutzen?',
      'Ja. Auf dem iPhone über Teilen und „Zum Home-Bildschirm“, auf Android über „App installieren“ im Browsermenü. Die Seite startet dann im Vollbild und aktualisiert sich selbst.'],
+    ['Was steht auf der Seite einer einzelnen Störung?',
+     'Jede Störung und jede Eilmeldung hat eine eigene Seite, erreichbar über den Titel in den Listen: der Pendler-Text, die Originalmeldung von strecken-info.de, der Verlauf mit jedem neuen Stand, die in dieser Zeit beobachteten Ausfälle und Verspätungen sowie Eilmeldungen und weitere Störungen zur selben Zeit. Die Push-Nachrichten auf Telegram und X verlinken direkt dorthin.'],
     ['Woher kommen die Werte „Letzte 30 Tage: 2× ausgefallen, Ø +3 min“?',
      'Die Seite merkt sich bei jeder Abfrage der Abfahrten je Tag und Zug den letzten Stand vor der Abfahrt: ausgefallen, nur teilweise gefahren, wie viele Minuten verspätet. Nach fünf beobachteten Tagen steht die Bilanz unter der Zeile und auf der Statistikseite je Bahnhof. Beobachtet wird nur, was abgefragt wird: Prisdorf durchgehend, andere Bahnhöfe, solange jemand die Seite mit diesem Bahnhof offen hat. Die Werte sind eine Näherung aus der Prognose des Stationsmonitors, keine amtliche Pünktlichkeitsstatistik.'],
     ['Gibt es die Daten auch für Programme oder KI-Assistenten?',

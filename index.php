@@ -32,6 +32,7 @@ define('SITE_URL', nordbahn_site_url());
 
 $heimat = NORDBAHN_HEIMAT_DEFAULT;
 $root = './';
+nb_root($root);
 $bahnhof = NORDBAHN_BAHNHOEFE[$heimat];
 $pageUrl = SITE_URL . '/';
 $rueckTitel = 'Hamburg → Wrist / Itzehoe';

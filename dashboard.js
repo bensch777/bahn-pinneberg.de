@@ -35,6 +35,16 @@
 		return urls.root;
 	}
 
+	/** Anker wie nb_anker(): alles ausser Buchstaben, Ziffern, _ . - wird Bindestrich */
+	function anker(id) {
+		return String(id || '').replace(/[^A-Za-z0-9_.-]+/g, '-');
+	}
+
+	/** Link auf eine Ereignisseite (wie nb_link) */
+	function ereignisLink(art, id) {
+		return root() + art + '/' + encodeURIComponent(anker(id)) + '/';
+	}
+
 	/** Zaehlt ein Ereignis in Plausible, wenn das Script geladen ist. */
 	function track(name, props) {
 		try { if (window.plausible) window.plausible(name, props ? { props: props } : undefined); } catch (e) { /* egal */ }
@@ -340,7 +350,8 @@
 		return el('li', { class: 'card incident' }, [
 			el('h4', { class: 'incident__title', text: titel }),
 			text ? el('p', { class: 'incident__text', text: text }) : null,
-			meta
+			meta,
+			s.key ? el('p', { class: 'incident__link' }, [el('a', { href: ereignisLink('stoerung', s.key), text: 'Details und Verlauf' })]) : null
 		]);
 	}
 
@@ -372,9 +383,7 @@
 		items.forEach(function (it) {
 			var ms = isNaN(it.stand) ? it.ms : it.stand;
 			var time = el('div', { class: 'feed__time' }, [fmtWann(ms)]);
-			var title = it.link
-				? el('a', { href: it.link, rel: 'noopener nofollow', text: it.title || it.id })
-				: document.createTextNode(it.title || it.id);
+			var title = el('a', { href: ereignisLink('eilmeldung', it.id), text: it.title || it.id });
 			var p = el('p', { class: 'feed__title' }, [title]);
 			if (it.original && it.original !== it.title) p.setAttribute('title', 'Nordbahn: ' + it.original);
 			var body = [p];
@@ -430,7 +439,7 @@
 			if (it.text) { meta.appendChild(el('br')); meta.appendChild(document.createTextNode(it.text)); }
 			ol.appendChild(el('li', istHeute(it.ende) ? { class: 'is-heute' } : {}, [
 				el('div', { class: 'feed__time' }, [fmtWann(it.start)]),
-				el('div', {}, [el('p', { class: 'feed__title', text: it.titel }), meta])
+				el('div', {}, [el('p', { class: 'feed__title' }, [el('a', { href: ereignisLink('stoerung', it.key), text: it.titel })]), meta])
 			]));
 		});
 	}

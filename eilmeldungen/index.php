@@ -11,6 +11,7 @@ nb_send_security_headers();
 
 define('SITE_URL', nordbahn_site_url());
 $root = '../';
+nb_root($root);
 $assetVersion = (int) @filemtime(__DIR__ . '/../dashboard.css');
 
 $data = nordbahn_dataset();

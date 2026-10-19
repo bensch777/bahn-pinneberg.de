@@ -227,6 +227,22 @@ button { font: inherit; color: inherit; }
 @media (max-width: 560px) { .incident__meta { grid-template-columns: 1fr; } }
 .incident__meta dt { color: var(--muted); font-weight: 500; }
 .incident__meta dd { margin: 0 0 4px; }
+.incident__link { margin: 10px 0 0; font-size: 13.5px; }
+.incident__link a { color: var(--series); text-decoration: none; }
+.incident__link a::after { content: ' \2192'; }
+.incident__link a:hover { text-decoration: underline; }
+/* Ereignisseite */
+.ereignis__status { display: inline-block; vertical-align: 3px; margin-left: 8px; padding: 2px 9px; border-radius: 6px; font-size: 12.5px; font-weight: 600; }
+.ereignis__status--aktiv { color: #fff; background: var(--series-2); }
+.ereignis__status--aufgehoben { color: var(--ink-2); border: 1px solid var(--line); }
+.ereignis__text { font-size: 17px; line-height: 1.5; margin: 0 0 8px; }
+.ereignis__original { color: var(--ink-2); font-size: 14px; white-space: pre-line; margin: 0; }
+.zug__status { font-weight: 500; font-size: 13px; margin-left: 6px; }
+.zug--ausfall { color: var(--critical-text); }
+.zug--teil { color: var(--series-2); }
+.zug--spaet { color: var(--muted); }
+.ereignis__links { display: flex; flex-wrap: wrap; gap: 8px 18px; padding: 0; margin: 0; list-style: none; }
+.ereignis__links a { color: var(--series); }
 .incident__meta div { display: flex; flex-direction: column; }
 
 /* Feed */
@@ -237,10 +253,10 @@ button { font: inherit; color: inherit; }
 .feed__time { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .feed__time span { display: block; font-size: 11px; }
 .feed__title { margin: 0; font-weight: 500; font-size: 14.5px; }
-/* Nur Meldungen, die noch auf nordbahn.de stehen, sind verlinkt: blau und unterstrichen */
-.feed__title a { color: var(--series); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; text-decoration-color: color-mix(in srgb, var(--series) 45%, transparent); }
-.feed__title a:hover { text-decoration-color: var(--series); }
-.feed__title a::after { content: ' \2197'; font-size: 12px; }
+/* Jede Meldung fuehrt auf ihre Ereignisseite: Titel in Textfarbe, Unterstreichung beim Hover */
+.feed__title a { color: inherit; text-decoration: none; }
+.feed__title a:hover { color: var(--series); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+.feed__title a[rel~="noopener"]::after { content: ' \2197'; font-size: 12px; }
 .feed__meta { margin: 2px 0 0; font-size: 13px; color: var(--muted); line-height: 1.4; }
 /* Heutige Eintraege stehen voll da, aeltere treten zurueck */
 .feed > li.is-heute .feed__time { color: var(--ink); font-weight: 500; }

@@ -17,9 +17,27 @@ $urls = [
     ['loc' => SITEMAP_BASE . 'changelog/', 'priority' => '0.4'],
 ];
 
+// Ereignisseiten der letzten 60 Tage: Stoerungen aus dem Logbuch, Eilmeldungen aus der Historie
+require __DIR__ . '/api/render.php';
+$data = nordbahn_dataset();
+$grenze = time() - 60 * 86400;
+$n = 0;
+foreach (nb_verlauf_items($data, true) as $it) {
+    if ($it['ende'] >= $grenze && $n++ < 300) {
+        $urls[] = ['loc' => nb_ereignis_url('stoerung', $it['key']), 'priority' => '0.5', 'lastmod' => date('Y-m-d', $it['ende'])];
+    }
+}
+$n = 0;
+foreach (array_reverse(nb_items($data)) as $it) {
+    $ts = $it['stand'] ?? $it['ts'];
+    if ($ts >= $grenze && $n++ < 300) {
+        $urls[] = ['loc' => nb_ereignis_url('eilmeldung', $it['id']), 'priority' => '0.4', 'lastmod' => date('Y-m-d', $ts)];
+    }
+}
+
 echo '<?xml version="1.0" encoding="UTF-8"?>', "\n";
 echo '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">', "\n";
 foreach ($urls as $u) {
-    echo "\t<url><loc>", htmlspecialchars($u['loc'], ENT_QUOTES, 'UTF-8'), "</loc><lastmod>", $lastmod, "</lastmod><priority>", $u['priority'], "</priority></url>\n";
+    echo "\t<url><loc>", htmlspecialchars($u['loc'], ENT_QUOTES, 'UTF-8'), "</loc><lastmod>", $u['lastmod'] ?? $lastmod, "</lastmod><priority>", $u['priority'], "</priority></url>\n";
 }
 echo "</urlset>\n";
