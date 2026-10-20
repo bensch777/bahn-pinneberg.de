@@ -16,6 +16,7 @@ $map = [
     '/api/revision'  => '/api/revision.php',
     '/api/subscribe' => '/api/subscribe.php',
     '/api/push-key'  => '/api/push-key.php',
+    '/api/s3'        => '/api/s3.php',
     '/sitemap.xml'   => '/sitemap.php',
     '/llms.txt'      => '/llms.php',
     '/lage.md'       => '/lage.php',

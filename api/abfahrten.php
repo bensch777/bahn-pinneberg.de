@@ -955,28 +955,13 @@ function abf_cached($heimat)
  */
 function abf_sofort_liefern($cached, $now = null)
 {
-    if (!is_array($cached) || empty($cached['ok']) || empty($cached['fetched_at'])) {
-        return false;
-    }
-    $alter = ($now ?? time()) - (int) strtotime($cached['fetched_at']);
-
-    return $alter >= ABF_TTL && $alter < ABF_STALE_TTL;
+    return nordbahn_sofort_liefern($cached, ABF_TTL, ABF_STALE_TTL, $now);
 }
 
 /** Antwort komplett rausschicken und die Verbindung beenden; danach darf noch gearbeitet werden. */
 function abf_antworten($json)
 {
-    ignore_user_abort(true);
-    set_time_limit(60);
-    header('Content-Length: ' . strlen($json));
-    header('Connection: close');
-    echo $json;
-    if (function_exists('fastcgi_finish_request')) {
-        fastcgi_finish_request();
-    } else {
-        @ob_end_flush();
-        flush();
-    }
+    nordbahn_antworten($json);
 }
 
 // Auf der Kommandozeile laesst sich die Aufbereitung gegen lokale Dateien pruefen:

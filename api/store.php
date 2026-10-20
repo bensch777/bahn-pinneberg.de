@@ -165,6 +165,37 @@ function nordbahn_iso($value)
 }
 
 /** Kuerzt einen Wert auf einen Text begrenzter Laenge; alles andere wird leer. */
+/**
+ * Darf ein alter Cache-Stand sofort ausgeliefert werden? Ja, wenn er brauchbar und
+ * zwischen $ttl und $staleTtl Sekunden alt ist: der Besucher wartet dann nicht, der
+ * Endpunkt erneuert den Stand nach der Antwort im Hintergrund.
+ */
+function nordbahn_sofort_liefern($cached, $ttl, $staleTtl, $now = null)
+{
+    if (!is_array($cached) || empty($cached['ok']) || empty($cached['fetched_at'])) {
+        return false;
+    }
+    $alter = ($now ?? time()) - (int) strtotime($cached['fetched_at']);
+
+    return $alter >= $ttl && $alter < $staleTtl;
+}
+
+/** Antwort komplett rausschicken und die Verbindung beenden; danach darf noch gearbeitet werden. */
+function nordbahn_antworten($json)
+{
+    ignore_user_abort(true);
+    set_time_limit(60);
+    header('Content-Length: ' . strlen($json));
+    header('Connection: close');
+    echo $json;
+    if (function_exists('fastcgi_finish_request')) {
+        fastcgi_finish_request();
+    } else {
+        @ob_end_flush();
+        flush();
+    }
+}
+
 function nordbahn_text($value, $max = 2000)
 {
     if (!is_scalar($value)) {

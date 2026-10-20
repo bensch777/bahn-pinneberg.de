@@ -57,7 +57,18 @@ $cards = [
     'eil'     => nb_status_eil($data, $items),
     'betrieb' => nb_status_betrieb(nb_read_abfahrten($heimat)),
 ];
-$ogImage = SITE_URL . '/og/' . nb_overall_level($cards) . '.png';
+// S-Bahn S3 und HVV-Meldungen nur mit Zugang zur HVV-Schnittstelle (config.php)
+$gfAktiv = gf_aktiv();
+$gf = $gfAktiv ? nb_read_geofox() : null;
+if ($gfAktiv) {
+    $cards['s3'] = nb_status_s3($gf);
+}
+// Fuer das Vorschaubild hebt die S3 die Lage hoechstens auf "warn": die Nordbahn bleibt das Thema
+$ogCards = $cards;
+if (($ogCards['s3']['level'] ?? '') === 'alert') {
+    $ogCards['s3']['level'] = 'warn';
+}
+$ogImage = SITE_URL . '/og/' . nb_overall_level($ogCards) . '.png';
 
 // Versionsstempel an Script und Stylesheet, damit Browser nach einem Deploy nicht
 // mit altem JavaScript gegen die neue API laufen.
@@ -184,6 +195,9 @@ $jsonLd = [
 			<?= nb_render_status_card('status-infra', $cards['infra']) ?>
 			<?= nb_render_status_card('status-eil', $cards['eil']) ?>
 			<?= nb_render_status_card('status-betrieb', $cards['betrieb']) ?>
+<?php if ($gfAktiv): ?>
+			<?= nb_render_status_card('status-s3', $cards['s3']) ?>
+<?php endif; ?>
 		</div>
 		<ul class="incidents" id="incidents"<?= $aktiv ? '' : ' hidden' ?>>
 <?php foreach ($data['stoerungen'] as $st): ?>
@@ -235,6 +249,24 @@ $jsonLd = [
 		</div>
 	</section>
 
+<?php if ($gfAktiv): ?>
+	<section id="s3" class="section" aria-labelledby="s3-h" data-endpoint="<?= $root ?>api/s3">
+		<div class="section__head">
+			<h2 id="s3-h" class="section__title">S-Bahn S3 und HVV-Meldungen</h2>
+			<p class="section__sub" id="s3-sub"></p>
+		</div>
+		<div class="boards boards--s3">
+			<div class="card board" data-richtung="s3">
+				<div class="board__head">
+					<h3 class="board__title">S3 Pinneberg &rarr; Hamburg</h3>
+				</div>
+				<ol class="board__list" id="s3-board" aria-live="polite"><?= nb_render_s3_abfahrten($gf['s3']['abfahrten'] ?? []) ?></ol>
+			</div>
+			<ol class="feed card" id="s3-feed"><?= nb_render_s3_meldungen($gf['s3']['meldungen'] ?? []) ?></ol>
+		</div>
+	</section>
+
+<?php endif; ?>
 	<section id="latest" class="section" aria-labelledby="latest-h">
 		<div class="section__head">
 			<h2 id="latest-h" class="section__title">Letzte Eilmeldungen</h2>

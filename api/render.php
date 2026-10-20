@@ -643,6 +643,112 @@ function nb_render_news(array $items, $now = null)
     return $html;
 }
 
+/* ---------- S-Bahn S3 und HVV-Meldungen (api/geofox.php) ---------- */
+
+/** Letzter Geofox-Stand aus dem Cache, null wenn fehlend, unbrauchbar oder aelter als NB_ABF_MAX_AGE_S. */
+function nb_read_geofox()
+{
+    $gf = nordbahn_read_json(GF_CACHE);
+    if (!is_array($gf) || empty($gf['ok']) || empty($gf['fetched_at']) || !is_array($gf['s3'] ?? null)) {
+        return null;
+    }
+    $ts = nb_ts($gf['fetched_at']);
+    if ($ts === null || time() - $ts > NB_ABF_MAX_AGE_S) {
+        return null;
+    }
+
+    return $gf;
+}
+
+/** Karte 4: S3 zwischen Pinneberg und Hamburg; die Regel rechnet gf_status, hier nur die Anzeige. */
+function nb_status_s3($gf)
+{
+    if ($gf === null) {
+        return ['level' => 'unknown', 'title' => 'Lade S3 …', 'detail' => ''];
+    }
+    if (empty($gf['ok']) || !is_array($gf['s3'] ?? null)) {
+        return ['level' => 'unknown', 'title' => 'S3-Lage unbekannt', 'detail' => ''];
+    }
+
+    return ['level' => $gf['s3']['level'] ?? 'unknown', 'title' => (string) ($gf['s3']['title'] ?? 'S3'), 'detail' => (string) ($gf['s3']['detail'] ?? '')];
+}
+
+/** S3-Abfahrten ab Pinneberg als Zeilen der Abfahrtstafel (wie renderS3 im Script). */
+function nb_render_s3_abfahrten(array $liste, $ab = 'Pinneberg')
+{
+    $html = '';
+    $next = false;
+    foreach ($liste as $d) {
+        if (($d['ab'] ?? '') !== $ab) {
+            continue;
+        }
+        $late = empty($d['ausfall']) && ($d['delay_min'] ?? 0) >= 3;
+        $cls = 'dep' . (!empty($d['ausfall']) ? ' dep--cancelled' : ($late ? ' dep--late' : ''));
+        if (empty($d['ausfall']) && !$next) {
+            $cls .= ' dep--next';
+            $next = true;
+        }
+        $zeit = nb_ts($d['zeit'] ?? '');
+        $html .= '<li class="' . $cls . '"><span class="dep__dot"></span><div class="dep__time">' . nb_e($zeit ? nb_fmt_uhr($zeit) : '--:--')
+            . (!empty($d['ausfall']) ? '<small>fällt aus</small>' : ($late ? '<small>+' . (int) $d['delay_min'] . ' → ' . nb_e(nb_fmt_uhr(nb_ts($d['ist']) ?? $zeit)) . '</small>' : '')) . '</div>'
+            . '<div class="dep__line">' . nb_e($d['linie'] ?? 'S3') . '</div>'
+            . '<div class="dep__dest"><span class="dep__ziel">' . nb_e($d['ziel'] ?? '') . '</span>' . (($d['gleis'] ?? '') !== '' ? '<small>Gleis ' . nb_e($d['gleis']) . '</small>' : '') . '</div></li>';
+    }
+    if ($html === '') {
+        return '<li><p class="board__empty">Keine S3-Abfahrt in den nächsten 60 Minuten gemeldet.</p></li>';
+    }
+
+    return $html;
+}
+
+/** Gueltigkeit einer HVV-Meldung als Text: "bis Fr., 17.10., 04:00 Uhr" bzw. "ab …". */
+function nb_meldung_zeitraum(array $m, $now)
+{
+    $von = nb_ts($m['von'] ?? '');
+    $bis = nb_ts($m['bis'] ?? '');
+    if (!empty($m['aktiv'])) {
+        return $bis !== null ? nb_fmt_bis($now, $bis, $now) : 'bis auf Weiteres';
+    }
+    if ($von !== null && $von > $now) {
+        return 'ab ' . nb_fmt_wann($von, $now, true) . ($bis !== null ? ' ' . nb_fmt_bis($von, $bis, $now) : '');
+    }
+
+    return $bis !== null ? 'war ' . nb_fmt_bis($von ?? $bis, $bis, $now) : '';
+}
+
+/** HVV-Meldungen als Feed (wie renderS3 im Script): Rubrik mit Chip geplant/aktuell, Linien, Zeitraum, Text. */
+function nb_render_s3_meldungen(array $meldungen, $now = null)
+{
+    $now = $now ?? time();
+    if (!$meldungen) {
+        return '<li><p class="feed__empty">Keine HVV-Meldung zu S3, RB61 und RB71.</p></li>';
+    }
+    $html = '';
+    foreach ($meldungen as $m) {
+        $meta = [];
+        if (!empty($m['linien'])) {
+            $meta[] = implode(', ', $m['linien']);
+        }
+        $zeitraum = nb_meldung_zeitraum($m, $now);
+        if ($zeitraum !== '') {
+            $meta[] = $zeitraum;
+        }
+        $text = (string) ($m['text'] ?? '');
+        if (mb_strlen($text) > 300) {
+            $text = rtrim(mb_substr($text, 0, 300)) . ' …';
+        }
+        $chip = !empty($m['geplant']) ? '<span class="dep__ab dep__ab--plan">geplant</span>' : (!empty($m['aktiv']) ? '<span class="dep__ab dep__ab--aktiv">aktuell</span>' : '');
+        $von = nb_ts($m['von'] ?? '') ?? nb_ts($m['stand'] ?? '') ?? $now;
+        $html .= '<li' . (!empty($m['aktiv']) && empty($m['geplant']) ? ' class="is-heute"' : '') . '><div class="feed__time">' . nb_e(nb_fmt_wann($von, $now)) . '</div><div>'
+            . '<p class="feed__kicker feed__kicker--hvv">HVV-Meldung' . ($chip !== '' ? ' ' . $chip : '') . '</p>'
+            . '<p class="feed__title">' . nb_e($m['titel'] ?? '') . '</p>'
+            . ($meta || $text !== '' ? '<p class="feed__meta">' . nb_e(implode(' · ', $meta)) . ($meta && $text !== '' ? '<br>' : '') . nb_e($text) . '</p>' : '')
+            . '</div></li>';
+    }
+
+    return $html;
+}
+
 /** Balkenbreite in 5-Prozent-Stufen (0..100) fuer data-w, CSP-konform ohne Inline-Style. */
 function nb_bar_stufe($wert, $max)
 {
@@ -940,7 +1046,7 @@ function nb_md_zug(array $d)
  * Richtungen, letzte Eilmeldungen und aufgehobene Stoerungen. $abf ist die Antwort
  * von abf_cached() oder null.
  */
-function nb_lage_md(array $data, $abf, $heimat, $now = null)
+function nb_lage_md(array $data, $abf, $heimat, $now = null, $gf = null)
 {
     $now = $now ?? time();
     $site = nordbahn_site_url();
@@ -958,7 +1064,11 @@ function nb_lage_md(array $data, $abf, $heimat, $now = null)
     $zeile = function ($label, $st) {
         return '- ' . $label . ': ' . $st['title'] . ($st['detail'] !== '' ? ' (' . $st['detail'] . ')' : '') . "\n";
     };
-    $md .= $zeile('Infrastruktur', $infra) . $zeile('Eilmeldungen', $eil) . $zeile('Betrieb ab ' . $name, $betrieb) . "\n";
+    $md .= $zeile('Infrastruktur', $infra) . $zeile('Eilmeldungen', $eil) . $zeile('Betrieb ab ' . $name, $betrieb);
+    if ($gf !== null) {
+        $md .= $zeile('S3 Pinneberg – Hamburg', nb_status_s3($gf));
+    }
+    $md .= "\n";
 
     $md .= "## Aktive Infrastrukturstörungen\n\n";
     $aktive = $data['stoerungen'] ?? [];
@@ -1004,6 +1114,10 @@ function nb_lage_md(array $data, $abf, $heimat, $now = null)
         $md .= ($rueck ? implode("\n", array_map('nb_md_zug', $rueck)) : '- Keine Abfahrten in der nächsten Zeit.') . "\n\n";
     }
 
+    if ($gf !== null) {
+        $md .= nb_lage_md_s3($gf, $now);
+    }
+
     $md .= "## Letzte Eilmeldungen der Nordbahn\n\n";
     $cutoff = $now - 86400;
     $eilmeldungen = array_reverse(array_values(array_filter($items, function ($it) use ($cutoff) {
@@ -1042,10 +1156,50 @@ function nb_lage_md(array $data, $abf, $heimat, $now = null)
     $md .= "- Website: " . $site . "/\n";
     $md .= "- Beschreibung für Assistenten: " . $site . "/llms.txt\n";
     $md .= "- Archiv: " . $site . "/eilmeldungen/ und " . $site . "/stoerungen/, Statistik: " . $site . "/statistik/\n";
-    $md .= "- Quellen: Stationsmonitor der Nordbahn (Abfahrten), nordbahn.de (Eilmeldungen), strecken-info.de der DB InfraGO (Infrastrukturstörungen). Verbindliche Auskünfte gibt nur die Nordbahn.\n";
+    $md .= "- Quellen: Stationsmonitor der Nordbahn (Abfahrten), nordbahn.de (Eilmeldungen), strecken-info.de der DB InfraGO (Infrastrukturstörungen)" . ($gf !== null ? ', hvv.de über die Geofox-Schnittstelle (S3, HVV-Meldungen)' : '') . ". Verbindliche Auskünfte gibt nur die Nordbahn.\n";
+
+    return $md;
+}
+
+/** Abschnitt S3 und HVV-Meldungen fuer lage.md. */
+function nb_lage_md_s3($gf, $now)
+{
+    $md = "## S3 zwischen Pinneberg und Hamburg (HVV)\n\n";
+    if (empty($gf['ok']) || !is_array($gf['s3'] ?? null)) {
+        return $md . "Keine aktuellen S3-Daten.\n\n";
+    }
+    $s3 = $gf['s3'];
+    foreach (['Pinneberg' => '### S3 ab Pinneberg → Hamburg', 'Hamburg Hbf' => '### S3 ab Hamburg Hbf → Pinneberg'] as $ab => $kopf) {
+        $md .= $kopf . "\n\n";
+        $n = 0;
+        foreach ($s3['abfahrten'] ?? [] as $d) {
+            if (($d['ab'] ?? '') !== $ab) {
+                continue;
+            }
+            $n++;
+            $zeit = nb_ts($d['zeit'] ?? '');
+            $md .= '- ' . ($zeit ? nb_fmt_uhr($zeit) : '--:--') . ': S3 nach ' . $d['ziel']
+                . (!empty($d['ausfall']) ? ', fällt aus' : (($d['delay_min'] ?? 0) >= 3 ? ' (+' . (int) $d['delay_min'] . ' min)' : ''))
+                . (($d['gleis'] ?? '') !== '' ? '. Gleis ' . $d['gleis'] : '') . ".\n";
+        }
+        $md .= ($n ? '' : "Keine S3-Abfahrt in den nächsten 60 Minuten gemeldet.\n") . "\n";
+    }
+    $md .= "### HVV-Meldungen zu S3, RB61 und RB71\n\n";
+    if (empty($s3['meldungen'])) {
+        $md .= "Keine HVV-Meldung.\n\n";
+    }
+    foreach ($s3['meldungen'] ?? [] as $m) {
+        $zeitraum = nb_meldung_zeitraum($m, $now);
+        $md .= '- ' . (!empty($m['geplant']) ? 'geplant' : 'aktuell') . ($zeitraum !== '' ? ', ' . $zeitraum : '') . (!empty($m['linien']) ? ' (' . implode(', ', $m['linien']) . ')' : '') . ': ' . $m['titel']
+            . (($m['text'] ?? '') !== '' ? '. ' . preg_replace('/\s+/', ' ', mb_substr($m['text'], 0, 300)) : '') . "\n";
+    }
+    if (!empty($s3['meldungen'])) {
+        $md .= "\n";
+    }
 
     return $md;
 }
 
 require_once __DIR__ . '/zuglog.php';
 require_once __DIR__ . '/ereignis.php';
+require_once __DIR__ . '/geofox.php';

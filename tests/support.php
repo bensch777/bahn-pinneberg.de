@@ -22,6 +22,84 @@ function t_now($zeit = T_NOW)
 function t_reset()
 {
     @unlink(ABF_ZUG_CACHE);
+    @unlink(GF_CACHE);
+    @unlink(GF_LOCK);
+    @unlink(GF_STATIONEN_CACHE);
+}
+
+/* ---------- Geofox (HVV GTI) ---------- */
+
+function t_gf_zugang()
+{
+    return ['user' => 'test', 'password' => 'geheim', 'url' => 'https://gti.example/gti/public', 'version' => 59];
+}
+
+/**
+ * Fetch-Stub fuer die GTI: function ($method, $json). Antworten je Schluessel
+ * "departureList:<Stationsname>", "checkName:<Name>" oder "<Methode>"; fehlt
+ * der Schluessel, kommt null (Netzfehler). checkName ohne Eintrag liefert eine
+ * Station mit erfundener ID. $calls sammelt [Methode, Body].
+ */
+function t_gf_fetch(array $antworten, ?array &$calls = null)
+{
+    return function ($method, $json) use ($antworten, &$calls) {
+        $body = json_decode($json, true);
+        if (is_array($calls)) {
+            $calls[] = [$method, $body];
+        }
+        if ($method === 'departureList') {
+            return $antworten['departureList:' . ($body['station']['name'] ?? '')] ?? null;
+        }
+        if ($method === 'checkName') {
+            $name = $body['theName']['name'] ?? '';
+            return $antworten['checkName:' . $name] ?? json_encode(['returnCode' => 'OK', 'results' => [['name' => $name, 'city' => 'Hamburg', 'id' => 'Master:' . crc32($name), 'type' => 'STATION']]]);
+        }
+
+        return $antworten[$method] ?? null;
+    };
+}
+
+/** Rohantwort departureList: Zeilen mit linie, ziel, offset (Minuten), delay (Sekunden), cancelled, platform. */
+function t_gf_departures(array $rows, $zeit = '10:00', $datum = '15.10.2026')
+{
+    $deps = [];
+    foreach ($rows as $r) {
+        $deps[] = [
+            'line'       => ['name' => $r['linie'] ?? 'S3', 'direction' => $r['ziel'] ?? 'Stade', 'origin' => $r['origin'] ?? 'Pinneberg', 'type' => ['simpleType' => 'TRAIN', 'shortInfo' => 'S', 'longInfo' => 'S-Bahn']],
+            'timeOffset' => $r['offset'] ?? 5,
+            'delay'      => $r['delay'] ?? 0,
+            'realtime'   => true,
+            'cancelled'  => !empty($r['cancelled']),
+            'extra'      => !empty($r['extra']),
+            'platform'   => $r['platform'] ?? 'Gleis 1',
+        ];
+    }
+
+    return json_encode(['returnCode' => 'OK', 'time' => ['date' => $datum, 'time' => $zeit], 'departures' => $deps], JSON_UNESCAPED_UNICODE);
+}
+
+/** Rohantwort getAnnouncements: Zeilen mit id, summary, description, planned, begin, end, lines, reason. */
+function t_gf_announcements(array $rows)
+{
+    $out = [];
+    foreach ($rows as $r) {
+        $a = [
+            'id'           => $r['id'] ?? 'A1',
+            'version'      => $r['version'] ?? 1,
+            'summary'      => $r['summary'] ?? 'S3: Störung',
+            'description'  => $r['description'] ?? '',
+            'planned'      => !empty($r['planned']),
+            'reason'       => $r['reason'] ?? 'UNDEFINED_PROBLEM',
+            'lastModified' => $r['lastModified'] ?? '2026-10-15T07:00:00.000+02:00',
+            'lines'        => array_map(function ($n) { return ['name' => $n]; }, $r['lines'] ?? ['S3']),
+        ];
+        if (isset($r['begin']) || isset($r['end'])) {
+            $a['validities'] = [['begin' => $r['begin'] ?? null, 'end' => $r['end'] ?? null]];
+        }
+        $out[] = $a;
+    }
+
+    return json_encode(['returnCode' => 'OK', 'announcements' => $out], JSON_UNESCAPED_UNICODE);
 }
 
 function t_assert($ok, $msg)

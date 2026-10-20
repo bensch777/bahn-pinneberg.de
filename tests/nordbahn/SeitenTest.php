@@ -27,10 +27,18 @@ function test_alle_seiten_rendern_ohne_fehler()
         'stoerung.php' => ['key' => 'GIBTSNICHT'], 'eilmeldung.php' => ['id' => 'em-0'],
         'sitemap.php' => [], 'llms.php' => [], 'lage.php' => [], 'robots.php' => [], 'api/data.php' => [],
     ];
+    if (!gf_aktiv()) {
+        // Nur ohne echten Zugang, sonst wuerde der Rauchtest die HVV-Schnittstelle rufen
+        $seiten['api/s3.php'] = [];
+    }
     foreach ($seiten as $datei => $get) {
         $out = t_seite_rendern($datei, $get);
         t_assert($out !== '', $datei . ': keine Ausgabe');
     }
     t_contains('<h1>Wichtige Meldungen</h1>', t_seite_rendern('news/index.php'), 'news rendert');
     t_contains('Störung nicht gefunden', t_seite_rendern('stoerung.php', ['key' => 'GIBTSNICHT']), 'unbekannte Stoerung');
+    if (!gf_aktiv()) {
+        t_contains('"ok":false', t_seite_rendern('api/s3.php'), 'api/s3 ohne Zugang');
+        t_eq(false, strpos(t_seite_rendern('index.php'), 'status-s3') !== false, 'ohne Zugang keine S3-Karte');
+    }
 }

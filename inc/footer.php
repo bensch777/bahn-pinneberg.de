@@ -45,7 +45,7 @@
 <?php if ($current !== 'impressum'): ?>
 				<li><a href="<?= $root ?>impressum/" rel="nofollow">Impressum &amp; Datenschutz</a></li>
 <?php endif; ?>
-				<li>Quellen: <a href="https://www.nordbahn.de/" rel="noopener">nordbahn.de</a>, <a href="https://strecken-info.de/" rel="noopener">strecken-info.de</a></li>
+				<li>Quellen: <a href="https://www.nordbahn.de/" rel="noopener">nordbahn.de</a>, <a href="https://strecken-info.de/" rel="noopener">strecken-info.de</a>, <a href="https://www.hvv.de/" rel="noopener">hvv.de</a></li>
 			</ul>
 		</div>
 	</div>

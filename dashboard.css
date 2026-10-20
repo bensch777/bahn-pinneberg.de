@@ -355,6 +355,7 @@ button { font: inherit; color: inherit; }
 .feed__meta { margin: 2px 0 0; font-size: 13px; color: var(--muted); line-height: 1.4; }
 .feed__kicker { margin: 0 0 2px; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--series-2); }
 .feed__kicker--eilmeldung { color: var(--warn-text); }
+.feed__kicker--hvv { color: var(--series); }
 .feed__kicker .dep__ab { margin-left: 6px; letter-spacing: 0; text-transform: none; }
 /* Heutige Eintraege stehen voll da, aeltere treten zurueck */
 .feed > li.is-heute .feed__time { color: var(--ink); font-weight: 500; }
@@ -451,6 +452,8 @@ button { font: inherit; color: inherit; }
 .boards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 @media (max-width: 760px) { .boards { grid-template-columns: 1fr; } }
 .boards--rueck-first .board[data-richtung="rueck"] { order: -1; }
+.boards--s3 { align-items: start; }
+.boards--s3 .feed { margin: 0; }
 .board { padding: 14px 18px 8px; }
 .board__head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-bottom: 6px; }
 .board__title { margin: 0; font-size: 15px; font-weight: 600; }
