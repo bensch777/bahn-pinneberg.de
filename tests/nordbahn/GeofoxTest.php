@@ -117,10 +117,12 @@ function test_s3_status_stufen()
     $viele[2]['delay_min'] = 7;
     t_eq(['level' => 'alert', 'title' => 'S3 gestört', 'detail' => '3 von 12 Zügen (25 %): 2 Ausfälle, Verspätungen bis 7 Min'], gf_status($viele, [], $now), 'ein Viertel betroffen');
 
-    $akut = [['titel' => 'S3: Signalstörung Eidelstedt', 'geplant' => false, 'aktiv' => true]];
-    t_eq(['level' => 'alert', 'title' => 'S3 gestört', 'detail' => 'S3: Signalstörung Eidelstedt'], gf_status($ok, $akut, $now), 'ungeplante aktive Meldung');
-    $geplant = [['titel' => 'Bauarbeiten', 'geplant' => true, 'aktiv' => true]];
-    t_eq(['level' => 'ok', 'title' => 'S3 fährt planmäßig', 'detail' => '1 geplante HVV-Meldung'], gf_status($ok, $geplant, $now), 'geplante Meldung faerbt nicht');
+    $akut = [['titel' => 'S3: Signalstörung Eidelstedt', 'geplant' => false, 'aktiv' => true, 'linien' => ['S3']]];
+    t_eq(['level' => 'alert', 'title' => 'S3 gestört', 'detail' => 'S3: Signalstörung Eidelstedt'], gf_status($ok, $akut, $now), 'ungeplante aktive S3-Meldung');
+    $geplant = [['titel' => 'Bauarbeiten', 'geplant' => true, 'aktiv' => true, 'linien' => ['S3']]];
+    t_eq(['level' => 'ok', 'title' => 'S3 fährt planmäßig', 'detail' => ''], gf_status($ok, $geplant, $now), 'geplante Meldung faerbt nicht und steht nicht in der Karte');
+    $rb = [['titel' => 'RB61: Weichenstörung', 'geplant' => false, 'aktiv' => true, 'linien' => ['RB61', 'RB71']]];
+    t_eq(['level' => 'ok', 'title' => 'S3 fährt planmäßig', 'detail' => ''], gf_status($ok, $rb, $now), 'ungeplante Nordbahn-Meldung beruehrt die S3-Karte nicht');
     $alt = [['titel' => 'Vorbei', 'geplant' => false, 'aktiv' => false]];
     t_eq('ok', gf_status($ok, $alt, $now)['level'], 'abgelaufene Meldung zaehlt nicht');
     t_eq(['level' => 'ok', 'title' => 'S3: keine Abfahrten gemeldet', 'detail' => ''], gf_status([], [], $now), 'nachts ohne Abfahrten');

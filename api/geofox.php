@@ -544,7 +544,7 @@ function gf_announcements($fetch, DateTime $now, array $linien = GF_LINIEN, ?arr
 
 /* ---------- Status ---------- */
 
-/** Lagekarte fuer die S3: level, title, detail. Geplante Meldungen faerben nicht ein. */
+/** Lagekarte fuer die S3: level, title, detail. Nur ungeplante S3-Meldungen zaehlen, geplante und RB-Meldungen nicht. */
 function gf_status(array $abfahrten, array $meldungen, $now)
 {
     $total = count($abfahrten);
@@ -560,16 +560,12 @@ function gf_status(array $abfahrten, array $meldungen, $now)
         }
     }
     $betroffen = $ausfaelle + $verspaetet;
+    // Nur ungeplante, jetzt gueltige Meldungen zur S3 selbst; Meldungen zu RB61/RB71
+    // gehoeren zur Nordbahn und stehen nur in der Liste "Letzte HVV-Meldungen"
     $akut = [];
-    $geplant = 0;
     foreach ($meldungen as $m) {
-        if (empty($m['aktiv'])) {
-            continue;
-        }
-        if (empty($m['geplant'])) {
+        if (!empty($m['aktiv']) && empty($m['geplant']) && in_array(GF_LINIE, $m['linien'] ?? [GF_LINIE], true)) {
             $akut[] = $m;
-        } else {
-            $geplant++;
         }
     }
     $zahlen = '';
@@ -596,7 +592,7 @@ function gf_status(array $abfahrten, array $meldungen, $now)
         return ['level' => 'warn', 'title' => 'S3 beeinträchtigt', 'detail' => $zahlen];
     }
 
-    return ['level' => 'ok', 'title' => 'S3 fährt planmäßig', 'detail' => $geplant ? ($geplant === 1 ? '1 geplante HVV-Meldung' : $geplant . ' geplante HVV-Meldungen') : ''];
+    return ['level' => 'ok', 'title' => 'S3 fährt planmäßig', 'detail' => ''];
 }
 
 /** Meldungen aus dem geteilten Cache (alle Stadtbahnhoefe), hoechstens GF_TTL alt, sonst frisch; null bei Fehler ohne Cache. */
