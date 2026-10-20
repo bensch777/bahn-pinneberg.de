@@ -142,7 +142,7 @@ function test_s3_meldung_normalisierung()
     t_eq(['U', 'P', 'B', 'A'], array_column($m, 'id'), 'fremde Linie, Aufzug und ohne Linie raus; aktive ungeplante, aktive geplante, dann nach Beginn absteigend');
     $bodies = [];
     gf_announcements(t_gf_fetch(['getAnnouncements' => t_gf_announcements([])], $bodies), $now, GF_LINIEN, t_gf_zugang());
-    t_eq('2026-10-15T09:00:00.000+02:00', $bodies[0][1]['timeRange']['begin'], 'Zeitraum mit Millisekunden und Zeitzone');
+    t_eq('2026-10-15T09:00:00.000+0200', $bodies[0][1]['timeRange']['begin'], 'Zeitraum im Format der GTI');
     $b = $m[2];
     t_eq('S3: Bauarbeiten', $b['titel'], 'HTML im Titel entfernt');
     t_eq("Wegen Bauarbeiten zwischen Pinneberg & Elmshorn\nfahren Busse.\nBitte Zeit einplanen.", $b['text'], 'Text ohne HTML, Umbrueche bleiben');
@@ -272,4 +272,53 @@ function test_render_s3_html()
     t_eq(1, substr_count(nb_render_s3_meldungen($m, $now, 1), '<li'), 'Limit');
     $hbf = nb_render_s3_abfahrten($liste, 'Hamburg Hbf');
     t_contains('<span class="dep__ziel">Pinneberg</span></div><div class="dep__platform">Gl. 14</div>', $hbf, 'Rueckrichtung ab Hbf');
+}
+
+function test_s3_meldungen_echte_antwort_korridor()
+{
+    // Echte Antwort von getAnnouncements (names S3, RB61, RB71) vom 20.10.2026
+    $roh = file_get_contents(__DIR__ . '/../fixtures-geofox-meldungen.json');
+    $now = new DateTime('2026-10-20 15:19:00', new DateTimeZone('Europe/Berlin'));
+    $m = gf_announcements(t_gf_fetch(['getAnnouncements' => $roh]), $now, GF_LINIEN, t_gf_zugang());
+    t_eq(['12.10-25.10. Fahrplanänderungen und Ersatzverkehr', '26.10.-02.11. alle Züge fahren ab/bis Altona, EV'], array_column($m, 'titel'), 'nur Nordbahn-Meldungen; S3 bei Stade/Neugraben, Aufzuege und Erreichbarkeit raus');
+    t_eq(true, $m[0]['aktiv'], 'laufende Bauarbeiten aktiv');
+    t_eq(true, $m[0]['geplant'], 'geplant');
+    t_eq(['RB61', 'RB71'], array_values(array_intersect($m[0]['linien'], GF_LINIEN)), 'Linien aus locations');
+    t_eq('2026-10-11T22:00:00Z', $m[0]['von'], 'Beginn aus validities mit +0200');
+    t_eq(true, strpos($m[0]['link'], 'https://www.nordbahn.de/') === 0, 'Link zur Meldung');
+    t_eq(false, $m[1]['aktiv'], 'Altona-Sperrung noch nicht gueltig');
+    t_eq('ok', gf_status([['ausfall' => false, 'delay_min' => 0]], $m, $now->getTimestamp())['level'], 'geplante Meldungen faerben nicht');
+}
+
+function test_s3_station_norm_und_korridor()
+{
+    t_eq('hauptbahnhof', gf_station_norm('Hamburg Hbf'), 'Hbf');
+    t_eq('altona', gf_station_norm('Hamburg-Altona'), 'Altona');
+    t_eq('elbgaustrasse', gf_station_norm('Elbgaustraße'), 'Umlaut und ß');
+    t_eq('jungfernstieg', gf_station_norm('Jungfernstieg'), 'Jungfernstieg');
+    $raw = ['locations' => [
+        ['line' => ['name' => 'S3'], 'begin' => ['name' => 'Stade'], 'end' => ['name' => 'Pinneberg']],
+        ['line' => ['name' => 'S5'], 'begin' => ['name' => 'Elbgaustraße'], 'end' => ['name' => 'Elbgaustraße']],
+    ]];
+    t_eq(['S3', 'S5'], gf_meldung_linien($raw), 'S3 ueber die ganze Linie zaehlt');
+    $raw['locations'][0]['end']['name'] = 'Neugraben';
+    t_eq(['S5'], gf_meldung_linien($raw), 'S3 nur suedlich der Elbe zaehlt nicht');
+}
+
+function test_s3_abfahrten_echte_antwort()
+{
+    $roh = json_decode(file_get_contents(__DIR__ . '/../fixtures-geofox-abfahrten.json'), true);
+    $now = new DateTime('2026-10-20 15:19:00', new DateTimeZone('Europe/Berlin'));
+    $fetch = t_gf_fetch([
+        'departureList:Pinneberg'   => json_encode($roh['departureList Pinneberg gefiltert']),
+        'departureList:Hamburg Hbf' => json_encode($roh['departureList Hamburg Hbf gefiltert']),
+    ]);
+    $r = gf_departures_s3($fetch, $now, t_gf_zugang());
+    $hin = array_values(array_filter($r['liste'], function ($d) { return $d['ab'] === 'Pinneberg'; }));
+    $rueck = array_values(array_filter($r['liste'], function ($d) { return $d['ab'] === 'Hamburg Hbf'; }));
+    t_eq(6, count($hin), 'sechs ab Pinneberg');
+    t_eq(['15:19', '15:29', '15:39'], array_map(function ($d) { return substr($d['zeit'], 11, 5); }, array_slice($hin, 0, 3)), 'Zehn-Minuten-Takt');
+    t_eq(['Pinneberg'], array_values(array_unique(array_column($rueck, 'ziel'))), 'am Hbf nur Richtung Pinneberg');
+    t_eq(1, $rueck[0]['delay_min'], '60 Sekunden Verspaetung');
+    t_eq('1', $rueck[0]['gleis'], 'Gleis ohne Zusatz');
 }

@@ -1,0 +1,2200 @@
+{
+ "returnCode": "OK",
+ "announcements": [
+  {
+   "id": "261006023H",
+   "version": 3,
+   "summary": "12.10-25.10. Fahrplanänderungen und Ersatzverkehr",
+   "locations": [
+    {
+     "type": "SINGLE_LINE",
+     "line": {
+      "name": "RB60",
+      "direction": "Elmshorn / Hamburg-Altona / Pinneberg/...",
+      "type": {
+       "simpleType": "TRAIN",
+       "shortInfo": "RB",
+       "longInfo": "RegionalBahn"
+      },
+      "id": "DB-EFZ:RB60_DB-EFZ_Z",
+      "dlid": "de:hvv:RB60:"
+     },
+     "begin": {
+      "name": "Itzehoe",
+      "city": "Itzehoe",
+      "combinedName": "Itzehoe",
+      "id": "Master:9046671",
+      "globalId": "de:01061:46671",
+      "type": "STATION"
+     },
+     "end": {
+      "name": "Hamburg-Altona",
+      "combinedName": "Hamburg-Altona",
+      "id": "Master:8002553",
+      "globalId": "de:02000:8002553",
+      "type": "STATION"
+     }
+    },
+    {
+     "type": "SINGLE_LINE",
+     "line": {
+      "name": "RB60",
+      "direction": "Elmshorn / Hamburg-Altona / Pinneberg/...",
+      "type": {
+       "simpleType": "TRAIN",
+       "shortInfo": "RB",
+       "longInfo": "RegionalBahn"
+      },
+      "id": "DB-EFZ:RB60_DB-EFZ_Z",
+      "dlid": "de:hvv:RB60:"
+     },
+     "begin": {
+      "name": "Itzehoe",
+      "city": "Itzehoe",
+      "combinedName": "Itzehoe",
+      "id": "Master:9046671",
+      "globalId": "de:01061:46671",
+      "type": "STATION"
+     },
+     "end": {
+      "name": "Pinneberg",
+      "city": "Pinneberg",
+      "combinedName": "Pinneberg",
+      "id": "Master:99951",
+      "globalId": "de:01056:99951",
+      "type": "STATION"
+     }
+    },
+    {
+     "type": "SINGLE_LINE",
+     "line": {
+      "name": "RB60",
+      "direction": "Elmshorn / Hamburg-Altona / Pinneberg/...",
+      "type": {
+       "simpleType": "TRAIN",
+       "shortInfo": "RB",
+       "longInfo": "RegionalBahn"
+      },
+      "id": "DB-EFZ:RB60_DB-EFZ_Z",
+      "dlid": "de:hvv:RB60:"
+     },
+     "begin": {
+      "name": "Elmshorn",
+      "city": "Elmshorn",
+      "combinedName": "Elmshorn",
+      "id": "Master:97960",
+      "globalId": "de:01056:97960",
+      "type": "STATION"
+     },
+     "end": {
+      "name": "Elmshorn",
+      "city": "Elmshorn",
+      "combinedName": "Elmshorn",
+      "id": "Master:97960",
+      "globalId": "de:01056:97960",
+      "type": "STATION"
+     }
+    },
+    {
+     "type": "SINGLE_LINE",
+     "line": {
+      "name": "RB60",
+      "direction": "Elmshorn / Hamburg-Altona / Pinneberg/...",
+      "type": {
+       "simpleType": "TRAIN",
+       "shortInfo": "RB",
+       "longInfo": "RegionalBahn"
+      },
+      "id": "DB-EFZ:RB60_DB-EFZ_Z",
+      "dlid": "de:hvv:RB60:"
+     },
+     "begin": {
+      "name": "Elmshorn",
+      "city": "Elmshorn",
+      "combinedName": "Elmshorn",
+      "id": "Master:97960",
+      "globalId": "de:01056:97960",
+      "type": "STATION"
+     },
+     "end": {
+      "name": "Elmshorn",
+      "city": "Elmshorn",
+      "combinedName": "Elmshorn",
+      "id": "Master:97960",
+      "globalId": "de:01056:97960",
+      "type": "STATION"
+     }
+    },
+    {
+     "type": "SINGLE_LINE",
+     "line": {
+      "name": "RB60",
+      "direction": "Elmshorn / Hamburg-Altona / Pinneberg/...",
+      "type": {
+       "simpleType": "TRAIN",
+       "shortInfo": "RB",
+       "longInfo": "RegionalBahn"
+      },
+      "id": "DB-EFZ:RB60_DB-EFZ_Z",
+      "dlid": "de:hvv:RB60:"
+     },
+     "begin": {
+      "name": "Itzehoe",
+      "city": "Itzehoe",
+      "combinedName": "Itzehoe",
+      "id": "Master:9046671",
+      "globalId": "de:01061:46671",
+      "type": "STATION"
+     },
+     "end": {
+      "name": "Hamburg-Altona",
+      "combinedName": "Hamburg-Altona",
+      "id": "Master:8002553",
+      "globalId": "de:02000:8002553",
+      "type": "STATION"
+     }
+    },
+    {
+     "type": "SINGLE_LINE",
+     "line": {
+      "name": "RB60",
+      "direction": "Elmshorn / Hamburg-Altona / Pinneberg/...",
+      "type": {
+       "simpleType": "TRAIN",
+       "shortInfo": "RB",
+       "longInfo": "RegionalBahn"
+      },
+      "id": "DB-EFZ:RB60_DB-EFZ_Z",
+      "dlid": "de:hvv:RB60:"
+     },
+     "begin": {
+      "name": "Hamburg-Altona",
+      "combinedName": "Hamburg-Altona",
+      "id": "Master:8002553",
+      "globalId": "de:02000:8002553",
+      "type": "STATION"
+     },
+     "end": {
+      "name": "Itzehoe",
+      "city": "Itzehoe",
+      "combinedName": "Itzehoe",
+      "id": "Master:9046671",
+      "globalId": "de:01061:46671",
+      "type": "STATION"
+     }
+    },
+    {
+     "type": "SINGLE_LINE",
+     "line": {
+      "name": "RB60",
+      "direction": "Elmshorn / Hamburg-Altona / Pinneberg/...",
+      "type": {
+       "simpleType": "TRAIN",
+       "shortInfo": "RB",
+       "longInfo": "RegionalBahn"
+      },
+      "id": "DB-EFZ:RB60_DB-EFZ_Z",
+      "dlid": "de:hvv:RB60:"
+     },
+     "begin": {
+      "name": "Itzehoe",
+      "city": "Itzehoe",
+      "combinedName": "Itzehoe",
+      "id": "Master:9046671",
+      "globalId": "de:01061:46671",
+      "type": "STATION"
+     },
+     "end": {
+      "name": "Pinneberg",
+      "city": "Pinneberg",
+      "combinedName": "Pinneberg",
+      "id": "Master:99951",
+      "globalId": "de:01056:99951",
+      "type": "STATION"
+     }
+    },
+    {
+     "type": "SINGLE_LINE",
+     "line": {
+      "name": "RB60",
+      "direction": "Elmshorn / Hamburg-Altona / Pinneberg/...",
+      "type": {
+       "simpleType": "TRAIN",
+       "shortInfo": "RB",
+       "longInfo": "RegionalBahn"
+      },
+      "id": "DB-EFZ:RB60_DB-EFZ_Z",
+      "dlid": "de:hvv:RB60:"
+     },
+     "begin": {
+      "name": "Pinneberg",
+      "city": "Pinneberg",
+      "combinedName": "Pinneberg",
+      "id": "Master:99951",
+      "globalId": "de:01056:99951",
+      "type": "STATION"
+     },
+     "end": {
+      "name": "Itzehoe",
+      "city": "Itzehoe",
+      "combinedName": "Itzehoe",
+      "id": "Master:9046671",
+      "globalId": "de:01061:46671",
+      "type": "STATION"
+     }
+    },
+    {
+     "type": "SINGLE_LINE",
+     "line": {
+      "name": "RB61",
+      "direction": "Itzehoe",
+      "type": {
+       "simpleType": "TRAIN",
+       "shortInfo": "RB",
+       "longInfo": "RegionalBahn"
+      },
+      "id": "DB-EFZ:RB61_DB-EFZ_Z",
+      "dlid": "de:NAHSH:RB61:"
+     },
+     "begin": {
+      "name": "Itzehoe",
+      "city": "Itzehoe",
+      "combinedName": "Itzehoe",
+      "id": "Master:9046671",
+      "globalId": "de:01061:46671",
+      "type": "STATION"
+     },
+     "end": {
+      "name": "Pinneberg",
+      "city": "Pinneberg",
+      "combinedName": "Pinneberg",
+      "id": "Master:99951",
+      "globalId": "de:01056:99951",
+      "type": "STATION"
+     }
+    },
+    {
+     "type": "SINGLE_LINE",
+     "line": {
+      "name": "RB61",
+      "direction": "Itzehoe",
+      "type": {
+       "simpleType": "TRAIN",
+       "shortInfo": "RB",
+       "longInfo": "RegionalBahn"
+      },
+      "id": "DB-EFZ:RB61_DB-EFZ_Z",
+      "dlid": "de:NAHSH:RB61:"
+     },
+     "begin": {
+      "name": "Elmshorn",
+      "city": "Elmshorn",
+      "combinedName": "Elmshorn",
+      "id": "Master:97960",
+      "globalId": "de:01056:97960",
+      "type": "STATION"
+     },
+     "end": {
+      "name": "Pinneberg",
+      "city": "Pinneberg",
+      "combinedName": "Pinneberg",
+      "id": "Master:99951",
+      "globalId": "de:01056:99951",
+      "type": "STATION"
+     }
+    },
+    {
+     "type": "SINGLE_LINE",
+     "line": {
+      "name": "RB61",
+      "direction": "Itzehoe",
+      "type": {
+       "simpleType": "TRAIN",
+       "shortInfo": "RB",
+       "longInfo": "RegionalBahn"
+      },
+      "id": "DB-EFZ:RB61_DB-EFZ_Z",
+      "dlid": "de:NAHSH:RB61:"
+     },
+     "begin": {
+      "name": "Pinneberg",
+      "city": "Pinneberg",
+      "combinedName": "Pinneberg",
+      "id": "Master:99951",
+      "globalId": "de:01056:99951",
+      "type": "STATION"
+     },
+     "end": {
+      "name": "Itzehoe",
+      "city": "Itzehoe",
+      "combinedName": "Itzehoe",
+      "id": "Master:9046671",
+      "globalId": "de:01061:46671",
+      "type": "STATION"
+     }
+    },
+    {
+     "type": "SINGLE_LINE",
+     "line": {
+      "name": "RB61",
+      "direction": "Itzehoe",
+      "type": {
+       "simpleType": "TRAIN",
+       "shortInfo": "RB",
+       "longInfo": "RegionalBahn"
+      },
+      "id": "DB-EFZ:RB61_DB-EFZ_Z",
+      "dlid": "de:NAHSH:RB61:"
+     },
+     "begin": {
+      "name": "Pinneberg",
+      "city": "Pinneberg",
+      "combinedName": "Pinneberg",
+      "id": "Master:99951",
+      "globalId": "de:01056:99951",
+      "type": "STATION"
+     },
+     "end": {
+      "name": "Elmshorn",
+      "city": "Elmshorn",
+      "combinedName": "Elmshorn",
+      "id": "Master:97960",
+      "globalId": "de:01056:97960",
+      "type": "STATION"
+     }
+    },
+    {
+     "type": "SINGLE_LINE",
+     "line": {
+      "name": "RB61",
+      "direction": "Itzehoe",
+      "type": {
+       "simpleType": "TRAIN",
+       "shortInfo": "RB",
+       "longInfo": "RegionalBahn"
+      },
+      "id": "DB-EFZ:RB61_DB-EFZ_Z",
+      "dlid": "de:NAHSH:RB61:"
+     },
+     "begin": {
+      "name": "Itzehoe",
+      "city": "Itzehoe",
+      "combinedName": "Itzehoe",
+      "id": "Master:9046671",
+      "globalId": "de:01061:46671",
+      "type": "STATION"
+     },
+     "end": {
+      "name": "Hamburg Hbf",
+      "city": "Hamburg",
+      "combinedName": "Hamburg Hbf",
+      "id": "Master:10950",
+      "globalId": "de:02000:10950",
+      "type": "STATION"
+     }
+    },
+    {
+     "type": "SINGLE_LINE",
+     "line": {
+      "name": "RB61",
+      "direction": "Itzehoe",
+      "type": {
+       "simpleType": "TRAIN",
+       "shortInfo": "RB",
+       "longInfo": "RegionalBahn"
+      },
+      "id": "DB-EFZ:RB61_DB-EFZ_Z",
+      "dlid": "de:NAHSH:RB61:"
+     },
+     "begin": {
+      "name": "Elmshorn",
+      "city": "Elmshorn",
+      "combinedName": "Elmshorn",
+      "id": "Master:97960",
+      "globalId": "de:01056:97960",
+      "type": "STATION"
+     },
+     "end": {
+      "name": "Hamburg Hbf",
+      "city": "Hamburg",
+      "combinedName": "Hamburg Hbf",
+      "id": "Master:10950",
+      "globalId": "de:02000:10950",
+      "type": "STATION"
+     }
+    },
+    {
+     "type": "SINGLE_LINE",
+     "line": {
+      "name": "RB61",
+      "direction": "Itzehoe",
+      "type": {
+       "simpleType": "TRAIN",
+       "shortInfo": "RB",
+       "longInfo": "RegionalBahn"
+      },
+      "id": "DB-EFZ:RB61_DB-EFZ_Z",
+      "dlid": "de:NAHSH:RB61:"
+     },
+     "begin": {
+      "name": "Hamburg Hbf",
+      "city": "Hamburg",
+      "combinedName": "Hamburg Hbf",
+      "id": "Master:10950",
+      "globalId": "de:02000:10950",
+      "type": "STATION"
+     },
+     "end": {
+      "name": "Itzehoe",
+      "city": "Itzehoe",
+      "combinedName": "Itzehoe",
+      "id": "Master:9046671",
+      "globalId": "de:01061:46671",
+      "type": "STATION"
+     }
+    },
+    {
+     "type": "SINGLE_LINE",
+     "line": {
+      "name": "RB61",
+      "direction": "Itzehoe",
+      "type": {
+       "simpleType": "TRAIN",
+       "shortInfo": "RB",
+       "longInfo": "RegionalBahn"
+      },
+      "id": "DB-EFZ:RB61_DB-EFZ_Z",
+      "dlid": "de:NAHSH:RB61:"
+     },
+     "begin": {
+      "name": "Hamburg Hbf",
+      "city": "Hamburg",
+      "combinedName": "Hamburg Hbf",
+      "id": "Master:10950",
+      "globalId": "de:02000:10950",
+      "type": "STATION"
+     },
+     "end": {
+      "name": "Elmshorn",
+      "city": "Elmshorn",
+      "combinedName": "Elmshorn",
+      "id": "Master:97960",
+      "globalId": "de:01056:97960",
+      "type": "STATION"
+     }
+    },
+    {
+     "type": "SINGLE_LINE",
+     "line": {
+      "name": "RB71",
+      "direction": "Wrist",
+      "type": {
+       "simpleType": "TRAIN",
+       "shortInfo": "RB",
+       "longInfo": "RegionalBahn"
+      },
+      "id": "DB-EFZ:RB71_DB-EFZ_Z",
+      "dlid": "de:hvv:RB71:"
+     },
+     "begin": {
+      "name": "Wrist",
+      "city": "Wrist",
+      "combinedName": "Wrist",
+      "id": "Master:9101825",
+      "globalId": "de:01061:101825",
+      "type": "STATION"
+     },
+     "end": {
+      "name": "Pinneberg",
+      "city": "Pinneberg",
+      "combinedName": "Pinneberg",
+      "id": "Master:99951",
+      "globalId": "de:01056:99951",
+      "type": "STATION"
+     }
+    },
+    {
+     "type": "SINGLE_LINE",
+     "line": {
+      "name": "RB71",
+      "direction": "Wrist",
+      "type": {
+       "simpleType": "TRAIN",
+       "shortInfo": "RB",
+       "longInfo": "RegionalBahn"
+      },
+      "id": "DB-EFZ:RB71_DB-EFZ_Z",
+      "dlid": "de:hvv:RB71:"
+     },
+     "begin": {
+      "name": "Pinneberg",
+      "city": "Pinneberg",
+      "combinedName": "Pinneberg",
+      "id": "Master:99951",
+      "globalId": "de:01056:99951",
+      "type": "STATION"
+     },
+     "end": {
+      "name": "Wrist",
+      "city": "Wrist",
+      "combinedName": "Wrist",
+      "id": "Master:9101825",
+      "globalId": "de:01061:101825",
+      "type": "STATION"
+     }
+    },
+    {
+     "type": "SINGLE_LINE",
+     "line": {
+      "name": "RB71",
+      "direction": "Wrist",
+      "type": {
+       "simpleType": "TRAIN",
+       "shortInfo": "RB",
+       "longInfo": "RegionalBahn"
+      },
+      "id": "DB-EFZ:RB71_DB-EFZ_Z",
+      "dlid": "de:hvv:RB71:"
+     },
+     "begin": {
+      "name": "Wrist",
+      "city": "Wrist",
+      "combinedName": "Wrist",
+      "id": "Master:9101825",
+      "globalId": "de:01061:101825",
+      "type": "STATION"
+     },
+     "end": {
+      "name": "Hamburg Hbf",
+      "city": "Hamburg",
+      "combinedName": "Hamburg Hbf",
+      "id": "Master:10950",
+      "globalId": "de:02000:10950",
+      "type": "STATION"
+     }
+    },
+    {
+     "type": "SINGLE_LINE",
+     "line": {
+      "name": "RB71",
+      "direction": "Wrist",
+      "type": {
+       "simpleType": "TRAIN",
+       "shortInfo": "RB",
+       "longInfo": "RegionalBahn"
+      },
+      "id": "DB-EFZ:RB71_DB-EFZ_Z",
+      "dlid": "de:hvv:RB71:"
+     },
+     "begin": {
+      "name": "Hamburg Hbf",
+      "city": "Hamburg",
+      "combinedName": "Hamburg Hbf",
+      "id": "Master:10950",
+      "globalId": "de:02000:10950",
+      "type": "STATION"
+     },
+     "end": {
+      "name": "Wrist",
+      "city": "Wrist",
+      "combinedName": "Wrist",
+      "id": "Master:9101825",
+      "globalId": "de:01061:101825",
+      "type": "STATION"
+     }
+    }
+   ],
+   "description": "Arbeiten der DB InfraGO an den Gleisen führen von Montag, den 12. Oktober bis Sonntag, den 25. Oktober jeweils in den Abend- und Nachtstunden sowie am frühen Morgen zu Fahrplanänderungen. An mehreren Tagen fallen abends, nachts und frühmorgens zwischen Hamburg und Itzehoe/ Wrist auf unterschiedlichen Streckenabschnitten Züge aus und werden durch Busse ersetzt.\n\nFür ausfallende Zugfahrten richten wir einen Ersatzverkehr mit Bussen ein bzw. bitten unsere Fahrgäste, zwischen Pinneberg und Hamburg die S-Bahn (Linie S3) zu nutzen.\n\nTagsüber fahren die Züge der Linien RB 60, RB 61 und RB 71 nach dem regulären Fahrplan.",
+   "links": [
+    {
+     "label": "Hier geht es zur Fahrplanmeldung",
+     "url": "https://www.nordbahn.de/reiseplanung/eilmeldungen-sonderfahrplaene/sev-1015-1210-bis-25102026-abends-nachts-und-fruehmorgens-fahrplanaenderungen-und-ersatzverkehr/"
+    },
+    {
+     "label": "Hier finden Sie den Ersatzfahrplan zum Download",
+     "url": "https://cloud.geofox.de/announcement/v1/attachment/f9f426119f9f11f1006a7b03876a20a3be4208c71a152d80e489641238fc9653/Sonderfahrplan_RB_60_RB_61_RB_71_12.10.-25.10.2026_V02.pdf"
+    }
+   ],
+   "publication": {
+    "begin": "2026-10-05T00:00:00.000+0200",
+    "end": "2026-10-25T23:59:00.000+0100"
+   },
+   "validities": [
+    {
+     "begin": "2026-10-12T00:00:00.000+0200",
+     "end": "2026-10-25T23:59:00.000+0100"
+    }
+   ],
+   "lastModified": "2026-10-20T08:12:33.000+0200",
+   "planned": true,
+   "reason": "ROADWORKS",
+   "broadcastRelevant": false
+  },
+  {
+   "id": "aaedc5d1-7d3d-4e6d-9e0e-d19a20bc1937",
+   "version": 7,
+   "summary": "S5: Fahrplanänderung Stade u. Neugraben bis Ende 2026",
+   "locations": [
+    {
+     "type": "SINGLE_LINE",
+     "line": {
+      "name": "S3",
+      "direction": "Stade",
+      "type": {
+       "simpleType": "TRAIN",
+       "shortInfo": "S",
+       "longInfo": "S-Bahn"
+      },
+      "id": "SBH:S3_SBH_SBAHNS",
+      "dlid": "de:hvv:S3:"
+     },
+     "begin": {
+      "name": "Horneburg",
+      "city": "Horneburg",
+      "combinedName": "Horneburg",
+      "id": "de:03359:8003002",
+      "globalId": "de:03359:8003002",
+      "type": "STATION"
+     },
+     "end": {
+      "name": "Agathenburg",
+      "city": "Agathenburg",
+      "combinedName": "Agathenburg",
+      "id": "de:03359:8000434",
+      "globalId": "de:03359:8000434",
+      "type": "STATION"
+     },
+     "bothDirections": false
+    },
+    {
+     "type": "SINGLE_LINE",
+     "line": {
+      "name": "S3",
+      "direction": "Stade",
+      "type": {
+       "simpleType": "TRAIN",
+       "shortInfo": "S",
+       "longInfo": "S-Bahn"
+      },
+      "id": "SBH:S3_SBH_SBAHNS",
+      "dlid": "de:hvv:S3:"
+     },
+     "begin": {
+      "name": "Neugraben",
+      "city": "Hamburg",
+      "combinedName": "Neugraben",
+      "id": "de:02000:41951",
+      "globalId": "de:02000:41951",
+      "type": "STATION"
+     },
+     "end": {
+      "name": "Fischbek",
+      "city": "Hamburg",
+      "combinedName": "Fischbek",
+      "id": "de:02000:8002556",
+      "globalId": "de:02000:8002556",
+      "type": "STATION"
+     },
+     "bothDirections": false
+    },
+    {
+     "type": "SINGLE_LINE",
+     "line": {
+      "name": "S3",
+      "direction": "Pinneberg",
+      "type": {
+       "simpleType": "TRAIN",
+       "shortInfo": "S",
+       "longInfo": "S-Bahn"
+      },
+      "id": "SBH:S3_SBH_SBAHNS",
+      "dlid": "de:hvv:S3:"
+     },
+     "begin": {
+      "name": "Stade",
+      "city": "Stade",
+      "combinedName": "Stade",
+      "id": "de:03359:8000089",
+      "globalId": "de:03359:8000089",
+      "type": "STATION"
+     },
+     "end": {
+      "name": "Agathenburg",
+      "city": "Agathenburg",
+      "combinedName": "Agathenburg",
+      "id": "de:03359:8000434",
+      "globalId": "de:03359:8000434",
+      "type": "STATION"
+     },
+     "bothDirections": false
+    },
+    {
+     "type": "SINGLE_LINE",
+     "line": {
+      "name": "S3",
+      "direction": "Pinneberg",
+      "type": {
+       "simpleType": "TRAIN",
+       "shortInfo": "S",
+       "longInfo": "S-Bahn"
+      },
+      "id": "SBH:S3_SBH_SBAHNS",
+      "dlid": "de:hvv:S3:"
+     },
+     "begin": {
+      "name": "Horneburg",
+      "city": "Horneburg",
+      "combinedName": "Horneburg",
+      "id": "de:03359:8003002",
+      "globalId": "de:03359:8003002",
+      "type": "STATION"
+     },
+     "end": {
+      "name": "Fischbek",
+      "city": "Hamburg",
+      "combinedName": "Fischbek",
+      "id": "de:02000:8002556",
+      "globalId": "de:02000:8002556",
+      "type": "STATION"
+     },
+     "bothDirections": false
+    },
+    {
+     "type": "SINGLE_LINE",
+     "line": {
+      "name": "S3",
+      "direction": "Pinneberg",
+      "type": {
+       "simpleType": "TRAIN",
+       "shortInfo": "S",
+       "longInfo": "S-Bahn"
+      },
+      "id": "SBH:S3_SBH_SBAHNS",
+      "dlid": "de:hvv:S3:"
+     },
+     "begin": {
+      "name": "Agathenburg",
+      "city": "Agathenburg",
+      "combinedName": "Agathenburg",
+      "id": "de:03359:8000434",
+      "globalId": "de:03359:8000434",
+      "type": "STATION"
+     },
+     "end": {
+      "name": "Horneburg",
+      "city": "Horneburg",
+      "combinedName": "Horneburg",
+      "id": "de:03359:8003002",
+      "globalId": "de:03359:8003002",
+      "type": "STATION"
+     },
+     "bothDirections": false
+    },
+    {
+     "type": "SINGLE_LINE",
+     "line": {
+      "name": "S3",
+      "direction": "Pinneberg",
+      "type": {
+       "simpleType": "TRAIN",
+       "shortInfo": "S",
+       "longInfo": "S-Bahn"
+      },
+      "id": "SBH:S3_SBH_SBAHNS",
+      "dlid": "de:hvv:S3:"
+     },
+     "begin": {
+      "name": "Fischbek",
+      "city": "Hamburg",
+      "combinedName": "Fischbek",
+      "id": "de:02000:8002556",
+      "globalId": "de:02000:8002556",
+      "type": "STATION"
+     },
+     "end": {
+      "name": "Neugraben",
+      "city": "Hamburg",
+      "combinedName": "Neugraben",
+      "id": "de:02000:41951",
+      "globalId": "de:02000:41951",
+      "type": "STATION"
+     },
+     "bothDirections": false
+    },
+    {
+     "type": "SINGLE_LINE",
+     "line": {
+      "name": "S3",
+      "direction": "Stade",
+      "type": {
+       "simpleType": "TRAIN",
+       "shortInfo": "S",
+       "longInfo": "S-Bahn"
+      },
+      "id": "SBH:S3_SBH_SBAHNS",
+      "dlid": "de:hvv:S3:"
+     },
+     "begin": {
+      "name": "Agathenburg",
+      "city": "Agathenburg",
+      "combinedName": "Agathenburg",
+      "id": "de:03359:8000434",
+      "globalId": "de:03359:8000434",
+      "type": "STATION"
+     },
+     "end": {
+      "name": "Stade",
+      "city": "Stade",
+      "combinedName": "Stade",
+      "id": "de:03359:8000089",
+      "globalId": "de:03359:8000089",
+      "type": "STATION"
+     },
+     "bothDirections": false
+    },
+    {
+     "type": "SINGLE_LINE",
+     "line": {
+      "name": "S3",
+      "direction": "Stade",
+      "type": {
+       "simpleType": "TRAIN",
+       "shortInfo": "S",
+       "longInfo": "S-Bahn"
+      },
+      "id": "SBH:S3_SBH_SBAHNS",
+      "dlid": "de:hvv:S3:"
+     },
+     "begin": {
+      "name": "Fischbek",
+      "city": "Hamburg",
+      "combinedName": "Fischbek",
+      "id": "de:02000:8002556",
+      "globalId": "de:02000:8002556",
+      "type": "STATION"
+     },
+     "end": {
+      "name": "Horneburg",
+      "city": "Horneburg",
+      "combinedName": "Horneburg",
+      "id": "de:03359:8003002",
+      "globalId": "de:03359:8003002",
+      "type": "STATION"
+     },
+     "bothDirections": false
+    },
+    {
+     "type": "SINGLE_LINE",
+     "line": {
+      "name": "S5",
+      "direction": "Stade / Ohlsdorf",
+      "type": {
+       "simpleType": "TRAIN",
+       "shortInfo": "S",
+       "longInfo": "S-Bahn"
+      },
+      "id": "SBH:S5_SBH_SBAHNS",
+      "dlid": "de:hvv:S5:"
+     },
+     "begin": {
+      "name": "Horneburg",
+      "city": "Horneburg",
+      "combinedName": "Horneburg",
+      "id": "de:03359:8003002",
+      "globalId": "de:03359:8003002",
+      "type": "STATION"
+     },
+     "end": {
+      "name": "Agathenburg",
+      "city": "Agathenburg",
+      "combinedName": "Agathenburg",
+      "id": "de:03359:8000434",
+      "globalId": "de:03359:8000434",
+      "type": "STATION"
+     },
+     "bothDirections": false
+    },
+    {
+     "type": "SINGLE_LINE",
+     "line": {
+      "name": "S5",
+      "direction": "Stade / Ohlsdorf",
+      "type": {
+       "simpleType": "TRAIN",
+       "shortInfo": "S",
+       "longInfo": "S-Bahn"
+      },
+      "id": "SBH:S5_SBH_SBAHNS",
+      "dlid": "de:hvv:S5:"
+     },
+     "begin": {
+      "name": "Neugraben",
+      "city": "Hamburg",
+      "combinedName": "Neugraben",
+      "id": "de:02000:41951",
+      "globalId": "de:02000:41951",
+      "type": "STATION"
+     },
+     "end": {
+      "name": "Fischbek",
+      "city": "Hamburg",
+      "combinedName": "Fischbek",
+      "id": "de:02000:8002556",
+      "globalId": "de:02000:8002556",
+      "type": "STATION"
+     },
+     "bothDirections": false
+    },
+    {
+     "type": "SINGLE_LINE",
+     "line": {
+      "name": "S5",
+      "direction": "Stade / Ohlsdorf",
+      "type": {
+       "simpleType": "TRAIN",
+       "shortInfo": "S",
+       "longInfo": "S-Bahn"
+      },
+      "id": "SBH:S5_SBH_SBAHNS",
+      "dlid": "de:hvv:S5:"
+     },
+     "begin": {
+      "name": "Agathenburg",
+      "city": "Agathenburg",
+      "combinedName": "Agathenburg",
+      "id": "de:03359:8000434",
+      "globalId": "de:03359:8000434",
+      "type": "STATION"
+     },
+     "end": {
+      "name": "Stade",
+      "city": "Stade",
+      "combinedName": "Stade",
+      "id": "de:03359:8000089",
+      "globalId": "de:03359:8000089",
+      "type": "STATION"
+     },
+     "bothDirections": false
+    },
+    {
+     "type": "SINGLE_LINE",
+     "line": {
+      "name": "S5",
+      "direction": "Stade / Ohlsdorf",
+      "type": {
+       "simpleType": "TRAIN",
+       "shortInfo": "S",
+       "longInfo": "S-Bahn"
+      },
+      "id": "SBH:S5_SBH_SBAHNS",
+      "dlid": "de:hvv:S5:"
+     },
+     "begin": {
+      "name": "Fischbek",
+      "city": "Hamburg",
+      "combinedName": "Fischbek",
+      "id": "de:02000:8002556",
+      "globalId": "de:02000:8002556",
+      "type": "STATION"
+     },
+     "end": {
+      "name": "Horneburg",
+      "city": "Horneburg",
+      "combinedName": "Horneburg",
+      "id": "de:03359:8003002",
+      "globalId": "de:03359:8003002",
+      "type": "STATION"
+     },
+     "bothDirections": false
+    }
+   ],
+   "description": "Bis Ende 2026 kommt es in den Abendstunden wegen Gleisbauarbeiten vereinzelt zu Einschränkungen im S-Bahn- und Regionalverkehr zwischen Stade und Neugraben. \nAlle Fahrplanänderungen sind in den digitalen Auskunftsmedien eingepflegt. Bitte informieren Sie sich rechtzeitig vor Fahrtbeginn über mögliche Abweichungen, Ersatzverkehre und alternative Fahrtmöglichkeiten (RE5).",
+   "links": [
+    {
+     "label": "Störungskarte 03.06.2026 14:50:48",
+     "url": "https://assets-ri.extranet.deutschebahn.com/regio_sbahn_hamburg/2026-10-19/f5943a1a-9f7f-47ef-908f-d2f36c7a9f9bst%25C3%25B6rungskarte_20260603-145048.png"
+    },
+    {
+     "label": "Haltestellenübersicht.pdf",
+     "url": "https://assets-ri.extranet.deutschebahn.com/regio_sbahn_hamburg/2026-10-19/17d0f412-702d-411d-a7ad-b2501fc1acd3Haltestellen_Neugraben_Stade%2B%25281%2529.pdf"
+    },
+    {
+     "label": "SEV Fahrplan Oktober",
+     "url": "https://assets-ri.extranet.deutschebahn.com/regio_sbahn_hamburg/2026-10-19/ceb30842-51f1-485c-b36b-74deaf0e614eFahrplan_stade_oktober.pdf"
+    }
+   ],
+   "publication": {
+    "begin": "2026-10-19T17:23:32.635+0200",
+    "end": "2026-12-31T00:00:00.000+0100"
+   },
+   "validities": [
+    {
+     "begin": "2026-06-03T14:32:10.533+0200",
+     "end": "2026-12-31T00:00:00.000+0100"
+    }
+   ],
+   "lastModified": "2026-10-19T17:23:52.412+0200",
+   "planned": true,
+   "reason": "ROADWORKS",
+   "broadcastRelevant": false
+  },
+  {
+   "id": "261014033H",
+   "version": 1,
+   "summary": "26.10.-02.11. alle Züge fahren ab/bis Altona, EV ",
+   "locations": [
+    {
+     "type": "SINGLE_LINE",
+     "line": {
+      "name": "RB60",
+      "direction": "Hamburg-Altona / Elmshorn / Pinneberg/...",
+      "type": {
+       "simpleType": "TRAIN",
+       "shortInfo": "RB",
+       "longInfo": "RegionalBahn"
+      },
+      "id": "DB-EFZ:RB60_DB-EFZ_Z",
+      "dlid": "de:hvv:RB60:"
+     },
+     "begin": {
+      "name": "Itzehoe",
+      "city": "Itzehoe",
+      "combinedName": "Itzehoe",
+      "id": "Master:9046671",
+      "globalId": "de:01061:46671",
+      "type": "STATION"
+     },
+     "end": {
+      "name": "Hamburg-Altona",
+      "combinedName": "Hamburg-Altona",
+      "id": "Master:8002553",
+      "globalId": "de:02000:8002553",
+      "type": "STATION"
+     }
+    },
+    {
+     "type": "SINGLE_LINE",
+     "line": {
+      "name": "RB60",
+      "direction": "Hamburg-Altona / Elmshorn / Pinneberg/...",
+      "type": {
+       "simpleType": "TRAIN",
+       "shortInfo": "RB",
+       "longInfo": "RegionalBahn"
+      },
+      "id": "DB-EFZ:RB60_DB-EFZ_Z",
+      "dlid": "de:hvv:RB60:"
+     },
+     "begin": {
+      "name": "Itzehoe",
+      "city": "Itzehoe",
+      "combinedName": "Itzehoe",
+      "id": "Master:9046671",
+      "globalId": "de:01061:46671",
+      "type": "STATION"
+     },
+     "end": {
+      "name": "Pinneberg",
+      "city": "Pinneberg",
+      "combinedName": "Pinneberg",
+      "id": "Master:99951",
+      "globalId": "de:01056:99951",
+      "type": "STATION"
+     }
+    },
+    {
+     "type": "SINGLE_LINE",
+     "line": {
+      "name": "RB60",
+      "direction": "Hamburg-Altona / Elmshorn / Pinneberg/...",
+      "type": {
+       "simpleType": "TRAIN",
+       "shortInfo": "RB",
+       "longInfo": "RegionalBahn"
+      },
+      "id": "DB-EFZ:RB60_DB-EFZ_Z",
+      "dlid": "de:hvv:RB60:"
+     },
+     "begin": {
+      "name": "Elmshorn",
+      "city": "Elmshorn",
+      "combinedName": "Elmshorn",
+      "id": "Master:97960",
+      "globalId": "de:01056:97960",
+      "type": "STATION"
+     },
+     "end": {
+      "name": "Elmshorn",
+      "city": "Elmshorn",
+      "combinedName": "Elmshorn",
+      "id": "Master:97960",
+      "globalId": "de:01056:97960",
+      "type": "STATION"
+     }
+    },
+    {
+     "type": "SINGLE_LINE",
+     "line": {
+      "name": "RB60",
+      "direction": "Hamburg-Altona / Elmshorn / Pinneberg/...",
+      "type": {
+       "simpleType": "TRAIN",
+       "shortInfo": "RB",
+       "longInfo": "RegionalBahn"
+      },
+      "id": "DB-EFZ:RB60_DB-EFZ_Z",
+      "dlid": "de:hvv:RB60:"
+     },
+     "begin": {
+      "name": "Elmshorn",
+      "city": "Elmshorn",
+      "combinedName": "Elmshorn",
+      "id": "Master:97960",
+      "globalId": "de:01056:97960",
+      "type": "STATION"
+     },
+     "end": {
+      "name": "Elmshorn",
+      "city": "Elmshorn",
+      "combinedName": "Elmshorn",
+      "id": "Master:97960",
+      "globalId": "de:01056:97960",
+      "type": "STATION"
+     }
+    },
+    {
+     "type": "SINGLE_LINE",
+     "line": {
+      "name": "RB60",
+      "direction": "Hamburg-Altona / Elmshorn / Pinneberg/...",
+      "type": {
+       "simpleType": "TRAIN",
+       "shortInfo": "RB",
+       "longInfo": "RegionalBahn"
+      },
+      "id": "DB-EFZ:RB60_DB-EFZ_Z",
+      "dlid": "de:hvv:RB60:"
+     },
+     "begin": {
+      "name": "Itzehoe",
+      "city": "Itzehoe",
+      "combinedName": "Itzehoe",
+      "id": "Master:9046671",
+      "globalId": "de:01061:46671",
+      "type": "STATION"
+     },
+     "end": {
+      "name": "Hamburg-Altona",
+      "combinedName": "Hamburg-Altona",
+      "id": "Master:8002553",
+      "globalId": "de:02000:8002553",
+      "type": "STATION"
+     }
+    },
+    {
+     "type": "SINGLE_LINE",
+     "line": {
+      "name": "RB60",
+      "direction": "Hamburg-Altona / Elmshorn / Pinneberg/...",
+      "type": {
+       "simpleType": "TRAIN",
+       "shortInfo": "RB",
+       "longInfo": "RegionalBahn"
+      },
+      "id": "DB-EFZ:RB60_DB-EFZ_Z",
+      "dlid": "de:hvv:RB60:"
+     },
+     "begin": {
+      "name": "Hamburg-Altona",
+      "combinedName": "Hamburg-Altona",
+      "id": "Master:8002553",
+      "globalId": "de:02000:8002553",
+      "type": "STATION"
+     },
+     "end": {
+      "name": "Itzehoe",
+      "city": "Itzehoe",
+      "combinedName": "Itzehoe",
+      "id": "Master:9046671",
+      "globalId": "de:01061:46671",
+      "type": "STATION"
+     }
+    },
+    {
+     "type": "SINGLE_LINE",
+     "line": {
+      "name": "RB60",
+      "direction": "Hamburg-Altona / Elmshorn / Pinneberg/...",
+      "type": {
+       "simpleType": "TRAIN",
+       "shortInfo": "RB",
+       "longInfo": "RegionalBahn"
+      },
+      "id": "DB-EFZ:RB60_DB-EFZ_Z",
+      "dlid": "de:hvv:RB60:"
+     },
+     "begin": {
+      "name": "Itzehoe",
+      "city": "Itzehoe",
+      "combinedName": "Itzehoe",
+      "id": "Master:9046671",
+      "globalId": "de:01061:46671",
+      "type": "STATION"
+     },
+     "end": {
+      "name": "Pinneberg",
+      "city": "Pinneberg",
+      "combinedName": "Pinneberg",
+      "id": "Master:99951",
+      "globalId": "de:01056:99951",
+      "type": "STATION"
+     }
+    },
+    {
+     "type": "SINGLE_LINE",
+     "line": {
+      "name": "RB60",
+      "direction": "Hamburg-Altona / Elmshorn / Pinneberg/...",
+      "type": {
+       "simpleType": "TRAIN",
+       "shortInfo": "RB",
+       "longInfo": "RegionalBahn"
+      },
+      "id": "DB-EFZ:RB60_DB-EFZ_Z",
+      "dlid": "de:hvv:RB60:"
+     },
+     "begin": {
+      "name": "Pinneberg",
+      "city": "Pinneberg",
+      "combinedName": "Pinneberg",
+      "id": "Master:99951",
+      "globalId": "de:01056:99951",
+      "type": "STATION"
+     },
+     "end": {
+      "name": "Itzehoe",
+      "city": "Itzehoe",
+      "combinedName": "Itzehoe",
+      "id": "Master:9046671",
+      "globalId": "de:01061:46671",
+      "type": "STATION"
+     }
+    },
+    {
+     "type": "SINGLE_LINE",
+     "line": {
+      "name": "RB61",
+      "direction": "Itzehoe",
+      "type": {
+       "simpleType": "TRAIN",
+       "shortInfo": "RB",
+       "longInfo": "RegionalBahn"
+      },
+      "id": "DB-EFZ:RB61_DB-EFZ_Z",
+      "dlid": "de:NAHSH:RB61:"
+     },
+     "begin": {
+      "name": "Itzehoe",
+      "city": "Itzehoe",
+      "combinedName": "Itzehoe",
+      "id": "Master:9046671",
+      "globalId": "de:01061:46671",
+      "type": "STATION"
+     },
+     "end": {
+      "name": "Pinneberg",
+      "city": "Pinneberg",
+      "combinedName": "Pinneberg",
+      "id": "Master:99951",
+      "globalId": "de:01056:99951",
+      "type": "STATION"
+     }
+    },
+    {
+     "type": "SINGLE_LINE",
+     "line": {
+      "name": "RB61",
+      "direction": "Itzehoe",
+      "type": {
+       "simpleType": "TRAIN",
+       "shortInfo": "RB",
+       "longInfo": "RegionalBahn"
+      },
+      "id": "DB-EFZ:RB61_DB-EFZ_Z",
+      "dlid": "de:NAHSH:RB61:"
+     },
+     "begin": {
+      "name": "Elmshorn",
+      "city": "Elmshorn",
+      "combinedName": "Elmshorn",
+      "id": "Master:97960",
+      "globalId": "de:01056:97960",
+      "type": "STATION"
+     },
+     "end": {
+      "name": "Pinneberg",
+      "city": "Pinneberg",
+      "combinedName": "Pinneberg",
+      "id": "Master:99951",
+      "globalId": "de:01056:99951",
+      "type": "STATION"
+     }
+    },
+    {
+     "type": "SINGLE_LINE",
+     "line": {
+      "name": "RB61",
+      "direction": "Itzehoe",
+      "type": {
+       "simpleType": "TRAIN",
+       "shortInfo": "RB",
+       "longInfo": "RegionalBahn"
+      },
+      "id": "DB-EFZ:RB61_DB-EFZ_Z",
+      "dlid": "de:NAHSH:RB61:"
+     },
+     "begin": {
+      "name": "Pinneberg",
+      "city": "Pinneberg",
+      "combinedName": "Pinneberg",
+      "id": "Master:99951",
+      "globalId": "de:01056:99951",
+      "type": "STATION"
+     },
+     "end": {
+      "name": "Itzehoe",
+      "city": "Itzehoe",
+      "combinedName": "Itzehoe",
+      "id": "Master:9046671",
+      "globalId": "de:01061:46671",
+      "type": "STATION"
+     }
+    },
+    {
+     "type": "SINGLE_LINE",
+     "line": {
+      "name": "RB61",
+      "direction": "Itzehoe",
+      "type": {
+       "simpleType": "TRAIN",
+       "shortInfo": "RB",
+       "longInfo": "RegionalBahn"
+      },
+      "id": "DB-EFZ:RB61_DB-EFZ_Z",
+      "dlid": "de:NAHSH:RB61:"
+     },
+     "begin": {
+      "name": "Pinneberg",
+      "city": "Pinneberg",
+      "combinedName": "Pinneberg",
+      "id": "Master:99951",
+      "globalId": "de:01056:99951",
+      "type": "STATION"
+     },
+     "end": {
+      "name": "Elmshorn",
+      "city": "Elmshorn",
+      "combinedName": "Elmshorn",
+      "id": "Master:97960",
+      "globalId": "de:01056:97960",
+      "type": "STATION"
+     }
+    },
+    {
+     "type": "SINGLE_LINE",
+     "line": {
+      "name": "RB61",
+      "direction": "Itzehoe",
+      "type": {
+       "simpleType": "TRAIN",
+       "shortInfo": "RB",
+       "longInfo": "RegionalBahn"
+      },
+      "id": "DB-EFZ:RB61_DB-EFZ_Z",
+      "dlid": "de:NAHSH:RB61:"
+     },
+     "begin": {
+      "name": "Itzehoe",
+      "city": "Itzehoe",
+      "combinedName": "Itzehoe",
+      "id": "Master:9046671",
+      "globalId": "de:01061:46671",
+      "type": "STATION"
+     },
+     "end": {
+      "name": "Hamburg Hbf",
+      "city": "Hamburg",
+      "combinedName": "Hamburg Hbf",
+      "id": "Master:10950",
+      "globalId": "de:02000:10950",
+      "type": "STATION"
+     }
+    },
+    {
+     "type": "SINGLE_LINE",
+     "line": {
+      "name": "RB61",
+      "direction": "Itzehoe",
+      "type": {
+       "simpleType": "TRAIN",
+       "shortInfo": "RB",
+       "longInfo": "RegionalBahn"
+      },
+      "id": "DB-EFZ:RB61_DB-EFZ_Z",
+      "dlid": "de:NAHSH:RB61:"
+     },
+     "begin": {
+      "name": "Elmshorn",
+      "city": "Elmshorn",
+      "combinedName": "Elmshorn",
+      "id": "Master:97960",
+      "globalId": "de:01056:97960",
+      "type": "STATION"
+     },
+     "end": {
+      "name": "Hamburg Hbf",
+      "city": "Hamburg",
+      "combinedName": "Hamburg Hbf",
+      "id": "Master:10950",
+      "globalId": "de:02000:10950",
+      "type": "STATION"
+     }
+    },
+    {
+     "type": "SINGLE_LINE",
+     "line": {
+      "name": "RB61",
+      "direction": "Itzehoe",
+      "type": {
+       "simpleType": "TRAIN",
+       "shortInfo": "RB",
+       "longInfo": "RegionalBahn"
+      },
+      "id": "DB-EFZ:RB61_DB-EFZ_Z",
+      "dlid": "de:NAHSH:RB61:"
+     },
+     "begin": {
+      "name": "Hamburg Hbf",
+      "city": "Hamburg",
+      "combinedName": "Hamburg Hbf",
+      "id": "Master:10950",
+      "globalId": "de:02000:10950",
+      "type": "STATION"
+     },
+     "end": {
+      "name": "Itzehoe",
+      "city": "Itzehoe",
+      "combinedName": "Itzehoe",
+      "id": "Master:9046671",
+      "globalId": "de:01061:46671",
+      "type": "STATION"
+     }
+    },
+    {
+     "type": "SINGLE_LINE",
+     "line": {
+      "name": "RB61",
+      "direction": "Itzehoe",
+      "type": {
+       "simpleType": "TRAIN",
+       "shortInfo": "RB",
+       "longInfo": "RegionalBahn"
+      },
+      "id": "DB-EFZ:RB61_DB-EFZ_Z",
+      "dlid": "de:NAHSH:RB61:"
+     },
+     "begin": {
+      "name": "Hamburg Hbf",
+      "city": "Hamburg",
+      "combinedName": "Hamburg Hbf",
+      "id": "Master:10950",
+      "globalId": "de:02000:10950",
+      "type": "STATION"
+     },
+     "end": {
+      "name": "Elmshorn",
+      "city": "Elmshorn",
+      "combinedName": "Elmshorn",
+      "id": "Master:97960",
+      "globalId": "de:01056:97960",
+      "type": "STATION"
+     }
+    },
+    {
+     "type": "SINGLE_LINE",
+     "line": {
+      "name": "RB71",
+      "direction": "Wrist",
+      "type": {
+       "simpleType": "TRAIN",
+       "shortInfo": "RB",
+       "longInfo": "RegionalBahn"
+      },
+      "id": "DB-EFZ:RB71_DB-EFZ_Z",
+      "dlid": "de:hvv:RB71:"
+     },
+     "begin": {
+      "name": "Wrist",
+      "city": "Wrist",
+      "combinedName": "Wrist",
+      "id": "Master:9101825",
+      "globalId": "de:01061:101825",
+      "type": "STATION"
+     },
+     "end": {
+      "name": "Pinneberg",
+      "city": "Pinneberg",
+      "combinedName": "Pinneberg",
+      "id": "Master:99951",
+      "globalId": "de:01056:99951",
+      "type": "STATION"
+     }
+    },
+    {
+     "type": "SINGLE_LINE",
+     "line": {
+      "name": "RB71",
+      "direction": "Wrist",
+      "type": {
+       "simpleType": "TRAIN",
+       "shortInfo": "RB",
+       "longInfo": "RegionalBahn"
+      },
+      "id": "DB-EFZ:RB71_DB-EFZ_Z",
+      "dlid": "de:hvv:RB71:"
+     },
+     "begin": {
+      "name": "Pinneberg",
+      "city": "Pinneberg",
+      "combinedName": "Pinneberg",
+      "id": "Master:99951",
+      "globalId": "de:01056:99951",
+      "type": "STATION"
+     },
+     "end": {
+      "name": "Wrist",
+      "city": "Wrist",
+      "combinedName": "Wrist",
+      "id": "Master:9101825",
+      "globalId": "de:01061:101825",
+      "type": "STATION"
+     }
+    },
+    {
+     "type": "SINGLE_LINE",
+     "line": {
+      "name": "RB71",
+      "direction": "Wrist",
+      "type": {
+       "simpleType": "TRAIN",
+       "shortInfo": "RB",
+       "longInfo": "RegionalBahn"
+      },
+      "id": "DB-EFZ:RB71_DB-EFZ_Z",
+      "dlid": "de:hvv:RB71:"
+     },
+     "begin": {
+      "name": "Wrist",
+      "city": "Wrist",
+      "combinedName": "Wrist",
+      "id": "Master:9101825",
+      "globalId": "de:01061:101825",
+      "type": "STATION"
+     },
+     "end": {
+      "name": "Hamburg Hbf",
+      "city": "Hamburg",
+      "combinedName": "Hamburg Hbf",
+      "id": "Master:10950",
+      "globalId": "de:02000:10950",
+      "type": "STATION"
+     }
+    },
+    {
+     "type": "SINGLE_LINE",
+     "line": {
+      "name": "RB71",
+      "direction": "Wrist",
+      "type": {
+       "simpleType": "TRAIN",
+       "shortInfo": "RB",
+       "longInfo": "RegionalBahn"
+      },
+      "id": "DB-EFZ:RB71_DB-EFZ_Z",
+      "dlid": "de:hvv:RB71:"
+     },
+     "begin": {
+      "name": "Hamburg Hbf",
+      "city": "Hamburg",
+      "combinedName": "Hamburg Hbf",
+      "id": "Master:10950",
+      "globalId": "de:02000:10950",
+      "type": "STATION"
+     },
+     "end": {
+      "name": "Wrist",
+      "city": "Wrist",
+      "combinedName": "Wrist",
+      "id": "Master:9101825",
+      "globalId": "de:01061:101825",
+      "type": "STATION"
+     }
+    },
+    {
+     "type": "SINGLE_LINE",
+     "line": {
+      "name": "RB71",
+      "direction": "Wrist",
+      "type": {
+       "simpleType": "TRAIN",
+       "shortInfo": "RB",
+       "longInfo": "RegionalBahn"
+      },
+      "id": "DB-EFZ:RB71_DB-EFZ_Z",
+      "dlid": "de:hvv:RB71:"
+     },
+     "begin": {
+      "name": "Hamburg Dammtor",
+      "combinedName": "Hamburg Dammtor",
+      "id": "Master:8002548",
+      "globalId": "de:02000:8002548",
+      "type": "STATION"
+     },
+     "end": {
+      "name": "Hamburg Hbf",
+      "city": "Hamburg",
+      "combinedName": "Hamburg Hbf",
+      "id": "Master:10950",
+      "globalId": "de:02000:10950",
+      "type": "STATION"
+     }
+    },
+    {
+     "type": "SINGLE_LINE",
+     "line": {
+      "name": "RB71",
+      "direction": "Wrist",
+      "type": {
+       "simpleType": "TRAIN",
+       "shortInfo": "RB",
+       "longInfo": "RegionalBahn"
+      },
+      "id": "DB-EFZ:RB71_DB-EFZ_Z",
+      "dlid": "de:hvv:RB71:"
+     },
+     "begin": {
+      "name": "Hamburg Hbf",
+      "city": "Hamburg",
+      "combinedName": "Hamburg Hbf",
+      "id": "Master:10950",
+      "globalId": "de:02000:10950",
+      "type": "STATION"
+     },
+     "end": {
+      "name": "Hamburg Dammtor",
+      "combinedName": "Hamburg Dammtor",
+      "id": "Master:8002548",
+      "globalId": "de:02000:8002548",
+      "type": "STATION"
+     }
+    }
+   ],
+   "description": "Arbeiten der DB InfraGO an den Gleisen führen von Montag, den 26. Oktober bis Montag, den 2. November jeweils ganztägig zu umfangreichen Fahrplanänderungen. In diesem Zeitraum beginnen und enden alle Züge der Linien RB 60, RB 61 und RB 71 in Hamburg-Altona, Hamburg Hbf und Hamburg Dammtor können nicht angefahren werden. Zudem fallen zwischen Elmshorn und Itzehoe alle Züge der Linien RB 60 und RB 61 aus und werden durch Busse ersetzt.\n\nFür ausfallende Zugfahrten richten wir einen Ersatzverkehr mit Bussen ein bzw. bitten unsere Fahrgäste, zwischen Pinneberg und Hamburg die S-Bahn (Linie S3) zu nutzen.",
+   "links": [
+    {
+     "label": "Hier geht es zur Fahrplanmeldung",
+     "url": "https://www.nordbahn.de/media/sonderfahrplan_rb_60_rb_61_rb_71_26.10.-02.11.2026.pdf"
+    },
+    {
+     "label": "Hier finden Sie den Ersatzfahrplan zum Download",
+     "url": "https://cloud.geofox.de/announcement/v1/attachment/2844deae4d324961ea71071d2a715a38cae0a7e0b19246c0ac11965e5e79e9ed/Sonderfahrplan_RB_60_RB_61_RB_71_26.10.-02.11.2026.pdf"
+    }
+   ],
+   "publication": {
+    "begin": "2026-10-19T00:00:00.000+0200",
+    "end": "2026-11-02T23:59:00.000+0100"
+   },
+   "validities": [
+    {
+     "begin": "2026-10-26T00:00:00.000+0100",
+     "end": "2026-11-02T23:59:00.000+0100"
+    }
+   ],
+   "lastModified": "2026-10-14T17:45:49.000+0200",
+   "planned": true,
+   "reason": "ROADWORKS",
+   "broadcastRelevant": false
+  },
+  {
+   "id": "631d39da-d1f1-47cb-9af2-abbf959c63aa",
+   "version": 13,
+   "summary": "Buxtehude: Beide Aufzüge werden erneuert",
+   "locations": [
+    {
+     "type": "SINGLE_LINE",
+     "line": {
+      "name": "S3",
+      "direction": "Stade",
+      "type": {
+       "simpleType": "TRAIN",
+       "shortInfo": "S",
+       "longInfo": "S-Bahn"
+      },
+      "id": "SBH:S3_SBH_SBAHNS",
+      "dlid": "de:hvv:S3:"
+     },
+     "begin": {
+      "name": "Buxtehude",
+      "city": "Buxtehude",
+      "combinedName": "Buxtehude",
+      "id": "de:03359:51989",
+      "globalId": "de:03359:51989",
+      "type": "STATION"
+     },
+     "end": {
+      "name": "Buxtehude",
+      "city": "Buxtehude",
+      "combinedName": "Buxtehude",
+      "id": "de:03359:51989",
+      "globalId": "de:03359:51989",
+      "type": "STATION"
+     },
+     "bothDirections": false
+    },
+    {
+     "type": "SINGLE_LINE",
+     "line": {
+      "name": "S3",
+      "direction": "Pinneberg",
+      "type": {
+       "simpleType": "TRAIN",
+       "shortInfo": "S",
+       "longInfo": "S-Bahn"
+      },
+      "id": "SBH:S3_SBH_SBAHNS",
+      "dlid": "de:hvv:S3:"
+     },
+     "begin": {
+      "name": "Buxtehude",
+      "city": "Buxtehude",
+      "combinedName": "Buxtehude",
+      "id": "de:03359:51989",
+      "globalId": "de:03359:51989",
+      "type": "STATION"
+     },
+     "end": {
+      "name": "Buxtehude",
+      "city": "Buxtehude",
+      "combinedName": "Buxtehude",
+      "id": "de:03359:51989",
+      "globalId": "de:03359:51989",
+      "type": "STATION"
+     },
+     "bothDirections": false
+    },
+    {
+     "type": "SINGLE_LINE",
+     "line": {
+      "name": "S5",
+      "direction": "Stade / Ohlsdorf",
+      "type": {
+       "simpleType": "TRAIN",
+       "shortInfo": "S",
+       "longInfo": "S-Bahn"
+      },
+      "id": "SBH:S5_SBH_SBAHNS",
+      "dlid": "de:hvv:S5:"
+     },
+     "begin": {
+      "name": "Buxtehude",
+      "city": "Buxtehude",
+      "combinedName": "Buxtehude",
+      "id": "de:03359:51989",
+      "globalId": "de:03359:51989",
+      "type": "STATION"
+     },
+     "end": {
+      "name": "Buxtehude",
+      "city": "Buxtehude",
+      "combinedName": "Buxtehude",
+      "id": "de:03359:51989",
+      "globalId": "de:03359:51989",
+      "type": "STATION"
+     },
+     "bothDirections": false
+    },
+    {
+     "type": "SINGLE_LINE",
+     "line": {
+      "name": "S5",
+      "direction": "Elbgaustraße",
+      "type": {
+       "simpleType": "TRAIN",
+       "shortInfo": "S",
+       "longInfo": "S-Bahn"
+      },
+      "id": "SBH:S5_SBH_SBAHNS",
+      "dlid": "de:hvv:S5:"
+     },
+     "begin": {
+      "name": "Buxtehude",
+      "city": "Buxtehude",
+      "combinedName": "Buxtehude",
+      "id": "de:03359:51989",
+      "globalId": "de:03359:51989",
+      "type": "STATION"
+     },
+     "end": {
+      "name": "Buxtehude",
+      "city": "Buxtehude",
+      "combinedName": "Buxtehude",
+      "id": "de:03359:51989",
+      "globalId": "de:03359:51989",
+      "type": "STATION"
+     },
+     "bothDirections": false
+    }
+   ],
+   "description": "Buxtehude: Beide Aufzüge in Buxtehude werden bis voraussichtlich Ende Oktober 2026 erneuert.\n\nAlternative, stufenfreie Verbindungen finden Sie jederzeit in der hvv Fahrplanauskunft unter hvv.de sowie in der hvv App, Suchoption Rollstuhl / Kinderwagen.",
+   "publication": {
+    "begin": "2026-09-29T16:11:29.628+0200",
+    "end": "2026-10-31T12:00:00.000+0100"
+   },
+   "validities": [
+    {
+     "begin": "2026-03-09T14:00:13.436+0100",
+     "end": "2026-10-31T12:00:00.000+0100"
+    }
+   ],
+   "lastModified": "2026-09-29T16:11:43.236+0200",
+   "planned": true,
+   "reason": "ROADWORKS",
+   "broadcastRelevant": false
+  },
+  {
+   "id": "156920b0-143a-4473-89ae-185c227351f5",
+   "version": 10,
+   "summary": "Neugraben: Aufzug zu Gleis 2/3 längerfristig außer Betrieb",
+   "locations": [
+    {
+     "type": "SINGLE_LINE",
+     "line": {
+      "name": "S3",
+      "direction": "Stade",
+      "type": {
+       "simpleType": "TRAIN",
+       "shortInfo": "S",
+       "longInfo": "S-Bahn"
+      },
+      "id": "SBH:S3_SBH_SBAHNS",
+      "dlid": "de:hvv:S3:"
+     },
+     "begin": {
+      "name": "Neugraben",
+      "city": "Hamburg",
+      "combinedName": "Neugraben",
+      "id": "Master:41951",
+      "globalId": "de:02000:41951",
+      "type": "STATION"
+     },
+     "end": {
+      "name": "Neugraben",
+      "city": "Hamburg",
+      "combinedName": "Neugraben",
+      "id": "Master:41951",
+      "globalId": "de:02000:41951",
+      "type": "STATION"
+     },
+     "bothDirections": false
+    },
+    {
+     "type": "SINGLE_LINE",
+     "line": {
+      "name": "S3",
+      "direction": "Pinneberg",
+      "type": {
+       "simpleType": "TRAIN",
+       "shortInfo": "S",
+       "longInfo": "S-Bahn"
+      },
+      "id": "SBH:S3_SBH_SBAHNS",
+      "dlid": "de:hvv:S3:"
+     },
+     "begin": {
+      "name": "Neugraben",
+      "city": "Hamburg",
+      "combinedName": "Neugraben",
+      "id": "Master:41951",
+      "globalId": "de:02000:41951",
+      "type": "STATION"
+     },
+     "end": {
+      "name": "Neugraben",
+      "city": "Hamburg",
+      "combinedName": "Neugraben",
+      "id": "Master:41951",
+      "globalId": "de:02000:41951",
+      "type": "STATION"
+     },
+     "bothDirections": false
+    },
+    {
+     "type": "SINGLE_LINE",
+     "line": {
+      "name": "S5",
+      "direction": "Stade / Ohlsdorf",
+      "type": {
+       "simpleType": "TRAIN",
+       "shortInfo": "S",
+       "longInfo": "S-Bahn"
+      },
+      "id": "SBH:S5_SBH_SBAHNS",
+      "dlid": "de:hvv:S5:"
+     },
+     "begin": {
+      "name": "Neugraben",
+      "city": "Hamburg",
+      "combinedName": "Neugraben",
+      "id": "Master:41951",
+      "globalId": "de:02000:41951",
+      "type": "STATION"
+     },
+     "end": {
+      "name": "Neugraben",
+      "city": "Hamburg",
+      "combinedName": "Neugraben",
+      "id": "Master:41951",
+      "globalId": "de:02000:41951",
+      "type": "STATION"
+     },
+     "bothDirections": false
+    },
+    {
+     "type": "SINGLE_LINE",
+     "line": {
+      "name": "S5",
+      "direction": "Elbgaustraße",
+      "type": {
+       "simpleType": "TRAIN",
+       "shortInfo": "S",
+       "longInfo": "S-Bahn"
+      },
+      "id": "SBH:S5_SBH_SBAHNS",
+      "dlid": "de:hvv:S5:"
+     },
+     "begin": {
+      "name": "Neugraben",
+      "city": "Hamburg",
+      "combinedName": "Neugraben",
+      "id": "Master:41951",
+      "globalId": "de:02000:41951",
+      "type": "STATION"
+     },
+     "end": {
+      "name": "Neugraben",
+      "city": "Hamburg",
+      "combinedName": "Neugraben",
+      "id": "Master:41951",
+      "globalId": "de:02000:41951",
+      "type": "STATION"
+     },
+     "bothDirections": false
+    }
+   ],
+   "description": "An der Station Neugraben ist der Aufzug zum Bahnsteig Gleis 2 / 3 längerfristig außer Betrieb.\nFür Fahrgäste mit eingeschränkter Mobilität ergeben sich dadurch Einschränkungen beim Ein- und Ausstieg.\nBarrierefreie Alternativen finden Sie in der hvv-Fahrplanauskunft.",
+   "links": [
+    {
+     "label": "Barrierefreie Verbindungssuche in der hvv Fahrplanauskunft",
+     "url": "https://geofox.de/web/de/connections?anyHandicap=5&extraFare=0"
+    }
+   ],
+   "publication": {
+    "begin": "2026-09-04T11:12:43.810+0200",
+    "end": "2026-10-31T12:00:00.000+0100"
+   },
+   "validities": [
+    {
+     "begin": "2026-03-17T12:09:12.053+0100",
+     "end": "2026-10-31T12:00:00.000+0100"
+    }
+   ],
+   "lastModified": "2026-09-04T11:13:14.099+0200",
+   "planned": false,
+   "reason": "UNDEFINED_PROBLEM",
+   "broadcastRelevant": false
+  },
+  {
+   "id": "250620025G",
+   "version": 6,
+   "summary": "Erreichbarkeit der Station Elbgaustraße",
+   "locations": [
+    {
+     "type": "SINGLE_LINE",
+     "line": {
+      "name": "S3",
+      "direction": "Pinneberg / Bahrenfeld",
+      "type": {
+       "simpleType": "TRAIN",
+       "shortInfo": "S",
+       "longInfo": "S-Bahn"
+      },
+      "id": "SBH:S3_SBH_SBAHNS",
+      "dlid": "de:hvv:S3:"
+     },
+     "begin": {
+      "name": "Elbgaustraße",
+      "city": "Hamburg",
+      "combinedName": "Elbgaustraße",
+      "id": "Master:82950",
+      "globalId": "de:02000:82950",
+      "type": "STATION"
+     },
+     "end": {
+      "name": "Elbgaustraße",
+      "city": "Hamburg",
+      "combinedName": "Elbgaustraße",
+      "id": "Master:82950",
+      "globalId": "de:02000:82950",
+      "type": "STATION"
+     }
+    },
+    {
+     "type": "SINGLE_LINE",
+     "line": {
+      "name": "S3",
+      "direction": "Pinneberg / Bahrenfeld",
+      "type": {
+       "simpleType": "TRAIN",
+       "shortInfo": "S",
+       "longInfo": "S-Bahn"
+      },
+      "id": "SBH:S3_SBH_SBAHNS",
+      "dlid": "de:hvv:S3:"
+     },
+     "begin": {
+      "name": "Elbgaustraße",
+      "city": "Hamburg",
+      "combinedName": "Elbgaustraße",
+      "id": "Master:82950",
+      "globalId": "de:02000:82950",
+      "type": "STATION"
+     },
+     "end": {
+      "name": "Elbgaustraße",
+      "city": "Hamburg",
+      "combinedName": "Elbgaustraße",
+      "id": "Master:82950",
+      "globalId": "de:02000:82950",
+      "type": "STATION"
+     }
+    },
+    {
+     "type": "SINGLE_LINE",
+     "line": {
+      "name": "S5",
+      "direction": "Elbgaustraße",
+      "type": {
+       "simpleType": "TRAIN",
+       "shortInfo": "S",
+       "longInfo": "S-Bahn"
+      },
+      "id": "SBH:S5_SBH_SBAHNS",
+      "dlid": "de:hvv:S5:"
+     },
+     "begin": {
+      "name": "Elbgaustraße",
+      "city": "Hamburg",
+      "combinedName": "Elbgaustraße",
+      "id": "Master:82950",
+      "globalId": "de:02000:82950",
+      "type": "STATION"
+     },
+     "end": {
+      "name": "Elbgaustraße",
+      "city": "Hamburg",
+      "combinedName": "Elbgaustraße",
+      "id": "Master:82950",
+      "globalId": "de:02000:82950",
+      "type": "STATION"
+     }
+    },
+    {
+     "type": "SINGLE_LINE",
+     "line": {
+      "name": "S5",
+      "direction": "Elbgaustraße",
+      "type": {
+       "simpleType": "TRAIN",
+       "shortInfo": "S",
+       "longInfo": "S-Bahn"
+      },
+      "id": "SBH:S5_SBH_SBAHNS",
+      "dlid": "de:hvv:S5:"
+     },
+     "begin": {
+      "name": "Elbgaustraße",
+      "city": "Hamburg",
+      "combinedName": "Elbgaustraße",
+      "id": "Master:82950",
+      "globalId": "de:02000:82950",
+      "type": "STATION"
+     },
+     "end": {
+      "name": "Elbgaustraße",
+      "city": "Hamburg",
+      "combinedName": "Elbgaustraße",
+      "id": "Master:82950",
+      "globalId": "de:02000:82950",
+      "type": "STATION"
+     }
+    },
+    {
+     "type": "SINGLE_LINE",
+     "line": {
+      "name": "S2",
+      "direction": "Elbgaustraße / Altona",
+      "type": {
+       "simpleType": "TRAIN",
+       "shortInfo": "S",
+       "longInfo": "S-Bahn"
+      },
+      "id": "SBH:S2_SBH_SBAHNS",
+      "dlid": "de:hvv:S2:"
+     },
+     "begin": {
+      "name": "Eidelstedt",
+      "city": "Hamburg",
+      "combinedName": "Eidelstedt",
+      "id": "Master:84960",
+      "globalId": "de:02000:84960",
+      "type": "STATION"
+     },
+     "end": {
+      "name": "Eidelstedt",
+      "city": "Hamburg",
+      "combinedName": "Eidelstedt",
+      "id": "Master:84960",
+      "globalId": "de:02000:84960",
+      "type": "STATION"
+     }
+    }
+   ],
+   "description": "S3/S5:  Aktuell werden durch die Sanierungsarbeiten auf der Elbgaustraße zahlreiche Buslinien umgeleitet. Informationen zu den Sanierungsarbeiten und den aktuellen Linienführungen erhalten Sie unter www.hvv.de/de/elbgaustrasse.\n",
+   "publication": {
+    "begin": "2025-06-20T00:00:00.000+0200",
+    "end": "2026-12-13T23:59:00.000+0100"
+   },
+   "validities": [
+    {
+     "begin": "2025-06-20T00:00:00.000+0200",
+     "end": "2026-12-13T23:59:00.000+0100"
+    }
+   ],
+   "lastModified": "2026-02-17T12:43:03.000+0100",
+   "planned": true,
+   "reason": "UNDEFINED_PROBLEM",
+   "broadcastRelevant": false
+  }
+ ],
+ "lastUpdate": "2026-10-20T08:12:33.000+0200"
+}

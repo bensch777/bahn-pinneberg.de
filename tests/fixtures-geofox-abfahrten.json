@@ -1,0 +1,514 @@
+{
+ "departureList Pinneberg gefiltert": {
+  "returnCode": "OK",
+  "time": {
+   "date": "20.10.2026",
+   "time": "15:19"
+  },
+  "departures": [
+   {
+    "line": {
+     "name": "S3",
+     "direction": "Neugraben",
+     "origin": "Pinneberg",
+     "type": {
+      "simpleType": "TRAIN",
+      "shortInfo": "S",
+      "longInfo": "S-Bahn",
+      "model": "S-Bahn"
+     },
+     "id": "SBH:S3_SBH_SBAHNS",
+     "dlid": "de:hvv:S3:"
+    },
+    "directionId": 1,
+    "timeOffset": 0,
+    "delay": 0,
+    "serviceId": 86296,
+    "station": {
+     "combinedName": "Pinneberg",
+     "id": "Master:99951",
+     "globalId": "de:01056:99951"
+    },
+    "platform": "Gleis 1",
+    "realtimePlatform": "Gleis 1"
+   },
+   {
+    "line": {
+     "name": "S3",
+     "direction": "Neugraben",
+     "origin": "Pinneberg",
+     "type": {
+      "simpleType": "TRAIN",
+      "shortInfo": "S",
+      "longInfo": "S-Bahn",
+      "model": "S-Bahn"
+     },
+     "id": "SBH:S3_SBH_SBAHNS",
+     "dlid": "de:hvv:S3:"
+    },
+    "directionId": 1,
+    "timeOffset": 10,
+    "delay": 0,
+    "serviceId": 86297,
+    "station": {
+     "combinedName": "Pinneberg",
+     "id": "Master:99951",
+     "globalId": "de:01056:99951"
+    },
+    "platform": "Gleis 1",
+    "realtimePlatform": "Gleis 1"
+   },
+   {
+    "line": {
+     "name": "S3",
+     "direction": "Neugraben",
+     "origin": "Pinneberg",
+     "type": {
+      "simpleType": "TRAIN",
+      "shortInfo": "S",
+      "longInfo": "S-Bahn",
+      "model": "S-Bahn"
+     },
+     "id": "SBH:S3_SBH_SBAHNS",
+     "dlid": "de:hvv:S3:"
+    },
+    "directionId": 1,
+    "timeOffset": 20,
+    "delay": 0,
+    "serviceId": 86298,
+    "station": {
+     "combinedName": "Pinneberg",
+     "id": "Master:99951",
+     "globalId": "de:01056:99951"
+    },
+    "platform": "Gleis 1",
+    "realtimePlatform": "Gleis 1"
+   },
+   {
+    "line": {
+     "name": "S3",
+     "direction": "Neugraben",
+     "origin": "Pinneberg",
+     "type": {
+      "simpleType": "TRAIN",
+      "shortInfo": "S",
+      "longInfo": "S-Bahn",
+      "model": "S-Bahn"
+     },
+     "id": "SBH:S3_SBH_SBAHNS",
+     "dlid": "de:hvv:S3:"
+    },
+    "directionId": 1,
+    "timeOffset": 30,
+    "delay": 0,
+    "serviceId": 86299,
+    "station": {
+     "combinedName": "Pinneberg",
+     "id": "Master:99951",
+     "globalId": "de:01056:99951"
+    },
+    "platform": "Gleis 1",
+    "realtimePlatform": "Gleis 1"
+   },
+   {
+    "line": {
+     "name": "S3",
+     "direction": "Neugraben",
+     "origin": "Pinneberg",
+     "type": {
+      "simpleType": "TRAIN",
+      "shortInfo": "S",
+      "longInfo": "S-Bahn",
+      "model": "S-Bahn"
+     },
+     "id": "SBH:S3_SBH_SBAHNS",
+     "dlid": "de:hvv:S3:"
+    },
+    "directionId": 1,
+    "timeOffset": 40,
+    "delay": 0,
+    "serviceId": 86300,
+    "station": {
+     "combinedName": "Pinneberg",
+     "id": "Master:99951",
+     "globalId": "de:01056:99951"
+    },
+    "platform": "Gleis 1",
+    "realtimePlatform": "Gleis 1"
+   },
+   {
+    "line": {
+     "name": "S3",
+     "direction": "Neugraben",
+     "origin": "Pinneberg",
+     "type": {
+      "simpleType": "TRAIN",
+      "shortInfo": "S",
+      "longInfo": "S-Bahn",
+      "model": "S-Bahn"
+     },
+     "id": "SBH:S3_SBH_SBAHNS",
+     "dlid": "de:hvv:S3:"
+    },
+    "directionId": 1,
+    "timeOffset": 50,
+    "delay": 0,
+    "serviceId": 86301,
+    "station": {
+     "combinedName": "Pinneberg",
+     "id": "Master:99951",
+     "globalId": "de:01056:99951"
+    },
+    "platform": "Gleis 1",
+    "realtimePlatform": "Gleis 1"
+   },
+   {
+    "line": {
+     "name": "S3",
+     "direction": "Neugraben",
+     "origin": "Pinneberg",
+     "type": {
+      "simpleType": "TRAIN",
+      "shortInfo": "S",
+      "longInfo": "S-Bahn",
+      "model": "S-Bahn"
+     },
+     "id": "SBH:S3_SBH_SBAHNS",
+     "dlid": "de:hvv:S3:"
+    },
+    "directionId": 1,
+    "timeOffset": 60,
+    "delay": 0,
+    "serviceId": 86302,
+    "station": {
+     "combinedName": "Pinneberg",
+     "id": "Master:99951",
+     "globalId": "de:01056:99951"
+    },
+    "platform": "Gleis 1",
+    "realtimePlatform": "Gleis 1"
+   }
+  ]
+ },
+ "departureList Hamburg Hbf gefiltert": {
+  "returnCode": "OK",
+  "time": {
+   "date": "20.10.2026",
+   "time": "15:19"
+  },
+  "departures": [
+   {
+    "line": {
+     "name": "S3",
+     "direction": "Neugraben",
+     "origin": "Pinneberg",
+     "type": {
+      "simpleType": "TRAIN",
+      "shortInfo": "S",
+      "longInfo": "S-Bahn",
+      "model": "S-Bahn"
+     },
+     "id": "SBH:S3_SBH_SBAHNS",
+     "dlid": "de:hvv:S3:"
+    },
+    "directionId": 1,
+    "timeOffset": 1,
+    "delay": 480,
+    "serviceId": 86293,
+    "station": {
+     "combinedName": "Hamburg Hbf",
+     "id": "Master:10950",
+     "globalId": "de:02000:10950"
+    },
+    "platform": "Gleis 3 (S-Bahn)",
+    "realtimePlatform": "Gleis 3 (S-Bahn)"
+   },
+   {
+    "line": {
+     "name": "S3",
+     "direction": "Pinneberg",
+     "origin": "Neugraben",
+     "type": {
+      "simpleType": "TRAIN",
+      "shortInfo": "S",
+      "longInfo": "S-Bahn",
+      "model": "S-Bahn"
+     },
+     "id": "SBH:S3_SBH_SBAHNS",
+     "dlid": "de:hvv:S3:"
+    },
+    "directionId": 6,
+    "timeOffset": 7,
+    "delay": 60,
+    "serviceId": 86115,
+    "station": {
+     "combinedName": "Hamburg Hbf",
+     "id": "Master:10950",
+     "globalId": "de:02000:10950"
+    },
+    "platform": "Gleis 1 (S-Bahn)",
+    "realtimePlatform": "Gleis 1 (S-Bahn)"
+   },
+   {
+    "line": {
+     "name": "S3",
+     "direction": "Neugraben",
+     "origin": "Pinneberg",
+     "type": {
+      "simpleType": "TRAIN",
+      "shortInfo": "S",
+      "longInfo": "S-Bahn",
+      "model": "S-Bahn"
+     },
+     "id": "SBH:S3_SBH_SBAHNS",
+     "dlid": "de:hvv:S3:"
+    },
+    "directionId": 1,
+    "timeOffset": 17,
+    "delay": 0,
+    "serviceId": 86294,
+    "station": {
+     "combinedName": "Hamburg Hbf",
+     "id": "Master:10950",
+     "globalId": "de:02000:10950"
+    },
+    "platform": "Gleis 3 (S-Bahn)",
+    "realtimePlatform": "Gleis 3 (S-Bahn)"
+   },
+   {
+    "line": {
+     "name": "S3",
+     "direction": "Pinneberg",
+     "origin": "Neugraben",
+     "type": {
+      "simpleType": "TRAIN",
+      "shortInfo": "S",
+      "longInfo": "S-Bahn",
+      "model": "S-Bahn"
+     },
+     "id": "SBH:S3_SBH_SBAHNS",
+     "dlid": "de:hvv:S3:"
+    },
+    "directionId": 6,
+    "timeOffset": 17,
+    "delay": 0,
+    "serviceId": 86116,
+    "station": {
+     "combinedName": "Hamburg Hbf",
+     "id": "Master:10950",
+     "globalId": "de:02000:10950"
+    },
+    "platform": "Gleis 1 (S-Bahn)",
+    "realtimePlatform": "Gleis 1 (S-Bahn)"
+   },
+   {
+    "line": {
+     "name": "S3",
+     "direction": "Neugraben",
+     "origin": "Pinneberg",
+     "type": {
+      "simpleType": "TRAIN",
+      "shortInfo": "S",
+      "longInfo": "S-Bahn",
+      "model": "S-Bahn"
+     },
+     "id": "SBH:S3_SBH_SBAHNS",
+     "dlid": "de:hvv:S3:"
+    },
+    "directionId": 1,
+    "timeOffset": 27,
+    "delay": 0,
+    "serviceId": 86295,
+    "station": {
+     "combinedName": "Hamburg Hbf",
+     "id": "Master:10950",
+     "globalId": "de:02000:10950"
+    },
+    "platform": "Gleis 3 (S-Bahn)",
+    "realtimePlatform": "Gleis 3 (S-Bahn)"
+   },
+   {
+    "line": {
+     "name": "S3",
+     "direction": "Pinneberg",
+     "origin": "Neugraben",
+     "type": {
+      "simpleType": "TRAIN",
+      "shortInfo": "S",
+      "longInfo": "S-Bahn",
+      "model": "S-Bahn"
+     },
+     "id": "SBH:S3_SBH_SBAHNS",
+     "dlid": "de:hvv:S3:"
+    },
+    "directionId": 6,
+    "timeOffset": 27,
+    "delay": 0,
+    "serviceId": 86118,
+    "station": {
+     "combinedName": "Hamburg Hbf",
+     "id": "Master:10950",
+     "globalId": "de:02000:10950"
+    },
+    "platform": "Gleis 1 (S-Bahn)",
+    "realtimePlatform": "Gleis 1 (S-Bahn)"
+   },
+   {
+    "line": {
+     "name": "S3",
+     "direction": "Neugraben",
+     "origin": "Pinneberg",
+     "type": {
+      "simpleType": "TRAIN",
+      "shortInfo": "S",
+      "longInfo": "S-Bahn",
+      "model": "S-Bahn"
+     },
+     "id": "SBH:S3_SBH_SBAHNS",
+     "dlid": "de:hvv:S3:"
+    },
+    "directionId": 1,
+    "timeOffset": 37,
+    "delay": 0,
+    "serviceId": 86296,
+    "station": {
+     "combinedName": "Hamburg Hbf",
+     "id": "Master:10950",
+     "globalId": "de:02000:10950"
+    },
+    "platform": "Gleis 3 (S-Bahn)",
+    "realtimePlatform": "Gleis 3 (S-Bahn)"
+   },
+   {
+    "line": {
+     "name": "S3",
+     "direction": "Pinneberg",
+     "origin": "Neugraben",
+     "type": {
+      "simpleType": "TRAIN",
+      "shortInfo": "S",
+      "longInfo": "S-Bahn",
+      "model": "S-Bahn"
+     },
+     "id": "SBH:S3_SBH_SBAHNS",
+     "dlid": "de:hvv:S3:"
+    },
+    "directionId": 6,
+    "timeOffset": 37,
+    "delay": 0,
+    "serviceId": 86119,
+    "station": {
+     "combinedName": "Hamburg Hbf",
+     "id": "Master:10950",
+     "globalId": "de:02000:10950"
+    },
+    "platform": "Gleis 1 (S-Bahn)",
+    "realtimePlatform": "Gleis 1 (S-Bahn)"
+   },
+   {
+    "line": {
+     "name": "S3",
+     "direction": "Neugraben",
+     "origin": "Pinneberg",
+     "type": {
+      "simpleType": "TRAIN",
+      "shortInfo": "S",
+      "longInfo": "S-Bahn",
+      "model": "S-Bahn"
+     },
+     "id": "SBH:S3_SBH_SBAHNS",
+     "dlid": "de:hvv:S3:"
+    },
+    "directionId": 1,
+    "timeOffset": 47,
+    "delay": 0,
+    "serviceId": 86297,
+    "station": {
+     "combinedName": "Hamburg Hbf",
+     "id": "Master:10950",
+     "globalId": "de:02000:10950"
+    },
+    "platform": "Gleis 3 (S-Bahn)",
+    "realtimePlatform": "Gleis 3 (S-Bahn)"
+   },
+   {
+    "line": {
+     "name": "S3",
+     "direction": "Pinneberg",
+     "origin": "Neugraben",
+     "type": {
+      "simpleType": "TRAIN",
+      "shortInfo": "S",
+      "longInfo": "S-Bahn",
+      "model": "S-Bahn"
+     },
+     "id": "SBH:S3_SBH_SBAHNS",
+     "dlid": "de:hvv:S3:"
+    },
+    "directionId": 6,
+    "timeOffset": 47,
+    "delay": 0,
+    "serviceId": 86121,
+    "station": {
+     "combinedName": "Hamburg Hbf",
+     "id": "Master:10950",
+     "globalId": "de:02000:10950"
+    },
+    "platform": "Gleis 1 (S-Bahn)",
+    "realtimePlatform": "Gleis 1 (S-Bahn)"
+   },
+   {
+    "line": {
+     "name": "S3",
+     "direction": "Neugraben",
+     "origin": "Pinneberg",
+     "type": {
+      "simpleType": "TRAIN",
+      "shortInfo": "S",
+      "longInfo": "S-Bahn",
+      "model": "S-Bahn"
+     },
+     "id": "SBH:S3_SBH_SBAHNS",
+     "dlid": "de:hvv:S3:"
+    },
+    "directionId": 1,
+    "timeOffset": 57,
+    "delay": 0,
+    "serviceId": 86298,
+    "station": {
+     "combinedName": "Hamburg Hbf",
+     "id": "Master:10950",
+     "globalId": "de:02000:10950"
+    },
+    "platform": "Gleis 3 (S-Bahn)",
+    "realtimePlatform": "Gleis 3 (S-Bahn)"
+   },
+   {
+    "line": {
+     "name": "S3",
+     "direction": "Pinneberg",
+     "origin": "Neugraben",
+     "type": {
+      "simpleType": "TRAIN",
+      "shortInfo": "S",
+      "longInfo": "S-Bahn",
+      "model": "S-Bahn"
+     },
+     "id": "SBH:S3_SBH_SBAHNS",
+     "dlid": "de:hvv:S3:"
+    },
+    "directionId": 6,
+    "timeOffset": 57,
+    "delay": 0,
+    "serviceId": 86122,
+    "station": {
+     "combinedName": "Hamburg Hbf",
+     "id": "Master:10950",
+     "globalId": "de:02000:10950"
+    },
+    "platform": "Gleis 1 (S-Bahn)",
+    "realtimePlatform": "Gleis 1 (S-Bahn)"
+   }
+  ]
+ }
+}

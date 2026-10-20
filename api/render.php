@@ -745,7 +745,7 @@ function nb_render_s3_meldungen(array $meldungen, $now = null, $limit = null)
         $von = nb_ts($m['von'] ?? '') ?? nb_ts($m['stand'] ?? '') ?? $now;
         $html .= '<li' . (!empty($m['aktiv']) && empty($m['geplant']) ? ' class="is-heute"' : '') . '><div class="feed__time">' . nb_e(nb_fmt_wann($von, $now)) . '</div><div>'
             . '<p class="feed__kicker feed__kicker--hvv">HVV-Meldung' . ($chip !== '' ? ' ' . $chip : '') . '</p>'
-            . '<p class="feed__title">' . nb_e($m['titel'] ?? '') . '</p>'
+            . '<p class="feed__title">' . (($m['link'] ?? '') !== '' ? '<a href="' . nb_e($m['link']) . '" rel="noopener nofollow">' . nb_e($m['titel'] ?? '') . '</a>' : nb_e($m['titel'] ?? '')) . '</p>'
             . ($meta || $text !== '' ? '<p class="feed__meta">' . nb_e(implode(' · ', $meta)) . ($meta && $text !== '' ? '<br>' : '') . nb_e($text) . '</p>' : '')
             . '</div></li>';
     }

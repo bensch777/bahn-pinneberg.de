@@ -807,7 +807,8 @@
 			var kicker = el('p', { class: 'feed__kicker feed__kicker--hvv', text: 'HVV-Meldung' });
 			if (m.geplant) { kicker.appendChild(document.createTextNode(' ')); kicker.appendChild(el('span', { class: 'dep__ab dep__ab--plan', text: 'geplant' })); }
 			else if (m.aktiv) { kicker.appendChild(document.createTextNode(' ')); kicker.appendChild(el('span', { class: 'dep__ab dep__ab--aktiv', text: 'aktuell' })); }
-			var body = [kicker, el('p', { class: 'feed__title', text: m.titel || '' })];
+			var titel = /^https?:\/\//i.test(m.link || '') ? el('a', { href: m.link, rel: 'noopener nofollow', text: m.titel || '' }) : (m.titel || '');
+			var body = [kicker, el('p', { class: 'feed__title' }, [titel])];
 			if (meta.length || text) {
 				var p = el('p', { class: 'feed__meta', text: meta.join(' · ') });
 				if (meta.length && text) p.appendChild(el('br'));

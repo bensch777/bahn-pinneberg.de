@@ -32,7 +32,15 @@ const GF_PER_DIR      = 6;         // je Richtung fuer Statusregel und Anzeige
 const GF_MAX_LIST     = 150;       // Zeilen je ungefilterter departureList-Anfrage (am Hbf ~100 Abfahrten je Stunde)
 const GF_S3_SERVICE_ID = 'SBH:S3_SBH_SBAHNS'; // Linien-ID der S3 in der GTI (aus echten Antworten), fuer den Filter
 // Meldungen, die Pendler auf der Strecke nicht brauchen: Aufzuege, Rolltreppen, Barrierefreiheit
-const GF_MELDUNG_AUSSCHLUSS = '/aufzug|aufzüge|fahrstuhl|rolltreppe|\\blift\\b|barrierefrei|fahrtreppe|elevator|escalator/iu';
+const GF_MELDUNG_AUSSCHLUSS = '/aufzug|aufzüge|fahrstuhl|rolltreppe|\\blift\\b|barrierefrei|fahrtreppe|elevator|escalator|erreichbarkeit der station/iu';
+// S3-Stationen zwischen Pinneberg und der Innenstadt. Eine S3-Meldung zaehlt nur, wenn
+// ihr Abschnitt hier beginnt oder endet; Meldungen zu Stade, Buxtehude oder Neugraben
+// betreffen Pendler aus Pinneberg nicht. RB61 und RB71 zaehlen immer.
+const GF_S3_KORRIDOR = [
+    'pinneberg', 'thesdorf', 'halstenbek', 'krupunder', 'elbgaustrasse', 'eidelstedt', 'stellingen',
+    'langenfelde', 'diebsteich', 'holstenstrasse', 'bahrenfeld', 'ottensen', 'altona', 'koenigstrasse',
+    'reeperbahn', 'landungsbruecken', 'stadthausbruecke', 'jungfernstieg', 'sternschanze', 'dammtor', 'hauptbahnhof',
+];
 const GF_DELAY_MIN    = 5;         // ab dieser Verspaetung (Minuten) zaehlt ein Zug als betroffen
 const GF_ALERT_ANTEIL = 0.25;      // ab diesem Anteil "S3 gestoert"
 const GF_LINIE        = 'S3';
@@ -358,23 +366,50 @@ function gf_strip_html($html)
     return trim($t);
 }
 
-/** Liniennamen einer Meldung: lines[] oder locations[].line, ohne Leerzeichen, eindeutig. */
+/** Stationsname fuer den Vergleich: "Hamburg Hbf" -> "hauptbahnhof", "Hamburg-Altona" -> "altona". */
+function gf_station_norm($name)
+{
+    $n = mb_strtolower(trim((string) $name), 'UTF-8');
+    $n = strtr($n, ['ä' => 'ae', 'ö' => 'oe', 'ü' => 'ue', 'ß' => 'ss']);
+    $n = preg_replace('/\(.*?\)/', '', $n);
+    $n = preg_replace('/^(hamburg|hh|s)[\s-]+/', '', $n);
+    $n = preg_replace('/\bhbf\b/', 'hauptbahnhof', $n);
+
+    return trim(preg_replace('/[^a-z0-9]+/', '', $n));
+}
+
+/**
+ * Linien einer Meldung, die Pendler auf unserer Strecke betreffen: aus locations[]
+ * (Linie mit Abschnitt von/bis) oder, ohne locations, aus lines[]. Eine S3-Angabe
+ * zaehlt nur, wenn der Abschnitt im Korridor Pinneberg - Innenstadt beginnt oder endet.
+ */
 function gf_meldung_linien(array $raw)
 {
-    $namen = [];
-    foreach ($raw['lines'] ?? [] as $l) {
-        $namen[] = is_array($l) ? ($l['name'] ?? '') : $l;
-    }
-    foreach ($raw['locations'] ?? [] as $loc) {
-        if (is_array($loc) && is_array($loc['line'] ?? null)) {
-            $namen[] = $loc['line']['name'] ?? '';
-        }
-    }
     $out = [];
-    foreach ($namen as $n) {
-        $n = str_replace(' ', '', nordbahn_text($n, 20));
-        if ($n !== '' && !in_array($n, $out, true)) {
-            $out[] = $n;
+    $add = function ($name) use (&$out) {
+        $name = str_replace(' ', '', nordbahn_text($name, 20));
+        if ($name !== '' && !in_array($name, $out, true)) {
+            $out[] = $name;
+        }
+    };
+    $locations = is_array($raw['locations'] ?? null) ? $raw['locations'] : [];
+    foreach ($locations as $loc) {
+        if (!is_array($loc) || !is_array($loc['line'] ?? null)) {
+            continue;
+        }
+        $linie = str_replace(' ', '', (string) ($loc['line']['name'] ?? ''));
+        if (strcasecmp($linie, GF_LINIE) === 0) {
+            $von = gf_station_norm($loc['begin']['name'] ?? '');
+            $bis = gf_station_norm($loc['end']['name'] ?? '');
+            if (!in_array($von, GF_S3_KORRIDOR, true) && !in_array($bis, GF_S3_KORRIDOR, true)) {
+                continue;
+            }
+        }
+        $add($linie);
+    }
+    if (!$locations) {
+        foreach ($raw['lines'] ?? [] as $l) {
+            $add(is_array($l) ? ($l['name'] ?? '') : $l);
         }
     }
 
@@ -423,7 +458,21 @@ function gf_clean_meldung($raw, $now)
         'linien'  => gf_meldung_linien($raw),
         'stand'   => nordbahn_iso($raw['lastModified'] ?? ''),
         'grund'   => nordbahn_text($raw['reason'] ?? '', 40),
+        'link'    => gf_meldung_link($raw),
     ];
+}
+
+/** Erster brauchbarer Link einer Meldung (http/https), sonst leer. */
+function gf_meldung_link(array $raw)
+{
+    foreach ($raw['links'] ?? [] as $l) {
+        $url = is_array($l) ? trim((string) ($l['url'] ?? '')) : '';
+        if (preg_match('#^https?://#i', $url) && strlen($url) <= 500) {
+            return $url;
+        }
+    }
+
+    return '';
 }
 
 function gf_ts($value)
@@ -439,8 +488,9 @@ function gf_ts($value)
 /** Anfrageformen fuer getAnnouncements, der Reihe nach probiert: mit Zeitraum, nur Linien, ohne Filter. */
 function gf_announcement_varianten(array $linien, $ts)
 {
-    $von = (new DateTime('@' . ($ts - 3600)))->setTimezone(new DateTimeZone('Europe/Berlin'))->format('Y-m-d\TH:i:s.000P');
-    $bis = (new DateTime('@' . ($ts + 7 * 86400)))->setTimezone(new DateTimeZone('Europe/Berlin'))->format('Y-m-d\TH:i:s.000P');
+    // Format wie in den Antworten der GTI (lastUpdate, validities): 2026-10-20T08:12:33.000+0200
+    $von = (new DateTime('@' . ($ts - 3600)))->setTimezone(new DateTimeZone('Europe/Berlin'))->format('Y-m-d\TH:i:s.000O');
+    $bis = (new DateTime('@' . ($ts + 7 * 86400)))->setTimezone(new DateTimeZone('Europe/Berlin'))->format('Y-m-d\TH:i:s.000O');
 
     return [
         ['names' => $linien, 'timeRange' => ['begin' => $von, 'end' => $bis], 'full' => true, 'filterPlanned' => 'NO_FILTER'],
