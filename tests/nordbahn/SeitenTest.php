@@ -39,6 +39,7 @@ function test_alle_seiten_rendern_ohne_fehler()
     t_contains('Störung nicht gefunden', t_seite_rendern('stoerung.php', ['key' => 'GIBTSNICHT']), 'unbekannte Stoerung');
     if (!gf_aktiv()) {
         t_contains('"ok":false', t_seite_rendern('api/s3.php'), 'api/s3 ohne Zugang');
+        t_contains('NORDBAHN_PUSH_TOKEN ist in config.php nicht gesetzt', t_seite_rendern('api/s3.php', ['roh' => 'x']), 'Diagnose ohne Token abgelehnt');
         t_eq(false, strpos(t_seite_rendern('index.php'), 'status-s3') !== false, 'ohne Zugang keine S3-Karte');
     }
 }

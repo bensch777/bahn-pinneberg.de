@@ -452,8 +452,6 @@ button { font: inherit; color: inherit; }
 .boards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 @media (max-width: 760px) { .boards { grid-template-columns: 1fr; } }
 .boards--rueck-first .board[data-richtung="rueck"] { order: -1; }
-.boards--s3 { align-items: start; }
-.boards--s3 .feed { margin: 0; }
 .board { padding: 14px 18px 8px; }
 .board__head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-bottom: 6px; }
 .board__title { margin: 0; font-size: 15px; font-weight: 600; }

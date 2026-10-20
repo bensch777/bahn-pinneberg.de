@@ -250,19 +250,34 @@ $jsonLd = [
 	</section>
 
 <?php if ($gfAktiv): ?>
-	<section id="s3" class="section" aria-labelledby="s3-h" data-endpoint="<?= $root ?>api/s3">
+	<section id="s3" class="section" aria-labelledby="s3-h" data-endpoint="<?= $root ?>api/s3" data-stadt-default="<?= GF_STADT_DEFAULT ?>">
 		<div class="section__head">
-			<h2 id="s3-h" class="section__title">S-Bahn S3 und HVV-Meldungen</h2>
-			<p class="section__sub" id="s3-sub"></p>
-		</div>
-		<div class="boards boards--s3">
-			<div class="card board" data-richtung="s3">
-				<div class="board__head">
-					<h3 class="board__title">S3 Pinneberg &rarr; Hamburg</h3>
-				</div>
-				<ol class="board__list" id="s3-board" aria-live="polite"><?= nb_render_s3_abfahrten($gf['s3']['abfahrten'] ?? []) ?></ol>
+			<h2 id="s3-h" class="section__title">S-Bahn S3</h2>
+			<div class="section__tools">
+				<label class="heimat">
+					<span class="heimat__label">Stadtbahnhof</span>
+					<select id="stadt" class="heimat__select">
+<?php foreach (GF_STADT as $id => $st): ?>
+						<option value="<?= $id ?>" data-kurz="<?= nb_e($st['kurz']) ?>"<?= $id === GF_STADT_DEFAULT ? ' selected' : '' ?>><?= nb_e($st['name']) ?></option>
+<?php endforeach; ?>
+					</select>
+				</label>
+				<p class="section__sub" id="s3-sub"></p>
 			</div>
-			<ol class="feed card" id="s3-feed"><?= nb_render_s3_meldungen($gf['s3']['meldungen'] ?? []) ?></ol>
+		</div>
+		<div class="boards">
+			<div class="card board" data-richtung="hin">
+				<div class="board__head">
+					<h3 class="board__title" id="s3-title-hin">Pinneberg &rarr; <?= nb_e(GF_STADT[GF_STADT_DEFAULT]['kurz']) ?></h3>
+				</div>
+				<ol class="board__list" id="s3-board-hin" aria-live="polite"><?= nb_render_s3_abfahrten($gf['s3']['abfahrten'] ?? [], GF_PINNEBERG) ?></ol>
+			</div>
+			<div class="card board" data-richtung="rueck">
+				<div class="board__head">
+					<h3 class="board__title" id="s3-title-rueck"><?= nb_e(GF_STADT[GF_STADT_DEFAULT]['kurz']) ?> &rarr; Pinneberg</h3>
+				</div>
+				<ol class="board__list" id="s3-board-rueck" aria-live="polite"><?= nb_render_s3_abfahrten($gf['s3']['abfahrten'] ?? [], GF_STADT[GF_STADT_DEFAULT]['name']) ?></ol>
+			</div>
 		</div>
 	</section>
 
@@ -288,6 +303,19 @@ $jsonLd = [
 
 		</ol>
 	</section>
+
+<?php if ($gfAktiv): ?>
+	<section id="hvv" class="section" aria-labelledby="hvv-h">
+		<div class="section__head">
+			<h2 id="hvv-h" class="section__title">Letzte HVV-Meldungen</h2>
+			<p class="section__sub">S3, RB61 und RB71</p>
+		</div>
+		<ol class="feed card" id="hvv-feed" data-limit="5">
+			<?= nb_render_s3_meldungen($gf['s3']['meldungen'] ?? [], null, 5) ?>
+
+		</ol>
+	</section>
+<?php endif; ?>
 
 	<noscript><p class="notice">Ohne JavaScript bleibt die Seite auf diesem Stand stehen. Die Rohdaten gibt es unter <a href="<?= $root ?>api/data">api/data</a>.</p></noscript>
 </main>

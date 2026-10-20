@@ -16,7 +16,8 @@
  * Feldnamen und Einheiten in gf_clean_abfahrt (timeOffset in Minuten ab der
  * Anfragezeit, delay in Sekunden), die Struktur der Meldungen in gf_clean_meldung
  * (Linien unter lines[] oder locations[].line), die Protokollversion (GF_VERSION)
- * und die Antwort von checkName. Das CLI dev/geofox.php zeigt die Rohdaten.
+ * und die Antwort von checkName. Rohdaten: dev/geofox.php (CLI) oder im Browser
+ * api/s3?roh=<NORDBAHN_PUSH_TOKEN> (gf_diagnose).
  */
 
 require_once __DIR__ . '/store.php';
@@ -34,13 +35,34 @@ const GF_LINIE        = 'S3';
 const GF_LINIEN       = ['S3', 'RB61', 'RB71'];
 const GF_MELDUNGEN_MAX = 20;
 const GF_STATIONEN_TTL = 86400;    // Stations-IDs einmal am Tag auffrischen
-const GF_STATIONEN = [
-    'hin'   => ['name' => 'Pinneberg',   'ziel' => '', 'ab' => 'Pinneberg'],
-    'rueck' => ['name' => 'Hamburg Hbf', 'ziel' => 'Pinneberg', 'ab' => 'Hamburg Hbf'],
+const GF_PINNEBERG = 'Pinneberg';
+// Stadtbahnhoefe fuer die Rueckrichtung (?stadt=), waehlbar auf der Startseite
+const GF_STADT = [
+    'hbf'           => ['name' => 'Hamburg Hbf',    'kurz' => 'Hbf'],
+    'jungfernstieg' => ['name' => 'Jungfernstieg',  'kurz' => 'Jungfernstieg'],
+    'altona'        => ['name' => 'Hamburg-Altona', 'kurz' => 'Altona'],
 ];
-define('GF_CACHE', NORDBAHN_CACHE_DIR . '/geofox.json');
-define('GF_LOCK', NORDBAHN_CACHE_DIR . '/geofox.lock');
+const GF_STADT_DEFAULT = 'hbf';
+define('GF_CACHE', NORDBAHN_CACHE_DIR . '/geofox-' . GF_STADT_DEFAULT . '.json');
+define('GF_MELDUNGEN_CACHE', NORDBAHN_CACHE_DIR . '/geofox-meldungen.json');
 define('GF_STATIONEN_CACHE', NORDBAHN_CACHE_DIR . '/geofox-stationen.json');
+
+/** Cache-Datei je Stadtbahnhof; GF_CACHE ist die des Standards. */
+function gf_cache_file($stadt = GF_STADT_DEFAULT, $endung = 'json')
+{
+    return NORDBAHN_CACHE_DIR . '/geofox-' . (isset(GF_STADT[$stadt]) ? $stadt : GF_STADT_DEFAULT) . '.' . $endung;
+}
+
+/** Beide Richtungen fuer einen Stadtbahnhof: hin ab Pinneberg (alles Richtung Hamburg), rueck ab Stadt nur nach Pinneberg. */
+function gf_richtungen($stadt = GF_STADT_DEFAULT)
+{
+    $st = GF_STADT[$stadt] ?? GF_STADT[GF_STADT_DEFAULT];
+
+    return [
+        'hin'   => ['name' => GF_PINNEBERG, 'ziel' => '', 'ab' => GF_PINNEBERG],
+        'rueck' => ['name' => $st['name'], 'ziel' => GF_PINNEBERG, 'ab' => $st['name']],
+    ];
+}
 
 /* ---------- Zugang und Anfrage ---------- */
 
@@ -87,8 +109,8 @@ function gf_headers($body, array $zugang)
     ];
 }
 
-/** POST an die GTI; Antworttext bei HTTP 200, sonst null. */
-function gf_fetch($method, $body, array $zugang)
+/** POST an die GTI: ['status' => HTTP-Status (0 ohne Verbindung), 'body' => Antworttext]. */
+function gf_fetch_roh($method, $body, array $zugang)
 {
     $url = $zugang['url'] . '/' . $method;
     if (function_exists('curl_init')) {
@@ -106,13 +128,27 @@ function gf_fetch($method, $body, array $zugang)
         $status = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
         curl_close($ch);
 
-        return $antwort !== false && $status === 200 ? $antwort : null;
+        return ['status' => $status, 'body' => $antwort === false ? '' : (string) $antwort];
     }
     $antwort = @file_get_contents($url, false, stream_context_create([
-        'http' => ['method' => 'POST', 'timeout' => GF_TIMEOUT, 'user_agent' => nordbahn_site_host() . ' Monitor', 'header' => implode("\r\n", gf_headers($body, $zugang)) . "\r\n", 'content' => $body],
+        'http' => ['method' => 'POST', 'timeout' => GF_TIMEOUT, 'user_agent' => nordbahn_site_host() . ' Monitor', 'header' => implode("\r\n", gf_headers($body, $zugang)) . "\r\n", 'content' => $body, 'ignore_errors' => true],
     ]));
+    $status = 0;
+    foreach ($http_response_header ?? [] as $h) {
+        if (preg_match('#^HTTP/\S+\s+(\d{3})#', $h, $m)) {
+            $status = (int) $m[1];
+        }
+    }
 
-    return $antwort === false ? null : $antwort;
+    return ['status' => $status, 'body' => $antwort === false ? '' : (string) $antwort];
+}
+
+/** Antworttext bei HTTP 200, sonst null. */
+function gf_fetch($method, $body, array $zugang)
+{
+    $r = gf_fetch_roh($method, $body, $zugang);
+
+    return $r['status'] === 200 && $r['body'] !== '' ? $r['body'] : null;
 }
 
 /**
@@ -182,29 +218,26 @@ function gf_station_suchen($fetch, $name, ?array $zugang = null)
 }
 
 /**
- * Stationen fuer beide Richtungen, IDs aus dem Tagescache oder frisch per checkName.
- * Ohne ID geht die Anfrage mit Name und Typ raus (die GTI loest Namen selbst auf).
+ * Station nach Name, ID aus dem Tagescache oder frisch per checkName. Ohne ID geht
+ * die Anfrage mit Name und Typ raus (die GTI loest Namen selbst auf).
  */
-function gf_stationen($fetch, $now = null, ?array $zugang = null)
+function gf_station($fetch, $name, $now = null, ?array $zugang = null)
 {
     $now = $now ?? time();
     $cache = nordbahn_read_json(GF_STATIONEN_CACHE);
-    $gueltig = is_array($cache) && isset($cache['stand']) && $now - (int) $cache['stand'] < GF_STATIONEN_TTL && !empty($cache['stationen']);
-    $out = [];
-    $neu = false;
-    foreach (GF_STATIONEN as $key => $st) {
-        $station = $gueltig && !empty($cache['stationen'][$key]['id']) ? $cache['stationen'][$key] : null;
-        if ($station === null) {
-            $station = gf_station_suchen($fetch, $st['name'], $zugang);
-            $neu = $station !== null;
-        }
-        $out[$key] = $station ?? ['name' => $st['name'], 'type' => 'STATION'];
+    $stationen = is_array($cache) && isset($cache['stand']) && $now - (int) $cache['stand'] < GF_STATIONEN_TTL && is_array($cache['stationen'] ?? null) ? $cache['stationen'] : [];
+    if (!empty($stationen[$name]['id'])) {
+        return $stationen[$name];
     }
-    if ($neu) {
-        nordbahn_write_json(GF_STATIONEN_CACHE, ['stand' => $now, 'stationen' => $out]);
+    $station = gf_station_suchen($fetch, $name, $zugang);
+    if ($station !== null) {
+        $stationen[$name] = $station;
+        nordbahn_write_json(GF_STATIONEN_CACHE, ['stand' => $stationen === [$name => $station] ? $now : (int) ($cache['stand'] ?? $now), 'stationen' => $stationen]);
+
+        return $station;
     }
 
-    return $out;
+    return ['name' => $name, 'type' => 'STATION'];
 }
 
 /* ---------- Abfahrten ---------- */
@@ -242,18 +275,17 @@ function gf_clean_abfahrt($raw, DateTime $basis, $ab)
 }
 
 /**
- * S3-Abfahrten ab Pinneberg (Richtung Hamburg) und ab Hamburg Hbf (nur Richtung
- * Pinneberg) in den naechsten GF_FENSTER_MIN Minuten, hoechstens GF_PER_DIR je
- * Richtung. Null, wenn beide Anfragen scheitern.
+ * S3-Abfahrten ab Pinneberg (Richtung Hamburg) und ab dem Stadtbahnhof (nur
+ * Richtung Pinneberg) in den naechsten GF_FENSTER_MIN Minuten, hoechstens
+ * GF_PER_DIR je Richtung. Null, wenn beide Anfragen scheitern.
  */
-function gf_departures_s3($fetch, DateTime $now, ?array $zugang = null)
+function gf_departures_s3($fetch, DateTime $now, ?array $zugang = null, $stadt = GF_STADT_DEFAULT)
 {
-    $stationen = gf_stationen($fetch, $now->getTimestamp(), $zugang);
     $liste = [];
     $quellen = [];
-    foreach (GF_STATIONEN as $key => $st) {
+    foreach (gf_richtungen($stadt) as $key => $st) {
         $antwort = gf_request('departureList', [
-            'station'       => $stationen[$key],
+            'station'       => gf_station($fetch, $st['name'], $now->getTimestamp(), $zugang),
             'time'          => gf_zeit_param($now),
             'maxList'       => 20,
             'maxTimeOffset' => GF_FENSTER_MIN,
@@ -476,26 +508,47 @@ function gf_status(array $abfahrten, array $meldungen, $now)
     return ['level' => 'ok', 'title' => 'S3 fährt planmäßig', 'detail' => $geplant ? ($geplant === 1 ? '1 geplante HVV-Meldung' : $geplant . ' geplante HVV-Meldungen') : ''];
 }
 
+/** Meldungen aus dem geteilten Cache (alle Stadtbahnhoefe), hoechstens GF_TTL alt, sonst frisch; null bei Fehler ohne Cache. */
+function gf_announcements_cached($fetch, DateTime $now, ?array $zugang = null)
+{
+    $cache = nordbahn_read_json(GF_MELDUNGEN_CACHE);
+    $ts = $now->getTimestamp();
+    if (is_array($cache) && isset($cache['fetched_at'], $cache['meldungen']) && $ts - strtotime($cache['fetched_at']) < GF_TTL) {
+        return $cache['meldungen'];
+    }
+    $meldungen = gf_announcements($fetch, $now, GF_LINIEN, $zugang);
+    if ($meldungen !== null) {
+        nordbahn_write_json(GF_MELDUNGEN_CACHE, ['fetched_at' => $now->format('c'), 'meldungen' => $meldungen]);
+
+        return $meldungen;
+    }
+
+    return is_array($cache) && is_array($cache['meldungen'] ?? null) ? $cache['meldungen'] : null;
+}
+
 /* ---------- Aufbau und Cache ---------- */
 
 /**
- * Kompletter Stand: ok, fetched_at, quellen {hin, rueck, meldungen}, s3 {level,
- * title, detail, abfahrten, meldungen}. Null, wenn keine Abfahrten zu holen waren.
+ * Kompletter Stand fuer einen Stadtbahnhof: ok, fetched_at, stadt {id, name, kurz},
+ * quellen {hin, rueck, meldungen}, s3 {level, title, detail, abfahrten, meldungen}.
+ * Null, wenn keine Abfahrten zu holen waren.
  * Spaeter moeglich: Push bei neuer ungeplanter S3-Meldung (notify.php, id hvv:<id>:<version>).
  */
-function gf_build($fetch = null, ?DateTime $now = null, ?array $zugang = null)
+function gf_build($fetch = null, ?DateTime $now = null, ?array $zugang = null, $stadt = GF_STADT_DEFAULT)
 {
     $now = $now ?? new DateTime('now', new DateTimeZone('Europe/Berlin'));
-    $abf = gf_departures_s3($fetch, $now, $zugang);
+    $stadt = isset(GF_STADT[$stadt]) ? $stadt : GF_STADT_DEFAULT;
+    $abf = gf_departures_s3($fetch, $now, $zugang, $stadt);
     if ($abf === null) {
         return null;
     }
-    $meldungen = gf_announcements($fetch, $now, GF_LINIEN, $zugang);
+    $meldungen = gf_announcements_cached($fetch, $now, $zugang);
     $status = gf_status($abf['liste'], $meldungen ?? [], $now->getTimestamp());
 
     return [
         'ok'         => true,
         'fetched_at' => $now->format('c'),
+        'stadt'      => ['id' => $stadt] + GF_STADT[$stadt],
         'quellen'    => $abf['quellen'] + ['meldungen' => $meldungen !== null],
         's3'         => $status + ['abfahrten' => $abf['liste'], 'meldungen' => $meldungen ?? []],
     ];
@@ -506,26 +559,28 @@ function gf_leer()
     return ['ok' => false, 'fetched_at' => null, 's3' => null];
 }
 
-/** Stand aus dem Cache, bei Bedarf erneuert (ein Prozess fragt, die anderen warten nicht). */
-function gf_cached($fetch = null, ?DateTime $now = null, ?array $zugang = null)
+/** Stand aus dem Cache des Stadtbahnhofs, bei Bedarf erneuert (ein Prozess fragt, die anderen warten nicht). */
+function gf_cached($fetch = null, ?DateTime $now = null, ?array $zugang = null, $stadt = GF_STADT_DEFAULT)
 {
     $zugang = $zugang ?? gf_zugang();
     if ($zugang === null && $fetch === null) {
         return gf_leer();
     }
+    $cacheFile = gf_cache_file($stadt);
+    $lockFile = gf_cache_file($stadt, 'lock');
     $jetzt = $now ? $now->getTimestamp() : time();
-    $cached = nordbahn_read_json(GF_CACHE);
+    $cached = nordbahn_read_json($cacheFile);
     if (is_array($cached) && isset($cached['fetched_at']) && $jetzt - strtotime($cached['fetched_at']) < GF_TTL) {
         return $cached;
     }
     if (!is_dir(NORDBAHN_CACHE_DIR)) {
         @mkdir(NORDBAHN_CACHE_DIR, 0775, true);
     }
-    $lock = @fopen(GF_LOCK, 'c');
+    $lock = @fopen($lockFile, 'c');
     if ($lock !== false && flock($lock, LOCK_EX | LOCK_NB)) {
-        $result = gf_build($fetch, $now, $zugang);
+        $result = gf_build($fetch, $now, $zugang, $stadt);
         if ($result !== null) {
-            nordbahn_write_json(GF_CACHE, $result);
+            nordbahn_write_json($cacheFile, $result);
             $cached = $result;
         } elseif (is_array($cached)) {
             $cached['ok'] = false;
@@ -541,4 +596,46 @@ function gf_cached($fetch = null, ?DateTime $now = null, ?array $zugang = null)
     }
 
     return $cached;
+}
+
+/* ---------- Diagnose ---------- */
+
+/**
+ * Rohantworten der wichtigsten Methoden, um das Antwortformat ohne SSH zu pruefen
+ * (api/s3?roh=<NORDBAHN_PUSH_TOKEN>). Je Aufruf: anfrage, status, antwort
+ * (dekodiert, sonst Rohtext). Zugangsdaten erscheinen nicht.
+ * $fetchRoh: function ($method, $json) -> ['status', 'body'] (Tests).
+ */
+function gf_diagnose(array $zugang, ?DateTime $now = null, $fetchRoh = null)
+{
+    $now = $now ?? new DateTime('now', new DateTimeZone('Europe/Berlin'));
+    $ts = $now->getTimestamp();
+    $fetchRoh = $fetchRoh ?? function ($method, $json) use ($zugang) {
+        return gf_fetch_roh($method, $json, $zugang);
+    };
+    $aufrufe = [
+        'init'                     => ['init', []],
+        'checkName Pinneberg'      => ['checkName', ['theName' => ['name' => GF_PINNEBERG, 'type' => 'STATION'], 'maxList' => 5]],
+        'checkName Hamburg Hbf'    => ['checkName', ['theName' => ['name' => 'Hamburg Hbf', 'type' => 'STATION'], 'maxList' => 5]],
+        'checkName Jungfernstieg'  => ['checkName', ['theName' => ['name' => 'Jungfernstieg', 'type' => 'STATION'], 'maxList' => 5]],
+        'checkName Hamburg-Altona' => ['checkName', ['theName' => ['name' => 'Hamburg-Altona', 'type' => 'STATION'], 'maxList' => 5]],
+        'departureList Pinneberg'  => ['departureList', ['station' => ['name' => GF_PINNEBERG, 'type' => 'STATION'], 'time' => gf_zeit_param($now), 'maxList' => 20, 'maxTimeOffset' => GF_FENSTER_MIN, 'useRealtime' => true]],
+        'departureList Hamburg Hbf' => ['departureList', ['station' => ['name' => 'Hamburg Hbf', 'type' => 'STATION'], 'time' => gf_zeit_param($now), 'maxList' => 20, 'maxTimeOffset' => GF_FENSTER_MIN, 'useRealtime' => true]],
+        'getAnnouncements'         => ['getAnnouncements', ['names' => GF_LINIEN, 'timeRange' => ['begin' => gmdate('Y-m-d\TH:i:s\Z', $ts - 3600), 'end' => gmdate('Y-m-d\TH:i:s\Z', $ts + 7 * 86400)], 'full' => true, 'filterPlanned' => 'NO_FILTER']],
+    ];
+    $out = ['url' => $zugang['url'], 'version' => $zugang['version'], 'zeit' => $now->format('c'), 'aufrufe' => []];
+    foreach ($aufrufe as $label => [$method, $body]) {
+        $body = ['version' => $zugang['version'], 'language' => 'de'] + $body;
+        $json = json_encode($body, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        $r = $fetchRoh($method, $json);
+        $dekodiert = json_decode((string) ($r['body'] ?? ''), true);
+        $out['aufrufe'][$label] = [
+            'methode' => $method,
+            'anfrage' => $body,
+            'status'  => (int) ($r['status'] ?? 0),
+            'antwort' => is_array($dekodiert) ? $dekodiert : nordbahn_text($r['body'] ?? '', 4000),
+        ];
+    }
+
+    return $out;
 }

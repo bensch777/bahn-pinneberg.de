@@ -731,8 +731,95 @@
 	/* ---------- S-Bahn S3 und HVV-Meldungen (api/s3, HVV Geofox) ---------- */
 
 	var s3State = { last: null };
+	var STADT_KEY = 'nordbahn.stadt';
+	var stadtState = { id: 'hbf', name: 'Hamburg Hbf', kurz: 'Hbf' };
 
-	/** Karte und Listen aus der Antwort von api/s3; die Statusregel rechnet der Server (gf_status). */
+	/** Stadtbahnhof der S3 (Hbf, Jungfernstieg, Altona), wie "Mein Bahnhof" im Browser gemerkt. */
+	function initStadt() {
+		var section = document.getElementById('s3');
+		var select = document.getElementById('stadt');
+		if (!section || !select) return;
+		var id = section.getAttribute('data-stadt-default') || 'hbf';
+		try { id = localStorage.getItem(STADT_KEY) || id; } catch (e) {}
+		if (select.querySelector('option[value="' + id + '"]')) select.value = id;
+		applyStadt(select);
+		select.addEventListener('change', function () {
+			applyStadt(select);
+			try { localStorage.setItem(STADT_KEY, stadtState.id); } catch (e) {}
+			track('Stadtbahnhof', { stadt: stadtState.name });
+			s3State.last = null;
+			renderS3(null);
+			refreshS3();
+		});
+	}
+
+	function applyStadt(select) {
+		var opt = select.options[select.selectedIndex];
+		stadtState = { id: select.value, name: opt ? opt.textContent : select.value, kurz: opt ? (opt.getAttribute('data-kurz') || opt.textContent) : select.value };
+		var hin = document.getElementById('s3-title-hin'), rueck = document.getElementById('s3-title-rueck');
+		if (hin) hin.textContent = 'Pinneberg → ' + stadtState.kurz;
+		if (rueck) rueck.textContent = stadtState.kurz + ' → Pinneberg';
+	}
+
+	/** Eine S3-Tafel fuellen: Zeilen mit passendem Abfahrtsort. */
+	function renderS3Board(list, deps) {
+		clear(list);
+		if (!deps.length) {
+			list.appendChild(el('li', {}, [el('p', { class: 'board__empty', text: 'Keine S3-Abfahrt in den nächsten 60 Minuten gemeldet.' })]));
+			return;
+		}
+		var nextMarked = false;
+		deps.forEach(function (d) {
+			var late = !d.ausfall && d.delay_min >= 3;
+			var cls = 'dep' + (d.ausfall ? ' dep--cancelled' : late ? ' dep--late' : '');
+			if (!d.ausfall && !nextMarked) { cls += ' dep--next'; nextMarked = true; }
+			var time = el('div', { class: 'dep__time' }, [fmtClock(d.zeit)]);
+			if (d.ausfall) time.appendChild(el('small', { text: 'fällt aus' }));
+			else if (late) time.appendChild(el('small', { text: '+' + d.delay_min + ' → ' + fmtClock(d.ist) }));
+			var cd = d.ausfall ? '' : fmtCountdown(d.ist || d.zeit);
+			if (cd) time.appendChild(el('small', { class: 'dep__countdown', text: cd }));
+			var dest = el('div', { class: 'dep__dest', title: d.ziel }, [el('span', { class: 'dep__ziel', text: d.ziel })]);
+			if (d.gleis) dest.appendChild(el('small', { text: 'Gleis ' + d.gleis }));
+			list.appendChild(el('li', { class: cls }, [el('span', { class: 'dep__dot' }), time, el('div', { class: 'dep__line' }, [d.linie || 'S3']), dest]));
+		});
+	}
+
+	/** Liste "Letzte HVV-Meldungen" (wie nb_render_s3_meldungen). */
+	function renderHvv(meldungen) {
+		var feed = document.getElementById('hvv-feed');
+		if (!feed) return;
+		var limit = parseInt(feed.getAttribute('data-limit'), 10) || 5;
+		clear(feed);
+		meldungen = (meldungen || []).slice(0, limit);
+		if (!meldungen.length) {
+			feed.appendChild(el('li', {}, [el('p', { class: 'feed__empty', text: 'Keine HVV-Meldung zu S3, RB61 und RB71.' })]));
+			return;
+		}
+		var now = Date.now();
+		meldungen.forEach(function (m) {
+			var von = Date.parse(m.von || ''), bis = Date.parse(m.bis || '');
+			var meta = [];
+			if (m.linien && m.linien.length) meta.push(m.linien.join(', '));
+			if (m.aktiv) meta.push(isNaN(bis) ? 'bis auf Weiteres' : fmtBis(now, bis));
+			else if (!isNaN(von) && von > now) meta.push('ab ' + fmtWann(von, true) + (isNaN(bis) ? '' : ' ' + fmtBis(von, bis)));
+			var text = m.text || '';
+			if (text.length > 300) text = text.slice(0, 300).replace(/\s+$/, '') + ' …';
+			var kicker = el('p', { class: 'feed__kicker feed__kicker--hvv', text: 'HVV-Meldung' });
+			if (m.geplant) { kicker.appendChild(document.createTextNode(' ')); kicker.appendChild(el('span', { class: 'dep__ab dep__ab--plan', text: 'geplant' })); }
+			else if (m.aktiv) { kicker.appendChild(document.createTextNode(' ')); kicker.appendChild(el('span', { class: 'dep__ab dep__ab--aktiv', text: 'aktuell' })); }
+			var body = [kicker, el('p', { class: 'feed__title', text: m.titel || '' })];
+			if (meta.length || text) {
+				var p = el('p', { class: 'feed__meta', text: meta.join(' · ') });
+				if (meta.length && text) p.appendChild(el('br'));
+				if (text) p.appendChild(document.createTextNode(text));
+				body.push(p);
+			}
+			var zeit = !isNaN(von) ? von : (Date.parse(m.stand || '') || now);
+			feed.appendChild(el('li', m.aktiv && !m.geplant ? { class: 'is-heute' } : {}, [el('div', { class: 'feed__time' }, [fmtWann(zeit)]), el('div', {}, body)]));
+		});
+	}
+
+	/** Karte, Tafeln und HVV-Liste aus der Antwort von api/s3; die Statusregel rechnet der Server (gf_status). */
 	function renderS3(result) {
 		var section = document.getElementById('s3');
 		var card = document.getElementById('status-s3');
@@ -752,71 +839,27 @@
 		}
 		if (!ok) {
 			setStatus('status-s3', 'unknown', 'S3-Lage unbekannt');
-			return; // Listen bleiben auf dem letzten Stand
+			return; // Tafeln und Liste bleiben auf dem letzten Stand
 		}
 		var s3 = result.s3;
 		setStatus('status-s3', s3.level || 'unknown', s3.title || 'S3', s3.detail || '');
-
-		var board = document.getElementById('s3-board');
-		if (board) {
-			clear(board);
-			var deps = (s3.abfahrten || []).filter(function (d) { return d.ab === 'Pinneberg'; });
-			if (!deps.length) {
-				board.appendChild(el('li', {}, [el('p', { class: 'board__empty', text: 'Keine S3-Abfahrt in den nächsten 60 Minuten gemeldet.' })]));
-			}
-			var nextMarked = false;
-			deps.forEach(function (d) {
-				var late = !d.ausfall && d.delay_min >= 3;
-				var cls = 'dep' + (d.ausfall ? ' dep--cancelled' : late ? ' dep--late' : '');
-				if (!d.ausfall && !nextMarked) { cls += ' dep--next'; nextMarked = true; }
-				var time = el('div', { class: 'dep__time' }, [fmtClock(d.zeit)]);
-				if (d.ausfall) time.appendChild(el('small', { text: 'fällt aus' }));
-				else if (late) time.appendChild(el('small', { text: '+' + d.delay_min + ' → ' + fmtClock(d.ist) }));
-				var cd = d.ausfall ? '' : fmtCountdown(d.ist || d.zeit);
-				if (cd) time.appendChild(el('small', { class: 'dep__countdown', text: cd }));
-				var dest = el('div', { class: 'dep__dest', title: d.ziel }, [el('span', { class: 'dep__ziel', text: d.ziel })]);
-				if (d.gleis) dest.appendChild(el('small', { text: 'Gleis ' + d.gleis }));
-				board.appendChild(el('li', { class: cls }, [el('span', { class: 'dep__dot' }), time, el('div', { class: 'dep__line' }, [d.linie || 'S3']), dest]));
-			});
-		}
-
-		var feed = document.getElementById('s3-feed');
-		if (feed) {
-			clear(feed);
-			var meldungen = s3.meldungen || [];
-			if (!meldungen.length) {
-				feed.appendChild(el('li', {}, [el('p', { class: 'feed__empty', text: 'Keine HVV-Meldung zu S3, RB61 und RB71.' })]));
-			}
-			var now = Date.now();
-			meldungen.forEach(function (m) {
-				var von = Date.parse(m.von || ''), bis = Date.parse(m.bis || '');
-				var meta = [];
-				if (m.linien && m.linien.length) meta.push(m.linien.join(', '));
-				if (m.aktiv) meta.push(isNaN(bis) ? 'bis auf Weiteres' : fmtBis(now, bis));
-				else if (!isNaN(von) && von > now) meta.push('ab ' + fmtWann(von, true) + (isNaN(bis) ? '' : ' ' + fmtBis(von, bis)));
-				var text = m.text || '';
-				if (text.length > 300) text = text.slice(0, 300).replace(/\s+$/, '') + ' …';
-				var kicker = el('p', { class: 'feed__kicker feed__kicker--hvv', text: 'HVV-Meldung' });
-				if (m.geplant) { kicker.appendChild(document.createTextNode(' ')); kicker.appendChild(el('span', { class: 'dep__ab dep__ab--plan', text: 'geplant' })); }
-				else if (m.aktiv) { kicker.appendChild(document.createTextNode(' ')); kicker.appendChild(el('span', { class: 'dep__ab dep__ab--aktiv', text: 'aktuell' })); }
-				var body = [kicker, el('p', { class: 'feed__title', text: m.titel || '' })];
-				if (meta.length || text) {
-					var p = el('p', { class: 'feed__meta', text: meta.join(' · ') });
-					if (meta.length && text) p.appendChild(el('br'));
-					if (text) p.appendChild(document.createTextNode(text));
-					body.push(p);
-				}
-				var zeit = !isNaN(von) ? von : (Date.parse(m.stand || '') || now);
-				feed.appendChild(el('li', m.aktiv && !m.geplant ? { class: 'is-heute' } : {}, [el('div', { class: 'feed__time' }, [fmtWann(zeit)]), el('div', {}, body)]));
-			});
-		}
+		var hin = document.getElementById('s3-board-hin'), rueck = document.getElementById('s3-board-rueck');
+		var deps = s3.abfahrten || [];
+		if (hin) renderS3Board(hin, deps.filter(function (d) { return d.ab === 'Pinneberg'; }));
+		if (rueck) renderS3Board(rueck, deps.filter(function (d) { return d.ab !== 'Pinneberg'; }));
+		renderHvv(s3.meldungen);
 	}
 
 	function refreshS3() {
 		if (!document.getElementById('s3') || document.hidden || !window.fetch) return Promise.resolve();
-		return fetch(urls.s3, { cache: 'no-cache', headers: { 'Accept': 'application/json' } })
+		var stadt = stadtState.id;
+		return fetch(urls.s3 + '?stadt=' + encodeURIComponent(stadt), { cache: 'no-cache', headers: { 'Accept': 'application/json' } })
 			.then(function (res) { return res.json(); })
-			.then(function (result) { s3State.last = result; renderS3(result); })
+			.then(function (result) {
+				if (stadt !== stadtState.id) return; // inzwischen umgestellt, Antwort ist veraltet
+				s3State.last = result;
+				renderS3(result);
+			})
 			.catch(function () {
 				if (s3State.last) { s3State.last.ok = false; renderS3(s3State.last); }
 				else renderS3({ ok: false });
@@ -1170,6 +1213,7 @@
 			setInterval(function () { orderBoards(); if (departuresState.last) renderDepartures(departuresState.last); }, 30000);
 		}
 		if (document.getElementById('s3')) {
+			initStadt();
 			renderS3(null);
 			refreshS3();
 			setInterval(refreshS3, DEPARTURES_MS);

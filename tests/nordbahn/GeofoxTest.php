@@ -66,11 +66,16 @@ function test_s3_abfahrten_zeit_richtung_und_fenster()
     t_eq('14', $hbfRows[1]['gleis'], 'Gleis am Hbf');
     t_eq(['hin' => true, 'rueck' => true], $r['quellen'], 'beide Quellen');
     // Stationen wurden per checkName aufgeloest und gecacht
-    t_eq('checkName', $calls[0][0], 'erste Anfrage loest die Station auf');
-    t_eq(true, strpos($calls[2][1]['station']['id'] ?? '', 'Master:') === 0, 'departureList mit ID');
+    t_eq(['checkName', 'departureList', 'checkName', 'departureList'], array_column($calls, 0), 'je Station erst checkName, dann departureList');
+    t_eq(true, strpos($calls[1][1]['station']['id'] ?? '', 'Master:') === 0, 'departureList mit ID');
     $calls = [];
     gf_departures_s3(t_gf_fetch(['departureList:Pinneberg' => t_gf_departures($rows)], $calls), $now, t_gf_zugang());
     t_eq(['departureList', 'departureList'], array_column($calls, 0), 'Stationen aus dem Tagescache, kein checkName mehr');
+    $calls = [];
+    $r = gf_departures_s3(t_gf_fetch(['departureList:Pinneberg' => t_gf_departures($rows), 'departureList:Hamburg-Altona' => t_gf_departures([['ziel' => 'Pinneberg', 'offset' => 2]])], $calls), $now, t_gf_zugang(), 'altona');
+    t_eq(['departureList', 'checkName', 'departureList'], array_column($calls, 0), 'neuer Stadtbahnhof: nur Altona wird aufgeloest');
+    t_eq('Hamburg-Altona', $calls[2][1]['station']['name'], 'Rueckrichtung ab Altona');
+    t_eq('Hamburg-Altona', end($r['liste'])['ab'], 'Abfahrtsort Altona');
 
     t_eq(null, gf_departures_s3(t_gf_fetch([]), $now, t_gf_zugang()), 'beide Quellen tot');
 }
@@ -154,12 +159,45 @@ function test_s3_cache_und_stale()
     t_eq(true, $r3['ok'], 'eine Richtung reicht');
     t_eq(['hin' => true, 'rueck' => false, 'meldungen' => true], $r3['quellen'], 'Hbf als fehlend markiert');
     t_eq('S3: keine Abfahrten gemeldet', $r3['s3']['title'], 'keine Abfahrten');
+    t_eq(['id' => 'hbf', 'name' => 'Hamburg Hbf', 'kurz' => 'Hbf'], $r3['stadt'], 'Stadtbahnhof im Stand');
+
+    // Anderer Stadtbahnhof: eigener Cache, Meldungen aus dem geteilten Cache ohne neuen Aufruf
+    $calls = [];
+    $r4 = gf_cached(t_gf_fetch(['departureList:Pinneberg' => t_gf_departures([['offset' => 4]]), 'departureList:Hamburg-Altona' => t_gf_departures([['ziel' => 'Pinneberg', 'offset' => 7]])], $calls), $spaeter, t_gf_zugang(), 'altona');
+    t_eq('altona', $r4['stadt']['id'], 'Stand fuer Altona');
+    t_eq(false, in_array('getAnnouncements', array_column($calls, 0), true), 'Meldungen kommen aus dem geteilten Cache');
+    t_eq(true, is_array(nordbahn_read_json(gf_cache_file('altona'))), 'eigene Cache-Datei');
+    t_eq('hbf', nordbahn_read_json(GF_CACHE)['stadt']['id'], 'Standard-Cache unveraendert');
+}
+
+function test_geofox_diagnose_ohne_zugangsdaten()
+{
+    $calls = [];
+    $fetchRoh = function ($method, $json) use (&$calls) {
+        $calls[] = $method;
+        if ($method === 'init') {
+            return ['status' => 200, 'body' => '{"returnCode":"OK","version":59}'];
+        }
+        if ($method === 'checkName') {
+            return ['status' => 403, 'body' => 'Forbidden'];
+        }
+
+        return ['status' => 0, 'body' => ''];
+    };
+    $d = gf_diagnose(t_gf_zugang(), t_now(), $fetchRoh);
+    t_eq('https://gti.example/gti/public', $d['url'], 'Adresse');
+    t_eq(['init', 'checkName', 'checkName', 'checkName', 'checkName', 'departureList', 'departureList', 'getAnnouncements'], $calls, 'alle Methoden');
+    t_eq(['returnCode' => 'OK', 'version' => 59], $d['aufrufe']['init']['antwort'], 'dekodierte Antwort');
+    t_eq(403, $d['aufrufe']['checkName Pinneberg']['status'], 'HTTP-Status');
+    t_eq('Forbidden', $d['aufrufe']['checkName Pinneberg']['antwort'], 'Rohtext bei Nicht-JSON');
+    t_eq(59, $d['aufrufe']['departureList Pinneberg']['anfrage']['version'], 'Anfrage mit Version');
+    t_eq(false, strpos(json_encode($d), 'geheim') !== false, 'Passwort erscheint nicht');
 }
 
 function test_lage_markdown_s3()
 {
     $now = t_now()->getTimestamp();
-    $gf = ['ok' => true, 'fetched_at' => '2026-10-15T09:59:00+02:00', 's3' => ['level' => 'warn', 'title' => 'S3 beeinträchtigt', 'detail' => '1 von 2 Zügen (50 %): 1 Ausfall',
+    $gf = ['ok' => true, 'fetched_at' => '2026-10-15T09:59:00+02:00', 'stadt' => ['id' => 'hbf', 'name' => 'Hamburg Hbf', 'kurz' => 'Hbf'], 's3' => ['level' => 'warn', 'title' => 'S3 beeinträchtigt', 'detail' => '1 von 2 Zügen (50 %): 1 Ausfall',
         'abfahrten' => [['zeit' => '2026-10-15T10:07:00+02:00', 'ist' => '2026-10-15T10:07:00+02:00', 'linie' => 'S3', 'ziel' => 'Stade', 'ab' => 'Pinneberg', 'delay_min' => 0, 'ausfall' => false, 'gleis' => '1'], ['zeit' => '2026-10-15T10:11:00+02:00', 'ist' => '2026-10-15T10:11:00+02:00', 'linie' => 'S3', 'ziel' => 'Pinneberg', 'ab' => 'Hamburg Hbf', 'delay_min' => 0, 'ausfall' => true, 'gleis' => '14']],
         'meldungen' => [['id' => 'B', 'titel' => 'S3: Bauarbeiten', 'text' => 'Busse fahren.', 'geplant' => true, 'aktiv' => true, 'von' => '2026-10-15T03:00:00Z', 'bis' => '2026-10-17T02:00:00Z', 'linien' => ['S3'], 'stand' => '']]]];
     $data = ['received_at' => '2026-10-15T07:58:00Z', 'stoerungen' => [], 'eilmeldungen_live' => [], 'eilmeldungen' => [], 'stoerungen_verlauf' => []];
@@ -192,4 +230,7 @@ function test_render_s3_html()
     t_contains('<li class="is-heute"><div class="feed__time">Heute, 09:30 Uhr</div><div><p class="feed__kicker feed__kicker--hvv">HVV-Meldung <span class="dep__ab dep__ab--aktiv">aktuell</span></p><p class="feed__title">S3: Signalstörung</p><p class="feed__meta">S3, RB61 · bis 12:00 Uhr<br>Es kommt zu Ausfällen.</p></div></li>', $html, 'aktuelle Meldung');
     t_contains('<p class="feed__kicker feed__kicker--hvv">HVV-Meldung <span class="dep__ab dep__ab--plan">geplant</span></p><p class="feed__title">Bauarbeiten</p><p class="feed__meta">S3 · ab 17.10., 22:00 Uhr bis 20.10., 04:00 Uhr</p>', $html, 'geplante Meldung');
     t_contains('Keine HVV-Meldung zu S3, RB61 und RB71.', nb_render_s3_meldungen([], $now), 'leer');
+    t_eq(1, substr_count(nb_render_s3_meldungen($m, $now, 1), '<li'), 'Limit');
+    $hbf = nb_render_s3_abfahrten($liste, 'Hamburg Hbf');
+    t_contains('<span class="dep__ziel">Pinneberg</span><small>Gleis 14</small>', $hbf, 'Rueckrichtung ab Hbf');
 }

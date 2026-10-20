@@ -15,7 +15,7 @@ $assetVersion = (int) @filemtime(__DIR__ . '/../dashboard.css');
 
 $changelog = [
     ['2026-10-20', [
-        ['S-Bahn S3 und HVV-Meldungen', 'Neue Lagekarte „S3 Pinneberg – Hamburg“ aus den Echtzeit-Abfahrten der S3 ab Pinneberg und ab Hamburg Hbf, dazu ein Abschnitt mit den nächsten S3-Zügen ab Pinneberg und den HVV-Meldungen zu S3, RB61 und RB71. Quelle ist die Schnittstelle des HVV (Geofox). Geplante Meldungen wie Bauarbeiten stehen in der Liste, färben die Karte aber nicht ein. Auch in lage.md und unter api/s3.'],
+        ['S-Bahn S3 und HVV-Meldungen', 'Neue Lagekarte „S3 Pinneberg – Hamburg“ aus den Echtzeit-Abfahrten der S3, dazu zwei Tafeln: Pinneberg Richtung Stadt und vom gewählten Stadtbahnhof (Hauptbahnhof, Jungfernstieg oder Altona) zurück nach Pinneberg. Darunter die neue Liste „Letzte HVV-Meldungen“ zu S3, RB61 und RB71. Quelle ist die Schnittstelle des HVV (Geofox). Geplante Meldungen wie Bauarbeiten stehen in der Liste, färben die Karte aber nicht ein. Auch in lage.md und unter api/s3.'],
     ]],
     ['2026-10-19', [
         ['Rubrik „Wichtige Meldungen“', 'Unter /news/ stehen nur noch die Störungen und Eilmeldungen, die viele Pendler betreffen: schwere Einschränkungen, Ausfälle, Umleitungen, Ersatzverkehr, Sperrungen, Bauarbeiten oder Meldungen zu mehreren Zügen. Die Startseite zeigt die wichtigen Meldungen der letzten 24 Stunden oberhalb der Abfahrten. Die Regeln stehen in den häufigen Fragen.'],

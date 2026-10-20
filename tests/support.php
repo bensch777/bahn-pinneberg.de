@@ -22,8 +22,11 @@ function t_now($zeit = T_NOW)
 function t_reset()
 {
     @unlink(ABF_ZUG_CACHE);
-    @unlink(GF_CACHE);
-    @unlink(GF_LOCK);
+    foreach (array_keys(GF_STADT) as $stadt) {
+        @unlink(gf_cache_file($stadt));
+        @unlink(gf_cache_file($stadt, 'lock'));
+    }
+    @unlink(GF_MELDUNGEN_CACHE);
     @unlink(GF_STATIONEN_CACHE);
 }
 

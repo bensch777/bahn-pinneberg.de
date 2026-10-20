@@ -646,9 +646,9 @@ function nb_render_news(array $items, $now = null)
 /* ---------- S-Bahn S3 und HVV-Meldungen (api/geofox.php) ---------- */
 
 /** Letzter Geofox-Stand aus dem Cache, null wenn fehlend, unbrauchbar oder aelter als NB_ABF_MAX_AGE_S. */
-function nb_read_geofox()
+function nb_read_geofox($stadt = GF_STADT_DEFAULT)
 {
-    $gf = nordbahn_read_json(GF_CACHE);
+    $gf = nordbahn_read_json(gf_cache_file($stadt));
     if (!is_array($gf) || empty($gf['ok']) || empty($gf['fetched_at']) || !is_array($gf['s3'] ?? null)) {
         return null;
     }
@@ -717,9 +717,12 @@ function nb_meldung_zeitraum(array $m, $now)
 }
 
 /** HVV-Meldungen als Feed (wie renderS3 im Script): Rubrik mit Chip geplant/aktuell, Linien, Zeitraum, Text. */
-function nb_render_s3_meldungen(array $meldungen, $now = null)
+function nb_render_s3_meldungen(array $meldungen, $now = null, $limit = null)
 {
     $now = $now ?? time();
+    if ($limit !== null) {
+        $meldungen = array_slice($meldungen, 0, (int) $limit);
+    }
     if (!$meldungen) {
         return '<li><p class="feed__empty">Keine HVV-Meldung zu S3, RB61 und RB71.</p></li>';
     }
@@ -1169,7 +1172,8 @@ function nb_lage_md_s3($gf, $now)
         return $md . "Keine aktuellen S3-Daten.\n\n";
     }
     $s3 = $gf['s3'];
-    foreach (['Pinneberg' => '### S3 ab Pinneberg → Hamburg', 'Hamburg Hbf' => '### S3 ab Hamburg Hbf → Pinneberg'] as $ab => $kopf) {
+    $stadt = $gf['stadt']['name'] ?? 'Hamburg Hbf';
+    foreach ([GF_PINNEBERG => '### S3 ab Pinneberg → Hamburg', $stadt => '### S3 ab ' . $stadt . ' → Pinneberg'] as $ab => $kopf) {
         $md .= $kopf . "\n\n";
         $n = 0;
         foreach ($s3['abfahrten'] ?? [] as $d) {

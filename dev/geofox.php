@@ -6,9 +6,11 @@
  *
  *   php dev/geofox.php init                        Verbindung und Protokollversion
  *   php dev/geofox.php checkName "Hamburg Hbf"     Station mit ID
- *   php dev/geofox.php departureList hin|rueck     Rohantwort ab Pinneberg bzw. Hamburg Hbf
+ *   php dev/geofox.php departureList hin|rueck [hbf|jungfernstieg|altona]
+ *                                                  Rohantwort ab Pinneberg bzw. ab dem Stadtbahnhof
  *   php dev/geofox.php getAnnouncements            Rohantwort der HVV-Meldungen
- *   php dev/geofox.php build                       aufbereiteter Stand wie api/s3 (ohne Cache)
+ *   php dev/geofox.php build [stadt]               aufbereiteter Stand wie api/s3 (ohne Cache)
+ *   php dev/geofox.php diagnose                    alle Rohantworten wie api/s3?roh=<Token>
  *
  * Die Rohantworten eignen sich als Fixtures fuer tests/nordbahn/GeofoxTest.php.
  */
@@ -54,9 +56,9 @@ switch ($cmd) {
         break;
     case 'departureList':
         $key = $arg === 'rueck' ? 'rueck' : 'hin';
-        $stationen = gf_stationen(null, $now->getTimestamp(), $zugang);
+        $richtung = gf_richtungen($argv[3] ?? GF_STADT_DEFAULT)[$key];
         gf_cli_roh('departureList', [
-            'station' => $stationen[$key], 'time' => gf_zeit_param($now), 'maxList' => 20, 'maxTimeOffset' => GF_FENSTER_MIN, 'useRealtime' => true,
+            'station' => gf_station(null, $richtung['name'], $now->getTimestamp(), $zugang), 'time' => gf_zeit_param($now), 'maxList' => 20, 'maxTimeOffset' => GF_FENSTER_MIN, 'useRealtime' => true,
         ], $zugang);
         break;
     case 'getAnnouncements':
@@ -65,11 +67,14 @@ switch ($cmd) {
             'names' => GF_LINIEN, 'timeRange' => ['begin' => gmdate('Y-m-d\TH:i:s\Z', $ts - 3600), 'end' => gmdate('Y-m-d\TH:i:s\Z', $ts + 7 * 86400)], 'full' => true, 'filterPlanned' => 'NO_FILTER',
         ], $zugang);
         break;
+    case 'diagnose':
+        echo json_encode(gf_diagnose($zugang, $now), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), "\n";
+        break;
     case 'build':
-        $result = gf_build(null, $now, $zugang);
+        $result = gf_build(null, $now, $zugang, $arg !== '' ? $arg : GF_STADT_DEFAULT);
         echo json_encode($result ?? ['ok' => false, 'hinweis' => 'Keine Abfahrten zu holen, siehe departureList.'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), "\n";
         break;
     default:
-        fwrite(STDERR, "Aufruf: php dev/geofox.php init | checkName <Name> | departureList hin|rueck | getAnnouncements | build\n");
+        fwrite(STDERR, "Aufruf: php dev/geofox.php init | checkName <Name> | departureList hin|rueck [stadt] | getAnnouncements | build [stadt] | diagnose\n");
         exit(1);
 }
