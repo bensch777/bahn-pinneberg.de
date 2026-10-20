@@ -692,7 +692,8 @@ function nb_render_s3_abfahrten(array $liste, $ab = 'Pinneberg')
         $html .= '<li class="' . $cls . '"><span class="dep__dot"></span><div class="dep__time">' . nb_e($zeit ? nb_fmt_uhr($zeit) : '--:--')
             . (!empty($d['ausfall']) ? '<small>fällt aus</small>' : ($late ? '<small>+' . (int) $d['delay_min'] . ' → ' . nb_e(nb_fmt_uhr(nb_ts($d['ist']) ?? $zeit)) . '</small>' : '')) . '</div>'
             . '<div class="dep__line">' . nb_e($d['linie'] ?? 'S3') . '</div>'
-            . '<div class="dep__dest"><span class="dep__ziel">' . nb_e($d['ziel'] ?? '') . '</span>' . (($d['gleis'] ?? '') !== '' ? '<small>Gleis ' . nb_e($d['gleis']) . '</small>' : '') . '</div></li>';
+            . '<div class="dep__dest"><span class="dep__ziel">' . nb_e($d['ziel'] ?? '') . '</span></div>'
+            . '<div class="dep__platform">' . (($d['gleis'] ?? '') !== '' ? 'Gl. ' . nb_e($d['gleis']) : '') . '</div></li>';
     }
     if ($html === '') {
         return '<li><p class="board__empty">Keine S3-Abfahrt in den nächsten 60 Minuten gemeldet.</p></li>';

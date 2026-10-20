@@ -50,7 +50,7 @@ function test_s3_abfahrten_zeit_richtung_und_fenster()
     $rows[1]['delay'] = 300;
     $rows[2]['linie'] = 'S 5';
     $rows[3]['linie'] = 'RB61';
-    $hbf = [['ziel' => 'Pinneberg', 'offset' => 3], ['ziel' => 'Elbgaustraße', 'offset' => 6], ['ziel' => 'Pinneberg', 'offset' => 13, 'cancelled' => true, 'platform' => 'Gleis 14']];
+    $hbf = [['ziel' => 'Pinneberg', 'offset' => 3, 'platform' => 'Gleis 1 (S-Bahn)'], ['ziel' => 'Elbgaustraße', 'offset' => 6], ['ziel' => 'Pinneberg', 'offset' => 13, 'cancelled' => true, 'platform' => 'Gleis 14']];
     $calls = [];
     $fetch = t_gf_fetch(['departureList:Pinneberg' => t_gf_departures($rows), 'departureList:Hamburg Hbf' => t_gf_departures($hbf)], $calls);
     $r = gf_departures_s3($fetch, $now, t_gf_zugang());
@@ -64,13 +64,17 @@ function test_s3_abfahrten_zeit_richtung_und_fenster()
     t_eq(['Pinneberg', 'Pinneberg'], array_column($hbfRows, 'ziel'), 'am Hbf nur Richtung Pinneberg');
     t_eq(true, $hbfRows[1]['ausfall'], 'Ausfall uebernommen');
     t_eq('14', $hbfRows[1]['gleis'], 'Gleis am Hbf');
+    t_eq('1', $hbfRows[0]['gleis'], 'Zusatz "(S-Bahn)" entfernt');
     t_eq(['hin' => true, 'rueck' => true], $r['quellen'], 'beide Quellen');
     // Stationen wurden per checkName aufgeloest und gecacht
     t_eq(['checkName', 'departureList', 'checkName', 'departureList'], array_column($calls, 0), 'je Station erst checkName, dann departureList');
     t_eq(true, strpos($calls[1][1]['station']['id'] ?? '', 'Master:') === 0, 'departureList mit ID');
     $calls = [];
     gf_departures_s3(t_gf_fetch(['departureList:Pinneberg' => t_gf_departures($rows)], $calls), $now, t_gf_zugang());
-    t_eq(['departureList', 'departureList'], array_column($calls, 0), 'Stationen aus dem Tagescache, kein checkName mehr');
+    t_eq(['departureList', 'departureList', 'departureList'], array_column($calls, 0), 'Stationen aus dem Tagescache, kein checkName mehr; Hbf ohne Antwort wird ohne Linienfilter wiederholt');
+    t_eq(['SBAHN'], $calls[0][1]['serviceTypes'], 'erste Anfrage nur S-Bahn');
+    t_eq(80, $calls[0][1]['maxList'], 'grosse Liste');
+    t_eq(false, isset($calls[2][1]['serviceTypes']), 'Wiederholung ohne Linienfilter');
     $calls = [];
     $r = gf_departures_s3(t_gf_fetch(['departureList:Pinneberg' => t_gf_departures($rows), 'departureList:Hamburg-Altona' => t_gf_departures([['ziel' => 'Pinneberg', 'offset' => 2]])], $calls), $now, t_gf_zugang(), 'altona');
     t_eq(['departureList', 'checkName', 'departureList'], array_column($calls, 0), 'neuer Stadtbahnhof: nur Altona wird aufgeloest');
@@ -132,6 +136,22 @@ function test_s3_meldung_normalisierung()
     t_eq(true, $m[0]['aktiv'], 'jetzt gueltig');
     t_eq('2026-10-15T05:00:00Z', $m[0]['stand'], 'Stand als UTC');
     t_eq(null, gf_announcements(t_gf_fetch([]), $now, GF_LINIEN, t_gf_zugang()), 'Netzfehler wird null');
+
+    // Lehnt die GTI den Zeitraum ab, kommt die naechste Anfrageform dran
+    $bodies = [];
+    $stur = function ($method, $json) use (&$bodies) {
+        $body = json_decode($json, true);
+        $bodies[] = $body;
+        if (isset($body['timeRange'])) {
+            return '{"returnCode":"ERROR_TEXT","errorText":"timeRange"}';
+        }
+
+        return t_gf_announcements([['id' => 'X', 'summary' => 'Geht', 'lines' => ['S3']]]);
+    };
+    $m = gf_announcements($stur, $now, GF_LINIEN, t_gf_zugang());
+    t_eq(['X'], array_column($m, 'id'), 'zweite Anfrageform liefert');
+    t_eq(2, count($bodies), 'nur bis zur ersten brauchbaren Antwort');
+    t_eq(['S3', 'RB61', 'RB71'], $bodies[1]['names'], 'zweite Form nur mit Linien');
 }
 
 function test_s3_cache_und_stale()
@@ -219,7 +239,7 @@ function test_render_s3_html()
         ['zeit' => '2026-10-15T10:17:00+02:00', 'ist' => '2026-10-15T10:17:00+02:00', 'linie' => 'S3', 'ziel' => 'Stade', 'ab' => 'Pinneberg', 'delay_min' => 0, 'ausfall' => true, 'gleis' => ''],
         ['zeit' => '2026-10-15T10:11:00+02:00', 'ist' => '2026-10-15T10:11:00+02:00', 'linie' => 'S3', 'ziel' => 'Pinneberg', 'ab' => 'Hamburg Hbf', 'delay_min' => 0, 'ausfall' => false, 'gleis' => '14']];
     $html = nb_render_s3_abfahrten($liste);
-    t_contains('<li class="dep dep--late dep--next"><span class="dep__dot"></span><div class="dep__time">10:07 Uhr<small>+5 → 10:12 Uhr</small></div><div class="dep__line">S3</div><div class="dep__dest"><span class="dep__ziel">Stade</span><small>Gleis 1</small></div></li>', $html, 'verspaetete Abfahrt');
+    t_contains('<li class="dep dep--late dep--next"><span class="dep__dot"></span><div class="dep__time">10:07 Uhr<small>+5 → 10:12 Uhr</small></div><div class="dep__line">S3</div><div class="dep__dest"><span class="dep__ziel">Stade</span></div><div class="dep__platform">Gl. 1</div></li>', $html, 'verspaetete Abfahrt mit Gleisspalte');
     t_contains('<li class="dep dep--cancelled"><span class="dep__dot"></span><div class="dep__time">10:17 Uhr<small>fällt aus</small></div>', $html, 'Ausfall');
     t_eq(false, strpos($html, 'Pinneberg</span>') !== false, 'Hbf-Zeilen nicht auf der Startseite');
     t_contains('Keine S3-Abfahrt in den nächsten 60 Minuten gemeldet.', nb_render_s3_abfahrten([]), 'leer');
@@ -232,5 +252,5 @@ function test_render_s3_html()
     t_contains('Keine HVV-Meldung zu S3, RB61 und RB71.', nb_render_s3_meldungen([], $now), 'leer');
     t_eq(1, substr_count(nb_render_s3_meldungen($m, $now, 1), '<li'), 'Limit');
     $hbf = nb_render_s3_abfahrten($liste, 'Hamburg Hbf');
-    t_contains('<span class="dep__ziel">Pinneberg</span><small>Gleis 14</small>', $hbf, 'Rueckrichtung ab Hbf');
+    t_contains('<span class="dep__ziel">Pinneberg</span></div><div class="dep__platform">Gl. 14</div>', $hbf, 'Rueckrichtung ab Hbf');
 }

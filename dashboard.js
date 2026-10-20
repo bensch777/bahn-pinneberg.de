@@ -779,8 +779,8 @@
 			var cd = d.ausfall ? '' : fmtCountdown(d.ist || d.zeit);
 			if (cd) time.appendChild(el('small', { class: 'dep__countdown', text: cd }));
 			var dest = el('div', { class: 'dep__dest', title: d.ziel }, [el('span', { class: 'dep__ziel', text: d.ziel })]);
-			if (d.gleis) dest.appendChild(el('small', { text: 'Gleis ' + d.gleis }));
-			list.appendChild(el('li', { class: cls }, [el('span', { class: 'dep__dot' }), time, el('div', { class: 'dep__line' }, [d.linie || 'S3']), dest]));
+			var platform = el('div', { class: 'dep__platform', text: d.gleis ? 'Gl. ' + d.gleis : '' });
+			list.appendChild(el('li', { class: cls }, [el('span', { class: 'dep__dot' }), time, el('div', { class: 'dep__line' }, [d.linie || 'S3']), dest, platform]));
 		});
 	}
 
