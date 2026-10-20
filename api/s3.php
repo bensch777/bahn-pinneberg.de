@@ -2,7 +2,7 @@
 /**
  * S-Bahn S3 zwischen Pinneberg und Hamburg sowie HVV-Meldungen als JSON.
  *
- * URL: /api/s3[?stadt=hbf|jungfernstieg|altona]
+ * URL: /api/s3[?stadt=altona|stadthausbruecke|jungfernstieg|hbf]
  *
  * Quelle ist die HVV-Schnittstelle Geofox GTI (api/geofox.php). Ohne Zugang in
  * config.php antwortet der Endpunkt mit ok=false und s3=null. Ein Stand bis

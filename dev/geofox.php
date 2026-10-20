@@ -6,7 +6,7 @@
  *
  *   php dev/geofox.php init                        Verbindung und Protokollversion
  *   php dev/geofox.php checkName "Hamburg Hbf"     Station mit ID
- *   php dev/geofox.php departureList hin|rueck [hbf|jungfernstieg|altona]
+ *   php dev/geofox.php departureList hin|rueck [altona|stadthausbruecke|jungfernstieg|hbf]
  *                                                  Rohantwort ab Pinneberg bzw. ab dem Stadtbahnhof
  *   php dev/geofox.php getAnnouncements            Rohantwort der HVV-Meldungen
  *   php dev/geofox.php build [stadt]               aufbereiteter Stand wie api/s3 (ohne Cache)

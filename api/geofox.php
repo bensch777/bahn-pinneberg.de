@@ -49,10 +49,12 @@ const GF_MELDUNGEN_MAX = 20;
 const GF_STATIONEN_TTL = 86400;    // Stations-IDs einmal am Tag auffrischen
 const GF_PINNEBERG = 'Pinneberg';
 // Stadtbahnhoefe fuer die Rueckrichtung (?stadt=), waehlbar auf der Startseite
+// in Fahrtrichtung ab Pinneberg
 const GF_STADT = [
-    'hbf'           => ['name' => 'Hamburg Hbf',    'kurz' => 'Hbf'],
-    'jungfernstieg' => ['name' => 'Jungfernstieg',  'kurz' => 'Jungfernstieg'],
-    'altona'        => ['name' => 'Hamburg-Altona', 'kurz' => 'Altona'],
+    'altona'           => ['name' => 'Hamburg-Altona',  'kurz' => 'Altona'],
+    'stadthausbruecke' => ['name' => 'Stadthausbrücke', 'kurz' => 'Stadthausbrücke'],
+    'jungfernstieg'    => ['name' => 'Jungfernstieg',   'kurz' => 'Jungfernstieg'],
+    'hbf'              => ['name' => 'Hamburg Hbf',     'kurz' => 'Hbf'],
 ];
 const GF_STADT_DEFAULT = 'hbf';
 define('GF_CACHE', NORDBAHN_CACHE_DIR . '/geofox-' . GF_STADT_DEFAULT . '.json');
@@ -706,6 +708,7 @@ function gf_diagnose(array $zugang, ?DateTime $now = null, $fetchRoh = null)
         'checkName Hamburg Hbf'    => ['checkName', ['theName' => ['name' => 'Hamburg Hbf', 'type' => 'STATION'], 'maxList' => 5]],
         'checkName Jungfernstieg'  => ['checkName', ['theName' => ['name' => 'Jungfernstieg', 'type' => 'STATION'], 'maxList' => 5]],
         'checkName Hamburg-Altona' => ['checkName', ['theName' => ['name' => 'Hamburg-Altona', 'type' => 'STATION'], 'maxList' => 5]],
+        'checkName Stadthausbrücke' => ['checkName', ['theName' => ['name' => 'Stadthausbrücke', 'type' => 'STATION'], 'maxList' => 5]],
         'departureList Pinneberg gefiltert' => ['departureList', ['station' => ['name' => GF_PINNEBERG, 'type' => 'STATION'], 'time' => gf_zeit_param($now), 'maxList' => 40, 'maxTimeOffset' => GF_FENSTER_MIN, 'useRealtime' => true, 'filter' => [['serviceID' => GF_S3_SERVICE_ID]]]],
         'departureList Hamburg Hbf gefiltert' => ['departureList', ['station' => ['name' => 'Hamburg Hbf', 'type' => 'STATION'], 'time' => gf_zeit_param($now), 'maxList' => 40, 'maxTimeOffset' => GF_FENSTER_MIN, 'useRealtime' => true, 'filter' => [['serviceID' => GF_S3_SERVICE_ID]]]],
     ];
@@ -720,6 +723,29 @@ function gf_diagnose(array $zugang, ?DateTime $now = null, $fetchRoh = null)
         $dekodiert = json_decode((string) ($r['body'] ?? ''), true);
         $out['aufrufe'][$label] = [
             'methode' => $method,
+            'anfrage' => $body,
+            'status'  => (int) ($r['status'] ?? 0),
+            'antwort' => is_array($dekodiert) ? $dekodiert : nordbahn_text($r['body'] ?? '', 4000),
+        ];
+    }
+
+    // Zuglauf der ersten S3 ab Pinneberg: zeigt, ob die GTI Fahrzeug- oder Laengenangaben
+    // (3, 6 oder 9 Wagen) kennt. departureList hat dafuer kein Feld.
+    $erste = $out['aufrufe']['departureList Pinneberg gefiltert']['antwort']['departures'][0] ?? null;
+    if (is_array($erste) && isset($erste['serviceId'], $erste['line']['id'])) {
+        $body = ['version' => $zugang['version'], 'language' => 'de',
+            'lineKey'   => $erste['line']['id'],
+            'station'   => ['name' => GF_PINNEBERG, 'type' => 'STATION'] + (isset($erste['station']['id']) ? ['id' => $erste['station']['id']] : []),
+            'time'      => (clone $now)->modify('+' . (int) ($erste['timeOffset'] ?? 0) . ' minutes')->format('Y-m-d\TH:i:s.000O'),
+            'direction' => $erste['line']['direction'] ?? '',
+            'origin'    => $erste['line']['origin'] ?? '',
+            'serviceId' => $erste['serviceId'],
+            'segments'  => 'ALL',
+        ];
+        $r = $fetchRoh('departureCourse', json_encode($body, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+        $dekodiert = json_decode((string) ($r['body'] ?? ''), true);
+        $out['aufrufe']['departureCourse erste S3 ab Pinneberg'] = [
+            'methode' => 'departureCourse',
             'anfrage' => $body,
             'status'  => (int) ($r['status'] ?? 0),
             'antwort' => is_array($dekodiert) ? $dekodiert : nordbahn_text($r['body'] ?? '', 4000),

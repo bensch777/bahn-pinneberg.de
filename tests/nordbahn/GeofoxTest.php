@@ -94,6 +94,10 @@ function test_s3_abfahrten_zeit_richtung_und_fenster()
     t_eq(['departureList', 'checkName', 'departureList'], array_column($calls, 0), 'neuer Stadtbahnhof: nur Altona wird aufgeloest');
     t_eq('Hamburg-Altona', $calls[2][1]['station']['name'], 'Rueckrichtung ab Altona');
     t_eq('Hamburg-Altona', end($r['liste'])['ab'], 'Abfahrtsort Altona');
+    $calls = [];
+    $r = gf_departures_s3(t_gf_fetch(['departureList:Pinneberg' => t_gf_departures($rows), 'departureList:Stadthausbrücke' => t_gf_departures([['ziel' => 'Pinneberg', 'offset' => 4]])], $calls), $now, t_gf_zugang(), 'stadthausbruecke');
+    t_eq('Stadthausbrücke', end($r['liste'])['ab'], 'Abfahrtsort Stadthausbruecke');
+    t_eq(['altona', 'stadthausbruecke', 'jungfernstieg', 'hbf'], array_keys(GF_STADT), 'Stadtbahnhoefe in Fahrtrichtung');
 
     t_eq(null, gf_departures_s3(t_gf_fetch([]), $now, t_gf_zugang()), 'beide Quellen tot');
 }
@@ -222,12 +226,26 @@ function test_geofox_diagnose_ohne_zugangsdaten()
         if ($method === 'checkName') {
             return ['status' => 403, 'body' => 'Forbidden'];
         }
+        if ($method === 'departureList') {
+            $j = json_decode(t_gf_departures([['offset' => 4]]), true);
+            $j['departures'][0]['serviceId'] = 86296;
+            $j['departures'][0]['line']['id'] = 'SBH:S3_SBH_SBAHNS';
+
+            return ['status' => 200, 'body' => json_encode($j)];
+        }
+        if ($method === 'departureCourse') {
+            return ['status' => 200, 'body' => '{"returnCode":"OK","courseElements":[]}'];
+        }
 
         return ['status' => 0, 'body' => ''];
     };
     $d = gf_diagnose(t_gf_zugang(), t_now(), $fetchRoh);
     t_eq('https://gti.example/gti/public', $d['url'], 'Adresse');
-    t_eq(['init', 'checkName', 'checkName', 'checkName', 'checkName', 'departureList', 'departureList', 'getAnnouncements', 'getAnnouncements', 'getAnnouncements'], $calls, 'alle Methoden, Meldungen in drei Formen');
+    t_eq(['init', 'checkName', 'checkName', 'checkName', 'checkName', 'checkName', 'departureList', 'departureList', 'getAnnouncements', 'getAnnouncements', 'getAnnouncements', 'departureCourse'], $calls, 'alle Methoden, Meldungen in drei Formen, Zuglauf der ersten S3');
+    $kurs = $d['aufrufe']['departureCourse erste S3 ab Pinneberg'];
+    t_eq(86296, $kurs['anfrage']['serviceId'], 'Zuglauf zur ersten S3');
+    t_eq('SBH:S3_SBH_SBAHNS', $kurs['anfrage']['lineKey'], 'Linienschluessel');
+    t_eq('2026-10-15T10:04:00.000+0200', $kurs['anfrage']['time'], 'Abfahrtszeit');
     t_eq(['returnCode' => 'OK', 'version' => 59], $d['aufrufe']['init']['antwort'], 'dekodierte Antwort');
     t_eq(403, $d['aufrufe']['checkName Pinneberg']['status'], 'HTTP-Status');
     t_eq('Forbidden', $d['aufrufe']['checkName Pinneberg']['antwort'], 'Rohtext bei Nicht-JSON');
@@ -298,6 +316,7 @@ function test_s3_station_norm_und_korridor()
     t_eq('altona', gf_station_norm('Hamburg-Altona'), 'Altona');
     t_eq('elbgaustrasse', gf_station_norm('Elbgaustraße'), 'Umlaut und ß');
     t_eq('jungfernstieg', gf_station_norm('Jungfernstieg'), 'Jungfernstieg');
+    t_eq('stadthausbruecke', gf_station_norm('Stadthausbrücke'), 'Stadthausbruecke');
     $raw = ['locations' => [
         ['line' => ['name' => 'S3'], 'begin' => ['name' => 'Stade'], 'end' => ['name' => 'Pinneberg']],
         ['line' => ['name' => 'S5'], 'begin' => ['name' => 'Elbgaustraße'], 'end' => ['name' => 'Elbgaustraße']],
