@@ -29,7 +29,10 @@ const GF_STALE_TTL    = 180;       // bis dahin wird ein alter Stand sofort geli
 const GF_TIMEOUT      = 6;
 const GF_FENSTER_MIN  = 60;        // Abfahrten der naechsten 60 Minuten
 const GF_PER_DIR      = 6;         // je Richtung fuer Statusregel und Anzeige
-const GF_MAX_LIST     = 80;        // Zeilen je departureList-Anfrage, bevor wir auf die S3 filtern
+const GF_MAX_LIST     = 150;       // Zeilen je ungefilterter departureList-Anfrage (am Hbf ~100 Abfahrten je Stunde)
+const GF_S3_SERVICE_ID = 'SBH:S3_SBH_SBAHNS'; // Linien-ID der S3 in der GTI (aus echten Antworten), fuer den Filter
+// Meldungen, die Pendler auf der Strecke nicht brauchen: Aufzuege, Rolltreppen, Barrierefreiheit
+const GF_MELDUNG_AUSSCHLUSS = '/aufzug|aufzüge|fahrstuhl|rolltreppe|\\blift\\b|barrierefrei|fahrtreppe|elevator|escalator/iu';
 const GF_DELAY_MIN    = 5;         // ab dieser Verspaetung (Minuten) zaehlt ein Zug als betroffen
 const GF_ALERT_ANTEIL = 0.25;      // ab diesem Anteil "S3 gestoert"
 const GF_LINIE        = 'S3';
@@ -261,7 +264,7 @@ function gf_clean_abfahrt($raw, DateTime $basis, $ab)
     $delay = (int) round(((int) ($raw['delay'] ?? 0)) / 60);
     $ist = (clone $plan)->modify(($delay >= 0 ? '+' : '') . $delay . ' minutes');
     // "Gleis 1 (S-Bahn)" am Hbf wird "1": Zusatz in Klammern und das Wort Gleis weg
-    $gleis = trim(preg_replace('/\s*\(.*?\)\s*/', ' ', nordbahn_text($raw['platform'] ?? '', 30)));
+    $gleis = trim(preg_replace('/\s*\(.*?\)\s*/', ' ', nordbahn_text($raw['realtimePlatform'] ?? ($raw['platform'] ?? ''), 30)));
 
     return [
         'zeit'      => $plan->format('c'),
@@ -276,6 +279,25 @@ function gf_clean_abfahrt($raw, DateTime $basis, $ab)
     ];
 }
 
+/** S3-Zeilen einer departureList-Antwort fuer eine Richtung (Linie und ggf. Ziel gefiltert). */
+function gf_s3_zeilen(array $antwort, DateTime $now, array $st)
+{
+    $basis = gf_zeit_lesen($antwort['time'] ?? null, $now);
+    $rows = [];
+    foreach ($antwort['departures'] ?? [] as $raw) {
+        $d = gf_clean_abfahrt($raw, $basis, $st['ab']);
+        if ($d === null || strcasecmp($d['linie'], GF_LINIE) !== 0) {
+            continue;
+        }
+        if ($st['ziel'] !== '' && stripos($d['ziel'], $st['ziel']) === false) {
+            continue;
+        }
+        $rows[] = $d;
+    }
+
+    return $rows;
+}
+
 /**
  * S3-Abfahrten ab Pinneberg (Richtung Hamburg) und ab dem Stadtbahnhof (nur
  * Richtung Pinneberg) in den naechsten GF_FENSTER_MIN Minuten, hoechstens
@@ -286,33 +308,28 @@ function gf_departures_s3($fetch, DateTime $now, ?array $zugang = null, $stadt =
     $liste = [];
     $quellen = [];
     foreach (gf_richtungen($stadt) as $key => $st) {
-        // Grosse Liste und nur S-Bahn: am Hbf und in Pinneberg fuellen sonst Busse und
-        // andere Linien die Antwort, bevor die S3 der ganzen Stunde drin ist. Lehnt die
-        // GTI den Linientyp ab, geht es ohne den Filter noch einmal.
+        // Erst nur die S3 (Filter auf die Linien-ID), denn am Hbf fuellen sonst andere
+        // Linien die Antwort, bevor die S3 der ganzen Stunde drin ist. Kommt damit nichts
+        // (Filter abgelehnt oder leer), noch einmal ungefiltert mit grosser Liste.
         $anfrage = [
             'station'       => gf_station($fetch, $st['name'], $now->getTimestamp(), $zugang),
             'time'          => gf_zeit_param($now),
-            'maxList'       => GF_MAX_LIST,
+            'maxList'       => 40,
             'maxTimeOffset' => GF_FENSTER_MIN,
             'useRealtime'   => true,
+            'filter'        => [['serviceID' => GF_S3_SERVICE_ID]],
         ];
-        $antwort = gf_request('departureList', $anfrage + ['serviceTypes' => ['SBAHN']], $fetch, $zugang)
-            ?? gf_request('departureList', $anfrage, $fetch, $zugang);
+        $antwort = gf_request('departureList', $anfrage, $fetch, $zugang);
+        $rows = $antwort !== null ? gf_s3_zeilen($antwort, $now, $st) : [];
+        if (!$rows) {
+            unset($anfrage['filter']);
+            $anfrage['maxList'] = GF_MAX_LIST;
+            $antwort = gf_request('departureList', $anfrage, $fetch, $zugang);
+            $rows = $antwort !== null ? gf_s3_zeilen($antwort, $now, $st) : [];
+        }
         $quellen[$key] = $antwort !== null;
         if ($antwort === null) {
             continue;
-        }
-        $basis = gf_zeit_lesen($antwort['time'] ?? null, $now);
-        $rows = [];
-        foreach ($antwort['departures'] ?? [] as $raw) {
-            $d = gf_clean_abfahrt($raw, $basis, $st['ab']);
-            if ($d === null || strcasecmp($d['linie'], GF_LINIE) !== 0) {
-                continue;
-            }
-            if ($st['ziel'] !== '' && stripos($d['ziel'], $st['ziel']) === false) {
-                continue;
-            }
-            $rows[] = $d;
         }
         usort($rows, function ($a, $b) {
             return strcmp($a['zeit'], $b['zeit']);
@@ -419,6 +436,19 @@ function gf_ts($value)
     return $ts === false ? null : $ts;
 }
 
+/** Anfrageformen fuer getAnnouncements, der Reihe nach probiert: mit Zeitraum, nur Linien, ohne Filter. */
+function gf_announcement_varianten(array $linien, $ts)
+{
+    $von = (new DateTime('@' . ($ts - 3600)))->setTimezone(new DateTimeZone('Europe/Berlin'))->format('Y-m-d\TH:i:s.000P');
+    $bis = (new DateTime('@' . ($ts + 7 * 86400)))->setTimezone(new DateTimeZone('Europe/Berlin'))->format('Y-m-d\TH:i:s.000P');
+
+    return [
+        ['names' => $linien, 'timeRange' => ['begin' => $von, 'end' => $bis], 'full' => true, 'filterPlanned' => 'NO_FILTER'],
+        ['names' => $linien, 'full' => true],
+        ['full' => true],
+    ];
+}
+
 /**
  * HVV-Meldungen zu den Linien in $linien: aktive ungeplante zuerst, dann aktive
  * geplante, dann nach Beginn absteigend; hoechstens GF_MELDUNGEN_MAX. Null bei Fehler.
@@ -428,11 +458,7 @@ function gf_announcements($fetch, DateTime $now, array $linien = GF_LINIEN, ?arr
     $ts = $now->getTimestamp();
     // Drei Anfrageformen, bis eine Antwort kommt: mit Zeitraum, nur Linien, ohne Filter
     // (die Linien werden unten ohnehin noch einmal geprueft)
-    $varianten = [
-        ['names' => $linien, 'timeRange' => ['begin' => gmdate('Y-m-d\TH:i:s\Z', $ts - 3600), 'end' => gmdate('Y-m-d\TH:i:s\Z', $ts + 7 * 86400)], 'full' => true, 'filterPlanned' => 'NO_FILTER'],
-        ['names' => $linien, 'full' => true],
-        ['full' => true],
-    ];
+    $varianten = gf_announcement_varianten($linien, $ts);
     $antwort = null;
     foreach ($varianten as $body) {
         $antwort = gf_request('getAnnouncements', $body, $fetch, $zugang);
@@ -449,8 +475,8 @@ function gf_announcements($fetch, DateTime $now, array $linien = GF_LINIEN, ?arr
         if ($m === null) {
             continue;
         }
-        // Ohne Linienangabe lassen wir die Meldung stehen (die Anfrage war schon gefiltert)
-        if ($m['linien'] && !array_intersect($m['linien'], $linien)) {
+        // Nur Meldungen zu unseren Linien, und keine zu Aufzuegen und Rolltreppen
+        if (!array_intersect($m['linien'], $linien) || preg_match(GF_MELDUNG_AUSSCHLUSS, $m['titel'] . ' ' . $m['grund'])) {
             continue;
         }
         $out[] = $m;
@@ -634,10 +660,12 @@ function gf_diagnose(array $zugang, ?DateTime $now = null, $fetchRoh = null)
         'checkName Hamburg Hbf'    => ['checkName', ['theName' => ['name' => 'Hamburg Hbf', 'type' => 'STATION'], 'maxList' => 5]],
         'checkName Jungfernstieg'  => ['checkName', ['theName' => ['name' => 'Jungfernstieg', 'type' => 'STATION'], 'maxList' => 5]],
         'checkName Hamburg-Altona' => ['checkName', ['theName' => ['name' => 'Hamburg-Altona', 'type' => 'STATION'], 'maxList' => 5]],
-        'departureList Pinneberg'  => ['departureList', ['station' => ['name' => GF_PINNEBERG, 'type' => 'STATION'], 'time' => gf_zeit_param($now), 'maxList' => 20, 'maxTimeOffset' => GF_FENSTER_MIN, 'useRealtime' => true]],
-        'departureList Hamburg Hbf' => ['departureList', ['station' => ['name' => 'Hamburg Hbf', 'type' => 'STATION'], 'time' => gf_zeit_param($now), 'maxList' => 20, 'maxTimeOffset' => GF_FENSTER_MIN, 'useRealtime' => true]],
-        'getAnnouncements'         => ['getAnnouncements', ['names' => GF_LINIEN, 'timeRange' => ['begin' => gmdate('Y-m-d\TH:i:s\Z', $ts - 3600), 'end' => gmdate('Y-m-d\TH:i:s\Z', $ts + 7 * 86400)], 'full' => true, 'filterPlanned' => 'NO_FILTER']],
+        'departureList Pinneberg gefiltert' => ['departureList', ['station' => ['name' => GF_PINNEBERG, 'type' => 'STATION'], 'time' => gf_zeit_param($now), 'maxList' => 40, 'maxTimeOffset' => GF_FENSTER_MIN, 'useRealtime' => true, 'filter' => [['serviceID' => GF_S3_SERVICE_ID]]]],
+        'departureList Hamburg Hbf gefiltert' => ['departureList', ['station' => ['name' => 'Hamburg Hbf', 'type' => 'STATION'], 'time' => gf_zeit_param($now), 'maxList' => 40, 'maxTimeOffset' => GF_FENSTER_MIN, 'useRealtime' => true, 'filter' => [['serviceID' => GF_S3_SERVICE_ID]]]],
     ];
+    foreach (gf_announcement_varianten(GF_LINIEN, $ts) as $i => $body) {
+        $aufrufe['getAnnouncements Variante ' . ($i + 1)] = ['getAnnouncements', $body];
+    }
     $out = ['url' => $zugang['url'], 'version' => $zugang['version'], 'zeit' => $now->format('c'), 'aufrufe' => []];
     foreach ($aufrufe as $label => [$method, $body]) {
         $body = ['version' => $zugang['version'], 'language' => 'de'] + $body;

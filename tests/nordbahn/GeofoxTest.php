@@ -72,9 +72,23 @@ function test_s3_abfahrten_zeit_richtung_und_fenster()
     $calls = [];
     gf_departures_s3(t_gf_fetch(['departureList:Pinneberg' => t_gf_departures($rows)], $calls), $now, t_gf_zugang());
     t_eq(['departureList', 'departureList', 'departureList'], array_column($calls, 0), 'Stationen aus dem Tagescache, kein checkName mehr; Hbf ohne Antwort wird ohne Linienfilter wiederholt');
-    t_eq(['SBAHN'], $calls[0][1]['serviceTypes'], 'erste Anfrage nur S-Bahn');
-    t_eq(80, $calls[0][1]['maxList'], 'grosse Liste');
-    t_eq(false, isset($calls[2][1]['serviceTypes']), 'Wiederholung ohne Linienfilter');
+    t_eq([['serviceID' => 'SBH:S3_SBH_SBAHNS']], $calls[0][1]['filter'], 'erste Anfrage nur die S3');
+    t_eq(false, isset($calls[2][1]['filter']), 'Wiederholung ohne Linienfilter');
+    t_eq(150, $calls[2][1]['maxList'], 'Wiederholung mit grosser Liste');
+    // Filter angenommen, aber leer (z. B. abgelehnt mit OK ohne Zeilen): ungefiltert nachfragen
+    $calls = [];
+    $leerDannVoll = function ($method, $json) use (&$calls) {
+        $body = json_decode($json, true);
+        $calls[] = $body;
+        if ($method !== 'departureList') {
+            return null;
+        }
+
+        return isset($body['filter']) ? t_gf_departures([]) : t_gf_departures([['offset' => 3, 'ziel' => 'Pinneberg']]);
+    };
+    $r = gf_departures_s3($leerDannVoll, $now, t_gf_zugang());
+    t_eq(4, count($calls), 'je Richtung gefiltert und ungefiltert');
+    t_eq(2, count($r['liste']), 'Zeilen aus der ungefilterten Antwort');
     $calls = [];
     $r = gf_departures_s3(t_gf_fetch(['departureList:Pinneberg' => t_gf_departures($rows), 'departureList:Hamburg-Altona' => t_gf_departures([['ziel' => 'Pinneberg', 'offset' => 2]])], $calls), $now, t_gf_zugang(), 'altona');
     t_eq(['departureList', 'checkName', 'departureList'], array_column($calls, 0), 'neuer Stadtbahnhof: nur Altona wird aufgeloest');
@@ -121,9 +135,14 @@ function test_s3_meldung_normalisierung()
         ['id' => 'F', 'summary' => 'S1: Nur S1', 'planned' => false, 'lines' => ['S1']],
         ['id' => 'P', 'summary' => 'Ersatzverkehr laeuft', 'planned' => true, 'begin' => '2026-10-15T05:00:00.000+02:00', 'end' => '2026-10-15T23:00:00.000+02:00', 'lines' => ['RB71']],
         ['id' => 'A', 'summary' => 'Alt', 'planned' => false, 'begin' => '2026-10-14T05:00:00.000+02:00', 'end' => '2026-10-14T08:00:00.000+02:00'],
+        ['id' => 'L', 'summary' => 'Pinneberg: Aufzug zu Gleis 1 defekt', 'planned' => false, 'begin' => '2026-10-15T05:00:00.000+02:00', 'end' => '2026-10-16T08:00:00.000+02:00', 'lines' => ['S3']],
+        ['id' => 'O', 'summary' => 'Ohne Linie', 'planned' => false, 'lines' => []],
     ])]);
     $m = gf_announcements($fetch, $now, GF_LINIEN, t_gf_zugang());
-    t_eq(['U', 'P', 'B', 'A'], array_column($m, 'id'), 'fremde Linie raus; aktive ungeplante, aktive geplante, dann nach Beginn absteigend');
+    t_eq(['U', 'P', 'B', 'A'], array_column($m, 'id'), 'fremde Linie, Aufzug und ohne Linie raus; aktive ungeplante, aktive geplante, dann nach Beginn absteigend');
+    $bodies = [];
+    gf_announcements(t_gf_fetch(['getAnnouncements' => t_gf_announcements([])], $bodies), $now, GF_LINIEN, t_gf_zugang());
+    t_eq('2026-10-15T09:00:00.000+02:00', $bodies[0][1]['timeRange']['begin'], 'Zeitraum mit Millisekunden und Zeitzone');
     $b = $m[2];
     t_eq('S3: Bauarbeiten', $b['titel'], 'HTML im Titel entfernt');
     t_eq("Wegen Bauarbeiten zwischen Pinneberg & Elmshorn\nfahren Busse.\nBitte Zeit einplanen.", $b['text'], 'Text ohne HTML, Umbrueche bleiben');
@@ -206,11 +225,11 @@ function test_geofox_diagnose_ohne_zugangsdaten()
     };
     $d = gf_diagnose(t_gf_zugang(), t_now(), $fetchRoh);
     t_eq('https://gti.example/gti/public', $d['url'], 'Adresse');
-    t_eq(['init', 'checkName', 'checkName', 'checkName', 'checkName', 'departureList', 'departureList', 'getAnnouncements'], $calls, 'alle Methoden');
+    t_eq(['init', 'checkName', 'checkName', 'checkName', 'checkName', 'departureList', 'departureList', 'getAnnouncements', 'getAnnouncements', 'getAnnouncements'], $calls, 'alle Methoden, Meldungen in drei Formen');
     t_eq(['returnCode' => 'OK', 'version' => 59], $d['aufrufe']['init']['antwort'], 'dekodierte Antwort');
     t_eq(403, $d['aufrufe']['checkName Pinneberg']['status'], 'HTTP-Status');
     t_eq('Forbidden', $d['aufrufe']['checkName Pinneberg']['antwort'], 'Rohtext bei Nicht-JSON');
-    t_eq(59, $d['aufrufe']['departureList Pinneberg']['anfrage']['version'], 'Anfrage mit Version');
+    t_eq(59, $d['aufrufe']['departureList Pinneberg gefiltert']['anfrage']['version'], 'Anfrage mit Version');
     t_eq(false, strpos(json_encode($d), 'geheim') !== false, 'Passwort erscheint nicht');
 }
 
