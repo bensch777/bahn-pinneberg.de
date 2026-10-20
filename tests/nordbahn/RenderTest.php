@@ -19,7 +19,7 @@ function test_betrieb_laeuft()
 {
     $s = nb_status_betrieb(t_abf([[], ['verspaetung' => 4]], [['ab' => 'Hbf']]));
     t_eq('ok', $s['level'], 'kleine Verspaetung ist kein Problem');
-    t_eq('Fahrplan läuft', $s['title'], 'Titel');
+    t_eq('Nordbahn fährt planmäßig', $s['title'], 'Titel');
 }
 
 function test_betrieb_zaehlt_arten()

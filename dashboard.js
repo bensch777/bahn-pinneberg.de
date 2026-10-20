@@ -298,11 +298,11 @@
 		if (!result) {
 			// Vom Server gerenderte Karte stehen lassen, bis die ersten Abfahrten da sind
 			if (card && card.hasAttribute('data-ssr')) return;
-			setStatus('status-betrieb', 'unknown', 'Lade Fahrplan …');
+			setStatus('status-betrieb', 'unknown', 'Lade Nordbahn …');
 			return;
 		}
 		if (card) card.removeAttribute('data-ssr');
-		if (!result.richtungen) { setStatus('status-betrieb', 'unknown', 'Fahrplanlage unbekannt'); return; }
+		if (!result.richtungen) { setStatus('status-betrieb', 'unknown', 'Nordbahn-Lage unbekannt'); return; }
 		var total = 0, ausfaelle = 0, umleitungen = 0, verspaetet = 0, maxDelay = 0, teil = 0, teilOrt = '';
 		['hin', 'rueck'].forEach(function (key) {
 			(result.richtungen[key] || []).slice(0, 6).forEach(function (d) {
@@ -318,7 +318,7 @@
 		});
 		var betroffen = ausfaelle + umleitungen + verspaetet + teil;
 		if (!total || !betroffen) {
-			setStatus('status-betrieb', result.ok ? 'ok' : 'unknown', result.ok ? 'Fahrplan läuft' : 'Fahrplanlage unbekannt');
+			setStatus('status-betrieb', result.ok ? 'ok' : 'unknown', result.ok ? 'Nordbahn fährt planmäßig' : 'Nordbahn-Lage unbekannt');
 			return;
 		}
 		var parts = [];
@@ -330,7 +330,7 @@
 		var level = anteil > BETRIEB_ALERT_ANTEIL ? 'alert' : 'warn';
 		var prozent = Math.round(anteil * 100);
 		setStatus('status-betrieb', level,
-			level === 'alert' ? 'Betrieb gestört' : 'Betrieb beeinträchtigt',
+			level === 'alert' ? 'Nordbahn gestört' : 'Nordbahn beeinträchtigt',
 			betroffen + ' von ' + total + ' Zügen (' + prozent + ' %): ' + parts.join(', '));
 	}
 

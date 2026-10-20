@@ -222,7 +222,7 @@ function nb_read_abfahrten($heimat)
 function nb_status_betrieb($abf)
 {
     if (!$abf || empty($abf['richtungen'])) {
-        return ['level' => 'unknown', 'title' => 'Lade Fahrplan …', 'detail' => ''];
+        return ['level' => 'unknown', 'title' => 'Lade Nordbahn …', 'detail' => ''];
     }
     $total = 0;
     $ausfaelle = 0;
@@ -254,7 +254,7 @@ function nb_status_betrieb($abf)
     }
     $betroffen = $ausfaelle + $umleitungen + $verspaetet + $teil;
     if (!$total || !$betroffen) {
-        return ['level' => 'ok', 'title' => 'Fahrplan läuft', 'detail' => ''];
+        return ['level' => 'ok', 'title' => 'Nordbahn fährt planmäßig', 'detail' => ''];
     }
     $parts = [];
     if ($ausfaelle) {
@@ -274,7 +274,7 @@ function nb_status_betrieb($abf)
 
     return [
         'level'  => $level,
-        'title'  => $level === 'alert' ? 'Betrieb gestört' : 'Betrieb beeinträchtigt',
+        'title'  => $level === 'alert' ? 'Nordbahn gestört' : 'Nordbahn beeinträchtigt',
         'detail' => $betroffen . ' von ' . $total . ' Zügen (' . round($anteil * 100) . ' %): ' . implode(', ', $parts),
     ];
 }
@@ -1068,7 +1068,7 @@ function nb_lage_md(array $data, $abf, $heimat, $now = null, $gf = null)
     $zeile = function ($label, $st) {
         return '- ' . $label . ': ' . $st['title'] . ($st['detail'] !== '' ? ' (' . $st['detail'] . ')' : '') . "\n";
     };
-    $md .= $zeile('Infrastruktur', $infra) . $zeile('Eilmeldungen', $eil) . $zeile('Betrieb ab ' . $name, $betrieb);
+    $md .= $zeile('Infrastruktur', $infra) . $zeile('Eilmeldungen', $eil) . $zeile('Nordbahn ab ' . $name, $betrieb);
     if ($gf !== null) {
         $md .= $zeile('S3 Pinneberg – Hamburg', nb_status_s3($gf));
     }
