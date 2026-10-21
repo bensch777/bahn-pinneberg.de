@@ -502,12 +502,12 @@
 		return 'in ' + diff + ' Min';
 	}
 
-	/** Vormittags steht die Fahrt in die Stadt oben, nachmittags der Rueckweg. */
+	/** Vormittags steht die Fahrt in die Stadt oben, nachmittags der Rueckweg; gilt fuer Nordbahn und S3. */
 	function orderBoards() {
-		var boards = document.querySelector('.boards');
-		if (!boards) return;
 		var hour = parseInt(new Date().toLocaleTimeString('de-DE', { timeZone: TZ, hour: '2-digit', hour12: false }), 10);
-		boards.classList.toggle('boards--rueck-first', hour >= 12);
+		Array.prototype.forEach.call(document.querySelectorAll('.boards'), function (boards) {
+			boards.classList.toggle('boards--rueck-first', hour >= 12);
+		});
 	}
 
 	function fmtClock(iso) {
@@ -1204,13 +1204,14 @@
 		setInterval(refresh, REFRESH_MS);
 		setInterval(renderFreshness, 60000);
 		setInterval(function () { if (!document.hidden) window.location.reload(); }, RELOAD_MS);
+		orderBoards();
+		setInterval(orderBoards, 30000);
 		if (document.getElementById('abfahrten')) {
 			initHeimat();
-			orderBoards();
 			renderDepartures(null);
 			refreshDepartures();
 			setInterval(refreshDepartures, DEPARTURES_MS);
-			setInterval(function () { orderBoards(); if (departuresState.last) renderDepartures(departuresState.last); }, 30000);
+			setInterval(function () { if (departuresState.last) renderDepartures(departuresState.last); }, 30000);
 		}
 		if (document.getElementById('s3')) {
 			initStadt();
