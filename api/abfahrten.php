@@ -1021,8 +1021,8 @@ $cached = nordbahn_read_json(NORDBAHN_CACHE_DIR . '/abfahrten-' . $heimat . '.js
 if (abf_sofort_liefern($cached)) {
     // Alten Stand sofort liefern, dann im Hintergrund erneuern (abf_cached sperrt, damit
     // nur ein Prozess den Stationsmonitor fragt)
-    abf_antworten(json_encode(zl_anreichern($cached, $heimat), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+    abf_antworten(json_encode($cached, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
     abf_cached($heimat);
     exit;
 }
-echo json_encode(zl_anreichern(abf_cached($heimat), $heimat), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+echo json_encode(abf_cached($heimat), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);

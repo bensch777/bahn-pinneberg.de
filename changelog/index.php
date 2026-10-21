@@ -14,6 +14,9 @@ $root = '../';
 $assetVersion = (int) @filemtime(__DIR__ . '/../dashboard.css');
 
 $changelog = [
+    ['2026-10-21', [
+        ['Abfahrtstafel ohne Zugbilanz', 'Die graue Zeile „Letzte N Tage: …“ unter jeder Nordbahn-Abfahrt ist weg. Wie zuverlässig ein Zug in den letzten 30 Tagen war, steht weiter auf der Statistikseite.'],
+    ]],
     ['2026-10-20', [
         ['Einheitliche Lagekarten für Nordbahn und S3', 'Die Karte zur Fahrplanlage heißt jetzt wie die S3-Karte nach der Linie: „Nordbahn fährt planmäßig“, „Nordbahn beeinträchtigt“, „Nordbahn gestört“, analog „S3 fährt planmäßig“ und so weiter.'],
         ['S-Bahn S3 und HVV-Meldungen', 'Neue Lagekarte „S3 Pinneberg – Hamburg“ aus den Echtzeit-Abfahrten der S3, dazu zwei Tafeln: Pinneberg Richtung Stadt und vom gewählten Stadtbahnhof (Altona, Stadthausbrücke, Jungfernstieg oder Hauptbahnhof) zurück nach Pinneberg. Darunter die neue Liste „Letzte HVV-Meldungen“ zu S3, RB61 und RB71. Quelle ist die Schnittstelle des HVV (Geofox). Geplante Meldungen wie Bauarbeiten stehen in der Liste, färben die Karte aber nicht ein. Auch in lage.md und unter api/s3.'],

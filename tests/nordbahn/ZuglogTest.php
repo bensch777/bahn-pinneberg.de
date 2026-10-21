@@ -55,15 +55,9 @@ function test_zuglog_auswertung()
     t_eq([0.2, 0.25], [$z['ausfallquote'], $z['spaetquote']], 'Quoten');
     t_eq('2026-10-14', $z['zuletzt'], 'zuletzt gesehen');
     t_eq(1, $a['AH']['rueck']['75514']['gleis'], 'Gleiswechsel gezaehlt');
-
-    $b = zl_bewertung($z);
-    t_eq('Letzte 5 Tage: 1× ausgefallen, 1× Teilausfall, Ø +3 min', $b['text'], 'Text');
-    t_eq(null, zl_bewertung($a['AH']['rueck']['75514']), 'zu wenige Tage: keine Aussage');
-    t_eq('Letzte 7 Tage: nie ausgefallen, meist pünktlich', zl_bewertung(['tage' => 7, 'ausfaelle' => 0, 'teil' => 0, 'spaet' => 0, 'schnitt' => 0.4, 'max' => 2, 'ausfallquote' => 0])['text'], 'guter Zug');
-    t_eq('Letzte 9 Tage: nie ausgefallen, Ø +2,5 min', zl_bewertung(['tage' => 9, 'ausfaelle' => 0, 'teil' => 0, 'spaet' => 2, 'schnitt' => 2.5, 'max' => 9, 'ausfallquote' => 0])['text'], 'Dezimalschnitt');
 }
 
-function test_zuglog_dateien_und_anreicherung()
+function test_zuglog_dateien_und_auswertung()
 {
     $now = strtotime('2026-10-15 07:30:00 Europe/Berlin');
     foreach (glob(NB_ZUGLOG_DIR . '/*.json') ?: [] as $f) {
@@ -81,8 +75,7 @@ function test_zuglog_dateien_und_anreicherung()
     }
     $stat = zl_statistik($now, true);
     t_eq(5, $stat['beobachtete_tage'], 'fuenf Tage gelesen');
-    $mit = zl_anreichern($r, 'APD', $now);
-    t_eq('Letzte 5 Tage: nie ausgefallen, Ø +5 min', $mit['richtungen']['hin'][0]['statistik']['text'], 'Zeile bekommt ihre Bewertung');
+    t_eq(5, $stat['zuege']['APD']['hin']['81871']['tage'], 'Zug in der Auswertung');
     t_eq(true, is_array(nordbahn_read_json(NB_ZUGSTAT_FILE)), 'Auswertung gecacht');
     zl_log(['ok' => false], 'APD', $now);
     foreach (glob(NB_ZUGLOG_DIR . '/*.json') ?: [] as $f) {
