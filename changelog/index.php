@@ -15,6 +15,7 @@ $assetVersion = (int) @filemtime(__DIR__ . '/../dashboard.css');
 
 $changelog = [
     ['2026-10-21', [
+        ['S3-Tafeln nach Tageszeit', 'Wie bei der Nordbahn steht auch bei der S3 vormittags die Fahrt in die Stadt oben und ab 12 Uhr die Rückfahrt nach Pinneberg.'],
         ['Abfahrtstafel ohne Zugbilanz', 'Die graue Zeile „Letzte N Tage: …“ unter jeder Nordbahn-Abfahrt ist weg. Wie zuverlässig ein Zug in den letzten 30 Tagen war, steht weiter auf der Statistikseite.'],
     ]],
     ['2026-10-20', [
