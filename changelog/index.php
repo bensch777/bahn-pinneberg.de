@@ -15,6 +15,7 @@ $assetVersion = (int) @filemtime(__DIR__ . '/../dashboard.css');
 
 $changelog = [
     ['2026-10-23', [
+        ['Footer ohne Quellenzeile', 'Die Zeile „Quellen: nordbahn.de, strecken-info.de, hvv.de“ steht nicht mehr im Footer. Woher die Daten kommen, erklären weiter die häufigen Fragen.'],
         ['RB60 überall genannt', 'Titel, Beschreibungen, Footer und Vorschaubilder nennen jetzt RB60, RB61 und RB71. Die HVV-Meldungen umfassen auch die RB60.'],
         ['Kompakte Lage auf dem Handy', 'Läuft alles, steht oben nur noch eine Karte „Alles planmäßig“ statt vier grüner Karten, und „Aktuelle Meldungen“ bleibt ausgeblendet. Ist etwas los, erscheinen nur die betroffenen Karten groß, die übrigen fasst eine Zeile wie „Eilmeldungen, Nordbahn und S3 ok“ zusammen. So stehen die Abfahrten deutlich weiter oben.'],
         ['Aufgeräumter Footer', 'Im Footer stehen „Aktuelle Lage“, „Alle Eilmeldungen“ und „Alle Störungen“ nicht mehr. Zur Startseite führt der Name oben und unten, die beiden Archive sind unter „Wichtige Meldungen“ direkt unter der Einleitung verlinkt.'],
