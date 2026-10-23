@@ -15,7 +15,7 @@ $assetVersion = (int) @filemtime(__DIR__ . '/../dashboard.css');
 
 $changelog = [
     ['2026-10-23', [
-        ['Ein Bereich „Aktuelle Meldungen“', 'Statt vier Listen („Wichtig in den letzten 24 Stunden“, „Letzte Eilmeldungen“, „Letzte Infrastrukturstörungen“, „Letzte HVV-Meldungen“) gibt es direkt unter den Lagekarten einen Bereich mit dem, was gerade gilt: Eilmeldungen der letzten vier Stunden, Störungen bis eine Stunde nach ihrer Aufhebung und ungeplante HVV-Meldungen. Geplante HVV-Hinweise wie Bauarbeiten stehen zugeklappt darunter, doppelte HVV-Meldungen erscheinen nur einmal. Ist nichts los, bleibt eine Zeile übrig. Der Rückblick steht unter „Verlauf“ sowie bei allen Eilmeldungen und Störungen.'],
+        ['Ein Bereich „Aktuelle Meldungen“', 'Statt vier Listen („Wichtig in den letzten 24 Stunden“, „Letzte Eilmeldungen“, „Letzte Infrastrukturstörungen“, „Letzte HVV-Meldungen“) gibt es direkt unter den Lagekarten einen Bereich mit dem, was gerade gilt: Eilmeldungen der letzten vier Stunden, Störungen bis eine Stunde nach ihrer Aufhebung und ungeplante HVV-Meldungen. Geplante HVV-Hinweise wie Bauarbeiten oder Vorankündigungen fallen weg, weil ihr Zeitraum oft nur der der Ankündigung ist. Doppelte HVV-Meldungen erscheinen nur einmal. Ist nichts los, bleibt eine Zeile übrig. Der Rückblick steht unter „Verlauf“ sowie bei allen Eilmeldungen und Störungen.'],
     ]],
     ['2026-10-21', [
         ['S3-Tafeln nach Tageszeit', 'Wie bei der Nordbahn steht auch bei der S3 vormittags die Fahrt in die Stadt oben und ab 12 Uhr die Rückfahrt nach Pinneberg.'],
