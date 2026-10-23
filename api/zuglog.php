@@ -14,15 +14,15 @@
  * Hamburger Abfahrten (Hbf, Altona, Dammtor) sind fuer alle Heimatbahnhoefe
  * dieselben und werden daher unter dem Hamburger Bahnhof gefuehrt.
  *
- * Die Auswertung (zl_statistik) fasst die letzten NB_ZUGLOG_TAGE Tage je Zug
- * zusammen und wird NB_ZUGSTAT_TTL Sekunden gecacht.
+ * Die Auswertung fuer die Statistikseite (zl_dashboard) filtert nach Bahnhof,
+ * Richtung, Zeitraum, Tageszeit und Werktagen und wird je Filter NB_ZUGSTAT_TTL
+ * Sekunden gecacht.
  */
 
 const NB_ZUGLOG_DIR       = NORDBAHN_CACHE_DIR . '/zuglog';
 const NB_ZUGLOG_KEEP_DAYS = 60;                              // so lange bleiben die Tagesdateien
 const NB_ZUGLOG_TAGE      = 30;                              // Auswertungsfenster
-const NB_ZUGSTAT_FILE     = NORDBAHN_CACHE_DIR . '/zugstat.json';
-const NB_ZUGSTAT_TTL      = 1800;                            // Sekunden, die die Auswertung gilt
+const NB_ZUGSTAT_TTL      = 1800;                            // Sekunden, die eine Auswertung je Filter gilt
 const NB_ZUGLOG_MIN_TAGE  = 5;                               // ab so vielen Beobachtungstagen gibt es eine Aussage
 const NB_ZUG_SPAET        = 5;                               // Minuten, ab denen ein Zug als verspaetet zaehlt
 
@@ -211,7 +211,7 @@ function zl_lesen($tage, $now = null)
     return $logs;
 }
 
-/** Loescht Tagesdateien, die aelter als NB_ZUGLOG_KEEP_DAYS sind. */
+/** Loescht Tagesdateien, die aelter als NB_ZUGLOG_KEEP_DAYS sind, und abgelaufene Auswertungen je Filter. */
 function zl_aufraeumen($now = null)
 {
     $now = $now ?? time();
@@ -221,25 +221,133 @@ function zl_aufraeumen($now = null)
             @unlink($f);
         }
     }
+    foreach (glob(NORDBAHN_CACHE_DIR . '/zugstat*.json') ?: [] as $f) {
+        if ($now - (int) @filemtime($f) > 86400) {
+            @unlink($f);
+        }
+    }
+}
+
+/* ---------- Dashboard mit Filtern (statistik/) ---------- */
+
+const ZL_ZEITRAEUME  = [7, 14, 30, 60];                         // waehlbare Zeitraeume in Tagen, hoechstens NB_ZUGLOG_KEEP_DAYS
+const ZL_TAGESZEITEN = ['alle' => null, 'morgens' => ['05:00', '10:00'], 'abends' => ['15:00', '20:00']];
+const ZL_HAMBURG     = ['AH', 'AA', 'ADF'];                     // Hamburger Abfahrten der Rueckrichtung
+
+/** Filter aus der Adresse, jeder Wert gegen die erlaubten geprueft. */
+function zl_filter(array $get)
+{
+    $bhf = strtoupper(trim((string) ($get['bhf'] ?? '')));
+    $tage = (int) ($get['tage'] ?? NB_ZUGLOG_TAGE);
+
+    return [
+        'bhf'      => isset(NORDBAHN_BAHNHOEFE[$bhf]) ? $bhf : NORDBAHN_HEIMAT_DEFAULT,
+        'richtung' => in_array($get['richtung'] ?? '', ['hin', 'rueck'], true) ? $get['richtung'] : 'beide',
+        'tage'     => in_array($tage, ZL_ZEITRAEUME, true) ? $tage : NB_ZUGLOG_TAGE,
+        'zeit'     => isset(ZL_TAGESZEITEN[$get['zeit'] ?? '']) ? $get['zeit'] : 'alle',
+        'werktage' => ($get['werktage'] ?? '') === '1',
+    ];
+}
+
+/** Passt ein Logeintrag eines Tages zum Filter? Rueckrichtung: nur Zuege, die den Bahnhof erreichen. */
+function zl_passt(array $e, $tag, array $f)
+{
+    if (empty($e['zug']) || empty($e['dir']) || empty($e['station'])) {
+        return false;
+    }
+    if ($f['werktage'] && (int) date('N', strtotime($tag . ' 12:00:00')) >= 6) {
+        return false;
+    }
+    $fenster = ZL_TAGESZEITEN[$f['zeit']] ?? null;
+    if ($fenster && (($e['plan'] ?? '') < $fenster[0] || ($e['plan'] ?? '') >= $fenster[1])) {
+        return false;
+    }
+    if ($e['dir'] === 'hin') {
+        return $f['richtung'] !== 'rueck' && $e['station'] === $f['bhf'];
+    }
+    if ($f['richtung'] === 'hin' || !in_array($e['station'], ZL_HAMBURG, true)) {
+        return false;
+    }
+    $ast = NORDBAHN_BAHNHOEFE[$f['bhf']]['ast'];
+    $ziel = (string) ($e['ziel'] ?? '');
+
+    return !($ast === 'itzehoe' && stripos($ziel, 'Wrist') !== false) && !($ast === 'wrist' && stripos($ziel, 'Itzehoe') !== false);
+}
+
+/** Ergebnis einer Fahrt: ausfall (ganz oder teilweise), spaet (ab NB_ZUG_SPAET) oder puenktlich. */
+function zl_ergebnis(array $e)
+{
+    if (!empty($e['ausfall']) || !empty($e['teil'])) {
+        return 'ausfall';
+    }
+
+    return (int) ($e['versp'] ?? 0) >= NB_ZUG_SPAET ? 'spaet' : 'puenktlich';
 }
 
 /**
- * Auswertung der letzten NB_ZUGLOG_TAGE Tage, gecacht. Ergebnis:
- * ['stand' => ts, 'tage' => N, 'seit' => 'Y-m-d'|null, 'zuege' => [...]].
+ * Dashboard fuer einen Filter: Kennzahlen, Verlauf je Tag (aelteste zuerst, auch
+ * Tage ohne Beobachtung) und die Zugtabellen je Richtung. Reine Funktion ueber
+ * den Tageslogs, damit sie sich testen laesst.
  */
-function zl_statistik($now = null, $frisch = false)
+function zl_dashboard_rechnen(array $logs, array $f, $now)
+{
+    $tz = new DateTimeZone('Europe/Berlin');
+    $gefiltert = [];
+    $k = ['fahrten' => 0, 'puenktlich' => 0, 'spaet' => 0, 'ausfall' => 0, 'teil' => 0, 'versp_summe' => 0, 'gefahren' => 0];
+    $verlauf = [];
+    for ($i = $f['tage'] - 1; $i >= 0; $i--) {
+        $tag = (new DateTime('@' . ($now - $i * 86400)))->setTimezone($tz)->format('Y-m-d');
+        $v = ['tag' => $tag, 'puenktlich' => 0, 'spaet' => 0, 'ausfall' => 0, 'beobachtet' => isset($logs[$tag])];
+        foreach ($logs[$tag] ?? [] as $key => $e) {
+            if (!is_array($e) || !zl_passt($e, $tag, $f)) {
+                continue;
+            }
+            $gefiltert[$tag][$key] = $e;
+            $erg = zl_ergebnis($e);
+            $v[$erg]++;
+            $k[$erg]++;
+            $k['fahrten']++;
+            if (!empty($e['teil']) && empty($e['ausfall'])) {
+                $k['teil']++;
+            }
+            if (empty($e['ausfall'])) {
+                $k['gefahren']++;
+                $k['versp_summe'] += max(0, (int) ($e['versp'] ?? 0));
+            }
+        }
+        $verlauf[] = $v;
+    }
+    $k['schnitt'] = $k['gefahren'] ? round($k['versp_summe'] / $k['gefahren'], 1) : 0;
+    $k['quote'] = $k['fahrten'] ? $k['puenktlich'] / $k['fahrten'] : null;
+    $k['tage_beobachtet'] = count(array_filter($verlauf, function ($v) { return $v['beobachtet']; }));
+    unset($k['versp_summe'], $k['gefahren']);
+
+    $a = zl_auswertung($gefiltert);
+    $rueck = [];
+    foreach (ZL_HAMBURG as $hh) {
+        foreach ($a[$hh]['rueck'] ?? [] as $zug => $z) {
+            $rueck[$hh . '|' . $zug] = $z;
+        }
+    }
+    uasort($rueck, function ($x, $y) {
+        return strcmp($x['plan'], $y['plan']);
+    });
+
+    return ['kennzahlen' => $k, 'verlauf' => $verlauf, 'hin' => $a[$f['bhf']]['hin'] ?? [], 'rueck' => $rueck];
+}
+
+/** Dashboard fuer einen Filter, je Filter NB_ZUGSTAT_TTL Sekunden gecacht. */
+function zl_dashboard(array $f, $now = null, $frisch = false)
 {
     $now = $now ?? time();
-    $cache = $frisch ? null : nordbahn_read_json(NB_ZUGSTAT_FILE);
-    if (is_array($cache) && isset($cache['stand'], $cache['zuege']) && $now - (int) $cache['stand'] < NB_ZUGSTAT_TTL) {
+    $datei = NORDBAHN_CACHE_DIR . '/zugstat-' . md5(json_encode($f)) . '.json';
+    $cache = $frisch ? null : nordbahn_read_json($datei);
+    if (is_array($cache) && isset($cache['stand']) && $now - (int) $cache['stand'] < NB_ZUGSTAT_TTL) {
         return $cache;
     }
-    $logs = zl_lesen(NB_ZUGLOG_TAGE, $now);
-    $tage = array_keys($logs);
-    sort($tage);
-    $stat = ['stand' => $now, 'tage' => NB_ZUGLOG_TAGE, 'seit' => $tage ? $tage[0] : null, 'beobachtete_tage' => count($tage), 'zuege' => zl_auswertung($logs)];
-    nordbahn_write_json(NB_ZUGSTAT_FILE, $stat);
+    $d = ['stand' => $now] + zl_dashboard_rechnen(zl_lesen($f['tage'], $now), $f, $now);
+    nordbahn_write_json($datei, $d);
     zl_aufraeumen($now);
 
-    return $stat;
+    return $d;
 }

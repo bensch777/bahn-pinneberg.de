@@ -214,7 +214,7 @@ if (!$gefunden) {
 
 		<footer class="artikel__fuss">
 			<?= nb_render_teilen($pageUrl, $st['titel']) ?>
-			<?= nb_render_weiter(['Zurück zur Startseite' => $root, 'Alle Störungen' => $root . 'stoerungen/#' . nb_anker($key), 'Störungsstatistik' => $root . 'statistik/', 'Meldung bei strecken-info.de' => 'https://strecken-info.de/#/suche/' . rawurlencode($key)]) ?>
+			<?= nb_render_weiter(['Zurück zur Startseite' => $root, 'Alle Störungen' => $root . 'stoerungen/#' . nb_anker($key), 'Statistik' => $root . 'statistik/', 'Meldung bei strecken-info.de' => 'https://strecken-info.de/#/suche/' . rawurlencode($key)]) ?>
 			<p class="artikel__hinweis">Der Pendler-Text wird automatisch aus der Meldung der DB InfraGO formuliert. Ma&szlig;geblich ist die Originalmeldung.</p>
 		</footer>
 	</article>

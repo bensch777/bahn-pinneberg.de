@@ -156,7 +156,7 @@ if (!$gefunden) {
 
 		<footer class="artikel__fuss">
 			<?= nb_render_teilen($pageUrl, $titel) ?>
-			<?= nb_render_weiter(['Zurück zur Startseite' => $root, 'Alle Eilmeldungen' => $root . 'eilmeldungen/#' . nb_anker($id), 'Störungsstatistik' => $root . 'statistik/']) ?>
+			<?= nb_render_weiter(['Zurück zur Startseite' => $root, 'Alle Eilmeldungen' => $root . 'eilmeldungen/#' . nb_anker($id), 'Statistik' => $root . 'statistik/']) ?>
 			<p class="artikel__hinweis">Titel und Pendler-Text werden automatisch aus der Eilmeldung der Nordbahn formuliert. Ma&szlig;geblich ist die Originalmeldung.</p>
 		</footer>
 	</article>
