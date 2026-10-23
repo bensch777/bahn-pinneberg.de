@@ -421,3 +421,12 @@ function test_aktuelle_meldungen()
     t_eq([], nb_aktuelle_meldungen(['stoerungen' => [], 'stoerungen_verlauf' => [], 'eilmeldungen' => [], 'eilmeldungen_live' => []], array_slice($hvv, 1, 3), $jetzt), 'nur geplante: nichts');
     t_eq('<p class="feed__empty">Keine weiteren Meldungen.</p>', nb_render_aktuelle_meldungen($ruhig, $jetzt, 1), 'mit laufender Stoerung');
 }
+
+function test_eil_karte_hinweis_nur_bis_zwoelf_stunden()
+{
+    $data = ['received_at' => '2026-10-15T08:00:00Z'];
+    $item = function ($alter) { return [['id' => 'em', 'title' => 'Zugausfall', 'ts' => time() - $alter, 'stand' => null]]; };
+    t_eq('Letzte vor 6 Std.', nb_status_eil($data, $item(6 * 3600))['detail'], 'sechs Stunden: Hinweis');
+    t_eq('', nb_status_eil($data, $item(13 * 3600))['detail'], 'dreizehn Stunden: kein Hinweis');
+    t_eq('Keine akuten Eilmeldungen', nb_status_eil($data, $item(13 * 3600))['title'], 'Titel bleibt');
+}

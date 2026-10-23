@@ -10,6 +10,7 @@
  */
 
 const NB_EIL_AKUT_S          = 4 * 3600;   // Eilmeldung gilt so lange als akut
+const NB_EIL_HINWEIS_S       = 12 * 3600;  // bis dahin nennt die gruene Karte "Letzte vor …"
 const NB_STOERUNG_NACHLAUF_S  = 3600;      // aufgehobene Stoerung bleibt so lange unter "Aktuelle Meldungen"
 const NB_BETRIEB_ALERT_ANTEIL = 0.25;      // darueber "Betrieb gestoert" statt "beeintraechtigt"
 const NB_ABF_MAX_AGE_S        = 10 * 60;   // so alt darf der Abfahrten-Cache fuer die Karte sein
@@ -198,7 +199,8 @@ function nb_status_eil(array $data, array $items)
     $ts = $last['stand'] ?? $last['ts'];
     $age = time() - $ts;
     if ($age > NB_EIL_AKUT_S) {
-        return ['level' => 'ok', 'title' => 'Keine akuten Eilmeldungen', 'detail' => 'Letzte ' . nb_rel_time($ts)];
+        // Die Nordbahn liefert keine Gueltigkeit; der Hinweis zeigt, ob eine juengere Meldung noch nachwirken kann
+        return ['level' => 'ok', 'title' => 'Keine akuten Eilmeldungen', 'detail' => $age <= NB_EIL_HINWEIS_S ? 'Letzte ' . nb_rel_time($ts) : ''];
     }
 
     return ['level' => $age < 3600 ? 'alert' : 'warn', 'title' => 'Eilmeldung ' . nb_rel_time($ts), 'detail' => $last['title']];

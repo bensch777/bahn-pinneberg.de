@@ -237,6 +237,7 @@
 	}
 
 	var EIL_AKUT_MS = 4 * 3600 * 1000;   // so lange gilt eine Eilmeldung als akut
+	var EIL_HINWEIS_MS = 12 * 3600 * 1000; // bis dahin nennt die gruene Karte "Letzte vor …" (wie NB_EIL_HINWEIS_S)
 
 	function renderStatus() {
 		var section = document.getElementById('status');
@@ -265,7 +266,7 @@
 		} else {
 			var lastMs = isNaN(last.stand) ? last.ms : last.stand;
 			var age = Date.now() - lastMs;
-			if (age > EIL_AKUT_MS) setStatus('status-eil', 'ok', 'Keine akuten Eilmeldungen', 'Letzte ' + relTime(lastMs));
+			if (age > EIL_AKUT_MS) setStatus('status-eil', 'ok', 'Keine akuten Eilmeldungen', age <= EIL_HINWEIS_MS ? 'Letzte ' + relTime(lastMs) : '');
 			else setStatus('status-eil', age < 3600 * 1000 ? 'alert' : 'warn', 'Eilmeldung ' + relTime(lastMs), last.title);
 		}
 
