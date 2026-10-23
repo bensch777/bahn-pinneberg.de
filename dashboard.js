@@ -64,7 +64,8 @@
 
 	var state = {
 		data: null,
-		items: []        // aufbereitete Eilmeldungen
+		items: [],       // aufbereitete Eilmeldungen
+		hvv: null        // HVV-Meldungen aus api/s3, null bis zur ersten Antwort
 	};
 
 	// Was die Tab-Markierung (Favicon-Punkt und Titel) wissen muss
@@ -368,88 +369,22 @@
 		]);
 	}
 
-	/* ---------- Feed ---------- */
+	/* ---------- Aktuelle Meldungen ---------- */
 
-	/** "in den letzten 24 Stunden" bzw. "in den letzten 3 Tagen" (wie nb_zeitraum_text) */
-	function zeitraumText(maxAgeDays) {
-		return maxAgeDays === 1 ? 'in den letzten 24 Stunden' : 'in den letzten ' + maxAgeDays + ' Tagen';
-	}
+	var STOERUNG_NACHLAUF_MS = 3600 * 1000; // aufgehobene Stoerung bleibt so lange stehen (wie NB_STOERUNG_NACHLAUF_S)
 
-	function renderFeed() {
-		var ol = document.getElementById('feed');
-		if (!ol) return;
-		clear(ol);
-		ol.className = 'feed card';
-		var limit = parseInt(ol.getAttribute('data-limit'), 10) || 12;
-		var maxAgeDays = parseInt(ol.getAttribute('data-max-age-days'), 10) || 0;
-		var cutoff = maxAgeDays ? Date.now() - maxAgeDays * 86400000 : 0;
-		// Massgeblich ist der Stand der Nordbahn, sonst der Erfassungszeitpunkt
-		var items = state.items.filter(function (it) {
-			return (isNaN(it.stand) ? it.ms : it.stand) >= cutoff;
-		}).slice(-limit).reverse();
-		if (!items.length) {
-			ol.appendChild(el('li', {}, [el('p', { class: 'feed__empty', text: maxAgeDays
-				? 'Keine Eilmeldung ' + zeitraumText(maxAgeDays) + '.'
-				: 'Noch keine Eilmeldungen erfasst.' })]));
-			return;
-		}
-		items.forEach(function (it) {
-			var ms = isNaN(it.stand) ? it.ms : it.stand;
-			var time = el('div', { class: 'feed__time' }, [fmtWann(ms)]);
-			var title = el('a', { href: ereignisLink('eilmeldung', it.id, it.title), text: it.title || it.id });
-			var p = el('p', { class: 'feed__title' }, [title]);
-			if (it.original && it.original !== it.title) p.setAttribute('title', 'Nordbahn: ' + it.original);
-			var body = [p];
-			if (it.text) body.push(el('p', { class: 'feed__meta', text: it.text }));
-			ol.appendChild(el('li', istHeute(ms) ? { class: 'is-heute' } : {}, [time, el('div', {}, body)]));
-		});
-	}
-
-	/** Stoerungen aus dem Logbuch, juengste zuerst (wie nb_verlauf_items); ohne mitAktiven nur die aufgehobenen. */
-	function verlaufItems(data, mitAktiven) {
+	/** Aufgehobene Stoerungen aus dem Logbuch, juengste zuerst (wie nb_verlauf_items). */
+	function verlaufItems(data) {
 		var aktiv = {};
 		(data.stoerungen || []).forEach(function (s) { if (s.key) aktiv[s.key] = true; });
 		var out = [];
 		(data.stoerungen_verlauf || []).forEach(function (e) {
-			if (!e || !e.key || (!mitAktiven && aktiv[e.key])) return;
+			if (!e || !e.key || aktiv[e.key]) return;
 			var start = Date.parse(e.first_seen), ende = Date.parse(e.last_seen);
 			if (isNaN(start) || isNaN(ende)) return;
-			out.push({ key: e.key, titel: (e.ki_titel || e.titel || 'Störung').trim(), text: (e.ki_text || '').trim(), start: start, ende: Math.max(start, ende), aktiv: !!aktiv[e.key], wichtig: !!e.wichtig });
+			out.push({ key: e.key, titel: (e.ki_titel || e.titel || 'Störung').trim(), text: (e.ki_text || '').trim(), start: start, ende: Math.max(start, ende) });
 		});
 		return out.sort(function (a, b) { return b.start - a.start; }); // juengster Beginn zuerst
-	}
-
-	/** Wichtige Meldungen der letzten 24 Stunden (wie nb_wichtig_heute); laufende Stoerungen stehen schon in den Lagekarten. */
-	function renderWichtig() {
-		var section = document.getElementById('wichtig');
-		var ol = document.getElementById('wichtig-feed');
-		if (!section || !ol || !state.data) return;
-		var limit = parseInt(ol.getAttribute('data-limit'), 10) || 3;
-		var cutoff = Date.now() - 86400000;
-		var items = [];
-		verlaufItems(state.data, true).forEach(function (it) {
-			if (it.wichtig && !it.aktiv && it.start >= cutoff) items.push({ art: 'stoerung', ts: it.start, titel: it.titel, text: it.text, link: ereignisLink('stoerung', it.key, it.titel), meta: fmtBis(it.start, it.ende) + ' · ' + fmtDauer(it.ende - it.start) });
-		});
-		state.items.forEach(function (it) {
-			var ms = isNaN(it.stand) ? it.ms : it.stand;
-			if (it.wichtig && ms >= cutoff) items.push({ art: 'eilmeldung', ts: ms, titel: it.title || it.id, text: it.text, link: ereignisLink('eilmeldung', it.id, it.title), meta: '' });
-		});
-		items.sort(function (a, b) { return b.ts - a.ts; });
-		items = items.slice(0, limit);
-		section.hidden = !items.length;
-		clear(ol);
-		items.forEach(function (it) {
-			var meta = el('p', { class: 'feed__meta' }, [it.meta]);
-			if (it.text) { if (it.meta) meta.appendChild(el('br')); meta.appendChild(document.createTextNode(it.text)); }
-			ol.appendChild(el('li', istHeute(it.ts) ? { class: 'is-heute' } : {}, [
-				el('div', { class: 'feed__time' }, [fmtWann(it.ts)]),
-				el('div', {}, [
-					el('p', { class: 'feed__kicker feed__kicker--' + it.art, text: it.art === 'stoerung' ? 'Infrastrukturstörung' : 'Eilmeldung der Nordbahn' }),
-					el('p', { class: 'feed__title' }, [el('a', { href: it.link, text: it.titel })]),
-					it.meta || it.text ? meta : null
-				])
-			]));
-		});
 	}
 
 	function fmtDauer(ms) {
@@ -459,35 +394,81 @@
 		return h + ' Std.' + (rest ? ' ' + rest + ' Min.' : '');
 	}
 
-	/** Leer-Text der Stoerungsliste; nennt laufende Stoerungen (wie nb_verlauf_leer_text) */
-	function verlaufLeerText(maxAgeDays, aktiv) {
-		if (aktiv > 0) {
-			return (maxAgeDays ? 'Keine Störung ' + zeitraumText(maxAgeDays) + ' aufgehoben, ' : 'Noch keine Störung aufgehoben, ')
-				+ (aktiv === 1 ? 'eine läuft noch' : aktiv + ' laufen noch') + ' (siehe oben).';
-		}
-		return maxAgeDays ? 'Keine aufgehobene Infrastrukturstörung ' + zeitraumText(maxAgeDays) + '.' : 'Noch keine Infrastrukturstörung erfasst.';
+	/**
+	 * Was gerade gilt, aus allen Quellen (wie nb_aktuelle_meldungen): Eilmeldungen der letzten
+	 * vier Stunden, Stoerungen bis eine Stunde nach der Aufhebung, ungeplante HVV-Meldungen, die
+	 * jetzt gelten. Geplante HVV-Meldungen getrennt, inhaltsgleiche nur einmal.
+	 */
+	function aktuelleMeldungen(now) {
+		var liste = [];
+		verlaufItems(state.data).forEach(function (it) {
+			if (it.ende >= now - STOERUNG_NACHLAUF_MS) liste.push({ art: 'stoerung', ts: it.start, titel: it.titel, text: it.text, link: ereignisLink('stoerung', it.key, it.titel), meta: fmtBis(it.start, it.ende) + ' · ' + fmtDauer(it.ende - it.start) });
+		});
+		state.items.forEach(function (it) {
+			var ms = isNaN(it.stand) ? it.ms : it.stand;
+			if (ms >= now - EIL_AKUT_MS) liste.push({ art: 'eilmeldung', ts: ms, titel: it.title || it.id, text: it.text, link: ereignisLink('eilmeldung', it.id, it.title || it.id), meta: '' });
+		});
+		var geplant = [], gesehen = {};
+		(state.hvv || []).forEach(function (m) {
+			if (!m) return;
+			var von = Date.parse(m.von || '');
+			var kuenftig = !isNaN(von) && von > now;
+			if (!m.aktiv && !kuenftig) return; // abgelaufen
+			var schluessel = (m.linien || []).join(',') + '|' + (m.von || '') + '|' + (m.bis || '');
+			if (gesehen[schluessel]) return;
+			gesehen[schluessel] = true;
+			if (m.geplant || kuenftig) geplant.push(m);
+			else liste.push({ art: 'hvv', ts: !isNaN(von) ? von : (Date.parse(m.stand || '') || now), meldung: m });
+		});
+		liste.sort(function (a, b) { return b.ts - a.ts; });
+		return { liste: liste, geplant: geplant };
 	}
 
-	function renderVerlauf() {
-		var ol = document.getElementById('verlauf-feed');
-		if (!ol || !state.data) return;
-		clear(ol);
-		var limit = parseInt(ol.getAttribute('data-limit'), 10) || 6;
-		var maxAgeDays = parseInt(ol.getAttribute('data-max-age-days'), 10) || 0;
-		var cutoff = maxAgeDays ? Date.now() - maxAgeDays * 86400000 : 0;
-		var items = verlaufItems(state.data).filter(function (it) { return it.ende >= cutoff; }).slice(0, limit);
-		if (!items.length) {
-			ol.appendChild(el('li', {}, [el('p', { class: 'feed__empty', text: verlaufLeerText(maxAgeDays, (state.data.stoerungen || []).length) })]));
-			return;
+	/** Stoerung oder Eilmeldung als Listeneintrag (wie nb_render_wichtig_eintrag). */
+	function meldungEintrag(it) {
+		var meta = el('p', { class: 'feed__meta' }, [it.meta]);
+		if (it.text) { if (it.meta) meta.appendChild(el('br')); meta.appendChild(document.createTextNode(it.text)); }
+		return el('li', istHeute(it.ts) ? { class: 'is-heute' } : {}, [
+			el('div', { class: 'feed__time' }, [fmtWann(it.ts)]),
+			el('div', {}, [
+				el('p', { class: 'feed__kicker feed__kicker--' + it.art, text: it.art === 'stoerung' ? 'Infrastrukturstörung' : 'Eilmeldung der Nordbahn' }),
+				el('p', { class: 'feed__title' }, [el('a', { href: it.link, text: it.titel })]),
+				it.meta || it.text ? meta : null
+			])
+		]);
+	}
+
+	/** "3 geplante HVV-Hinweise" (wie nb_geplant_text). */
+	function geplantText(n) {
+		return n === 1 ? '1 geplanter HVV-Hinweis' : n + ' geplante HVV-Hinweise';
+	}
+
+	/** Bereich "Aktuelle Meldungen" (wie nb_render_aktuelle_meldungen). */
+	function renderMeldungen() {
+		var section = document.getElementById('meldungen');
+		var box = document.getElementById('meldungen-inhalt');
+		if (!section || !box || !state.data) return;
+		// Mit HVV-Zugang den Stand vom Server stehen lassen, bis api/s3 geantwortet hat
+		if (section.hasAttribute('data-hvv') && state.hvv === null) return;
+		var now = Date.now();
+		var m = aktuelleMeldungen(now);
+		var alt = document.getElementById('meldungen-geplant');
+		var offen = !!(alt && alt.open);
+		clear(box);
+		if (m.liste.length) {
+			var ol = el('ol', { class: 'feed', id: 'meldungen-feed' });
+			m.liste.forEach(function (it) { ol.appendChild(it.art === 'hvv' ? hvvEintrag(it.meldung, now) : meldungEintrag(it)); });
+			box.appendChild(ol);
+		} else {
+			box.appendChild(el('p', { class: 'feed__empty', text: (state.data.stoerungen || []).length ? 'Keine weiteren Meldungen.' : 'Keine aktuellen Meldungen.' }));
 		}
-		items.forEach(function (it) {
-			var meta = el('p', { class: 'feed__meta', text: fmtBis(it.start, it.ende) + ' · ' + fmtDauer(it.ende - it.start) });
-			if (it.text) { meta.appendChild(el('br')); meta.appendChild(document.createTextNode(it.text)); }
-			ol.appendChild(el('li', istHeute(it.ende) ? { class: 'is-heute' } : {}, [
-				el('div', { class: 'feed__time' }, [fmtWann(it.start)]),
-				el('div', {}, [el('p', { class: 'feed__title' }, [el('a', { href: ereignisLink('stoerung', it.key, it.titel), text: it.titel })]), meta])
-			]));
-		});
+		if (m.geplant.length) {
+			var liste = el('ol', { class: 'feed' });
+			m.geplant.forEach(function (g) { liste.appendChild(hvvEintrag(g, now)); });
+			var details = el('details', { class: 'meldungen__geplant', id: 'meldungen-geplant' }, [el('summary', { text: geplantText(m.geplant.length) }), liste]);
+			details.open = offen;
+			box.appendChild(details);
+		}
 	}
 
 	/* ---------- Abfahrten ---------- */
@@ -783,43 +764,31 @@
 		});
 	}
 
-	/** Liste "Letzte HVV-Meldungen" (wie nb_render_s3_meldungen). */
-	function renderHvv(meldungen) {
-		var feed = document.getElementById('hvv-feed');
-		if (!feed) return;
-		var limit = parseInt(feed.getAttribute('data-limit'), 10) || 5;
-		clear(feed);
-		meldungen = (meldungen || []).slice(0, limit);
-		if (!meldungen.length) {
-			feed.appendChild(el('li', {}, [el('p', { class: 'feed__empty', text: 'Keine HVV-Meldung zu S3, RB61 und RB71.' })]));
-			return;
+	/** Eine HVV-Meldung als Listeneintrag (wie nb_render_hvv_eintrag). */
+	function hvvEintrag(m, now) {
+		var von = Date.parse(m.von || ''), bis = Date.parse(m.bis || '');
+		var meta = [];
+		if (m.linien && m.linien.length) meta.push(m.linien.join(', '));
+		if (m.aktiv) meta.push(isNaN(bis) ? 'bis auf Weiteres' : fmtBis(now, bis));
+		else if (!isNaN(von) && von > now) meta.push('ab ' + fmtWann(von, true) + (isNaN(bis) ? '' : ' ' + fmtBis(von, bis)));
+		var text = m.text || '';
+		if (text.length > 300) text = text.slice(0, 300).replace(/\s+$/, '') + ' …';
+		var kicker = el('p', { class: 'feed__kicker feed__kicker--hvv', text: 'HVV-Meldung' });
+		if (m.geplant) { kicker.appendChild(document.createTextNode(' ')); kicker.appendChild(el('span', { class: 'dep__ab dep__ab--plan', text: 'geplant' })); }
+		else if (m.aktiv) { kicker.appendChild(document.createTextNode(' ')); kicker.appendChild(el('span', { class: 'dep__ab dep__ab--aktiv', text: 'aktuell' })); }
+		var titel = /^https?:\/\//i.test(m.link || '') ? el('a', { href: m.link, rel: 'noopener nofollow', text: m.titel || '' }) : (m.titel || '');
+		var body = [kicker, el('p', { class: 'feed__title' }, [titel])];
+		if (meta.length || text) {
+			var p = el('p', { class: 'feed__meta', text: meta.join(' · ') });
+			if (meta.length && text) p.appendChild(el('br'));
+			if (text) p.appendChild(document.createTextNode(text));
+			body.push(p);
 		}
-		var now = Date.now();
-		meldungen.forEach(function (m) {
-			var von = Date.parse(m.von || ''), bis = Date.parse(m.bis || '');
-			var meta = [];
-			if (m.linien && m.linien.length) meta.push(m.linien.join(', '));
-			if (m.aktiv) meta.push(isNaN(bis) ? 'bis auf Weiteres' : fmtBis(now, bis));
-			else if (!isNaN(von) && von > now) meta.push('ab ' + fmtWann(von, true) + (isNaN(bis) ? '' : ' ' + fmtBis(von, bis)));
-			var text = m.text || '';
-			if (text.length > 300) text = text.slice(0, 300).replace(/\s+$/, '') + ' …';
-			var kicker = el('p', { class: 'feed__kicker feed__kicker--hvv', text: 'HVV-Meldung' });
-			if (m.geplant) { kicker.appendChild(document.createTextNode(' ')); kicker.appendChild(el('span', { class: 'dep__ab dep__ab--plan', text: 'geplant' })); }
-			else if (m.aktiv) { kicker.appendChild(document.createTextNode(' ')); kicker.appendChild(el('span', { class: 'dep__ab dep__ab--aktiv', text: 'aktuell' })); }
-			var titel = /^https?:\/\//i.test(m.link || '') ? el('a', { href: m.link, rel: 'noopener nofollow', text: m.titel || '' }) : (m.titel || '');
-			var body = [kicker, el('p', { class: 'feed__title' }, [titel])];
-			if (meta.length || text) {
-				var p = el('p', { class: 'feed__meta', text: meta.join(' · ') });
-				if (meta.length && text) p.appendChild(el('br'));
-				if (text) p.appendChild(document.createTextNode(text));
-				body.push(p);
-			}
-			var zeit = !isNaN(von) ? von : (Date.parse(m.stand || '') || now);
-			feed.appendChild(el('li', m.aktiv && !m.geplant ? { class: 'is-heute' } : {}, [el('div', { class: 'feed__time' }, [fmtWann(zeit)]), el('div', {}, body)]));
-		});
+		var zeit = !isNaN(von) ? von : (Date.parse(m.stand || '') || now);
+		return el('li', m.aktiv && !m.geplant ? { class: 'is-heute' } : {}, [el('div', { class: 'feed__time' }, [fmtWann(zeit)]), el('div', {}, body)]);
 	}
 
-	/** Karte, Tafeln und HVV-Liste aus der Antwort von api/s3; die Statusregel rechnet der Server (gf_status). */
+	/** Karte, Tafeln und HVV-Meldungen aus der Antwort von api/s3; die Statusregel rechnet der Server (gf_status). */
 	function renderS3(result) {
 		var section = document.getElementById('s3');
 		var card = document.getElementById('status-s3');
@@ -839,7 +808,9 @@
 		}
 		if (!ok) {
 			setStatus('status-s3', 'unknown', 'S3-Lage unbekannt');
-			return; // Tafeln und Liste bleiben auf dem letzten Stand
+			// Tafeln und Meldungen bleiben auf dem letzten Stand; ohne jeden Stand eben ohne HVV
+			if (state.hvv === null) { state.hvv = []; renderMeldungen(); }
+			return;
 		}
 		var s3 = result.s3;
 		setStatus('status-s3', s3.level || 'unknown', s3.title || 'S3', s3.detail || '');
@@ -847,7 +818,8 @@
 		var deps = s3.abfahrten || [];
 		if (hin) renderS3Board(hin, deps.filter(function (d) { return d.ab === 'Pinneberg'; }));
 		if (rueck) renderS3Board(rueck, deps.filter(function (d) { return d.ab !== 'Pinneberg'; }));
-		renderHvv(s3.meldungen);
+		state.hvv = s3.meldungen || [];
+		renderMeldungen();
 	}
 
 	function refreshS3() {
@@ -1165,9 +1137,7 @@
 	function renderAll() {
 		renderFreshness();
 		renderStatus();
-		renderWichtig();
-		renderFeed();
-		renderVerlauf();
+		renderMeldungen();
 	}
 
 	function setData(data) {

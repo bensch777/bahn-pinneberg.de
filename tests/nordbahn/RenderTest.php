@@ -371,11 +371,9 @@ function test_wichtig_items_und_startseite()
     t_eq(['em-2', 'LAEUFT', 'GROSS', 'ALT'], array_map(function ($it) { return $it['art'] === 'stoerung' ? $it['key'] : $it['id']; }, $items), 'wichtige Meldungen, juengste zuerst, ohne kleine Stoerung und einzelnen Ausfall');
     t_eq(true, $items[1]['aktiv'], 'laufende Stoerung markiert');
 
-    $heute = nb_wichtig_heute($items, $jetzt);
-    t_eq(['em-2', 'GROSS'], array_map(function ($it) { return $it['art'] === 'stoerung' ? $it['key'] : $it['id']; }, $heute), 'Startseite: letzte 24 Stunden ohne laufende Stoerung');
-    $html = nb_render_wichtig_heute($heute, $jetzt);
+    $html = nb_render_wichtig_eintrag($items[0], $jetzt);
     t_contains('<p class="feed__kicker feed__kicker--eilmeldung">Eilmeldung der Nordbahn</p><p class="feed__title"><a href="./eilmeldung/em-2/rb71-ersatzverkehr-elmshorn-wrist-bis-18-uhr/">RB71: Ersatzverkehr Elmshorn – Wrist bis 18 Uhr</a></p>', $html, 'Eilmeldung mit Rubrik und Link');
-    t_contains('<p class="feed__kicker feed__kicker--stoerung">Infrastrukturst&ouml;rung</p><p class="feed__title"><a href="./stoerung/GROSS/ausfaelle-bei-tornesch/">Ausfälle bei Tornesch</a></p><p class="feed__meta">bis 09:00 Uhr · 1 Std.<br>Weiche klemmte.</p>', $html, 'Stoerung mit Ende, Dauer und Text');
+    t_contains('<p class="feed__kicker feed__kicker--stoerung">Infrastrukturst&ouml;rung</p><p class="feed__title"><a href="./stoerung/GROSS/ausfaelle-bei-tornesch/">Ausfälle bei Tornesch</a></p><p class="feed__meta">bis 09:00 Uhr · 1 Std.<br>Weiche klemmte.</p>', nb_render_wichtig_eintrag($items[2], $jetzt), 'Stoerung mit Ende, Dauer und Text');
 
     $markiert = nb_wichtig_markieren($data, $jetzt);
     t_eq(true, $markiert['stoerungen'][0]['wichtig'], 'laufende Stoerung markiert');
@@ -385,4 +383,43 @@ function test_wichtig_items_und_startseite()
     $news = nb_render_news(array_slice($items, 0, 2), $jetzt);
     t_contains('<h2 class="section__title">Heute, 15.10.2026</h2>', $news, 'Tagesabschnitt');
     t_contains('Infrastrukturst&ouml;rung <span class="dep__ab dep__ab--aktiv">aktiv</span>', $news, 'laufende Stoerung in der Rubrikzeile');
+}
+
+function test_aktuelle_meldungen()
+{
+    $jetzt = nb_ts(T_NOW);
+    $iso = function ($ts) { return gmdate('Y-m-d\TH:i:s\Z', $ts); };
+    $data = [
+        'stoerungen' => [['key' => 'LAEUFT', 'titel' => 'Signalstörung', 'beginn' => $iso($jetzt - 1800)]],
+        'stoerungen_verlauf' => [
+            ['key' => 'LAEUFT', 'titel' => 'Signalstörung', 'first_seen' => $iso($jetzt - 1800), 'last_seen' => $iso($jetzt)],
+            ['key' => 'GERADE', 'titel' => 'Weichenstörung', 'first_seen' => $iso($jetzt - 5400), 'last_seen' => $iso($jetzt - 1200), 'ki_titel' => 'Verspätungen bei Tornesch'],
+            ['key' => 'GESTERN', 'titel' => 'Oberleitung', 'first_seen' => $iso($jetzt - 86400), 'last_seen' => $iso($jetzt - 80000)],
+        ],
+        'eilmeldungen_live' => [],
+        'eilmeldungen' => [
+            ['id' => 'em-neu', 'title' => 'Zugausfall RB61', 'seen_at' => $iso($jetzt - 600), 'ki_titel' => 'RB61 7:42 fällt aus'],
+            ['id' => 'em-alt', 'title' => 'Zugausfall RB71', 'seen_at' => $iso($jetzt - 5 * 3600)],
+        ],
+    ];
+    $hvv = [
+        ['id' => 'U', 'titel' => 'S3: Signalstörung', 'text' => '', 'geplant' => false, 'aktiv' => true, 'von' => $iso($jetzt - 300), 'bis' => $iso($jetzt + 3600), 'linien' => ['S3']],
+        ['id' => 'P1', 'titel' => 'Hohes Fahrgastaufkommen', 'text' => '', 'geplant' => true, 'aktiv' => true, 'von' => $iso($jetzt - 86400), 'bis' => $iso($jetzt + 2 * 86400), 'linien' => ['S3', 'S5']],
+        ['id' => 'P2', 'titel' => 'Hohes Fahrgastaufkommen erwartet', 'text' => '', 'geplant' => true, 'aktiv' => true, 'von' => $iso($jetzt - 86400), 'bis' => $iso($jetzt + 2 * 86400), 'linien' => ['S3', 'S5']],
+        ['id' => 'K', 'titel' => 'Bauarbeiten', 'text' => '', 'geplant' => true, 'aktiv' => false, 'von' => $iso($jetzt + 3 * 86400), 'bis' => $iso($jetzt + 5 * 86400), 'linien' => ['RB61']],
+        ['id' => 'X', 'titel' => 'Vorbei', 'text' => '', 'geplant' => false, 'aktiv' => false, 'von' => $iso($jetzt - 7200), 'bis' => $iso($jetzt - 3600), 'linien' => ['S3']],
+    ];
+    $m = nb_aktuelle_meldungen($data, $hvv, $jetzt);
+    t_eq(['U', 'em-neu', 'GERADE'], array_map(function ($it) { return $it['id'] ?? $it['key'] ?? $it['meldung']['id']; }, $m['liste']), 'aktuelle HVV-Meldung, neue Eilmeldung, gerade aufgehobene Stoerung, juengste zuerst; ohne laufende, alte und abgelaufene');
+    t_eq(['P1', 'K'], array_column($m['geplant'], 'id'), 'geplante getrennt, Doppelte einmal');
+
+    $html = nb_render_aktuelle_meldungen($m, $jetzt);
+    t_contains('<ol class="feed" id="meldungen-feed">', $html, 'Liste');
+    t_contains('<details class="meldungen__geplant" id="meldungen-geplant"><summary>2 geplante HVV-Hinweise</summary>', $html, 'geplante zugeklappt');
+    t_eq(1, substr_count($html, 'Hohes Fahrgastaufkommen'), 'Doppelte HVV-Meldung nur einmal');
+
+    $ruhig = nb_aktuelle_meldungen(['stoerungen' => [], 'stoerungen_verlauf' => [], 'eilmeldungen' => [], 'eilmeldungen_live' => []], null, $jetzt);
+    t_eq('<p class="feed__empty">Keine aktuellen Meldungen.</p>', nb_render_aktuelle_meldungen($ruhig, $jetzt), 'ruhige Lage: eine Zeile');
+    t_eq('<p class="feed__empty">Keine weiteren Meldungen.</p>', nb_render_aktuelle_meldungen($ruhig, $jetzt, 1), 'mit laufender Stoerung');
+    t_eq('1 geplanter HVV-Hinweis', nb_geplant_text(1), 'Einzahl');
 }
