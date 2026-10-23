@@ -19,7 +19,7 @@ $alle = nb_archiv_stoerungen($data);
 $anzahl = count($alle);
 $seit = $alle ? min(array_column($alle, 'start')) : null;
 $aktiv = count(array_filter($alle, function ($it) { return $it['aktiv']; }));
-$blatt = nb_seite($alle, 50, $_GET['seite'] ?? 1);
+$blatt = nb_seite($alle, 50, $_GET['seite'] ?? 1, function ($it) { return $it['start']; });
 $items = $blatt['items'];
 $basis = SITE_URL . '/stoerungen/';
 $pageUrl = nb_seite_url($basis, $blatt['seite']);
@@ -79,7 +79,7 @@ $jsonLd = [
 	<div class="wrap site-head__row">
 		<a class="site-head__brand" href="<?= $root ?>">Bahn-Pinneberg.de</a>
 		<nav class="site-head__tools" aria-label="Zur&uuml;ck">
-			<a class="tool" href="<?= $root ?>">Zur Lage</a>
+			<?= nb_render_zurueck($root) ?>
 		</nav>
 	</div>
 </header>
@@ -92,7 +92,7 @@ $jsonLd = [
 		</div>
 	</div>
 
-<?= nb_render_seitennav($blatt, './') ?>
+<?= nb_render_meldungen_tabs($root, 'stoerungen') ?>
 <?= nb_render_archiv_stoerungen($items) ?>
 <?= nb_render_seitennav($blatt, './') ?>
 

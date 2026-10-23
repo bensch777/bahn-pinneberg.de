@@ -248,8 +248,33 @@ function test_archiv_seiten()
     t_contains('<a class="pager__link" href="./?seite=3" rel="next">', $html, 'Aeltere');
     t_contains('Seite 2 von 3', $html, 'Position');
     $html = nb_render_seitennav(nb_seite($items, 50, 3), './');
-    t_contains('<span class="pager__link pager__link--aus">&Auml;ltere', $html, 'letzte Seite ohne Aeltere-Link');
+    t_eq(false, strpos($html, 'rel="next"') !== false, 'letzte Seite ohne Aeltere-Link');
     t_contains('href="./?seite=2" rel="prev"', $html, 'Neuere auf Seite 2');
+}
+
+function test_archiv_seiten_nach_ganzen_tagen()
+{
+    // 3 Eintraege je Tag an 5 Tagen, mindestens 4 je Seite: eine Seite endet nie mitten im Tag
+    $tag = strtotime('2026-10-15 12:00:00 Europe/Berlin');
+    $items = [];
+    for ($d = 0; $d < 5; $d++) {
+        for ($i = 0; $i < 3; $i++) {
+            $items[] = ['ts' => $tag - $d * 86400 - $i * 60];
+        }
+    }
+    $zeit = function ($it) { return $it['ts']; };
+    $s = nb_seite($items, 4, 1, $zeit);
+    t_eq([1, 3, 6], [$s['seite'], $s['seiten'], count($s['items'])], 'erste Seite: zwei ganze Tage');
+    t_eq(3, count(nb_seite($items, 4, 3, $zeit)['items']), 'letzte Seite: der Rest');
+    t_contains('Neuere Meldungen', nb_render_seitennav(nb_seite($items, 4, 2, $zeit), './'), 'Beschriftung');
+}
+
+function test_meldungen_tabs_und_zurueck()
+{
+    $html = nb_render_meldungen_tabs('../', 'eilmeldungen');
+    t_contains('<a class="tabs__tab" href="../news/">Wichtig</a>', $html, 'Wichtig');
+    t_contains('<a class="tabs__tab" href="../eilmeldungen/" aria-current="page">Eilmeldungen</a>', $html, 'aktiver Tab');
+    t_contains('>Startseite</a>', nb_render_zurueck('../'), 'Ruecklink');
 }
 
 /** Alle section__title-Texte eines HTML-Schnipsels. */

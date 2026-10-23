@@ -1033,36 +1033,78 @@ function nb_archiv_stoerungen(array $data)
     return $items;
 }
 
-/** Seitenausschnitt: $seite wird auf 1..Seitenzahl begrenzt. */
-function nb_seite(array $items, $proSeite, $seite)
+/**
+ * Eine Seite einer langen Liste. Mit $zeit (Zeitstempel je Eintrag) endet eine Seite
+ * nie mitten in einem Tag: sie fuellt sich mit ganzen Tagen, bis mindestens
+ * $proSeite Eintraege beisammen sind. Ohne $zeit feste Bloecke zu $proSeite.
+ */
+function nb_seite(array $items, $proSeite, $seite, ?callable $zeit = null)
 {
-    $seiten = max(1, (int) ceil(count($items) / max(1, $proSeite)));
+    $proSeite = max(1, (int) $proSeite);
+    $bloecke = [];
+    if ($zeit === null) {
+        $bloecke = $items ? array_chunk($items, $proSeite) : [];
+    } else {
+        $block = [];
+        $tag = null;
+        foreach ($items as $it) {
+            $k = nb_tag_key($zeit($it));
+            if ($tag !== null && $k !== $tag && count($block) >= $proSeite) {
+                $bloecke[] = $block;
+                $block = [];
+            }
+            $block[] = $it;
+            $tag = $k;
+        }
+        if ($block) {
+            $bloecke[] = $block;
+        }
+    }
+    $seiten = max(1, count($bloecke));
     $seite = min($seiten, max(1, (int) $seite));
 
     return [
-        'items'  => array_slice($items, ($seite - 1) * $proSeite, $proSeite),
+        'items'  => $bloecke[$seite - 1] ?? [],
         'seite'  => $seite,
         'seiten' => $seiten,
         'gesamt' => count($items),
     ];
 }
 
-/** URL einer Archivseite: Seite 1 ohne Parameter. */
+/** URL einer Seite: Seite 1 ohne Parameter. */
 function nb_seite_url($basis, $seite)
 {
     return $seite > 1 ? $basis . '?seite=' . (int) $seite : $basis;
 }
 
-/** Blaettern: "Neuere" / "Seite 2 von 7" / "Ältere"; leer bei nur einer Seite. */
+/** Blaettern unter der Liste: neuere links, aeltere rechts, dazwischen die Seitenzahl. */
 function nb_render_seitennav(array $s, $basis)
 {
     if ($s['seiten'] <= 1) {
         return '';
     }
-    $neuere = $s['seite'] > 1 ? '<a class="pager__link" href="' . nb_e(nb_seite_url($basis, $s['seite'] - 1)) . '" rel="prev">&larr; Neuere</a>' : '<span class="pager__link pager__link--aus">&larr; Neuere</span>';
-    $aeltere = $s['seite'] < $s['seiten'] ? '<a class="pager__link" href="' . nb_e(nb_seite_url($basis, $s['seite'] + 1)) . '" rel="next">&Auml;ltere &rarr;</a>' : '<span class="pager__link pager__link--aus">&Auml;ltere &rarr;</span>';
+    $neuere = $s['seite'] > 1 ? '<a class="pager__link" href="' . nb_e(nb_seite_url($basis, $s['seite'] - 1)) . '" rel="prev">&larr; Neuere Meldungen</a>' : '<span></span>';
+    $aeltere = $s['seite'] < $s['seiten'] ? '<a class="pager__link" href="' . nb_e(nb_seite_url($basis, $s['seite'] + 1)) . '" rel="next">&Auml;ltere Meldungen &rarr;</a>' : '<span></span>';
 
     return '<nav class="pager" aria-label="Seiten">' . $neuere . '<span class="pager__info">Seite ' . (int) $s['seite'] . ' von ' . (int) $s['seiten'] . '</span>' . $aeltere . '</nav>';
+}
+
+/** Filterleiste der drei Meldungsseiten; jede bleibt eine eigene Adresse. $aktiv: news, eilmeldungen oder stoerungen. */
+function nb_render_meldungen_tabs($root, $aktiv)
+{
+    $tabs = ['news' => 'Wichtig', 'eilmeldungen' => 'Eilmeldungen', 'stoerungen' => 'St&ouml;rungen'];
+    $html = '<nav class="tabs" aria-label="Meldungen filtern">';
+    foreach ($tabs as $pfad => $label) {
+        $html .= '<a class="tabs__tab" href="' . nb_e($root . $pfad . '/') . '"' . ($pfad === $aktiv ? ' aria-current="page"' : '') . '>' . $label . '</a>';
+    }
+
+    return $html . '</nav>';
+}
+
+/** Ruecklink oben rechts auf allen Unterseiten. */
+function nb_render_zurueck($root)
+{
+    return '<a class="zurueck" href="' . nb_e($root) . '"><svg class="zurueck__icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11H7.8l5.6-5.6L12 4l-8 8 8 8 1.4-1.4L7.8 13H20v-2Z"/></svg>Startseite</a>';
 }
 
 /* ---------- Lage als Markdown (lage.md, fuer KI-Assistenten und Skripte) ---------- */
