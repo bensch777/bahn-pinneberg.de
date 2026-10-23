@@ -286,7 +286,6 @@ function test_render_s3_html()
     $m = [['id' => 'U', 'titel' => 'S3: Signalstörung', 'text' => 'Es kommt zu Ausfällen.', 'geplant' => false, 'aktiv' => true, 'von' => '2026-10-15T07:30:00Z', 'bis' => '2026-10-15T10:00:00Z', 'linien' => ['S3', 'RB61'], 'stand' => ''],
         ['id' => 'B', 'titel' => 'Bauarbeiten', 'text' => '', 'geplant' => true, 'aktiv' => false, 'von' => '2026-10-17T20:00:00Z', 'bis' => '2026-10-20T02:00:00Z', 'linien' => ['S3'], 'stand' => '']];
     t_contains('<li class="is-heute"><div class="feed__time">Heute, 09:30 Uhr</div><div><p class="feed__kicker feed__kicker--hvv">HVV-Meldung <span class="dep__ab dep__ab--aktiv">aktuell</span></p><p class="feed__title">S3: Signalstörung</p><p class="feed__meta">S3, RB61 · bis 12:00 Uhr<br>Es kommt zu Ausfällen.</p></div></li>', nb_render_hvv_eintrag($m[0], $now), 'aktuelle Meldung');
-    t_contains('<p class="feed__kicker feed__kicker--hvv">HVV-Meldung <span class="dep__ab dep__ab--plan">geplant</span></p><p class="feed__title">Bauarbeiten</p><p class="feed__meta">S3 · ab 17.10., 22:00 Uhr bis 20.10., 04:00 Uhr</p>', nb_render_hvv_eintrag($m[1], $now), 'geplante Meldung');
     $hbf = nb_render_s3_abfahrten($liste, 'Hamburg Hbf');
     t_contains('<span class="dep__ziel">Pinneberg</span></div><div class="dep__platform">Gl. 14</div>', $hbf, 'Rueckrichtung ab Hbf');
 }

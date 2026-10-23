@@ -397,7 +397,7 @@
 	/**
 	 * Was gerade gilt, aus allen Quellen (wie nb_aktuelle_meldungen): Eilmeldungen der letzten
 	 * vier Stunden, Stoerungen bis eine Stunde nach der Aufhebung, ungeplante HVV-Meldungen, die
-	 * jetzt gelten. Geplante HVV-Meldungen getrennt, inhaltsgleiche nur einmal.
+	 * jetzt gelten. Geplante HVV-Meldungen bleiben draussen, inhaltsgleiche zaehlen einmal.
 	 */
 	function aktuelleMeldungen(now) {
 		var liste = [];
@@ -408,20 +408,17 @@
 			var ms = isNaN(it.stand) ? it.ms : it.stand;
 			if (ms >= now - EIL_AKUT_MS) liste.push({ art: 'eilmeldung', ts: ms, titel: it.title || it.id, text: it.text, link: ereignisLink('eilmeldung', it.id, it.title || it.id), meta: '' });
 		});
-		var geplant = [], gesehen = {};
+		var gesehen = {};
 		(state.hvv || []).forEach(function (m) {
-			if (!m) return;
-			var von = Date.parse(m.von || '');
-			var kuenftig = !isNaN(von) && von > now;
-			if (!m.aktiv && !kuenftig) return; // abgelaufen
+			if (!m || !m.aktiv || m.geplant) return;
 			var schluessel = (m.linien || []).join(',') + '|' + (m.von || '') + '|' + (m.bis || '');
 			if (gesehen[schluessel]) return;
 			gesehen[schluessel] = true;
-			if (m.geplant || kuenftig) geplant.push(m);
-			else liste.push({ art: 'hvv', ts: !isNaN(von) ? von : (Date.parse(m.stand || '') || now), meldung: m });
+			var von = Date.parse(m.von || '');
+			liste.push({ art: 'hvv', ts: !isNaN(von) ? von : (Date.parse(m.stand || '') || now), meldung: m });
 		});
 		liste.sort(function (a, b) { return b.ts - a.ts; });
-		return { liste: liste, geplant: geplant };
+		return liste;
 	}
 
 	/** Stoerung oder Eilmeldung als Listeneintrag (wie nb_render_wichtig_eintrag). */
@@ -438,11 +435,6 @@
 		]);
 	}
 
-	/** "3 geplante HVV-Hinweise" (wie nb_geplant_text). */
-	function geplantText(n) {
-		return n === 1 ? '1 geplanter HVV-Hinweis' : n + ' geplante HVV-Hinweise';
-	}
-
 	/** Bereich "Aktuelle Meldungen" (wie nb_render_aktuelle_meldungen). */
 	function renderMeldungen() {
 		var section = document.getElementById('meldungen');
@@ -451,23 +443,14 @@
 		// Mit HVV-Zugang den Stand vom Server stehen lassen, bis api/s3 geantwortet hat
 		if (section.hasAttribute('data-hvv') && state.hvv === null) return;
 		var now = Date.now();
-		var m = aktuelleMeldungen(now);
-		var alt = document.getElementById('meldungen-geplant');
-		var offen = !!(alt && alt.open);
+		var liste = aktuelleMeldungen(now);
 		clear(box);
-		if (m.liste.length) {
+		if (liste.length) {
 			var ol = el('ol', { class: 'feed', id: 'meldungen-feed' });
-			m.liste.forEach(function (it) { ol.appendChild(it.art === 'hvv' ? hvvEintrag(it.meldung, now) : meldungEintrag(it)); });
+			liste.forEach(function (it) { ol.appendChild(it.art === 'hvv' ? hvvEintrag(it.meldung, now) : meldungEintrag(it)); });
 			box.appendChild(ol);
 		} else {
 			box.appendChild(el('p', { class: 'feed__empty', text: (state.data.stoerungen || []).length ? 'Keine weiteren Meldungen.' : 'Keine aktuellen Meldungen.' }));
-		}
-		if (m.geplant.length) {
-			var liste = el('ol', { class: 'feed' });
-			m.geplant.forEach(function (g) { liste.appendChild(hvvEintrag(g, now)); });
-			var details = el('details', { class: 'meldungen__geplant', id: 'meldungen-geplant' }, [el('summary', { text: geplantText(m.geplant.length) }), liste]);
-			details.open = offen;
-			box.appendChild(details);
 		}
 	}
 
@@ -764,18 +747,17 @@
 		});
 	}
 
-	/** Eine HVV-Meldung als Listeneintrag (wie nb_render_hvv_eintrag). */
+	/** Eine aktuelle HVV-Meldung als Listeneintrag (wie nb_render_hvv_eintrag). */
 	function hvvEintrag(m, now) {
 		var von = Date.parse(m.von || ''), bis = Date.parse(m.bis || '');
 		var meta = [];
 		if (m.linien && m.linien.length) meta.push(m.linien.join(', '));
-		if (m.aktiv) meta.push(isNaN(bis) ? 'bis auf Weiteres' : fmtBis(now, bis));
-		else if (!isNaN(von) && von > now) meta.push('ab ' + fmtWann(von, true) + (isNaN(bis) ? '' : ' ' + fmtBis(von, bis)));
+		meta.push(isNaN(bis) ? 'bis auf Weiteres' : fmtBis(now, bis));
 		var text = m.text || '';
 		if (text.length > 300) text = text.slice(0, 300).replace(/\s+$/, '') + ' …';
 		var kicker = el('p', { class: 'feed__kicker feed__kicker--hvv', text: 'HVV-Meldung' });
-		if (m.geplant) { kicker.appendChild(document.createTextNode(' ')); kicker.appendChild(el('span', { class: 'dep__ab dep__ab--plan', text: 'geplant' })); }
-		else if (m.aktiv) { kicker.appendChild(document.createTextNode(' ')); kicker.appendChild(el('span', { class: 'dep__ab dep__ab--aktiv', text: 'aktuell' })); }
+		kicker.appendChild(document.createTextNode(' '));
+		kicker.appendChild(el('span', { class: 'dep__ab dep__ab--aktiv', text: 'aktuell' }));
 		var titel = /^https?:\/\//i.test(m.link || '') ? el('a', { href: m.link, rel: 'noopener nofollow', text: m.titel || '' }) : (m.titel || '');
 		var body = [kicker, el('p', { class: 'feed__title' }, [titel])];
 		if (meta.length || text) {
@@ -785,7 +767,7 @@
 			body.push(p);
 		}
 		var zeit = !isNaN(von) ? von : (Date.parse(m.stand || '') || now);
-		return el('li', m.aktiv && !m.geplant ? { class: 'is-heute' } : {}, [el('div', { class: 'feed__time' }, [fmtWann(zeit)]), el('div', {}, body)]);
+		return el('li', { class: 'is-heute' }, [el('div', { class: 'feed__time' }, [fmtWann(zeit)]), el('div', {}, body)]);
 	}
 
 	/** Karte, Tafeln und HVV-Meldungen aus der Antwort von api/s3; die Statusregel rechnet der Server (gf_status). */

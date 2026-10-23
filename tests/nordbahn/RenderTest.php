@@ -409,17 +409,15 @@ function test_aktuelle_meldungen()
         ['id' => 'K', 'titel' => 'Bauarbeiten', 'text' => '', 'geplant' => true, 'aktiv' => false, 'von' => $iso($jetzt + 3 * 86400), 'bis' => $iso($jetzt + 5 * 86400), 'linien' => ['RB61']],
         ['id' => 'X', 'titel' => 'Vorbei', 'text' => '', 'geplant' => false, 'aktiv' => false, 'von' => $iso($jetzt - 7200), 'bis' => $iso($jetzt - 3600), 'linien' => ['S3']],
     ];
-    $m = nb_aktuelle_meldungen($data, $hvv, $jetzt);
-    t_eq(['U', 'em-neu', 'GERADE'], array_map(function ($it) { return $it['id'] ?? $it['key'] ?? $it['meldung']['id']; }, $m['liste']), 'aktuelle HVV-Meldung, neue Eilmeldung, gerade aufgehobene Stoerung, juengste zuerst; ohne laufende, alte und abgelaufene');
-    t_eq(['P1', 'K'], array_column($m['geplant'], 'id'), 'geplante getrennt, Doppelte einmal');
+    $liste = nb_aktuelle_meldungen($data, $hvv, $jetzt);
+    t_eq(['U', 'em-neu', 'GERADE'], array_map(function ($it) { return $it['id'] ?? $it['key'] ?? $it['meldung']['id']; }, $liste), 'aktuelle HVV-Meldung, neue Eilmeldung, gerade aufgehobene Stoerung, juengste zuerst; ohne laufende, alte, geplante und abgelaufene');
 
-    $html = nb_render_aktuelle_meldungen($m, $jetzt);
-    t_contains('<ol class="feed" id="meldungen-feed">', $html, 'Liste');
-    t_contains('<details class="meldungen__geplant" id="meldungen-geplant"><summary>2 geplante HVV-Hinweise</summary>', $html, 'geplante zugeklappt');
-    t_eq(1, substr_count($html, 'Hohes Fahrgastaufkommen'), 'Doppelte HVV-Meldung nur einmal');
+    $hvv[] = ['id' => 'U2', 'titel' => 'S3: Signalstörung (Update)', 'text' => '', 'geplant' => false, 'aktiv' => true, 'von' => $iso($jetzt - 300), 'bis' => $iso($jetzt + 3600), 'linien' => ['S3']];
+    t_eq(1, substr_count(nb_render_aktuelle_meldungen(nb_aktuelle_meldungen($data, $hvv, $jetzt), $jetzt), 'S3: Signalstörung'), 'Doppelte HVV-Meldung nur einmal');
+    t_contains('<ol class="feed" id="meldungen-feed">', nb_render_aktuelle_meldungen($liste, $jetzt), 'Liste');
 
     $ruhig = nb_aktuelle_meldungen(['stoerungen' => [], 'stoerungen_verlauf' => [], 'eilmeldungen' => [], 'eilmeldungen_live' => []], null, $jetzt);
     t_eq('<p class="feed__empty">Keine aktuellen Meldungen.</p>', nb_render_aktuelle_meldungen($ruhig, $jetzt), 'ruhige Lage: eine Zeile');
+    t_eq([], nb_aktuelle_meldungen(['stoerungen' => [], 'stoerungen_verlauf' => [], 'eilmeldungen' => [], 'eilmeldungen_live' => []], array_slice($hvv, 1, 3), $jetzt), 'nur geplante: nichts');
     t_eq('<p class="feed__empty">Keine weiteren Meldungen.</p>', nb_render_aktuelle_meldungen($ruhig, $jetzt, 1), 'mit laufender Stoerung');
-    t_eq('1 geplanter HVV-Hinweis', nb_geplant_text(1), 'Einzahl');
 }

@@ -694,7 +694,7 @@ function nb_meldung_zeitraum(array $m, $now)
     return $bis !== null ? 'war ' . nb_fmt_bis($von ?? $bis, $bis, $now) : '';
 }
 
-/** Eine HVV-Meldung als Listeneintrag (wie hvvEintrag im Script): Rubrik mit Chip geplant/aktuell, Linien, Zeitraum, Text. */
+/** Eine aktuelle HVV-Meldung als Listeneintrag (wie hvvEintrag im Script): Rubrik, Linien, Zeitraum, Text. */
 function nb_render_hvv_eintrag(array $m, $now)
 {
     $meta = [];
@@ -709,11 +709,10 @@ function nb_render_hvv_eintrag(array $m, $now)
     if (mb_strlen($text) > 300) {
         $text = rtrim(mb_substr($text, 0, 300)) . ' …';
     }
-    $chip = !empty($m['geplant']) ? '<span class="dep__ab dep__ab--plan">geplant</span>' : (!empty($m['aktiv']) ? '<span class="dep__ab dep__ab--aktiv">aktuell</span>' : '');
     $von = nb_ts($m['von'] ?? '') ?? nb_ts($m['stand'] ?? '') ?? $now;
 
-    return '<li' . (!empty($m['aktiv']) && empty($m['geplant']) ? ' class="is-heute"' : '') . '><div class="feed__time">' . nb_e(nb_fmt_wann($von, $now)) . '</div><div>'
-        . '<p class="feed__kicker feed__kicker--hvv">HVV-Meldung' . ($chip !== '' ? ' ' . $chip : '') . '</p>'
+    return '<li class="is-heute"><div class="feed__time">' . nb_e(nb_fmt_wann($von, $now)) . '</div><div>'
+        . '<p class="feed__kicker feed__kicker--hvv">HVV-Meldung <span class="dep__ab dep__ab--aktiv">aktuell</span></p>'
         . '<p class="feed__title">' . (($m['link'] ?? '') !== '' ? '<a href="' . nb_e($m['link']) . '" rel="noopener nofollow">' . nb_e($m['titel'] ?? '') . '</a>' : nb_e($m['titel'] ?? '')) . '</p>'
         . ($meta || $text !== '' ? '<p class="feed__meta">' . nb_e(implode(' · ', $meta)) . ($meta && $text !== '' ? '<br>' : '') . nb_e($text) . '</p>' : '')
         . '</div></li>';
@@ -728,8 +727,9 @@ function nb_render_hvv_eintrag(array $m, $now)
  * Aktuelle Meldungen aus allen Quellen, juengste zuerst: Eilmeldungen der letzten
  * NB_EIL_AKUT_S (wie die Lagekarte), Stoerungen bis NB_STOERUNG_NACHLAUF_S nach der
  * Aufhebung und ungeplante HVV-Meldungen, die jetzt gelten. Geplante HVV-Meldungen
- * (jetzt gueltig oder kuenftig) kommen getrennt in 'geplant'. Inhaltsgleiche
- * HVV-Meldungen (gleiche Linien und gleicher Zeitraum) zaehlen einmal.
+ * (Bauarbeiten, Vorankuendigungen) bleiben draussen: ihr Zeitraum ist oft der der
+ * Ankuendigung, nicht der Einschraenkung. Inhaltsgleiche HVV-Meldungen (gleiche
+ * Linien und gleicher Zeitraum) zaehlen einmal.
  */
 function nb_aktuelle_meldungen(array $data, ?array $hvv, $now = null)
 {
@@ -748,62 +748,38 @@ function nb_aktuelle_meldungen(array $data, ?array $hvv, $now = null)
             $liste[] = ['art' => 'eilmeldung', 'ts' => $ts, 'titel' => $titel, 'text' => $it['text'], 'link' => nb_link('eilmeldung', $it['id'], $titel), 'id' => $it['id']];
         }
     }
-    $geplant = [];
     $gesehen = [];
     foreach ($hvv ?? [] as $m) {
-        if (!is_array($m)) {
+        if (!is_array($m) || empty($m['aktiv']) || !empty($m['geplant'])) {
             continue;
-        }
-        $kuenftig = (nb_ts($m['von'] ?? '') ?? 0) > $now;
-        if (empty($m['aktiv']) && !$kuenftig) {
-            continue; // abgelaufen
         }
         $schluessel = implode(',', $m['linien'] ?? []) . '|' . ($m['von'] ?? '') . '|' . ($m['bis'] ?? '');
         if (isset($gesehen[$schluessel])) {
             continue;
         }
         $gesehen[$schluessel] = true;
-        if (!empty($m['geplant']) || $kuenftig) {
-            $geplant[] = $m;
-        } else {
-            $liste[] = ['art' => 'hvv', 'ts' => nb_ts($m['von'] ?? '') ?? nb_ts($m['stand'] ?? '') ?? $now, 'meldung' => $m];
-        }
+        $liste[] = ['art' => 'hvv', 'ts' => nb_ts($m['von'] ?? '') ?? nb_ts($m['stand'] ?? '') ?? $now, 'meldung' => $m];
     }
     usort($liste, function ($a, $b) {
         return $b['ts'] <=> $a['ts'];
     });
 
-    return ['liste' => $liste, 'geplant' => $geplant];
-}
-
-/** "3 geplante HVV-Hinweise" fuer die aufklappbare Zeile (wie geplantText im Script). */
-function nb_geplant_text($n)
-{
-    return $n === 1 ? '1 geplanter HVV-Hinweis' : $n . ' geplante HVV-Hinweise';
+    return $liste;
 }
 
 /** Inhalt des Bereichs "Aktuelle Meldungen" (wie renderMeldungen im Script). */
-function nb_render_aktuelle_meldungen(array $m, $now = null, $aktiveStoerungen = 0)
+function nb_render_aktuelle_meldungen(array $liste, $now = null, $aktiveStoerungen = 0)
 {
     $now = $now ?? time();
-    if ($m['liste']) {
-        $html = '<ol class="feed" id="meldungen-feed">';
-        foreach ($m['liste'] as $it) {
-            $html .= $it['art'] === 'hvv' ? nb_render_hvv_eintrag($it['meldung'], $now) : nb_render_wichtig_eintrag($it, $now);
-        }
-        $html .= '</ol>';
-    } else {
-        $html = '<p class="feed__empty">' . ($aktiveStoerungen > 0 ? 'Keine weiteren Meldungen.' : 'Keine aktuellen Meldungen.') . '</p>';
+    if (!$liste) {
+        return '<p class="feed__empty">' . ($aktiveStoerungen > 0 ? 'Keine weiteren Meldungen.' : 'Keine aktuellen Meldungen.') . '</p>';
     }
-    if ($m['geplant']) {
-        $html .= '<details class="meldungen__geplant" id="meldungen-geplant"><summary>' . nb_e(nb_geplant_text(count($m['geplant']))) . '</summary><ol class="feed">';
-        foreach ($m['geplant'] as $g) {
-            $html .= nb_render_hvv_eintrag($g, $now);
-        }
-        $html .= '</ol></details>';
+    $html = '<ol class="feed" id="meldungen-feed">';
+    foreach ($liste as $it) {
+        $html .= $it['art'] === 'hvv' ? nb_render_hvv_eintrag($it['meldung'], $now) : nb_render_wichtig_eintrag($it, $now);
     }
 
-    return $html;
+    return $html . '</ol>';
 }
 
 /** Balkenbreite in 5-Prozent-Stufen (0..100) fuer data-w, CSP-konform ohne Inline-Style. */
