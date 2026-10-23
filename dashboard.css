@@ -401,6 +401,16 @@ button { font: inherit; color: inherit; }
 .section__note { color: var(--muted); font-size: 13.5px; margin: 8px 0 0; }
 .feed__empty { padding: 18px; color: var(--muted); margin: 0; grid-column: 1 / -1; }
 
+/* Aktuelle Meldungen: eine Karte, ruhig eine Zeile, geplante HVV-Hinweise zum Aufklappen */
+.meldungen .feed__empty { padding: 12px 18px; }
+.meldungen__geplant { border-top: 1px solid var(--line); }
+.meldungen__geplant summary { padding: 10px 18px; font-size: 13.5px; color: var(--muted); cursor: pointer; list-style: none; display: flex; justify-content: space-between; gap: 12px; }
+.meldungen__geplant summary::-webkit-details-marker { display: none; }
+.meldungen__geplant summary::after { content: '+'; font-weight: 500; flex: none; }
+.meldungen__geplant[open] summary::after { content: '\2013'; }
+.meldungen__geplant summary:hover { color: var(--ink); }
+.meldungen__geplant .feed > li:first-child { border-top: 1px solid var(--line); }
+
 /* FAQ */
 .faq { padding: 4px 18px; }
 .faq details { border-top: 1px solid var(--line); }

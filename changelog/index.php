@@ -14,6 +14,9 @@ $root = '../';
 $assetVersion = (int) @filemtime(__DIR__ . '/../dashboard.css');
 
 $changelog = [
+    ['2026-10-23', [
+        ['Ein Bereich „Aktuelle Meldungen“', 'Statt vier Listen („Wichtig in den letzten 24 Stunden“, „Letzte Eilmeldungen“, „Letzte Infrastrukturstörungen“, „Letzte HVV-Meldungen“) gibt es direkt unter den Lagekarten einen Bereich mit dem, was gerade gilt: Eilmeldungen der letzten vier Stunden, Störungen bis eine Stunde nach ihrer Aufhebung und ungeplante HVV-Meldungen. Geplante HVV-Hinweise wie Bauarbeiten stehen zugeklappt darunter, doppelte HVV-Meldungen erscheinen nur einmal. Ist nichts los, bleibt eine Zeile übrig. Der Rückblick steht unter „Verlauf“ sowie bei allen Eilmeldungen und Störungen.'],
+    ]],
     ['2026-10-21', [
         ['S3-Tafeln nach Tageszeit', 'Wie bei der Nordbahn steht auch bei der S3 vormittags die Fahrt in die Stadt oben und ab 12 Uhr die Rückfahrt nach Pinneberg.'],
         ['Abfahrtstafel ohne Zugbilanz', 'Die graue Zeile „Letzte N Tage: …“ unter jeder Nordbahn-Abfahrt ist weg. Wie zuverlässig ein Zug in den letzten 30 Tagen war, steht weiter auf der Statistikseite.'],

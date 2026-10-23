@@ -6,8 +6,9 @@
  *
  * Auf einen Blick: aktive Stoerungen laut strecken-info.de, die naechsten
  * Abfahrten vom eigenen Bahnhof in die Stadt und ab Hamburg zurueck (der
- * Bahnhof ist waehlbar und bleibt im Browser gespeichert), und die letzten
- * Eilmeldungen der Nordbahn.
+ * Bahnhof ist waehlbar und bleibt im Browser gespeichert), und darueber in
+ * einem Bereich die aktuellen Meldungen (Eilmeldungen, gerade aufgehobene
+ * Stoerungen, HVV). Der Rueckblick steht auf news/, eilmeldungen/ und stoerungen/.
  *
  * Das Repo-Wurzelverzeichnis ist das Web-Root; alle Links sind relativ,
  * damit die Seite auch unter einem anderen Hostnamen laeuft. Die FAQ liegt
@@ -38,7 +39,6 @@ $pageUrl = SITE_URL . '/';
 $rueckTitel = 'Hamburg → Wrist / Itzehoe';
 
 $data = nb_wichtig_markieren(nordbahn_dataset());
-$wichtig = nb_wichtig_heute(nb_wichtig_items($data));
 
 // JSON_HEX_TAG sorgt dafuer, dass ein "</script>" in einem Meldungstext den
 // Skriptblock nicht beenden kann.
@@ -63,6 +63,7 @@ $gf = $gfAktiv ? nb_read_geofox() : null;
 if ($gfAktiv) {
     $cards['s3'] = nb_status_s3($gf);
 }
+$meldungen = nb_aktuelle_meldungen($data, $gfAktiv ? ($gf['s3']['meldungen'] ?? []) : null);
 // Fuer das Vorschaubild hebt die S3 die Lage hoechstens auf "warn": die Nordbahn bleibt das Thema
 $ogCards = $cards;
 if (($ogCards['s3']['level'] ?? '') === 'alert') {
@@ -207,15 +208,15 @@ $jsonLd = [
 		</ul>
 	</section>
 
-	<section id="wichtig" class="section" aria-labelledby="wichtig-h"<?= $wichtig ? '' : ' hidden' ?>>
+	<section id="meldungen" class="section" aria-labelledby="meldungen-h"<?= $gfAktiv ? ' data-hvv' : '' ?>>
 		<div class="section__head">
-			<h2 id="wichtig-h" class="section__title">Wichtig in den letzten 24 Stunden</h2>
-			<a class="section__more" href="<?= $root ?>news/">Alle wichtigen Meldungen</a>
+			<h2 id="meldungen-h" class="section__title">Aktuelle Meldungen</h2>
+			<a class="section__more" href="<?= $root ?>news/">Verlauf</a>
 		</div>
-		<ol class="feed card" id="wichtig-feed" data-limit="3">
-			<?= nb_render_wichtig_heute($wichtig) ?>
+		<div class="card meldungen" id="meldungen-inhalt">
+			<?= nb_render_aktuelle_meldungen($meldungen, null, $aktiv) ?>
 
-		</ol>
+		</div>
 	</section>
 
 	<section id="abfahrten" class="section" aria-labelledby="abfahrten-h" data-root="<?= $root ?>" data-endpoint="<?= $root ?>api/abfahrten" data-data-endpoint="<?= $root ?>api/data" data-heimat-default="<?= $heimat ?>">
@@ -282,41 +283,6 @@ $jsonLd = [
 	</section>
 
 <?php endif; ?>
-	<section id="latest" class="section" aria-labelledby="latest-h">
-		<div class="section__head">
-			<h2 id="latest-h" class="section__title">Letzte Eilmeldungen</h2>
-			<a class="section__more" href="<?= $root ?>eilmeldungen/">Alle Eilmeldungen</a>
-		</div>
-		<ol class="feed card" id="feed" data-limit="5" data-max-age-days="1">
-			<?= nb_render_feed($items, 5, 1) ?>
-
-		</ol>
-	</section>
-
-	<section id="verlauf" class="section" aria-labelledby="verlauf-h">
-		<div class="section__head">
-			<h2 id="verlauf-h" class="section__title">Letzte Infrastrukturst&ouml;rungen</h2>
-			<a class="section__more" href="<?= $root ?>stoerungen/">Alle St&ouml;rungen</a>
-		</div>
-		<ol class="feed card" id="verlauf-feed" data-limit="5" data-max-age-days="1">
-			<?= nb_render_verlauf(nb_verlauf_items($data), 5, 1, null, count($data['stoerungen'] ?? [])) ?>
-
-		</ol>
-	</section>
-
-<?php if ($gfAktiv): ?>
-	<section id="hvv" class="section" aria-labelledby="hvv-h">
-		<div class="section__head">
-			<h2 id="hvv-h" class="section__title">Letzte HVV-Meldungen</h2>
-			<p class="section__sub">S3, RB61 und RB71</p>
-		</div>
-		<ol class="feed card" id="hvv-feed" data-limit="5">
-			<?= nb_render_s3_meldungen($gf['s3']['meldungen'] ?? [], null, 5) ?>
-
-		</ol>
-	</section>
-<?php endif; ?>
-
 	<noscript><p class="notice">Ohne JavaScript bleibt die Seite auf diesem Stand stehen. Die Rohdaten gibt es unter <a href="<?= $root ?>api/data">api/data</a>.</p></noscript>
 </main>
 
