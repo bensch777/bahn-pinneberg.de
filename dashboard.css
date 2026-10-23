@@ -333,6 +333,7 @@ button { font: inherit; color: inherit; }
 .weiter a { color: var(--series); text-decoration: none; }
 .weiter a:hover { text-decoration: underline; }
 .weiter a::after { content: ' \2192'; }
+.page-head .weiter { margin-top: 10px; }
 .artikel__hinweis { margin: 0; font-size: 12.5px; color: var(--muted); }
 .incident__meta div { display: flex; flex-direction: column; }
 

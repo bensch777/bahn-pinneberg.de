@@ -21,20 +21,11 @@
 		<div>
 			<h2 class="site-foot__head">Seite</h2>
 			<ul class="site-foot__list">
-<?php if ($current !== 'lage'): ?>
-				<li><a href="<?= $root ?>">Aktuelle Lage</a></li>
-<?php endif; ?>
 <?php if ($current !== 'faq'): ?>
 				<li><a href="<?= $root ?>faq/">H&auml;ufige Fragen</a></li>
 <?php endif; ?>
 <?php if ($current !== 'news'): ?>
 				<li><a href="<?= $root ?>news/">Wichtige Meldungen</a></li>
-<?php endif; ?>
-<?php if ($current !== 'eilmeldungen'): ?>
-				<li><a href="<?= $root ?>eilmeldungen/">Alle Eilmeldungen</a></li>
-<?php endif; ?>
-<?php if ($current !== 'stoerungen'): ?>
-				<li><a href="<?= $root ?>stoerungen/">Alle St&ouml;rungen</a></li>
 <?php endif; ?>
 <?php if ($current !== 'statistik'): ?>
 				<li><a href="<?= $root ?>statistik/">St&ouml;rungsstatistik</a></li>

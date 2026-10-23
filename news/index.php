@@ -89,6 +89,10 @@ $jsonLd = [
 		<div>
 			<h1>Wichtige Meldungen</h1>
 			<p class="page-head__lead">Was viele Pendler betrifft: St&ouml;rungen mit schwerer Einschr&auml;nkung, Ausf&auml;llen, Umleitungen oder Ersatzverkehr sowie Eilmeldungen zu Ersatzverkehr, Sperrungen, Bauarbeiten oder mehreren Z&uuml;gen. Einzelne kurzfristige Zugausf&auml;lle stehen bei <a href="<?= $root ?>eilmeldungen/">allen Eilmeldungen</a>.</p>
+			<ul class="weiter">
+				<li><a href="<?= $root ?>eilmeldungen/">Alle Eilmeldungen</a></li>
+				<li><a href="<?= $root ?>stoerungen/">Alle St&ouml;rungen</a></li>
+			</ul>
 		</div>
 	</div>
 
@@ -97,7 +101,7 @@ $jsonLd = [
 <?= nb_render_seitennav($blatt, './') ?>
 
 	<section class="section">
-		<p class="section__note">Die Auswahl trifft die Seite automatisch nach festen Regeln, siehe <a href="<?= $root ?>faq/">H&auml;ufige Fragen</a>. Alle Meldungen stehen in den Archiven <a href="<?= $root ?>eilmeldungen/">Eilmeldungen</a> und <a href="<?= $root ?>stoerungen/">St&ouml;rungen</a>.</p>
+		<p class="section__note">Die Auswahl trifft die Seite automatisch nach festen Regeln, siehe <a href="<?= $root ?>faq/">H&auml;ufige Fragen</a>.</p>
 	</section>
 </main>
 
