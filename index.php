@@ -145,7 +145,7 @@ $jsonLd = [
 <link rel="apple-touch-icon" href="<?= $root ?>icon-180.png">
 <link rel="manifest" href="<?= $root ?>manifest.webmanifest">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Nordbahn">
+<meta name="apple-mobile-web-app-title" content="Bahn PI">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="alternate" type="text/markdown" href="<?= $root ?>lage.md" title="Aktuelle Lage als Text">
 <link rel="stylesheet" href="<?= $root ?>dashboard.css?v=<?= $assetVersion ?>">

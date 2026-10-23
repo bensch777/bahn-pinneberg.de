@@ -15,7 +15,7 @@ $assetVersion = (int) @filemtime(__DIR__ . '/../dashboard.css');
 
 $changelog = [
     ['2026-10-23', [
-        ['Neuer Name: Bahn-Pinneberg.de', 'Die Seite heißt jetzt wie ihre Adresse. Im Header steht nur noch „Bahn-Pinneberg.de“ statt „Nordbahn Monitor · bahn-pinneberg.de“, ebenso in Seitentiteln, Footer, Benachrichtigungen, App-Name und Vorschaubildern.'],
+        ['Neuer Name: Bahn-Pinneberg.de', 'Die Seite heißt jetzt wie ihre Adresse. Im Header steht nur noch „Bahn-Pinneberg.de“ statt „Nordbahn Monitor · bahn-pinneberg.de“, ebenso in Seitentiteln, Footer, Benachrichtigungen, App-Name und Vorschaubildern. Auf dem Homescreen heißt das Symbol „Bahn PI“.'],
         ['Eilmeldungskarte ohne alten Hinweis', 'Die grüne Karte „Keine akuten Eilmeldungen“ nennt die letzte Meldung („Letzte vor 6 Std.“) nur noch bis zwölf Stunden danach. Die Nordbahn liefert keine Gültigkeit mit, der Hinweis soll nur zeigen, ob eine jüngere Meldung noch nachwirken kann.'],
         ['Ein Bereich „Aktuelle Meldungen“', 'Statt vier Listen („Wichtig in den letzten 24 Stunden“, „Letzte Eilmeldungen“, „Letzte Infrastrukturstörungen“, „Letzte HVV-Meldungen“) gibt es direkt unter den Lagekarten einen Bereich mit dem, was gerade gilt: Eilmeldungen der letzten vier Stunden, Störungen bis eine Stunde nach ihrer Aufhebung und ungeplante HVV-Meldungen. Geplante HVV-Hinweise wie Bauarbeiten oder Vorankündigungen fallen weg, weil ihr Zeitraum oft nur der der Ankündigung ist. Doppelte HVV-Meldungen erscheinen nur einmal. Ist nichts los, bleibt eine Zeile übrig. Der Rückblick steht unter „Verlauf“ sowie bei allen Eilmeldungen und Störungen.'],
     ]],
