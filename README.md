@@ -1,6 +1,6 @@
 # Bahn-Pinneberg.de
 
-Statusseite für Pendler auf den Nordbahn-Linien RB 61 und RB 71 zwischen Hamburg, Elmshorn, Itzehoe und Wrist: aktive Störungen (strecken-info.de), die nächsten Züge vom eigenen Bahnhof und zurück (Stationsmonitor der Nordbahn) und die Eilmeldungen der Nordbahn. Live unter https://bahn-pinneberg.de/.
+Statusseite für Pendler auf den Nordbahn-Linien RB 60, RB 61 und RB 71 zwischen Hamburg, Elmshorn, Itzehoe und Wrist: aktive Störungen (strecken-info.de), die nächsten Züge vom eigenen Bahnhof und zurück (Stationsmonitor der Nordbahn) und die Eilmeldungen der Nordbahn. Live unter https://bahn-pinneberg.de/.
 
 Ein privates Projekt ohne Verbindung zur NBE Nordbahn Eisenbahngesellschaft.
 
@@ -12,7 +12,7 @@ Das Wurzelverzeichnis des Repos ist das Web-Root. Reines PHP ohne Framework, kei
 | --- | --- |
 | `index.php` | Startseite, rendert Lagekarten, Störungen und Eilmeldungen server-seitig |
 | `dashboard.js`, `dashboard.css` | Aktualisiert die Seite im Browser, Abfahrtstafeln, Benachrichtigungen |
-| `api/geofox.php`, `api/s3.php`, `dev/geofox.php` | HVV-Schnittstelle Geofox GTI: S3-Abfahrten ab Pinneberg und Hamburg Hbf, HVV-Meldungen zu S3/RB61/RB71, Statusregel `gf_status`, Cache `cache/geofox.json`; Endpunkt `/api/s3?stadt=altona|stadthausbruecke|jungfernstieg|hbf` (Cache je Stadtbahnhof, Meldungen geteilt); Diagnose der Rohantworten ohne SSH über `/api/s3?roh=<NORDBAHN_PUSH_TOKEN>`; CLI zum Prüfen des Zugangs. Aus, solange `NORDBAHN_GEOFOX_USER`/`NORDBAHN_GEOFOX_PASSWORD` in `config.php` leer sind |
+| `api/geofox.php`, `api/s3.php`, `dev/geofox.php` | HVV-Schnittstelle Geofox GTI: S3-Abfahrten ab Pinneberg und Hamburg Hbf, HVV-Meldungen zu S3/RB60/RB61/RB71, Statusregel `gf_status`, Cache `cache/geofox.json`; Endpunkt `/api/s3?stadt=altona|stadthausbruecke|jungfernstieg|hbf` (Cache je Stadtbahnhof, Meldungen geteilt); Diagnose der Rohantworten ohne SSH über `/api/s3?roh=<NORDBAHN_PUSH_TOKEN>`; CLI zum Prüfen des Zugangs. Aus, solange `NORDBAHN_GEOFOX_USER`/`NORDBAHN_GEOFOX_PASSWORD` in `config.php` leer sind |
 | `news/index.php` | Wichtige Meldungen: Störungen und Eilmeldungen nach den Regeln `nb_wichtig_stoerung`/`nb_wichtig_eilmeldung` in `api/render.php`; die Startseite zeigt nur „Aktuelle Meldungen“ (`nb_aktuelle_meldungen`: Eilmeldungen der letzten vier Stunden, Störungen bis eine Stunde nach Aufhebung, gültige ungeplante HVV-Meldungen) |
 | `stoerung.php`, `eilmeldung.php`, `api/ereignis.php` | Ereignisseiten `/stoerung/<key>/` und `/eilmeldung/<id>/`: Verlauf aus dem Logbuch (`verlauf` je Eintrag), betroffene Züge aus dem Zuglog, Eilmeldungen und Störungen im Zeitraum |
 | `llms.php`, `lage.php` | `/llms.txt` (Beschreibung für KI-Assistenten) und `/lage.md` (aktuelle Lage als Markdown, `?bhf=` für den Bahnhof) |

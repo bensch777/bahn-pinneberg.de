@@ -1,7 +1,7 @@
 <?php
 /**
  * HVV-Schnittstelle Geofox GTI: S-Bahn S3 zwischen Pinneberg und Hamburg sowie
- * HVV-Meldungen zu S3, RB61 und RB71. Reine Bibliothek, gibt nichts aus.
+ * HVV-Meldungen zu S3, RB60, RB61 und RB71. Reine Bibliothek, gibt nichts aus.
  *
  * Zugang (Nutzer, Passwort) steht in config.php; ohne Zugang ist alles aus
  * (gf_aktiv() false, Karte und Abschnitt auf der Startseite fehlen).
@@ -35,7 +35,7 @@ const GF_S3_SERVICE_ID = 'SBH:S3_SBH_SBAHNS'; // Linien-ID der S3 in der GTI (au
 const GF_MELDUNG_AUSSCHLUSS = '/aufzug|aufzüge|fahrstuhl|rolltreppe|\\blift\\b|barrierefrei|fahrtreppe|elevator|escalator|erreichbarkeit der station/iu';
 // S3-Stationen zwischen Pinneberg und der Innenstadt. Eine S3-Meldung zaehlt nur, wenn
 // ihr Abschnitt hier beginnt oder endet; Meldungen zu Stade, Buxtehude oder Neugraben
-// betreffen Pendler aus Pinneberg nicht. RB61 und RB71 zaehlen immer.
+// betreffen Pendler aus Pinneberg nicht. RB60, RB61 und RB71 zaehlen immer.
 const GF_S3_KORRIDOR = [
     'pinneberg', 'thesdorf', 'halstenbek', 'krupunder', 'elbgaustrasse', 'eidelstedt', 'stellingen',
     'langenfelde', 'diebsteich', 'holstenstrasse', 'bahrenfeld', 'ottensen', 'altona', 'koenigstrasse',
@@ -44,7 +44,7 @@ const GF_S3_KORRIDOR = [
 const GF_DELAY_MIN    = 5;         // ab dieser Verspaetung (Minuten) zaehlt ein Zug als betroffen
 const GF_ALERT_ANTEIL = 0.25;      // ab diesem Anteil "S3 gestoert"
 const GF_LINIE        = 'S3';
-const GF_LINIEN       = ['S3', 'RB61', 'RB71'];
+const GF_LINIEN       = ['S3', 'RB60', 'RB61', 'RB71'];
 const GF_MELDUNGEN_MAX = 20;
 const GF_STATIONEN_TTL = 86400;    // Stations-IDs einmal am Tag auffrischen
 const GF_PINNEBERG = 'Pinneberg';
@@ -562,7 +562,7 @@ function gf_status(array $abfahrten, array $meldungen, $now)
         }
     }
     $betroffen = $ausfaelle + $verspaetet;
-    // Nur ungeplante, jetzt gueltige Meldungen zur S3 selbst; Meldungen zu RB61/RB71
+    // Nur ungeplante, jetzt gueltige Meldungen zur S3 selbst; Meldungen zu RB60/RB61/RB71
     // gehoeren zur Nordbahn und stehen nur in der Liste "Letzte HVV-Meldungen"
     $akut = [];
     foreach ($meldungen as $m) {

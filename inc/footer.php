@@ -8,7 +8,7 @@
 	<div class="wrap site-foot__grid">
 		<div class="site-foot__about">
 			<a class="site-foot__brand" href="<?= $root ?>">Bahn-Pinneberg.de</a>
-			<p>St&ouml;rungen, Abfahrten und Eilmeldungen der RB61 und RB71 zwischen Hamburg, Elmshorn, Itzehoe und Wrist. Ein privates Projekt, keine offizielle Seite der Nordbahn.</p>
+			<p>St&ouml;rungen, Abfahrten und Eilmeldungen der RB60, RB61 und RB71 zwischen Hamburg, Elmshorn, Itzehoe und Wrist. Ein privates Projekt, keine offizielle Seite der Nordbahn.</p>
 		</div>
 		<div>
 			<h2 class="site-foot__head">Kan&auml;le</h2>

@@ -1254,7 +1254,7 @@ function nb_lage_md_s3($gf, $now)
         }
         $md .= ($n ? '' : "Keine S3-Abfahrt in den nächsten 60 Minuten gemeldet.\n") . "\n";
     }
-    $md .= "### HVV-Meldungen zu S3, RB61 und RB71\n\n";
+    $md .= "### HVV-Meldungen zu S3, RB60, RB61 und RB71\n\n";
     if (empty($s3['meldungen'])) {
         $md .= "Keine HVV-Meldung.\n\n";
     }
