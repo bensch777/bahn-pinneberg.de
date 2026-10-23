@@ -234,6 +234,36 @@
 		var h = el('h3', { class: 'status__title', text: title });
 		if (detail) h.appendChild(el('small', { text: detail }));
 		box.appendChild(h);
+		renderKompakt();
+	}
+
+	/* Lagekarten kompakt (wie nb_status_kompakt): alle gruen ergibt eine Karte "Alles planmaessig",
+	   sonst nur die nicht gruenen Karten und darunter eine Zeile mit den gruenen. Unbekannt ist nicht gruen. */
+	var STATUS_NAMEN = { 'status-infra': 'Infrastruktur', 'status-eil': 'Eilmeldungen', 'status-betrieb': 'Nordbahn', 'status-s3': 'S3' };
+
+	/** "A", "A und B", "A, B und C" (wie nb_aufzaehlung). */
+	function aufzaehlung(teile) {
+		return teile.length > 1 ? teile.slice(0, -1).join(', ') + ' und ' + teile[teile.length - 1] : (teile[0] || '');
+	}
+
+	function renderKompakt() {
+		var alles = document.getElementById('status-alles');
+		var rest = document.getElementById('status-rest');
+		if (!alles || !rest) return;
+		var karten = Object.keys(STATUS_NAMEN).map(function (id) { return document.getElementById(id); }).filter(Boolean);
+		var gruen = karten.filter(function (k) { return k.classList.contains('status--ok'); });
+		var allesGruen = gruen.length === karten.length;
+		karten.forEach(function (k) { k.hidden = allesGruen || k.classList.contains('status--ok'); });
+		alles.hidden = !allesGruen;
+		var eil = document.querySelector('#status-eil small');
+		var detail = 'Keine Störung oder Eilmeldung, Nordbahn' + (document.getElementById('status-s3') ? ' und S3' : '') + ' planmäßig'
+			+ (eil && eil.textContent ? ' · ' + eil.textContent.replace('Letzte ', 'letzte Eilmeldung ') : '');
+		var small = alles.querySelector('small');
+		if (small) small.textContent = detail;
+		else alles.querySelector('.status__title').appendChild(el('small', { text: detail }));
+		var text = !allesGruen && gruen.length ? aufzaehlung(gruen.map(function (k) { return STATUS_NAMEN[k.id]; })) + ' ok' : '';
+		rest.textContent = text;
+		rest.hidden = text === '';
 	}
 
 	var EIL_AKUT_MS = 4 * 3600 * 1000;   // so lange gilt eine Eilmeldung als akut
@@ -436,7 +466,7 @@
 		]);
 	}
 
-	/** Bereich "Aktuelle Meldungen" (wie nb_render_aktuelle_meldungen). */
+	/** Bereich "Aktuelle Meldungen" (wie nb_render_aktuelle_meldungen); ohne Meldung ausgeblendet. */
 	function renderMeldungen() {
 		var section = document.getElementById('meldungen');
 		var box = document.getElementById('meldungen-inhalt');
@@ -446,13 +476,12 @@
 		var now = Date.now();
 		var liste = aktuelleMeldungen(now);
 		clear(box);
-		if (liste.length) {
-			var ol = el('ol', { class: 'feed', id: 'meldungen-feed' });
-			liste.forEach(function (it) { ol.appendChild(it.art === 'hvv' ? hvvEintrag(it.meldung, now) : meldungEintrag(it)); });
-			box.appendChild(ol);
-		} else {
-			box.appendChild(el('p', { class: 'feed__empty', text: (state.data.stoerungen || []).length ? 'Keine weiteren Meldungen.' : 'Keine aktuellen Meldungen.' }));
-		}
+		// Ohne aktuelle Meldung bleibt der Bereich ganz weg
+		section.hidden = !liste.length;
+		if (!liste.length) return;
+		var ol = el('ol', { class: 'feed', id: 'meldungen-feed' });
+		liste.forEach(function (it) { ol.appendChild(it.art === 'hvv' ? hvvEintrag(it.meldung, now) : meldungEintrag(it)); });
+		box.appendChild(ol);
 	}
 
 	/* ---------- Abfahrten ---------- */
