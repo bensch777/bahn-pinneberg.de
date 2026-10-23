@@ -19,7 +19,7 @@ $data = nordbahn_dataset();
 $alle = nb_wichtig_items($data);
 $anzahl = count($alle);
 $seit = $alle ? $alle[$anzahl - 1]['ts'] : null;
-$blatt = nb_seite($alle, 30, $_GET['seite'] ?? 1);
+$blatt = nb_seite($alle, 30, $_GET['seite'] ?? 1, function ($it) { return $it['ts']; });
 $items = $blatt['items'];
 $basis = SITE_URL . '/news/';
 $pageUrl = nb_seite_url($basis, $blatt['seite']);
@@ -79,7 +79,7 @@ $jsonLd = [
 	<div class="wrap site-head__row">
 		<a class="site-head__brand" href="<?= $root ?>">Bahn-Pinneberg.de</a>
 		<nav class="site-head__tools" aria-label="Zur&uuml;ck">
-			<a class="tool" href="<?= $root ?>">Zur Lage</a>
+			<?= nb_render_zurueck($root) ?>
 		</nav>
 	</div>
 </header>
@@ -89,14 +89,10 @@ $jsonLd = [
 		<div>
 			<h1>Wichtige Meldungen</h1>
 			<p class="page-head__lead">Was viele Pendler betrifft: St&ouml;rungen mit schwerer Einschr&auml;nkung, Ausf&auml;llen, Umleitungen oder Ersatzverkehr sowie Eilmeldungen zu Ersatzverkehr, Sperrungen, Bauarbeiten oder mehreren Z&uuml;gen. Einzelne kurzfristige Zugausf&auml;lle stehen bei <a href="<?= $root ?>eilmeldungen/">allen Eilmeldungen</a>.</p>
-			<ul class="weiter">
-				<li><a href="<?= $root ?>eilmeldungen/">Alle Eilmeldungen</a></li>
-				<li><a href="<?= $root ?>stoerungen/">Alle St&ouml;rungen</a></li>
-			</ul>
 		</div>
 	</div>
 
-<?= nb_render_seitennav($blatt, './') ?>
+<?= nb_render_meldungen_tabs($root, 'news') ?>
 <?= nb_render_news($items) ?>
 <?= nb_render_seitennav($blatt, './') ?>
 

@@ -15,6 +15,7 @@ $assetVersion = (int) @filemtime(__DIR__ . '/../dashboard.css');
 
 $changelog = [
     ['2026-10-23', [
+        ['Unterseiten aufgeräumt', 'Oben rechts führt überall „← Startseite“ zurück statt „Zur Lage“. Wichtige Meldungen, Eilmeldungen und Störungen haben eine gemeinsame Filterleiste „Wichtig · Eilmeldungen · Störungen“, jede Ansicht behält ihre eigene Adresse. Geblättert wird nur noch unten, und eine Seite endet nie mitten in einem Tag.'],
         ['Footer ohne Quellenzeile', 'Die Zeile „Quellen: nordbahn.de, strecken-info.de, hvv.de“ steht nicht mehr im Footer. Woher die Daten kommen, erklären weiter die häufigen Fragen.'],
         ['RB60 überall genannt', 'Titel, Beschreibungen, Footer und Vorschaubilder nennen jetzt RB60, RB61 und RB71. Die HVV-Meldungen umfassen auch die RB60.'],
         ['Kompakte Lage auf dem Handy', 'Läuft alles, steht oben nur noch eine Karte „Alles planmäßig“ statt vier grüner Karten, und „Aktuelle Meldungen“ bleibt ausgeblendet. Ist etwas los, erscheinen nur die betroffenen Karten groß, die übrigen fasst eine Zeile wie „Eilmeldungen, Nordbahn und S3 ok“ zusammen. So stehen die Abfahrten deutlich weiter oben.'],
@@ -148,7 +149,7 @@ function nb_datum($iso)
 	<div class="wrap site-head__row">
 		<a class="site-head__brand" href="<?= $root ?>">Bahn-Pinneberg.de</a>
 		<nav class="site-head__tools" aria-label="Zur&uuml;ck">
-			<a class="tool" href="<?= $root ?>">Zur Lage</a>
+			<?= nb_render_zurueck($root) ?>
 		</nav>
 	</div>
 </header>

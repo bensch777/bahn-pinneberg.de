@@ -60,7 +60,7 @@ $description = 'Anbieterkennzeichnung und Datenschutzerklärung von Bahn-Pinnebe
 	<div class="wrap site-head__row">
 		<a class="site-head__brand" href="<?= $root ?>">Bahn-Pinneberg.de</a>
 		<nav class="site-head__tools" aria-label="Zur&uuml;ck">
-			<a class="tool" href="<?= $root ?>">Zur Lage</a>
+			<?= nb_render_zurueck($root) ?>
 		</nav>
 	</div>
 </header>

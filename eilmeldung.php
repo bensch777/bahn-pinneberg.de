@@ -89,7 +89,7 @@ if (!$gefunden) {
 	<div class="wrap site-head__row">
 		<a class="site-head__brand" href="<?= $root ?>">Bahn-Pinneberg.de</a>
 		<nav class="site-head__tools" aria-label="Zur&uuml;ck">
-			<a class="zurueck" href="<?= $root ?>"><svg class="zurueck__icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11H7.8l5.6-5.6L12 4l-8 8 8 8 1.4-1.4L7.8 13H20v-2Z"/></svg><span class="zurueck__lang">Zur&uuml;ck zur Startseite</span><span class="zurueck__kurz">Startseite</span></a>
+			<?= nb_render_zurueck($root) ?>
 		</nav>
 	</div>
 </header>

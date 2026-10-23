@@ -178,10 +178,16 @@ button { font: inherit; color: inherit; }
 .section__more { font-size: 13.5px; color: var(--series); text-decoration: none; }
 .section__more:hover { text-decoration: underline; }
 .section__more::after { content: ' \2192'; }
-.pager { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin: 0 0 20px; font-size: 14px; }
+.pager { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px; margin: 24px 0 0; font-size: 14px; }
+.pager > :last-child { justify-self: end; text-align: right; }
+/* Filterleiste der Meldungsseiten: eigene Adressen, gezeigt als Segmente */
+.tabs { display: flex; gap: 4px; margin: 16px 0 0; padding: 3px; border-radius: 10px; background: var(--surface-2); width: fit-content; max-width: 100%; }
+.tabs__tab { padding: 6px 14px; border-radius: 8px; font-size: 14px; font-weight: 500; color: var(--ink-2); text-decoration: none; white-space: nowrap; }
+.tabs__tab:hover { color: var(--ink); }
+.tabs__tab[aria-current="page"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12); }
+.tabs__tab:focus-visible { outline: 2px solid var(--series); outline-offset: 1px; }
 .pager__link { color: var(--series); text-decoration: none; }
 .pager__link:hover { text-decoration: underline; }
-.pager__link--aus { color: var(--muted); }
 .pager__info { color: var(--muted); font-variant-numeric: tabular-nums; }
 .section__sub { margin: 0; color: var(--muted); font-size: 13px; }
 .section__tools { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
@@ -240,8 +246,6 @@ button { font: inherit; color: inherit; }
 .zurueck:hover { color: var(--ink); background: var(--surface-2); }
 .zurueck:focus-visible { outline: 2px solid var(--series); outline-offset: 1px; }
 .zurueck__icon { width: 18px; height: 18px; fill: currentColor; }
-.zurueck__kurz { display: none; }
-@media (max-width: 560px) { .zurueck__lang { display: none; } .zurueck__kurz { display: inline; } }
 .artikel { max-width: 760px; margin: 0 auto; padding: 36px 0 8px; }
 .artikel__kopf { margin: 0 0 22px; }
 .artikel__dachzeile { margin: 0 0 10px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; font-size: 13px; color: var(--muted); }
