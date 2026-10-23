@@ -15,6 +15,7 @@ $assetVersion = (int) @filemtime(__DIR__ . '/../dashboard.css');
 
 $changelog = [
     ['2026-10-23', [
+        ['Kompakte Lage auf dem Handy', 'Läuft alles, steht oben nur noch eine Karte „Alles planmäßig“ statt vier grüner Karten, und „Aktuelle Meldungen“ bleibt ausgeblendet. Ist etwas los, erscheinen nur die betroffenen Karten groß, die übrigen fasst eine Zeile wie „Eilmeldungen, Nordbahn und S3 ok“ zusammen. So stehen die Abfahrten deutlich weiter oben.'],
         ['Aufgeräumter Footer', 'Im Footer stehen „Aktuelle Lage“, „Alle Eilmeldungen“ und „Alle Störungen“ nicht mehr. Zur Startseite führt der Name oben und unten, die beiden Archive sind unter „Wichtige Meldungen“ direkt unter der Einleitung verlinkt.'],
         ['Neuer Name: Bahn-Pinneberg.de', 'Die Seite heißt jetzt wie ihre Adresse. Im Header steht nur noch „Bahn-Pinneberg.de“ statt „Nordbahn Monitor · bahn-pinneberg.de“, ebenso in Seitentiteln, Footer, Benachrichtigungen, App-Name und Vorschaubildern. Auf dem Homescreen heißt das Symbol „Bahn PI“.'],
         ['Eilmeldungskarte ohne alten Hinweis', 'Die grüne Karte „Keine akuten Eilmeldungen“ nennt die letzte Meldung („Letzte vor 6 Std.“) nur noch bis zwölf Stunden danach. Die Nordbahn liefert keine Gültigkeit mit, der Hinweis soll nur zeigen, ob eine jüngere Meldung noch nachwirken kann.'],

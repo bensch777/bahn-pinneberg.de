@@ -299,10 +299,10 @@ function nb_overall_level(array $cards)
     return 'info';
 }
 
-function nb_render_status_card($id, array $st)
+function nb_render_status_card($id, array $st, $versteckt = false)
 {
     $icons = ['ok' => '✓', 'warn' => '!', 'alert' => '!', 'unknown' => '?'];
-    $html = '<div class="card status status--' . nb_e($st['level']) . '" id="' . nb_e($id) . '" data-ssr>';
+    $html = '<div class="card status status--' . nb_e($st['level']) . '" id="' . nb_e($id) . '" data-ssr' . ($versteckt ? ' hidden' : '') . '>';
     $html .= '<div class="status__icon" aria-hidden="true">' . ($icons[$st['level']] ?? '?') . '</div>';
     $html .= '<h3 class="status__title">' . nb_e($st['title']);
     if ($st['detail'] !== '') {
@@ -311,6 +311,43 @@ function nb_render_status_card($id, array $st)
     $html .= '</h3></div>';
 
     return $html;
+}
+
+/* ---------- Lagekarten kompakt ----------
+ * Sind alle Karten gruen, steht nur eine Karte "Alles planmaessig". Sonst
+ * erscheinen nur die nicht gruenen Karten, die gruenen fasst eine Zeile darunter
+ * zusammen. Unbekannte Karten ("Lade …") zaehlen nicht als gruen. */
+
+const NB_STATUS_NAMEN = ['infra' => 'Infrastruktur', 'eil' => 'Eilmeldungen', 'betrieb' => 'Nordbahn', 's3' => 'S3'];
+
+/** "A", "A und B", "A, B und C" (wie aufzaehlung im Script). */
+function nb_aufzaehlung(array $teile)
+{
+    $letzter = array_pop($teile);
+
+    return $teile ? implode(', ', $teile) . ' und ' . $letzter : (string) $letzter;
+}
+
+/** Zusammenfassung der Lagekarten (wie renderKompakt im Script): alles (bool), detail, rest (Text der Sammelzeile), versteckt je Karte. */
+function nb_status_kompakt(array $cards)
+{
+    $gruen = [];
+    foreach ($cards as $key => $st) {
+        if ($st['level'] === 'ok') {
+            $gruen[] = NB_STATUS_NAMEN[$key] ?? $key;
+        }
+    }
+    $alles = count($gruen) === count($cards);
+    $detail = 'Keine Störung oder Eilmeldung, Nordbahn' . (isset($cards['s3']) ? ' und S3' : '') . ' planmäßig';
+    if (($cards['eil']['detail'] ?? '') !== '') {
+        $detail .= ' · ' . str_replace('Letzte ', 'letzte Eilmeldung ', $cards['eil']['detail']);
+    }
+    $versteckt = [];
+    foreach ($cards as $key => $st) {
+        $versteckt[$key] = $alles || $st['level'] === 'ok';
+    }
+
+    return ['alles' => $alles, 'detail' => $detail, 'rest' => !$alles && $gruen ? nb_aufzaehlung($gruen) . ' ok' : '', 'versteckt' => $versteckt];
 }
 
 function nb_render_incident(array $s)
@@ -769,12 +806,12 @@ function nb_aktuelle_meldungen(array $data, ?array $hvv, $now = null)
     return $liste;
 }
 
-/** Inhalt des Bereichs "Aktuelle Meldungen" (wie renderMeldungen im Script). */
-function nb_render_aktuelle_meldungen(array $liste, $now = null, $aktiveStoerungen = 0)
+/** Inhalt des Bereichs "Aktuelle Meldungen" (wie renderMeldungen im Script); leer heisst: Bereich ausblenden. */
+function nb_render_aktuelle_meldungen(array $liste, $now = null)
 {
     $now = $now ?? time();
     if (!$liste) {
-        return '<p class="feed__empty">' . ($aktiveStoerungen > 0 ? 'Keine weiteren Meldungen.' : 'Keine aktuellen Meldungen.') . '</p>';
+        return '';
     }
     $html = '<ol class="feed" id="meldungen-feed">';
     foreach ($liste as $it) {

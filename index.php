@@ -63,6 +63,7 @@ $gf = $gfAktiv ? nb_read_geofox() : null;
 if ($gfAktiv) {
     $cards['s3'] = nb_status_s3($gf);
 }
+$kompakt = nb_status_kompakt($cards);
 $meldungen = nb_aktuelle_meldungen($data, $gfAktiv ? ($gf['s3']['meldungen'] ?? []) : null);
 // Fuer das Vorschaubild hebt die S3 die Lage hoechstens auf "warn": die Nordbahn bleibt das Thema
 $ogCards = $cards;
@@ -193,13 +194,15 @@ $jsonLd = [
 
 	<section id="status" class="section" aria-label="Lagekarten">
 		<div class="status-grid">
-			<?= nb_render_status_card('status-infra', $cards['infra']) ?>
-			<?= nb_render_status_card('status-eil', $cards['eil']) ?>
-			<?= nb_render_status_card('status-betrieb', $cards['betrieb']) ?>
+			<?= nb_render_status_card('status-alles', ['level' => 'ok', 'title' => 'Alles planmäßig', 'detail' => $kompakt['detail']], !$kompakt['alles']) ?>
+			<?= nb_render_status_card('status-infra', $cards['infra'], $kompakt['versteckt']['infra']) ?>
+			<?= nb_render_status_card('status-eil', $cards['eil'], $kompakt['versteckt']['eil']) ?>
+			<?= nb_render_status_card('status-betrieb', $cards['betrieb'], $kompakt['versteckt']['betrieb']) ?>
 <?php if ($gfAktiv): ?>
-			<?= nb_render_status_card('status-s3', $cards['s3']) ?>
+			<?= nb_render_status_card('status-s3', $cards['s3'], $kompakt['versteckt']['s3']) ?>
 <?php endif; ?>
 		</div>
+		<p class="status-rest" id="status-rest"<?= $kompakt['rest'] === '' ? ' hidden' : '' ?>><?= nb_e($kompakt['rest']) ?></p>
 		<ul class="incidents" id="incidents"<?= $aktiv ? '' : ' hidden' ?>>
 <?php foreach ($data['stoerungen'] as $st): ?>
 			<?= nb_render_incident($st) ?>
@@ -208,13 +211,13 @@ $jsonLd = [
 		</ul>
 	</section>
 
-	<section id="meldungen" class="section" aria-labelledby="meldungen-h"<?= $gfAktiv ? ' data-hvv' : '' ?>>
+	<section id="meldungen" class="section" aria-labelledby="meldungen-h"<?= $gfAktiv ? ' data-hvv' : '' ?><?= $meldungen ? '' : ' hidden' ?>>
 		<div class="section__head">
 			<h2 id="meldungen-h" class="section__title">Aktuelle Meldungen</h2>
 			<a class="section__more" href="<?= $root ?>news/">Verlauf</a>
 		</div>
 		<div class="card meldungen" id="meldungen-inhalt">
-			<?= nb_render_aktuelle_meldungen($meldungen, null, $aktiv) ?>
+			<?= nb_render_aktuelle_meldungen($meldungen) ?>
 
 		</div>
 	</section>

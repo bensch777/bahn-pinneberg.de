@@ -417,9 +417,8 @@ function test_aktuelle_meldungen()
     t_contains('<ol class="feed" id="meldungen-feed">', nb_render_aktuelle_meldungen($liste, $jetzt), 'Liste');
 
     $ruhig = nb_aktuelle_meldungen(['stoerungen' => [], 'stoerungen_verlauf' => [], 'eilmeldungen' => [], 'eilmeldungen_live' => []], null, $jetzt);
-    t_eq('<p class="feed__empty">Keine aktuellen Meldungen.</p>', nb_render_aktuelle_meldungen($ruhig, $jetzt), 'ruhige Lage: eine Zeile');
+    t_eq('', nb_render_aktuelle_meldungen($ruhig, $jetzt), 'ruhige Lage: nichts, der Bereich wird ausgeblendet');
     t_eq([], nb_aktuelle_meldungen(['stoerungen' => [], 'stoerungen_verlauf' => [], 'eilmeldungen' => [], 'eilmeldungen_live' => []], array_slice($hvv, 1, 3), $jetzt), 'nur geplante: nichts');
-    t_eq('<p class="feed__empty">Keine weiteren Meldungen.</p>', nb_render_aktuelle_meldungen($ruhig, $jetzt, 1), 'mit laufender Stoerung');
 }
 
 function test_eil_karte_hinweis_nur_bis_zwoelf_stunden()
@@ -429,4 +428,23 @@ function test_eil_karte_hinweis_nur_bis_zwoelf_stunden()
     t_eq('Letzte vor 6 Std.', nb_status_eil($data, $item(6 * 3600))['detail'], 'sechs Stunden: Hinweis');
     t_eq('', nb_status_eil($data, $item(13 * 3600))['detail'], 'dreizehn Stunden: kein Hinweis');
     t_eq('Keine akuten Eilmeldungen', nb_status_eil($data, $item(13 * 3600))['title'], 'Titel bleibt');
+}
+
+function test_lagekarten_kompakt()
+{
+    $ok = function ($detail = '') { return ['level' => 'ok', 'title' => 'x', 'detail' => $detail]; };
+    $k = nb_status_kompakt(['infra' => $ok(), 'eil' => $ok('Letzte vor 6 Std.'), 'betrieb' => $ok(), 's3' => $ok()]);
+    t_eq(true, $k['alles'], 'alles gruen');
+    t_eq('Keine Störung oder Eilmeldung, Nordbahn und S3 planmäßig · letzte Eilmeldung vor 6 Std.', $k['detail'], 'Detail mit letzter Eilmeldung');
+    t_eq(['infra' => true, 'eil' => true, 'betrieb' => true, 's3' => true], $k['versteckt'], 'alle Einzelkarten versteckt');
+    t_eq('', $k['rest'], 'keine Sammelzeile');
+
+    $k = nb_status_kompakt(['infra' => $ok(), 'eil' => $ok(), 'betrieb' => ['level' => 'alert', 'title' => 'Nordbahn gestört', 'detail' => ''], 's3' => ['level' => 'unknown', 'title' => 'Lade S3 …', 'detail' => '']]);
+    t_eq(false, $k['alles'], 'Stoerung: nicht alles gruen');
+    t_eq(['infra' => true, 'eil' => true, 'betrieb' => false, 's3' => false], $k['versteckt'], 'gestoerte und unbekannte Karte sichtbar');
+    t_eq('Infrastruktur und Eilmeldungen ok', $k['rest'], 'Sammelzeile');
+
+    $k = nb_status_kompakt(['infra' => $ok(), 'eil' => $ok(), 'betrieb' => $ok()]);
+    t_eq('Keine Störung oder Eilmeldung, Nordbahn planmäßig', $k['detail'], 'ohne S3');
+    t_eq('A, B und C', nb_aufzaehlung(['A', 'B', 'C']), 'Aufzaehlung');
 }
