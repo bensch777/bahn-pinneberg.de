@@ -28,7 +28,7 @@
 				<li><a href="<?= $root ?>news/">Wichtige Meldungen</a></li>
 <?php endif; ?>
 <?php if ($current !== 'statistik'): ?>
-				<li><a href="<?= $root ?>statistik/">St&ouml;rungsstatistik</a></li>
+				<li><a href="<?= $root ?>statistik/">Statistik</a></li>
 <?php endif; ?>
 <?php if ($current !== 'changelog'): ?>
 				<li><a href="<?= $root ?>changelog/">Was ist neu</a></li>

@@ -88,7 +88,7 @@ $jsonLd = [
 	<div class="page-head">
 		<div>
 			<h1>Infrastrukturst&ouml;rungen</h1>
-			<p class="page-head__lead">Alle St&ouml;rungen auf der Strecke Hamburg &ndash; Elmshorn &ndash; Itzehoe / Wrist laut strecken-info.de<?php if ($seit): ?>, erfasst seit dem <?= nb_e(date('d.m.Y', $seit)) ?><?php endif; ?><?php if ($aktiv): ?>, davon <?= (int) $aktiv ?> aktuell aktiv<?php endif; ?>. Kennzahlen dazu in der <a href="<?= $root ?>statistik/">St&ouml;rungsstatistik</a>.</p>
+			<p class="page-head__lead">Alle St&ouml;rungen auf der Strecke Hamburg &ndash; Elmshorn &ndash; Itzehoe / Wrist laut strecken-info.de<?php if ($seit): ?>, erfasst seit dem <?= nb_e(date('d.m.Y', $seit)) ?><?php endif; ?><?php if ($aktiv): ?>, davon <?= (int) $aktiv ?> aktuell aktiv<?php endif; ?>. Kennzahlen dazu in der <a href="<?= $root ?>statistik/?ansicht=strecke">Statistik</a>.</p>
 		</div>
 	</div>
 

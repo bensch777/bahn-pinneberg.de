@@ -346,14 +346,19 @@ function test_statistik_kennzahlen()
     $s = nb_statistik($verlauf, $now);
     t_eq(4, $s['gesamt'], 'kaputter Eintrag zaehlt nicht');
     t_eq($now - 100 * 86400, $s['seit'], 'aelteste Stoerung');
-    t_eq(2, $s['tage30']['n'], 'zwei in den letzten 30 Tagen');
-    t_eq(8 * 3600, $s['tage30']['dauer'], 'Gesamtdauer');
-    t_eq(4 * 3600, $s['tage30']['schnitt'], 'Schnitt');
-    t_eq('Signal kaputt in Elmshorn', $s['tage30']['laengste']['titel'], 'laengste mit KI-Titel');
-    t_eq(8, count($s['wochen']), 'acht Wochen');
+    t_eq(2, $s['zeitraum']['n'], 'zwei in den letzten 30 Tagen');
+    t_eq(8 * 3600, $s['zeitraum']['dauer'], 'Gesamtdauer');
+    t_eq(4 * 3600, $s['zeitraum']['schnitt'], 'Schnitt');
+    t_eq('Signal kaputt in Elmshorn', $s['zeitraum']['laengste']['titel'], 'laengste mit KI-Titel');
+    t_eq(6, count($s['wochen']), '30 Tage: sechs Kalenderwochen');
     t_eq(1, end($s['wochen'])['n'], 'laufende Woche zuletzt, mit der Stoerung von vorgestern');
-    t_eq(['Störung an Signalanlagen', 'Bauarbeiten'], array_column($s['ursachen'], 'name'), 'Ursachen der letzten 90 Tage, haeufigste zuerst, Unterursache abgeschnitten');
+    t_eq(['Störung an Signalanlagen'], array_column($s['ursachen'], 'name'), 'Ursachen im Zeitraum, Unterursache abgeschnitten');
     t_eq(2, $s['ursachen'][0]['n'], 'zwei Signalstoerungen');
+    $s = nb_statistik($verlauf, $now, 60);
+    t_eq(3, $s['zeitraum']['n'], '60 Tage: auch die Bauarbeiten');
+    t_eq(['Störung an Signalanlagen', 'Bauarbeiten'], array_column($s['ursachen'], 'name'), 'Ursachen der 60 Tage, haeufigste zuerst');
+    t_eq(10, count($s['wochen']), '60 Tage: zehn Kalenderwochen');
+    t_eq(2, count(nb_statistik($verlauf, $now, 7)['wochen']), '7 Tage: zwei Kalenderwochen');
     t_eq(0, nb_bar_stufe(0, 5), 'leerer Balken');
     t_eq(100, nb_bar_stufe(5, 5), 'voller Balken');
     t_eq(5, nb_bar_stufe(1, 100), 'mindestens 5 Prozent, wenn ueberhaupt etwas da ist');
@@ -472,4 +477,19 @@ function test_lagekarten_kompakt()
     $k = nb_status_kompakt(['infra' => $ok(), 'eil' => $ok(), 'betrieb' => $ok()]);
     t_eq('Keine Störung oder Eilmeldung, Nordbahn planmäßig', $k['detail'], 'ohne S3');
     t_eq('A, B und C', nb_aufzaehlung(['A', 'B', 'C']), 'Aufzaehlung');
+}
+
+function test_statistik_url_und_verlauf()
+{
+    $f = zl_filter([]) + ['ansicht' => 'zuege', 'sort' => 'zeit'];
+    t_eq('./', nb_statistik_url($f), 'Vorgaben: keine Parameter');
+    t_eq('./?ansicht=strecke&tage=7', nb_statistik_url($f, ['ansicht' => 'strecke', 'tage' => 7]), 'nur Abweichungen');
+    $html = nb_render_zug_verlauf([
+        ['tag' => '2026-10-15', 'puenktlich' => 8, 'spaet' => 1, 'ausfall' => 1, 'beobachtet' => true],
+        ['tag' => '2026-10-16', 'puenktlich' => 0, 'spaet' => 0, 'ausfall' => 0, 'beobachtet' => false],
+    ]);
+    t_contains('<div class="verlauf__tag" data-h="100" title="Do 15.10.: 8 pünktlich, 1 verspätet, 1 ausgefallen">', $html, 'Saeule mit Tooltip');
+    t_contains('<span class="verlauf__seg verlauf__seg--ausfall" data-h="10"></span>', $html, 'Ausfall unten');
+    t_contains('title="Fr 16.10.: nicht beobachtet"', $html, 'Tag ohne Beobachtung');
+    t_eq('87 %', nb_prozent(0.866), 'Prozent');
 }

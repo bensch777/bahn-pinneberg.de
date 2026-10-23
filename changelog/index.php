@@ -15,6 +15,7 @@ $assetVersion = (int) @filemtime(__DIR__ . '/../dashboard.css');
 
 $changelog = [
     ['2026-10-23', [
+        ['Statistik als Dashboard', 'Die Statistikseite hat zwei Ansichten: „Züge“ und „Strecke“. Bei den Zügen lassen sich Bahnhof, Richtung, Zeitraum (7, 14, 30 oder 60 Tage), Tageszeit (morgens, abends) und Werktage wählen. Oben stehen Pünktlichkeit, Ausfälle, mittlere Verspätung und wie viele Tage beobachtet wurden, darunter ein Verlauf je Tag und die Tabelle je Zug, sortierbar nach Abfahrt oder Ausfällen. „Strecke“ zeigt die Infrastrukturstörungen im gewählten Zeitraum. Die Filter stehen in der Adresse, ein Link zeigt also genau diese Auswahl. Ohne Auswahl gilt der Bahnhof von der Startseite.'],
         ['Unterseiten aufgeräumt', 'Oben rechts führt überall „← Startseite“ zurück statt „Zur Lage“. Wichtige Meldungen, Eilmeldungen und Störungen haben eine gemeinsame Filterleiste „Wichtig · Eilmeldungen · Störungen“, jede Ansicht behält ihre eigene Adresse. Geblättert wird nur noch unten, und eine Seite endet nie mitten in einem Tag.'],
         ['Footer ohne Quellenzeile', 'Die Zeile „Quellen: nordbahn.de, strecken-info.de, hvv.de“ steht nicht mehr im Footer. Woher die Daten kommen, erklären weiter die häufigen Fragen.'],
         ['RB60 überall genannt', 'Titel, Beschreibungen, Footer und Vorschaubilder nennen jetzt RB60, RB61 und RB71. Die HVV-Meldungen umfassen auch die RB60.'],
