@@ -18,7 +18,7 @@ self.addEventListener('push', function (event) {
 		data: { url: data.url || './' }
 	};
 	if (data.ts) options.timestamp = data.ts * 1000;
-	event.waitUntil(self.registration.showNotification(data.title || 'Nordbahn Monitor', options));
+	event.waitUntil(self.registration.showNotification(data.title || 'Bahn-Pinneberg.de', options));
 });
 
 self.addEventListener('notificationclick', function (event) {

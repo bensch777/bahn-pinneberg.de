@@ -27,10 +27,9 @@ $imp += [
 ];
 $vollstaendig = $imp['name'] !== '' && $imp['strasse'] !== '' && $imp['ort'] !== '' && $imp['email'] !== '';
 $anschrift = array_values(array_filter([$imp['name'], $imp['zusatz'], $imp['strasse'], $imp['ort'], $imp['land']], 'strlen'));
-$host = nordbahn_site_host();
 
-$title = 'Impressum und Datenschutz – Nordbahn Monitor';
-$description = 'Anbieterkennzeichnung und Datenschutzerklärung des Nordbahn Monitors auf ' . $host . '.';
+$title = 'Impressum und Datenschutz – Bahn-Pinneberg.de';
+$description = 'Anbieterkennzeichnung und Datenschutzerklärung von Bahn-Pinneberg.de.';
 ?>
 <!DOCTYPE html>
 <html lang="de">
@@ -45,7 +44,7 @@ $description = 'Anbieterkennzeichnung und Datenschutzerklärung des Nordbahn Mon
 <meta name="theme-color" content="#f6f6f4" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#121211" media="(prefers-color-scheme: dark)">
 <meta property="og:type" content="website">
-<meta property="og:site_name" content="Nordbahn Monitor">
+<meta property="og:site_name" content="Bahn-Pinneberg.de">
 <meta property="og:locale" content="de_DE">
 <meta property="og:url" content="<?= SITE_URL ?>/impressum/">
 <meta property="og:title" content="<?= nb_e($title) ?>">
@@ -59,7 +58,7 @@ $description = 'Anbieterkennzeichnung und Datenschutzerklärung des Nordbahn Mon
 
 <header class="site-head">
 	<div class="wrap site-head__row">
-		<a class="site-head__brand" href="<?= $root ?>">Nordbahn Monitor <span class="site-head__domain"><?= nb_e($host) ?></span></a>
+		<a class="site-head__brand" href="<?= $root ?>">Bahn-Pinneberg.de</a>
 		<nav class="site-head__tools" aria-label="Zur&uuml;ck">
 			<a class="tool" href="<?= $root ?>">Zur Lage</a>
 		</nav>
@@ -70,7 +69,7 @@ $description = 'Anbieterkennzeichnung und Datenschutzerklärung des Nordbahn Mon
 	<div class="page-head">
 		<div>
 			<h1>Impressum</h1>
-			<p class="page-head__lead">Wer hinter dem Nordbahn Monitor steht und was mit Ihren Daten passiert.</p>
+			<p class="page-head__lead">Wer hinter Bahn-Pinneberg.de steht und was mit Ihren Daten passiert.</p>
 		</div>
 	</div>
 
@@ -87,7 +86,7 @@ $description = 'Anbieterkennzeichnung und Datenschutzerklärung des Nordbahn Mon
 			<p><strong>Die Anbieterangaben sind noch nicht hinterlegt.</strong> Sie werden in der Konfiguration des Servers gepflegt (NORDBAHN_IMPRESSUM in config.php).</p>
 <?php endif; ?>
 			<h2>Hinweis zum Projekt</h2>
-			<p>Der Nordbahn Monitor ist ein privates, nicht kommerzielles Projekt ohne Verbindung zur NBE Nordbahn Eisenbahngesellschaft mbH, zur DB InfraGO AG oder zur NAH.SH GmbH. Alle Angaben zu St&ouml;rungen, Abfahrten und Eilmeldungen stammen aus &ouml;ffentlichen Quellen (nordbahn.de, strecken-info.de, HVV-Schnittstelle) und werden automatisch aufbereitet. F&uuml;r Richtigkeit, Vollst&auml;ndigkeit und Aktualit&auml;t wird keine Gew&auml;hr &uuml;bernommen. Verbindlich sind allein die Ausk&uuml;nfte der Nordbahn.</p>
+			<p>Bahn-Pinneberg.de ist ein privates, nicht kommerzielles Projekt ohne Verbindung zur NBE Nordbahn Eisenbahngesellschaft mbH, zur DB InfraGO AG oder zur NAH.SH GmbH. Alle Angaben zu St&ouml;rungen, Abfahrten und Eilmeldungen stammen aus &ouml;ffentlichen Quellen (nordbahn.de, strecken-info.de, HVV-Schnittstelle) und werden automatisch aufbereitet. F&uuml;r Richtigkeit, Vollst&auml;ndigkeit und Aktualit&auml;t wird keine Gew&auml;hr &uuml;bernommen. Verbindlich sind allein die Ausk&uuml;nfte der Nordbahn.</p>
 			<h2>Haftung f&uuml;r Links</h2>
 			<p>Die Seite verlinkt auf Angebote Dritter (nordbahn.de, strecken-info.de, Telegram, X). Auf deren Inhalte habe ich keinen Einfluss; es gelten die Angaben der jeweiligen Anbieter.</p>
 		</div>

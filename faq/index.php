@@ -37,7 +37,7 @@ $faq = [
     ['Gibt es die Daten auch für Programme oder KI-Assistenten?',
      'Ja. Unter /lage.md steht die aktuelle Lage als Text (Markdown), unter /llms.txt eine Beschreibung der Seite und der Datenfelder, und /api/data sowie /api/abfahrten?bhf=APD liefern alles als JSON. Alles öffentlich und ohne Schlüssel, bitte nicht häufiger als einmal pro Minute abrufen.'],
     ['Ist das eine offizielle Seite der Nordbahn?',
-     'Nein. Der Nordbahn Monitor ist ein privates Projekt ohne Verbindung zur NBE Nordbahn Eisenbahngesellschaft, Betreiber siehe Impressum. Verbindliche Auskünfte gibt es auf nordbahn.de.'],
+     'Nein. Bahn-Pinneberg.de ist ein privates Projekt ohne Verbindung zur NBE Nordbahn Eisenbahngesellschaft, Betreiber siehe Impressum. Verbindliche Auskünfte gibt es auf nordbahn.de.'],
 ];
 $jsonLd = [
     '@context' => 'https://schema.org',
@@ -46,8 +46,8 @@ $jsonLd = [
         return ['@type' => 'Question', 'name' => $qa[0], 'acceptedAnswer' => ['@type' => 'Answer', 'text' => $qa[1]]];
     }, $faq),
 ];
-$title = 'Häufige Fragen – Nordbahn Monitor';
-$description = 'Wie der Nordbahn Monitor Störungen, Abfahrten und Eilmeldungen der RB61 und RB71 ermittelt, woher die Daten kommen und wie Benachrichtigungen funktionieren.';
+$title = 'Häufige Fragen – Bahn-Pinneberg.de';
+$description = 'Wie Bahn-Pinneberg.de Störungen, Abfahrten und Eilmeldungen der RB61 und RB71 ermittelt, woher die Daten kommen und wie Benachrichtigungen funktionieren.';
 ?>
 <!DOCTYPE html>
 <html lang="de">
@@ -62,7 +62,7 @@ $description = 'Wie der Nordbahn Monitor Störungen, Abfahrten und Eilmeldungen 
 <meta name="theme-color" content="#f6f6f4" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#121211" media="(prefers-color-scheme: dark)">
 <meta property="og:type" content="website">
-<meta property="og:site_name" content="Nordbahn Monitor">
+<meta property="og:site_name" content="Bahn-Pinneberg.de">
 <meta property="og:locale" content="de_DE">
 <meta property="og:url" content="<?= SITE_URL ?>/faq/">
 <meta property="og:title" content="<?= nb_e($title) ?>">
@@ -80,7 +80,7 @@ $description = 'Wie der Nordbahn Monitor Störungen, Abfahrten und Eilmeldungen 
 
 <header class="site-head">
 	<div class="wrap site-head__row">
-		<a class="site-head__brand" href="<?= $root ?>">Nordbahn Monitor <span class="site-head__domain"><?= htmlspecialchars(nordbahn_site_host(), ENT_QUOTES, 'UTF-8') ?></span></a>
+		<a class="site-head__brand" href="<?= $root ?>">Bahn-Pinneberg.de</a>
 		<nav class="site-head__tools" aria-label="Zur&uuml;ck">
 			<a class="tool" href="<?= $root ?>">Zur Lage</a>
 		</nav>
@@ -91,7 +91,7 @@ $description = 'Wie der Nordbahn Monitor Störungen, Abfahrten und Eilmeldungen 
 	<div class="page-head">
 		<div>
 			<h1>H&auml;ufige Fragen</h1>
-			<p class="page-head__lead">Wie der Nordbahn Monitor funktioniert und woher die Daten kommen.</p>
+			<p class="page-head__lead">Wie Bahn-Pinneberg.de funktioniert und woher die Daten kommen.</p>
 		</div>
 	</div>
 

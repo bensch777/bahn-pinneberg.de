@@ -283,7 +283,7 @@ function test_lage_markdown()
         ],
     ]];
     $md = nb_lage_md($data, $abf, 'APD', $now);
-    t_contains("# Nordbahn Monitor: aktuelle Lage", $md, 'Titel');
+    t_contains("# Bahn-Pinneberg.de: aktuelle Lage", $md, 'Titel');
     t_contains('- Infrastruktur: 1 Infrastrukturstörung', $md, 'Statuszeile');
     t_contains("### Verspätungen bei Eidelstedt\n\nSignalstörung, Züge fahren auf dem Gegengleis.", $md, 'Pendler-Titel und -Text');
     t_contains('gemeldetes Ende heute, 09:00 Uhr überschritten, dauert an', $md, 'abgelaufen');
