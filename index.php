@@ -78,7 +78,7 @@ $assetVersion = max((int) @filemtime(__DIR__ . '/dashboard.js'), (int) @filemtim
 $stoerungSatz = $aktiv > 0
     ? $aktiv . ' aktive Störung' . ($aktiv === 1 ? '' : 'en') . ' auf der Nordbahn-Strecke Hamburg – Elmshorn – Itzehoe/Wrist.'
     : 'Störungen heute auf der Nordbahn-Strecke Hamburg – Elmshorn – Itzehoe/Wrist.';
-$title = 'Nordbahn Monitor – Störungen und Abfahrten RB61/RB71 ab Pinneberg, Elmshorn, Itzehoe und Wrist';
+$title = 'Bahn-Pinneberg.de – Störungen und Abfahrten RB61/RB71 ab Pinneberg, Elmshorn, Itzehoe und Wrist';
 $description = $stoerungSatz . ' Dazu die nächsten Züge ab Pinneberg, Prisdorf, Tornesch, Elmshorn, Itzehoe oder Wrist nach Hamburg und zurück sowie die letzten Eilmeldungen zu RB61 und RB71. Live, alle zwei Minuten aktualisiert.';
 $lead = 'Störungen heute, nächste Züge und Eilmeldungen der RB61 und RB71 zwischen Hamburg, Elmshorn, Itzehoe und Wrist.';
 
@@ -89,15 +89,15 @@ $jsonLd = [
         [
             '@type' => 'WebSite',
             '@id' => $pageUrl . '#website',
-            'name' => 'Nordbahn Monitor',
-            'alternateName' => nordbahn_site_host(),
+            'name' => 'Bahn-Pinneberg.de',
+            'alternateName' => 'Nordbahn Monitor',
             'url' => $pageUrl,
             'inLanguage' => 'de',
             'publisher' => $author,
         ],
         [
             '@type' => 'WebApplication',
-            'name' => 'Nordbahn Monitor',
+            'name' => 'Bahn-Pinneberg.de',
             'url' => $pageUrl,
             'description' => $description,
             'applicationCategory' => 'TravelApplication',
@@ -127,7 +127,7 @@ $jsonLd = [
 <meta name="theme-color" content="#121211" media="(prefers-color-scheme: dark)">
 
 <meta property="og:type" content="website">
-<meta property="og:site_name" content="Nordbahn Monitor">
+<meta property="og:site_name" content="Bahn-Pinneberg.de">
 <meta property="og:locale" content="de_DE">
 <meta property="og:url" content="<?= nb_e($pageUrl) ?>">
 <meta property="og:title" content="<?= nb_e($title) ?>">
@@ -156,7 +156,7 @@ $jsonLd = [
 
 <header class="site-head">
 	<div class="wrap site-head__row">
-		<a class="site-head__brand" href="<?= $root ?>">Nordbahn Monitor <span class="site-head__domain"><?= htmlspecialchars(nordbahn_site_host(), ENT_QUOTES, 'UTF-8') ?></span></a>
+		<a class="site-head__brand" href="<?= $root ?>">Bahn-Pinneberg.de</a>
 		<nav class="site-head__tools" aria-label="Aktualisieren und Benachrichtigungen">
 			<button type="button" class="tool tool--refresh" id="refresh-button" title="Jetzt aktualisieren">
 				<svg class="tool__icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M17.65 6.35A7.96 7.96 0 0 0 12 4a8 8 0 1 0 7.74 10h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35Z"/></svg>

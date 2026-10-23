@@ -24,16 +24,16 @@ $now = time();
 
 if (!$gefunden) {
     http_response_code(404);
-    $title = 'Eilmeldung nicht gefunden – Nordbahn Monitor';
+    $title = 'Eilmeldung nicht gefunden – Bahn-Pinneberg.de';
     $ogTitle = 'Eilmeldung nicht gefunden';
-    $description = 'Diese Eilmeldung ist nicht im Archiv des Nordbahn Monitors.';
+    $description = 'Diese Eilmeldung ist nicht im Archiv von Bahn-Pinneberg.de.';
     $pageUrl = SITE_URL . '/eilmeldungen/';
     $ogBild = 'info';
     $jsonLd = null;
 } else {
     $ts = $em['stand'] ?? $em['ts'];
     $titel = $em['title'] !== '' ? $em['title'] : $em['id'];
-    $title = $titel . ' – Eilmeldung der Nordbahn vom ' . date('d.m.Y', $ts) . ' – Nordbahn Monitor';
+    $title = $titel . ' – Eilmeldung der Nordbahn vom ' . date('d.m.Y', $ts) . ' – Bahn-Pinneberg.de';
     $ogTitle = $titel;
     $description = mb_substr(($em['text'] !== '' ? $em['text'] . ' ' : '') . 'Eilmeldung der Nordbahn vom ' . nb_fmt_datetime(date('c', $ts)) . ($em['original'] !== '' && $em['original'] !== $titel ? ' („' . $em['original'] . '“).' : '.'), 0, 300);
     $pageUrl = nb_ereignis_url('eilmeldung', $id, $titel);
@@ -47,8 +47,8 @@ if (!$gefunden) {
         'datePublished' => date('c', $ts),
         'inLanguage' => 'de',
         'mainEntityOfPage' => $pageUrl,
-        'author' => ['@type' => 'Organization', 'name' => 'Nordbahn Monitor', 'url' => SITE_URL . '/'],
-        'publisher' => ['@type' => 'Organization', 'name' => 'Nordbahn Monitor', 'url' => SITE_URL . '/'],
+        'author' => ['@type' => 'Organization', 'name' => 'Bahn-Pinneberg.de', 'url' => SITE_URL . '/'],
+        'publisher' => ['@type' => 'Organization', 'name' => 'Bahn-Pinneberg.de', 'url' => SITE_URL . '/'],
     ];
     $stoerungen = nb_stoerungen_im_zeitraum($data, $ts - 3600, $ts + 3 * 3600);
     $zuege = nb_zuege_im_zeitraum($ts - 1800, $ts + 4 * 3600, 0, 20);
@@ -67,7 +67,7 @@ if (!$gefunden) {
 <meta name="theme-color" content="#f6f6f4" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#121211" media="(prefers-color-scheme: dark)">
 <meta property="og:type" content="article">
-<meta property="og:site_name" content="Nordbahn Monitor">
+<meta property="og:site_name" content="Bahn-Pinneberg.de">
 <meta property="og:locale" content="de_DE">
 <meta property="og:url" content="<?= nb_e($pageUrl) ?>">
 <meta property="og:title" content="<?= nb_e($ogTitle) ?>">
@@ -87,7 +87,7 @@ if (!$gefunden) {
 
 <header class="site-head">
 	<div class="wrap site-head__row">
-		<a class="site-head__brand" href="<?= $root ?>">Nordbahn Monitor <span class="site-head__domain"><?= htmlspecialchars(nordbahn_site_host(), ENT_QUOTES, 'UTF-8') ?></span></a>
+		<a class="site-head__brand" href="<?= $root ?>">Bahn-Pinneberg.de</a>
 		<nav class="site-head__tools" aria-label="Zur&uuml;ck">
 			<a class="zurueck" href="<?= $root ?>"><svg class="zurueck__icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11H7.8l5.6-5.6L12 4l-8 8 8 8 1.4-1.4L7.8 13H20v-2Z"/></svg><span class="zurueck__lang">Zur&uuml;ck zur Startseite</span><span class="zurueck__kurz">Startseite</span></a>
 		</nav>

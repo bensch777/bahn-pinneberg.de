@@ -1086,7 +1086,7 @@ function nb_lage_md(array $data, $abf, $heimat, $now = null, $gf = null)
     $items = nb_items($data);
     $stand = !empty($data['received_at']) ? nb_fmt_wann(nb_ts($data['received_at']), $now) : 'unbekannt';
 
-    $md = "# Nordbahn Monitor: aktuelle Lage\n\n";
+    $md = "# Bahn-Pinneberg.de: aktuelle Lage\n\n";
     $md .= "Störungen, Abfahrten und Eilmeldungen der Nordbahn-Linien RB61 (Itzehoe – Hamburg Hbf), RB71 (Wrist – Hamburg Hbf) und RB60 (Itzehoe – Hamburg-Altona). Privates Projekt, keine offizielle Seite der Nordbahn. Stand der Störungs- und Eilmeldungsdaten: " . $stand . ".\n\n";
 
     $md .= "## Lage auf einen Blick\n\n";

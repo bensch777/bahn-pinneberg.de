@@ -7,7 +7,7 @@
 <footer class="site-foot">
 	<div class="wrap site-foot__grid">
 		<div class="site-foot__about">
-			<a class="site-foot__brand" href="<?= $root ?>">Nordbahn Monitor</a>
+			<a class="site-foot__brand" href="<?= $root ?>">Bahn-Pinneberg.de</a>
 			<p>St&ouml;rungen, Abfahrten und Eilmeldungen der RB61 und RB71 zwischen Hamburg, Elmshorn, Itzehoe und Wrist. Ein privates Projekt, keine offizielle Seite der Nordbahn.</p>
 		</div>
 		<div>

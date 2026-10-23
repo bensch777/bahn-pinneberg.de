@@ -1100,7 +1100,7 @@
 						var body = pushActive()
 							? 'Du bekommst jetzt eine Meldung bei neuen Zugausfällen und Störungen, auch wenn die Seite zu ist.'
 							: 'Du bekommst jetzt eine Meldung bei neuen Zugausfällen und Störungen, solange die Seite offen ist.';
-						new Notification('Nordbahn Monitor', { body: body, icon: root() + 'favicon.svg', lang: 'de' });
+						new Notification('Bahn-Pinneberg.de', { body: body, icon: root() + 'favicon.svg', lang: 'de' });
 					} catch (e) { /* egal */ }
 					renderNotifyButton();
 				};

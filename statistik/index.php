@@ -77,7 +77,7 @@ $jsonLd = [
 <meta name="theme-color" content="#f6f6f4" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#121211" media="(prefers-color-scheme: dark)">
 <meta property="og:type" content="website">
-<meta property="og:site_name" content="Nordbahn Monitor">
+<meta property="og:site_name" content="Bahn-Pinneberg.de">
 <meta property="og:locale" content="de_DE">
 <meta property="og:url" content="<?= SITE_URL ?>/statistik/">
 <meta property="og:title" content="<?= nb_e($title) ?>">
@@ -95,7 +95,7 @@ $jsonLd = [
 
 <header class="site-head">
 	<div class="wrap site-head__row">
-		<a class="site-head__brand" href="<?= $root ?>">Nordbahn Monitor <span class="site-head__domain"><?= htmlspecialchars(nordbahn_site_host(), ENT_QUOTES, 'UTF-8') ?></span></a>
+		<a class="site-head__brand" href="<?= $root ?>">Bahn-Pinneberg.de</a>
 		<nav class="site-head__tools" aria-label="Zur&uuml;ck">
 			<a class="tool" href="<?= $root ?>">Zur Lage</a>
 		</nav>
