@@ -24,7 +24,7 @@ $items = $blatt['items'];
 $basis = SITE_URL . '/stoerungen/';
 $pageUrl = nb_seite_url($basis, $blatt['seite']);
 
-$title = 'Infrastrukturstörungen der Nordbahn – Archiv RB61/RB71 Hamburg, Pinneberg, Elmshorn, Itzehoe, Wrist';
+$title = 'Infrastrukturstörungen der Nordbahn – Archiv RB60/RB61/RB71 Hamburg, Pinneberg, Elmshorn, Itzehoe, Wrist';
 $description = 'Alle ' . $anzahl . ' Infrastrukturstörungen auf der Nordbahn-Strecke Hamburg – Elmshorn – Itzehoe / Wrist'
     . ($seit ? ' seit dem ' . date('d.m.Y', $seit) : '') . ', nach Tagen sortiert, mit Beginn, Ende, Dauer und Pendler-Text aus den Meldungen von strecken-info.de.';
 if ($blatt['seite'] > 1) {

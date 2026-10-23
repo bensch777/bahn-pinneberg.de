@@ -23,8 +23,8 @@ $items = $blatt['items'];
 $basis = SITE_URL . '/eilmeldungen/';
 $pageUrl = nb_seite_url($basis, $blatt['seite']);
 
-$title = 'Eilmeldungen der Nordbahn – Archiv RB61/RB71 Hamburg, Pinneberg, Elmshorn, Itzehoe, Wrist';
-$description = 'Alle ' . $anzahl . ' Eilmeldungen der Nordbahn zu Zugausfällen und Verspätungen auf RB61 und RB71'
+$title = 'Eilmeldungen der Nordbahn – Archiv RB60/RB61/RB71 Hamburg, Pinneberg, Elmshorn, Itzehoe, Wrist';
+$description = 'Alle ' . $anzahl . ' Eilmeldungen der Nordbahn zu Zugausfällen und Verspätungen auf RB60, RB61 und RB71'
     . ($seit ? ' seit dem ' . date('d.m.Y', $seit) : '') . ', nach Tagen sortiert, mit Pendler-Titel und Link zur Originalmeldung.';
 if ($blatt['seite'] > 1) {
     $title .= ' – Seite ' . $blatt['seite'];
@@ -87,7 +87,7 @@ $jsonLd = [
 	<div class="page-head">
 		<div>
 			<h1>Eilmeldungen</h1>
-			<p class="page-head__lead">Alle Eilmeldungen der Nordbahn zu Zugausf&auml;llen und Verspätungen auf RB61 und RB71<?php if ($seit): ?>, erfasst seit dem <?= nb_e(date('d.m.Y', $seit)) ?><?php endif; ?>. Verlinkt ist, was noch auf nordbahn.de steht.</p>
+			<p class="page-head__lead">Alle Eilmeldungen der Nordbahn zu Zugausf&auml;llen und Verspätungen auf RB60, RB61 und RB71<?php if ($seit): ?>, erfasst seit dem <?= nb_e(date('d.m.Y', $seit)) ?><?php endif; ?>. Verlinkt ist, was noch auf nordbahn.de steht.</p>
 		</div>
 	</div>
 

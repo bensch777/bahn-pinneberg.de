@@ -48,7 +48,7 @@ uasort($zugRueck, function ($a, $b) {
 });
 $zugTage = (int) ($zugstat['beobachtete_tage'] ?? 0);
 
-$title = 'Störungsstatistik Nordbahn RB61/RB71 – Hamburg, Pinneberg, Elmshorn, Itzehoe, Wrist';
+$title = 'Störungsstatistik Nordbahn RB60/RB61/RB71 – Hamburg, Pinneberg, Elmshorn, Itzehoe, Wrist';
 $description = $t30['n'] . ' Infrastruktur-Störung' . ($t30['n'] === 1 ? '' : 'en') . ' in den letzten 30 Tagen auf der Nordbahn-Strecke'
     . ($t30['n'] ? ', zusammen ' . nb_dauer($t30['dauer']) : '') . '. Verlauf nach Kalenderwochen und häufigste Ursachen, aus den Meldungen von strecken-info.de.';
 $jsonLd = [

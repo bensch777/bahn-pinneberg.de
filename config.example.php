@@ -34,7 +34,7 @@ return [
     // (nur der content-Wert des Meta-Tags). Leer: kein Tag.
     // HVV-Schnittstelle Geofox GTI (Zugang bei der HBT beantragen). Mit Nutzer und
     // Passwort zeigt die Startseite die Karte "S3 Pinneberg – Hamburg" und die
-    // HVV-Meldungen zu S3, RB61 und RB71. Leer: beides bleibt aus.
+    // HVV-Meldungen zu S3, RB60, RB61 und RB71. Leer: beides bleibt aus.
     'NORDBAHN_GEOFOX_USER'     => '',
     'NORDBAHN_GEOFOX_PASSWORD' => '',
     // Optional: andere Basisadresse (Standard https://gti.geofox.de/gti/public) und

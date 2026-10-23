@@ -19,7 +19,7 @@ $faq = [
     ['Woher kommen die Daten?',
      'Abfahrten, Gleise und Verspätungen stammen vom Stationsmonitor der Nordbahn, Eilmeldungen von nordbahn.de, Infrastrukturstörungen von strecken-info.de der DB InfraGO. Die S-Bahn S3 und die HVV-Meldungen kommen über die Schnittstelle des HVV (Geofox). Abfahrten und S3 werden jede Minute geladen, Störungen und Eilmeldungen alle zwei Minuten.'],
     ['Was zeigt die Karte „S3 Pinneberg – Hamburg“?',
-     'Die S3 ist der Plan B, wenn die RB nur bis Pinneberg fährt oder ausfällt. Die Karte wertet die nächsten S3-Züge der kommenden Stunde ab Pinneberg Richtung Hamburg und ab Hamburg Hbf Richtung Pinneberg aus: Ausfälle und Verspätungen ab fünf Minuten zählen, ab einem Viertel betroffener Züge heißt es „S3 gestört“, darunter „S3 beeinträchtigt“. Eine ungeplante HVV-Meldung zur S3, die gerade gilt, setzt die Karte ebenfalls auf „gestört“; Meldungen zu RB61 und RB71 zählen hier nicht. Welcher Stadtbahnhof gilt, Altona, Stadthausbrücke, Jungfernstieg oder Hauptbahnhof, lässt sich im S3-Abschnitt wählen und wird im Browser gemerkt. Geplante Meldungen wie Bauarbeiten färben die Karte nicht und stehen nicht auf der Startseite; läuft deswegen eine S3 nicht, zeigen das die Abfahrten und die Karte. Ungeplante HVV-Meldungen zu S3, RB61 und RB71, die gerade gelten, stehen unter „Aktuelle Meldungen“.'],
+     'Die S3 ist der Plan B, wenn die RB nur bis Pinneberg fährt oder ausfällt. Die Karte wertet die nächsten S3-Züge der kommenden Stunde ab Pinneberg Richtung Hamburg und ab Hamburg Hbf Richtung Pinneberg aus: Ausfälle und Verspätungen ab fünf Minuten zählen, ab einem Viertel betroffener Züge heißt es „S3 gestört“, darunter „S3 beeinträchtigt“. Eine ungeplante HVV-Meldung zur S3, die gerade gilt, setzt die Karte ebenfalls auf „gestört“; Meldungen zu RB60, RB61 und RB71 zählen hier nicht. Welcher Stadtbahnhof gilt, Altona, Stadthausbrücke, Jungfernstieg oder Hauptbahnhof, lässt sich im S3-Abschnitt wählen und wird im Browser gemerkt. Geplante Meldungen wie Bauarbeiten färben die Karte nicht und stehen nicht auf der Startseite; läuft deswegen eine S3 nicht, zeigen das die Abfahrten und die Karte. Ungeplante HVV-Meldungen zu S3, RB60, RB61 und RB71, die gerade gelten, stehen unter „Aktuelle Meldungen“.'],
     ['Welche Linien und Bahnhöfe werden angezeigt?',
      'Die RB61 Hamburg – Itzehoe, die RB71 Hamburg – Wrist und die Verstärkerzüge der RB60. Als eigener Bahnhof lässt sich jeder Halt zwischen Pinneberg und Itzehoe bzw. Wrist wählen, die Auswahl bleibt im Browser gespeichert.'],
     ['Was bedeuten „ab Hbf“, „ab Dammtor“, „ab Altona“ und „ab Pinneberg“?',
@@ -47,7 +47,7 @@ $jsonLd = [
     }, $faq),
 ];
 $title = 'Häufige Fragen – Bahn-Pinneberg.de';
-$description = 'Wie Bahn-Pinneberg.de Störungen, Abfahrten und Eilmeldungen der RB61 und RB71 ermittelt, woher die Daten kommen und wie Benachrichtigungen funktionieren.';
+$description = 'Wie Bahn-Pinneberg.de Störungen, Abfahrten und Eilmeldungen der RB60, RB61 und RB71 ermittelt, woher die Daten kommen und wie Benachrichtigungen funktionieren.';
 ?>
 <!DOCTYPE html>
 <html lang="de">

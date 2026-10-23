@@ -24,7 +24,7 @@ $items = $blatt['items'];
 $basis = SITE_URL . '/news/';
 $pageUrl = nb_seite_url($basis, $blatt['seite']);
 
-$title = 'Wichtige Meldungen zur Nordbahn RB61/RB71 – Störungen, Ersatzverkehr, Sperrungen';
+$title = 'Wichtige Meldungen zur Nordbahn RB60/RB61/RB71 – Störungen, Ersatzverkehr, Sperrungen';
 $description = 'Die ' . $anzahl . ' wichtigen Meldungen zur Nordbahn zwischen Hamburg, Pinneberg, Elmshorn, Itzehoe und Wrist'
     . ($seit ? ' seit dem ' . date('d.m.Y', $seit) : '') . ': größere Störungen, Ersatzverkehr, Sperrungen und Bauarbeiten, ohne einzelne kurzfristige Zugausfälle.';
 if ($blatt['seite'] > 1) {

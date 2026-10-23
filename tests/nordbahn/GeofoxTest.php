@@ -176,7 +176,7 @@ function test_s3_meldung_normalisierung()
     $m = gf_announcements($stur, $now, GF_LINIEN, t_gf_zugang());
     t_eq(['X'], array_column($m, 'id'), 'zweite Anfrageform liefert');
     t_eq(2, count($bodies), 'nur bis zur ersten brauchbaren Antwort');
-    t_eq(['S3', 'RB61', 'RB71'], $bodies[1]['names'], 'zweite Form nur mit Linien');
+    t_eq(['S3', 'RB60', 'RB61', 'RB71'], $bodies[1]['names'], 'zweite Form nur mit Linien');
 }
 
 function test_s3_cache_und_stale()
@@ -299,7 +299,7 @@ function test_s3_meldungen_echte_antwort_korridor()
     t_eq(['12.10-25.10. Fahrplanänderungen und Ersatzverkehr', '26.10.-02.11. alle Züge fahren ab/bis Altona, EV'], array_column($m, 'titel'), 'nur Nordbahn-Meldungen; S3 bei Stade/Neugraben, Aufzuege und Erreichbarkeit raus');
     t_eq(true, $m[0]['aktiv'], 'laufende Bauarbeiten aktiv');
     t_eq(true, $m[0]['geplant'], 'geplant');
-    t_eq(['RB61', 'RB71'], array_values(array_intersect($m[0]['linien'], GF_LINIEN)), 'Linien aus locations');
+    t_eq(['RB60', 'RB61', 'RB71'], array_values(array_intersect($m[0]['linien'], GF_LINIEN)), 'Linien aus locations');
     t_eq('2026-10-11T22:00:00Z', $m[0]['von'], 'Beginn aus validities mit +0200');
     t_eq(true, strpos($m[0]['link'], 'https://www.nordbahn.de/') === 0, 'Link zur Meldung');
     t_eq(false, $m[1]['aktiv'], 'Altona-Sperrung noch nicht gueltig');
