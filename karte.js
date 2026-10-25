@@ -5,8 +5,7 @@
  * derselben Logik wie ka_lage in api/karte.php. Es gibt keine GPS-Ortung.
  *
  * Streckennetz und letzter Stand stehen als JSON im HTML (karte-strecke,
- * karte-stand). Der Ausschnitt folgt dem Heimatbahnhof der Startseite und laesst
- * sich im Auswahlfeld wechseln.
+ * karte-stand). Der Ausschnitt beim Laden folgt dem Heimatbahnhof der Startseite.
  */
 (function () {
 	'use strict';
@@ -413,26 +412,17 @@
 		map.fitBounds(L.latLngBounds(punkte), { paddingTopLeft: [24, 36], paddingBottomRight: [100, 28], animate: !!animieren, maxZoom: 13 });
 	}
 
-	var ansichtSelect = document.getElementById('ansicht');
-	function ansichtSetzen(id, animieren) {
-		state.ansicht = id;
-		if (ansichtSelect && ansichtSelect.querySelector('option[value="' + id + '"]')) ansichtSelect.value = id;
-		ansichtZeigen(id, animieren);
-	}
-	if (ansichtSelect) {
-		ansichtSelect.addEventListener('change', function () { ansichtSetzen(ansichtSelect.value, true); });
-	}
-
 	/* ---------- Start ---------- */
 
 	// Ausschnitt nach dem Heimatbahnhof der Startseite: Stamm -> Hamburg - Elmshorn, Aeste -> ihr Abschnitt
 	var ansichten = Object.keys(strecke.ansichten || {});
 	var heimatAnsicht = '';
 	try {
-		var zuordnung = JSON.parse((ansichtSelect && ansichtSelect.getAttribute('data-heimat-ansicht')) || '{}');
+		var zuordnung = JSON.parse(app.getAttribute('data-heimat-ansicht') || '{}');
 		heimatAnsicht = zuordnung[laden('nordbahn.heimat') || ''] || zuordnung.APD || '';
 	} catch (e) { /* ohne Zuordnung der erste Eintrag */ }
-	ansichtSetzen(heimatAnsicht && strecke.ansichten[heimatAnsicht] ? heimatAnsicht : (ansichten[0] || ''), false);
+	state.ansicht = heimatAnsicht && strecke.ansichten[heimatAnsicht] ? heimatAnsicht : (ansichten[0] || '');
+	ansichtZeigen(state.ansicht, false);
 
 	uebernehmen(lesen('karte-stand'));
 	refresh();

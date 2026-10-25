@@ -7,7 +7,7 @@
  * Karte mit Leaflet (vendor/leaflet, selbst gehostet) und OpenStreetMap-Kacheln,
  * holt alle 30 Sekunden einen frischen Stand von api/karte und bewegt die Zuege
  * dazwischen nach ihren Ist-Zeiten weiter. Der Kartenausschnitt richtet sich nach dem
- * Heimatbahnhof der Startseite und laesst sich im Auswahlfeld wechseln.
+ * Heimatbahnhof der Startseite; zoomen und schieben geht wie gewohnt.
  *
  * Die Kacheln sind die einzige fremde Quelle der Seite; die Content-Security-
  * Policy bekommt dafuer tile.openstreetmap.org in img-src (inc/security.php),
@@ -29,10 +29,7 @@ $jsonFlags = JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JS
 
 $strecke = ka_strecke();
 $linien = is_array($strecke['linien'] ?? null) ? $strecke['linien'] : [];
-$ansichten = is_array($strecke['ansichten'] ?? null) ? $strecke['ansichten'] : [];
-// Reihenfolge im Auswahlfeld: die Abschnitte zuerst, das Gesamtnetz zuletzt
-$ansichtReihe = array_merge(array_diff(array_keys($ansichten), ['netz']), isset($ansichten['netz']) ? ['netz'] : []);
-// Vorbelegung aus dem Heimatbahnhof der Startseite (localStorage, siehe karte.js): Stamm -> Hamburg - Elmshorn, Aeste -> ihr Abschnitt
+// Kartenausschnitt nach dem Heimatbahnhof der Startseite (localStorage, siehe karte.js): Stamm -> Hamburg - Elmshorn, Aeste -> ihr Abschnitt
 $heimatAnsicht = [];
 foreach (NORDBAHN_BAHNHOEFE as $id => $bhf) {
     $heimatAnsicht[$id] = $bhf['ast'] === 'stamm' ? 'hamburg' : $bhf['ast'];
@@ -133,7 +130,7 @@ function nb_karte_liste(array $zuege)
 	</div>
 </header>
 
-<main class="wrap" id="karte-app" data-endpoint="<?= $root ?>api/karte" data-zug-bild="<?= $root ?>karte/zug.png?v=<?= (int) @filemtime(__DIR__ . '/zug.png') ?>">
+<main class="wrap" id="karte-app" data-endpoint="<?= $root ?>api/karte" data-heimat-ansicht="<?= nb_e(json_encode($heimatAnsicht, JSON_UNESCAPED_UNICODE)) ?>" data-zug-bild="<?= $root ?>karte/zug.png?v=<?= (int) @filemtime(__DIR__ . '/zug.png') ?>">
 	<div class="page-head">
 		<div>
 			<h1>Nordbahn live</h1>
@@ -142,17 +139,7 @@ function nb_karte_liste(array $zuege)
 		<p class="freshness<?= $zuege ? '' : ' is-empty' ?>" id="karte-freshness" aria-live="polite"><span class="dot"></span><span id="karte-freshness-text"><?= is_array($stand) && !empty($stand['fetched_at']) ? 'Letzter Abruf ' . nb_e(nb_fmt_uhr(nb_ts($stand['fetched_at']))) : 'Noch kein Stand' ?></span></p>
 	</div>
 
-	<div class="karte-status" id="karte-status">
-		<p class="karte-status__anzahl"><strong id="karte-anzahl"><?= count($zuege) ?></strong> <span id="karte-anzahl-text"><?= count($zuege) === 1 ? 'Zug' : 'Züge' ?> dargestellt</span></p>
-		<label class="heimat">
-			<span class="heimat__label">Ausschnitt</span>
-			<select id="ansicht" class="heimat__select" data-heimat-ansicht="<?= nb_e(json_encode($heimatAnsicht, JSON_UNESCAPED_UNICODE)) ?>">
-<?php foreach ($ansichtReihe as $id): ?>
-				<option value="<?= nb_e($id) ?>"><?= nb_e($ansichten[$id]['name'] ?? $id) ?></option>
-<?php endforeach; ?>
-			</select>
-		</label>
-	</div>
+	<p class="karte-status" id="karte-status"><strong id="karte-anzahl"><?= count($zuege) ?></strong> <span id="karte-anzahl-text"><?= count($zuege) === 1 ? 'Zug' : 'Züge' ?> dargestellt</span></p>
 
 	<div class="karte" id="karte" role="region" aria-label="Karte mit den Zugpositionen">
 		<noscript><p class="karte__leer">Die Karte braucht JavaScript. Die Liste darunter zeigt den letzten Stand.</p></noscript>
