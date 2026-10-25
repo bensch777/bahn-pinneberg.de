@@ -24,15 +24,6 @@
 <?php if ($current !== 'faq'): ?>
 				<li><a href="<?= $root ?>faq/">H&auml;ufige Fragen</a></li>
 <?php endif; ?>
-<?php if ($current !== 'news'): ?>
-				<li><a href="<?= $root ?>news/">Meldungen</a></li>
-<?php endif; ?>
-<?php if ($current !== 'karte'): ?>
-				<li><a href="<?= $root ?>karte/">Live-Karte</a></li>
-<?php endif; ?>
-<?php if ($current !== 'statistik'): ?>
-				<li><a href="<?= $root ?>statistik/">Statistik</a></li>
-<?php endif; ?>
 <?php if ($current !== 'changelog'): ?>
 				<li><a href="<?= $root ?>changelog/">Was ist neu</a></li>
 <?php endif; ?>
