@@ -112,7 +112,8 @@ button { font: inherit; color: inherit; }
    z-index ueber den Leaflet-Ebenen (bis 1000) der Live-Karte. */
 .site-head { position: sticky; top: 0; z-index: 1100; border-bottom: 1px solid var(--line); background: var(--surface); }
 .site-head__row { display: flex; align-items: center; gap: 20px; height: 52px; }
-.site-head__brand { font-weight: 600; text-decoration: none; font-size: 14px; white-space: nowrap; }
+.site-head__brand { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; text-decoration: none; font-size: 14px; white-space: nowrap; }
+.site-head__logo { width: 28px; height: 28px; flex: none; }
 .site-head__tools { display: flex; gap: 4px; align-items: center; margin-left: auto; }
 .site-nav { display: flex; gap: 2px; align-items: center; }
 .site-nav__link {

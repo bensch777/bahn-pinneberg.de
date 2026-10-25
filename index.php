@@ -142,7 +142,7 @@ $jsonLd = [
 <meta name="twitter:description" content="<?= nb_e($description) ?>">
 <meta name="twitter:image" content="<?= nb_e($ogImage) ?>">
 
-<link rel="icon" id="favicon" type="image/svg+xml" href="<?= $root ?>favicon.svg">
+<link rel="icon" id="favicon" type="image/png" sizes="64x64" href="<?= $root ?>icon-64.png">
 <link rel="apple-touch-icon" href="<?= $root ?>icon-180.png">
 <link rel="manifest" href="<?= $root ?>manifest.webmanifest">
 <meta name="apple-mobile-web-app-capable" content="yes">

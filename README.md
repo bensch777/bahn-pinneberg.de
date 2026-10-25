@@ -63,6 +63,12 @@ Die Abfahrtslogik lässt sich auch gegen gespeicherte XML-Dateien prüfen:
 php api/abfahrten.php --bhf=APD heimat.xml hbf.xml altona.xml dammtor.xml [zuege/]
 ```
 
+Favicon, Logo im Kopf und Webapp-Icons (`favicon.ico`, `icon-*.png`) entstehen aus `dev/icon/zug-front.webp`:
+
+```
+python3 dev/icon/build.py   # braucht Pillow
+```
+
 Die Vorschaubilder für Messenger und soziale Netze (`og/*.png`) entstehen aus `dev/og/template.html`:
 
 ```

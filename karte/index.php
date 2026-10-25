@@ -112,7 +112,7 @@ function nb_karte_liste(array $zuege)
 <meta name="twitter:title" content="<?= nb_e($title) ?>">
 <meta name="twitter:description" content="<?= nb_e($description) ?>">
 <meta name="twitter:image" content="<?= SITE_URL ?>/og/karte.png">
-<link rel="icon" type="image/svg+xml" href="<?= $root ?>favicon.svg">
+<link rel="icon" type="image/png" sizes="64x64" href="<?= $root ?>icon-64.png">
 <link rel="apple-touch-icon" href="<?= $root ?>icon-180.png">
 <link rel="stylesheet" href="<?= $root ?>vendor/leaflet/leaflet.css?v=<?= $leafletVersion ?>">
 <link rel="stylesheet" href="<?= $root ?>dashboard.css?v=<?= $assetVersion ?>">

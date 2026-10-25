@@ -75,7 +75,7 @@ if (!$gefunden) {
 <meta property="og:image" content="<?= SITE_URL ?>/og/<?= $ogBild ?>.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<link rel="icon" type="image/svg+xml" href="<?= $root ?>favicon.svg">
+<link rel="icon" type="image/png" sizes="64x64" href="<?= $root ?>icon-64.png">
 <link rel="apple-touch-icon" href="<?= $root ?>icon-180.png">
 <link rel="stylesheet" href="<?= $root ?>dashboard.css?v=<?= $assetVersion ?>">
 <?php if ($jsonLd): ?>

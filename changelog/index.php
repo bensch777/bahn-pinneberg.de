@@ -15,6 +15,7 @@ $assetVersion = (int) @filemtime(__DIR__ . '/../dashboard.css');
 
 $changelog = [
     ['2026-10-25', [
+        ['Neues Icon: der Nordbahn-Zug', 'Statt des blauen „N“ zeigt die Seite jetzt einen grünen Nordbahn-Triebwagen von vorn: als Favicon im Browser-Tab, als Logo neben dem Namen in der Kopfzeile und als App-Symbol auf dem Home-Bildschirm. Bei Störungen bekommt das Favicon wie bisher einen roten oder orangen Punkt. Wer die Seite schon auf dem Home-Bildschirm hat, sieht das neue Symbol erst nach dem erneuten Hinzufügen.'],
         ['Live-Karte zeigt immer das ganze Netz', 'Die Karte öffnet nicht mehr im Abschnitt des Heimatbahnhofs, sondern zeigt gleich alle Züge zwischen Hamburg, Elmshorn, Itzehoe und Wrist. Hineinzoomen geht wie gewohnt.'],
         ['Neue Kopfzeile mit Menü', 'Oben stehen jetzt auf jeder Seite die Bereiche Start, Meldungen, Live-Karte und Statistik, die aktuelle Seite ist hervorgehoben. Auf dem Handy liegen sie hinter dem Menü-Knopf rechts, zusammen mit den häufigen Fragen und „Was ist neu“. Die Kopfzeile bleibt beim Scrollen oben stehen, die Glocke für Benachrichtigungen bleibt neben dem Menü direkt erreichbar. Der Knopf zum Aktualisieren ist weg: Die Seite lädt jede Minute und beim Zurückkehren in die App ohnehin selbst nach. Wer sofort nachladen will, tippt auf „Aktualisiert vor …“.'],
         ['Live-Karte ohne Filter und mit weniger Text', 'Die Chips für Linie und Ausschnitt sind weg, die Karte öffnet im Abschnitt des Heimatbahnhofs. Die Erklärung, wie die Positionen entstehen, ist auf einen Satz geschrumpft und steht ausführlich in den häufigen Fragen. Unter der Liste nennt ein fester Absatz Linien und Halte.'],
@@ -145,7 +146,7 @@ function nb_datum($iso)
 <meta property="og:image" content="<?= SITE_URL ?>/og/info.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<link rel="icon" type="image/svg+xml" href="<?= $root ?>favicon.svg">
+<link rel="icon" type="image/png" sizes="64x64" href="<?= $root ?>icon-64.png">
 <link rel="apple-touch-icon" href="<?= $root ?>icon-180.png">
 <link rel="stylesheet" href="<?= $root ?>dashboard.css?v=<?= $assetVersion ?>">
 <script type="application/ld+json"><?= json_encode($jsonLd, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) ?></script>
