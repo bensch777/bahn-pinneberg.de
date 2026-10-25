@@ -151,6 +151,7 @@ button { font: inherit; color: inherit; }
 .freshness { margin: 0; font-size: 13px; color: var(--muted); display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
 .freshness .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--good); display: inline-block; }
 .freshness.is-stale .dot { background: var(--warning); }
+.freshness[hidden] { display: none; }
 .freshness.is-empty .dot { background: var(--muted); }
 
 /* Abschnitte */
@@ -570,8 +571,7 @@ button { font: inherit; color: inherit; }
 }
 
 /* ---------- Live-Karte (karte/) ---------- */
-.karte-status { margin: 14px 0 8px; font-size: 13.5px; color: var(--muted); }
-.karte-status strong { color: var(--ink); font-variant-numeric: tabular-nums; }
+.karte { margin-top: 16px; }
 .karte { position: relative; height: min(68vh, 640px); min-height: 380px; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--line); background: var(--surface-2); z-index: 0; }
 .karte .leaflet-container { font-family: inherit; background: var(--surface-2); }
 .karte__leer { position: absolute; z-index: 700; left: 50%; top: 50%; transform: translate(-50%, -50%); margin: 0; padding: 10px 16px; border-radius: 10px; background: var(--surface); color: var(--ink-2); font-size: 14px; box-shadow: var(--shadow); border: 1px solid var(--line); white-space: nowrap; }
