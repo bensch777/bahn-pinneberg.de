@@ -5,7 +5,7 @@
  * derselben Logik wie ka_lage in api/karte.php. Es gibt keine GPS-Ortung.
  *
  * Streckennetz und letzter Stand stehen als JSON im HTML (karte-strecke,
- * karte-stand). Der Ausschnitt beim Laden folgt dem Heimatbahnhof der Startseite.
+ * karte-stand). Beim Laden zeigt die Karte das ganze Netz.
  */
 (function () {
 	'use strict';
@@ -33,7 +33,7 @@
 	}
 	var strecke = lesen('karte-strecke') || { stationen: {}, kanten: [], ansichten: {}, linien: {} };
 	var endpoint = app.getAttribute('data-endpoint');
-	var state = { zuege: [], fetchedAt: null, ok: false, ansicht: '' };
+	var state = { zuege: [], fetchedAt: null, ok: false };
 
 	/* ---------- Hilfen ---------- */
 
@@ -53,12 +53,6 @@
 	}
 	function linieKlasse(linie) {
 		return String(linie || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-	}
-	function speichern(key, wert) {
-		try { localStorage.setItem(key, wert); } catch (e) { /* privater Modus */ }
-	}
-	function laden(key) {
-		try { return localStorage.getItem(key); } catch (e) { return null; }
 	}
 
 	/* ---------- Streckennetz ---------- */
@@ -411,15 +405,8 @@
 
 	/* ---------- Start ---------- */
 
-	// Ausschnitt nach dem Heimatbahnhof der Startseite: Stamm -> Hamburg - Elmshorn, Aeste -> ihr Abschnitt
-	var ansichten = Object.keys(strecke.ansichten || {});
-	var heimatAnsicht = '';
-	try {
-		var zuordnung = JSON.parse(app.getAttribute('data-heimat-ansicht') || '{}');
-		heimatAnsicht = zuordnung[laden('nordbahn.heimat') || ''] || zuordnung.APD || '';
-	} catch (e) { /* ohne Zuordnung der erste Eintrag */ }
-	state.ansicht = heimatAnsicht && strecke.ansichten[heimatAnsicht] ? heimatAnsicht : (ansichten[0] || '');
-	ansichtZeigen(state.ansicht, false);
+	// Immer das ganze Netz, unabhaengig vom Heimatbahnhof der Startseite
+	ansichtZeigen('netz', false);
 
 	uebernehmen(lesen('karte-stand'));
 	refresh();

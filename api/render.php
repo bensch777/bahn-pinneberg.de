@@ -1232,7 +1232,7 @@ function nb_render_meldungen_tabs($root, $aktiv)
 function nb_render_kopf($root, $aktiv, $tools = '')
 {
     $bereiche = [
-        'lage' => ['', 'Lage', ['lage']],
+        'lage' => ['', 'Start', ['lage']],
         'news' => ['news/', 'Meldungen', ['news', 'eilmeldungen', 'stoerungen', 'ereignis']],
         'karte' => ['karte/', 'Live-Karte', ['karte']],
         'statistik' => ['statistik/', 'Statistik', ['statistik']],
