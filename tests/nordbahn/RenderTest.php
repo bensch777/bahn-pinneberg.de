@@ -277,7 +277,7 @@ function test_meldungen_tabs_und_kopf()
     $kopf = nb_render_kopf('../', 'eilmeldungen');
     t_contains('<a class="site-nav__link" href="../news/" aria-current="page">Meldungen</a>', $kopf, 'Meldungen aktiv auf Unterseiten');
     t_contains('<a class="nav-menu__link nav-menu__link--klein" href="../faq/">', $kopf, 'FAQ im Handy-Menue');
-    t_contains('href="../">Lage</a>', $kopf, 'Link zur Startseite');
+    t_contains('href="../">Start</a>', $kopf, 'Link zur Startseite');
 }
 
 /** Alle section__title-Texte eines HTML-Schnipsels. */
