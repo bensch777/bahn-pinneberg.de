@@ -25,7 +25,7 @@
 				<li><a href="<?= $root ?>faq/">H&auml;ufige Fragen</a></li>
 <?php endif; ?>
 <?php if ($current !== 'news'): ?>
-				<li><a href="<?= $root ?>news/">Wichtige Meldungen</a></li>
+				<li><a href="<?= $root ?>news/">Meldungen</a></li>
 <?php endif; ?>
 <?php if ($current !== 'karte'): ?>
 				<li><a href="<?= $root ?>karte/">Live-Karte</a></li>

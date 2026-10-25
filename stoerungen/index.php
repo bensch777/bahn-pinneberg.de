@@ -18,7 +18,6 @@ $data = nordbahn_dataset();
 $alle = nb_archiv_stoerungen($data);
 $anzahl = count($alle);
 $seit = $alle ? min(array_column($alle, 'start')) : null;
-$aktiv = count(array_filter($alle, function ($it) { return $it['aktiv']; }));
 $blatt = nb_seite($alle, 50, $_GET['seite'] ?? 1, function ($it) { return $it['start']; });
 $items = $blatt['items'];
 $basis = SITE_URL . '/stoerungen/';
@@ -80,8 +79,7 @@ $jsonLd = [
 <main class="wrap">
 	<div class="page-head">
 		<div>
-			<h1>Infrastrukturst&ouml;rungen</h1>
-			<p class="page-head__lead">Alle St&ouml;rungen auf der Strecke Hamburg &ndash; Elmshorn &ndash; Itzehoe / Wrist laut strecken-info.de<?php if ($seit): ?>, erfasst seit dem <?= nb_e(date('d.m.Y', $seit)) ?><?php endif; ?><?php if ($aktiv): ?>, davon <?= (int) $aktiv ?> aktuell aktiv<?php endif; ?>. Kennzahlen dazu in der <a href="<?= $root ?>statistik/?ansicht=strecke">Statistik</a>.</p>
+			<h1>Meldungen</h1>
 		</div>
 	</div>
 
@@ -89,9 +87,6 @@ $jsonLd = [
 <?= nb_render_archiv_stoerungen($items) ?>
 <?= nb_render_seitennav($blatt, './') ?>
 
-	<section class="section">
-		<p class="section__note">Quelle: St&ouml;rungsmeldungen der DB InfraGO auf strecken-info.de f&uuml;r den Abschnitt Hamburg &ndash; Itzehoe / Wrist. Beginn ist das erste Auftreten der Meldung, Ende ihre Aufhebung. Eilmeldungen der Nordbahn stehen im <a href="<?= $root ?>eilmeldungen/">Eilmeldungs-Archiv</a>.</p>
-	</section>
 </main>
 
 <?php $current = 'stoerungen'; require __DIR__ . '/../inc/footer.php'; ?>

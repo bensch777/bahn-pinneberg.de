@@ -35,7 +35,7 @@ function test_alle_seiten_rendern_ohne_fehler()
         $out = t_seite_rendern($datei, $get);
         t_assert($out !== '', $datei . ': keine Ausgabe');
     }
-    t_contains('<h1>Wichtige Meldungen</h1>', t_seite_rendern('news/index.php'), 'news rendert');
+    t_contains('<h1>Meldungen</h1>', t_seite_rendern('news/index.php'), 'news rendert');
     $karte = t_seite_rendern('karte/index.php');
     t_contains('id="karte-strecke"', $karte, 'Live-Karte traegt das Streckennetz');
     t_contains('vendor/leaflet/leaflet.js', $karte, 'Live-Karte laedt Leaflet vom eigenen Host');

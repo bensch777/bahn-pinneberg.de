@@ -79,8 +79,7 @@ $jsonLd = [
 <main class="wrap">
 	<div class="page-head">
 		<div>
-			<h1>Eilmeldungen</h1>
-			<p class="page-head__lead">Alle Eilmeldungen der Nordbahn zu Zugausf&auml;llen und Verspätungen auf RB60, RB61 und RB71<?php if ($seit): ?>, erfasst seit dem <?= nb_e(date('d.m.Y', $seit)) ?><?php endif; ?>. Verlinkt ist, was noch auf nordbahn.de steht.</p>
+			<h1>Meldungen</h1>
 		</div>
 	</div>
 
@@ -88,9 +87,6 @@ $jsonLd = [
 <?= nb_render_archiv_eil($items) ?>
 <?= nb_render_seitennav($blatt, './') ?>
 
-	<section class="section">
-		<p class="section__note">Quelle: Eilmeldungen auf nordbahn.de, alle zwei Minuten abgeholt. Steht ein Pendler-Titel aus dem Alert-Workflow bereit, zeigt die Liste ihn; der Originaltitel der Nordbahn steht im Tooltip. Die Uhrzeit ist der Stand der Nordbahn, sonst der Zeitpunkt der Erfassung.</p>
-	</section>
 </main>
 
 <?php $current = 'eilmeldungen'; require __DIR__ . '/../inc/footer.php'; ?>
