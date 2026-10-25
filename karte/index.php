@@ -6,8 +6,8 @@
  * dem letzten Stand im Cache (ohne selbst abzufragen), karte.js zeichnet die
  * Karte mit Leaflet (vendor/leaflet, selbst gehostet) und OpenStreetMap-Kacheln,
  * holt alle 30 Sekunden einen frischen Stand von api/karte und bewegt die Zuege
- * dazwischen nach ihren Ist-Zeiten weiter. Der Kartenausschnitt richtet sich nach dem
- * Heimatbahnhof der Startseite; zoomen und schieben geht wie gewohnt.
+ * dazwischen nach ihren Ist-Zeiten weiter. Die Karte zeigt beim Laden das
+ * ganze Netz; zoomen und schieben geht wie gewohnt.
  *
  * Die Kacheln sind die einzige fremde Quelle der Seite; die Content-Security-
  * Policy bekommt dafuer tile.openstreetmap.org in img-src (inc/security.php),
@@ -29,11 +29,6 @@ $jsonFlags = JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JS
 
 $strecke = ka_strecke();
 $linien = is_array($strecke['linien'] ?? null) ? $strecke['linien'] : [];
-// Kartenausschnitt nach dem Heimatbahnhof der Startseite (localStorage, siehe karte.js): Stamm -> Hamburg - Elmshorn, Aeste -> ihr Abschnitt
-$heimatAnsicht = [];
-foreach (NORDBAHN_BAHNHOEFE as $id => $bhf) {
-    $heimatAnsicht[$id] = $bhf['ast'] === 'stamm' ? 'hamburg' : $bhf['ast'];
-}
 // Fester Text unter der Liste mit allen Halten, auch wenn gerade kein Zug faehrt
 $halteNamen = ['Hamburg Hbf', 'Hamburg Dammtor', 'Hamburg-Altona'];
 foreach (NORDBAHN_BAHNHOEFE as $bhf) {
@@ -128,7 +123,7 @@ function nb_karte_liste(array $zuege)
 
 <?= nb_render_kopf($root, 'karte') ?>
 
-<main class="wrap" id="karte-app" data-endpoint="<?= $root ?>api/karte" data-heimat-ansicht="<?= nb_e(json_encode($heimatAnsicht, JSON_UNESCAPED_UNICODE)) ?>" data-zug-bild="<?= $root ?>karte/zug.png?v=<?= (int) @filemtime(__DIR__ . '/zug.png') ?>">
+<main class="wrap" id="karte-app" data-endpoint="<?= $root ?>api/karte" data-zug-bild="<?= $root ?>karte/zug.png?v=<?= (int) @filemtime(__DIR__ . '/zug.png') ?>">
 	<div class="page-head">
 		<div>
 			<h1>Nordbahn live</h1>
