@@ -159,7 +159,7 @@ function nb_karte_liste(array $zuege)
 			</ul>
 		</div>
 		<div class="card" id="karte-liste"><?= nb_karte_liste($zuege) ?></div>
-		<p class="section__note">Die Positionen sind gerechnet, nicht geortet: Aus dem Laufweg jedes Zuges (Soll-Zeit plus Prognose je Halt, Quelle Stationsmonitor der Nordbahn) ergibt sich, zwischen welchen Halten er gerade ist und wie weit. Zwischen zwei Abrufen bewegen sich die Z&uuml;ge nach diesen Zeiten weiter, eine neue Prognose kann sie springen lassen. Der Streckenverlauf ist vereinfacht. Z&uuml;ge erscheinen bis 20 Minuten vor der Abfahrt am Startbahnhof. Kartendaten &copy; <a href="https://www.openstreetmap.org/copyright" rel="noopener">OpenStreetMap</a>-Mitwirkende.</p>
+		<p class="section__note">Die Positionen sind gerechnet, nicht geortet: Aus dem Laufweg jedes Zuges (Soll-Zeit plus Prognose je Halt, Quelle Stationsmonitor der Nordbahn) ergibt sich, zwischen welchen Halten er gerade ist und wie weit. Zwischen zwei Abrufen bewegen sich die Z&uuml;ge nach diesen Zeiten weiter, eine neue Prognose kann sie springen lassen. <?= !empty($strecke['_quelle']) ? 'Der Streckenverlauf folgt den Gleisen laut OpenStreetMap.' : 'Der Streckenverlauf ist vereinfacht.' ?> Z&uuml;ge erscheinen bis 20 Minuten vor der Abfahrt am Startbahnhof. Kartendaten &copy; <a href="https://www.openstreetmap.org/copyright" rel="noopener">OpenStreetMap</a>-Mitwirkende.</p>
 	</section>
 </main>
 
