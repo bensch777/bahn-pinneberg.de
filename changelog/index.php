@@ -15,6 +15,7 @@ $assetVersion = (int) @filemtime(__DIR__ . '/../dashboard.css');
 
 $changelog = [
     ['2026-10-25', [
+        ['Schlankerer Footer', 'Meldungen, Live-Karte und Statistik stehen nur noch in der Kopfzeile. Der Footer zeigt, was dort fehlt: die Kanäle auf Telegram und X, die häufigen Fragen, „Was ist neu“ und das Impressum.'],
         ['Meldungen aufgeräumt', 'Wichtig, Eilmeldungen und Störungen sind jetzt ein Bereich „Meldungen“ mit drei Kategorien zum Durchklicken. Die Einleitungen („erfasst seit dem …“) und die Quellenhinweise unter den Listen sind weg, woher die Daten kommen, steht in den häufigen Fragen. Die Rubriken heißen kurz „Störung“ und „Eilmeldung“, auch bei den aktuellen Meldungen auf der Startseite.'],
         ['Neues Icon: der Nordbahn-Zug', 'Statt des blauen „N“ zeigt die Seite jetzt einen grünen Nordbahn-Triebwagen von vorn: als Favicon im Browser-Tab, als Logo neben dem Namen in der Kopfzeile und als App-Symbol auf dem Home-Bildschirm. Bei Störungen bekommt das Favicon wie bisher einen roten oder orangen Punkt. Wer die Seite schon auf dem Home-Bildschirm hat, sieht das neue Symbol erst nach dem erneuten Hinzufügen.'],
         ['Live-Karte zeigt immer das ganze Netz', 'Die Karte öffnet nicht mehr im Abschnitt des Heimatbahnhofs, sondern zeigt gleich alle Züge zwischen Hamburg, Elmshorn, Itzehoe und Wrist. Hineinzoomen geht wie gewohnt.'],
