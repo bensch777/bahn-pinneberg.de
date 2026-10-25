@@ -870,33 +870,36 @@
 
 	var BASE_TITLE = document.title;
 	var faviconCache = {};
+	var faviconBild = null;
 
-	/** Zeichnet das Favicon (blaues Quadrat mit N) und je nach Lage einen Punkt oben rechts. */
+	/**
+	 * Zeichnet das Favicon (Zug von vorn, icon-64.png) und je nach Lage einen Punkt
+	 * oben rechts. Solange das Bild noch laedt, null; updateBadge laeuft danach erneut.
+	 */
 	function faviconUrl(level) {
 		if (faviconCache[level]) return faviconCache[level];
+		if (!faviconBild) {
+			faviconBild = new Image();
+			faviconBild.onload = updateBadge;
+			faviconBild.src = root() + 'icon-64.png';
+		}
+		if (!faviconBild.complete || !faviconBild.naturalWidth) return null;
 		var canvas = document.createElement('canvas');
 		canvas.width = 64; canvas.height = 64;
 		var ctx = canvas.getContext('2d');
 		if (!ctx) return null;
-		var r = 14;
-		ctx.fillStyle = '#2a78d6';
-		ctx.beginPath();
-		ctx.moveTo(r, 0); ctx.lineTo(64 - r, 0); ctx.quadraticCurveTo(64, 0, 64, r);
-		ctx.lineTo(64, 64 - r); ctx.quadraticCurveTo(64, 64, 64 - r, 64);
-		ctx.lineTo(r, 64); ctx.quadraticCurveTo(0, 64, 0, 64 - r);
-		ctx.lineTo(0, r); ctx.quadraticCurveTo(0, 0, r, 0);
-		ctx.closePath(); ctx.fill();
-		ctx.fillStyle = '#fff';
-		ctx.font = '700 40px Inter, system-ui, -apple-system, "Segoe UI", sans-serif';
-		ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-		ctx.fillText('N', 32, 34);
+		ctx.drawImage(faviconBild, 0, 0, 64, 64);
 		if (level) {
 			ctx.beginPath(); ctx.arc(49, 15, 16, 0, Math.PI * 2);
 			ctx.fillStyle = '#fff'; ctx.fill();
 			ctx.beginPath(); ctx.arc(49, 15, 13, 0, Math.PI * 2);
 			ctx.fillStyle = level === 'alert' ? '#d03b3b' : '#f59e0b'; ctx.fill();
 		}
-		faviconCache[level] = canvas.toDataURL('image/png');
+		try {
+			faviconCache[level] = canvas.toDataURL('image/png');
+		} catch (e) {
+			return null;
+		}
 		return faviconCache[level];
 	}
 
@@ -1073,7 +1076,7 @@
 		if (!notifyEnabled() || !notifyAllowedNow() || pushActive()) return;
 		fresh.slice(0, 3).forEach(function (ev) {
 			try {
-				var n = new Notification(ev.title, { body: ev.body, icon: root() + 'favicon.svg', tag: ev.id, lang: 'de' });
+				var n = new Notification(ev.title, { body: ev.body, icon: root() + 'icon-192.png', tag: ev.id, lang: 'de' });
 				n.onclick = function () { window.focus(); n.close(); };
 			} catch (e) { /* Benachrichtigung nicht moeglich */ }
 		});
@@ -1145,7 +1148,7 @@
 						var body = pushActive()
 							? 'Du bekommst jetzt eine Meldung bei neuen Zugausfällen und Störungen, auch wenn die Seite zu ist.'
 							: 'Du bekommst jetzt eine Meldung bei neuen Zugausfällen und Störungen, solange die Seite offen ist.';
-						new Notification('Bahn-Pinneberg.de', { body: body, icon: root() + 'favicon.svg', lang: 'de' });
+						new Notification('Bahn-Pinneberg.de', { body: body, icon: root() + 'icon-192.png', lang: 'de' });
 					} catch (e) { /* egal */ }
 					renderNotifyButton();
 				};

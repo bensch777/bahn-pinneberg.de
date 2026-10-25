@@ -49,7 +49,7 @@ $description = 'Anbieterkennzeichnung und Datenschutzerklärung von Bahn-Pinnebe
 <meta property="og:url" content="<?= SITE_URL ?>/impressum/">
 <meta property="og:title" content="<?= nb_e($title) ?>">
 <meta property="og:description" content="<?= nb_e($description) ?>">
-<link rel="icon" type="image/svg+xml" href="<?= $root ?>favicon.svg">
+<link rel="icon" type="image/png" sizes="64x64" href="<?= $root ?>icon-64.png">
 <link rel="apple-touch-icon" href="<?= $root ?>icon-180.png">
 <link rel="stylesheet" href="<?= $root ?>dashboard.css?v=<?= $assetVersion ?>">
 <?php require __DIR__ . '/../inc/analytics.php'; ?>

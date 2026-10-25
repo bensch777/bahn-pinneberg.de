@@ -1259,7 +1259,7 @@ function nb_render_kopf($root, $aktiv, $tools = '')
 
     return '<header class="site-head">'
         . '<div class="wrap site-head__row">'
-        . '<a class="site-head__brand" href="' . nb_e($root) . '">Bahn-Pinneberg.de</a>'
+        . '<a class="site-head__brand" href="' . nb_e($root) . '"><img class="site-head__logo" src="' . nb_e($root) . 'icon-64.png" alt="" width="28" height="28">Bahn-Pinneberg.de</a>'
         . '<nav class="site-nav" aria-label="Bereiche">' . $leiste . '</nav>'
         . '<div class="site-head__tools">' . $tools
         . '<details class="nav-menu" id="nav-menu">'
