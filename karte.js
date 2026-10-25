@@ -5,8 +5,8 @@
  * derselben Logik wie ka_lage in api/karte.php. Es gibt keine GPS-Ortung.
  *
  * Streckennetz und letzter Stand stehen als JSON im HTML (karte-strecke,
- * karte-stand). Linie und Ausschnitt lassen sich per Chip waehlen und bleiben
- * im Browser gespeichert.
+ * karte-stand). Der Ausschnitt folgt dem Heimatbahnhof der Startseite und laesst
+ * sich im Auswahlfeld wechseln.
  */
 (function () {
 	'use strict';
@@ -34,7 +34,7 @@
 	}
 	var strecke = lesen('karte-strecke') || { stationen: {}, kanten: [], ansichten: {}, linien: {} };
 	var endpoint = app.getAttribute('data-endpoint');
-	var state = { zuege: [], fetchedAt: null, ok: false, linie: '', ansicht: '' };
+	var state = { zuege: [], fetchedAt: null, ok: false, ansicht: '' };
 
 	/* ---------- Hilfen ---------- */
 
@@ -246,6 +246,16 @@
 			+ '</span>';
 	}
 
+	/**
+	 * Marker-Icon. Der Zug sitzt mit der Mitte seines Bildes auf dem Punkt; ein Zug, der am
+	 * Startbahnhof wartet, steht ueber dem Bahnhof, ein angekommener darunter, damit sich an
+	 * den Endbahnhoefen nichts ueberlagert.
+	 */
+	function zugIcon(z, l) {
+		var y = l && l.status === 'wartet' ? 42 : (l && l.status === 'ziel' ? -12 : 15);
+		return L.divIcon({ className: 'zug-icon', html: iconHtml(z, l), iconSize: [90, 30], iconAnchor: [14, y], popupAnchor: [20, 1 - y] });
+	}
+
 	function popupHtml(z) {
 		var l = lage(z, Date.now());
 		var h = '<div class="karte-popup">'
@@ -265,10 +275,6 @@
 		return h;
 	}
 
-	function sichtbar(z) {
-		return !state.linie || z.linie === state.linie;
-	}
-
 	/** Marker anlegen, aktualisieren, entfernen nach dem aktuellen Stand. */
 	function markerAbgleichen() {
 		var now = Date.now();
@@ -277,11 +283,11 @@
 		state.zuege.forEach(function (z) {
 			var l = lage(z, now);
 			var pos = position(l);
-			if (!l || !pos || !sichtbar(z)) return;
+			if (!l || !pos) return;
 			gesehen[z.zug] = true;
 			n++;
 			var e = marker[z.zug];
-			var icon = L.divIcon({ className: 'zug-icon', html: iconHtml(z, l), iconSize: [90, 30], iconAnchor: [14, 15], popupAnchor: [20, -14] });
+			var icon = zugIcon(z, l);
 			if (!e) {
 				var m = L.marker(pos, { icon: icon, riseOnHover: true, keyboard: true, title: z.linie + ' ' + z.von + ' → ' + z.nach, zIndexOffset: 1000 });
 				m.bindPopup(function () { return popupHtml(z); }, { maxWidth: 300, className: 'karte-popup-wrap' });
@@ -309,7 +315,7 @@
 		var anzahl = document.getElementById('karte-anzahl');
 		var text = document.getElementById('karte-anzahl-text');
 		if (anzahl) anzahl.textContent = String(n);
-		if (text) text.textContent = (n === 1 ? 'Zug' : 'Züge') + ' dargestellt' + (state.linie ? ' (' + state.linie + ')' : '');
+		if (text) text.textContent = (n === 1 ? 'Zug' : 'Züge') + ' dargestellt';
 		var leer = document.getElementById('karte-leer');
 		if (leer) {
 			var msg = !state.ok && !state.zuege.length ? 'Gerade keine Daten vom Stationsmonitor.' : (n === 0 ? 'Gerade kein Zug auf der Karte.' : '');
@@ -332,7 +338,7 @@
 			}
 			e.m.setLatLng(pos);
 			if (e.status !== l.status || e.delay !== l.verspaetung) {
-				e.m.setIcon(L.divIcon({ className: 'zug-icon', html: iconHtml(e.zug, l), iconSize: [90, 30], iconAnchor: [14, 15], popupAnchor: [20, -14] }));
+				e.m.setIcon(zugIcon(e.zug, l));
 				e.status = l.status;
 				e.delay = l.verspaetung;
 			}
@@ -348,7 +354,7 @@
 		var zeilen = [];
 		state.zuege.forEach(function (z) {
 			var l = lage(z, now);
-			if (!l || !sichtbar(z)) return;
+			if (!l) return;
 			var d = l.verspaetung;
 			zeilen.push('<li><span class="linie linie--' + esc(linieKlasse(z.linie)) + '">' + esc(z.linie) + '</span>'
 				+ '<span class="zugliste__text"><strong>' + esc(z.von) + ' &rarr; ' + esc(z.nach) + '</strong>'
@@ -393,7 +399,7 @@
 			.then(function () { laeuft = false; });
 	}
 
-	/* ---------- Chips ---------- */
+	/* ---------- Ausschnitt ---------- */
 
 	function ansichtZeigen(id, animieren) {
 		var a = strecke.ansichten && strecke.ansichten[id];
@@ -403,44 +409,30 @@
 			if (p) punkte.push(p);
 		});
 		if (!punkte.length) return;
-		map.fitBounds(L.latLngBounds(punkte), { padding: [28, 28], animate: !!animieren, maxZoom: 13 });
+		// rechts und unten mehr Rand: dort haengen Badge und Verspaetung an den Zuegen
+		map.fitBounds(L.latLngBounds(punkte), { paddingTopLeft: [24, 36], paddingBottomRight: [100, 28], animate: !!animieren, maxZoom: 13 });
 	}
 
-	function chipsSetzen(attr, wert) {
-		Array.prototype.forEach.call(app.querySelectorAll('.chip[' + attr + ']'), function (b) {
-			b.setAttribute('aria-pressed', b.getAttribute(attr) === wert ? 'true' : 'false');
-		});
+	var ansichtSelect = document.getElementById('ansicht');
+	function ansichtSetzen(id, animieren) {
+		state.ansicht = id;
+		if (ansichtSelect && ansichtSelect.querySelector('option[value="' + id + '"]')) ansichtSelect.value = id;
+		ansichtZeigen(id, animieren);
 	}
-
-	app.addEventListener('click', function (ev) {
-		var b = ev.target.closest ? ev.target.closest('.chip') : null;
-		if (!b) return;
-		if (b.hasAttribute('data-linie')) {
-			state.linie = b.getAttribute('data-linie') || '';
-			chipsSetzen('data-linie', state.linie);
-			speichern('nordbahn.karte.linie', state.linie);
-			markerAbgleichen();
-			listeSchreiben();
-		} else if (b.hasAttribute('data-ansicht')) {
-			state.ansicht = b.getAttribute('data-ansicht') || '';
-			chipsSetzen('data-ansicht', state.ansicht);
-			speichern('nordbahn.karte.ansicht', state.ansicht);
-			ansichtZeigen(state.ansicht, true);
-		}
-	});
+	if (ansichtSelect) {
+		ansichtSelect.addEventListener('change', function () { ansichtSetzen(ansichtSelect.value, true); });
+	}
 
 	/* ---------- Start ---------- */
 
+	// Ausschnitt nach dem Heimatbahnhof der Startseite: Stamm -> Hamburg - Elmshorn, Aeste -> ihr Abschnitt
 	var ansichten = Object.keys(strecke.ansichten || {});
-	var gemerkt = laden('nordbahn.karte.ansicht');
-	state.ansicht = gemerkt && strecke.ansichten[gemerkt] ? gemerkt : (ansichten[0] || '');
-	chipsSetzen('data-ansicht', state.ansicht);
-	ansichtZeigen(state.ansicht, false);
-	var linie = laden('nordbahn.karte.linie');
-	if (linie && strecke.linien && strecke.linien[linie]) {
-		state.linie = linie;
-		chipsSetzen('data-linie', linie);
-	}
+	var heimatAnsicht = '';
+	try {
+		var zuordnung = JSON.parse((ansichtSelect && ansichtSelect.getAttribute('data-heimat-ansicht')) || '{}');
+		heimatAnsicht = zuordnung[laden('nordbahn.heimat') || ''] || zuordnung.APD || '';
+	} catch (e) { /* ohne Zuordnung der erste Eintrag */ }
+	ansichtSetzen(heimatAnsicht && strecke.ansichten[heimatAnsicht] ? heimatAnsicht : (ansichten[0] || ''), false);
 
 	uebernehmen(lesen('karte-stand'));
 	refresh();

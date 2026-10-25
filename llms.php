@@ -37,7 +37,7 @@ echo "- [Häufige Fragen](" . $site . "/faq/): Datenquellen, Bedeutung der Statu
 echo "- [Alle Eilmeldungen](" . $site . "/eilmeldungen/) und [alle Infrastrukturstörungen](" . $site . "/stoerungen/): Archiv nach Tagen, 50 Einträge je Seite (`?seite=N`).\n";
 echo "- Ereignisseiten: `" . $site . "/stoerung/<key>/` (z. B. BZI_33570) mit Pendler-Text, Originalmeldung, Verlauf, betroffenen Zügen und Eilmeldungen im Zeitraum; `" . $site . "/eilmeldung/<id>/` (z. B. em-123456) je Eilmeldung. lage.md und die Archive verlinken darauf.\n";
 echo "- [Wichtige Meldungen](" . $site . "/news/): nur die Störungen mit schwerer Einschränkung, Ausfällen, Umleitungen oder Ersatzverkehr und die Eilmeldungen zu Ersatzverkehr, Sperrungen, Bauarbeiten oder mehreren Zügen; einzelne kurzfristige Zugausfälle fehlen hier bewusst.\n";
-echo "- [Live-Karte](" . $site . "/karte/): wo die Züge gerade sind, mit Filter nach Linie und Streckenabschnitt; Positionen gerechnet aus Laufweg und Prognose, nicht geortet.\n";
+echo "- [Live-Karte](" . $site . "/karte/): wo die Züge gerade sind; der Kartenausschnitt folgt dem Heimatbahnhof und lässt sich wechseln; Positionen gerechnet aus Laufweg und Prognose, nicht geortet.\n";
 echo "- [Statistik](" . $site . "/statistik/): Pünktlichkeit je Zug und Bahnhof (Filter bhf, richtung=hin|rueck, tage=7|14|30|60, zeit=morgens|abends, werktage=1) und Infrastrukturstörungen mit Ursachen (ansicht=strecke).\n";
 echo "- [Was ist neu](" . $site . "/changelog/): Änderungen der Seite.\n\n";
 

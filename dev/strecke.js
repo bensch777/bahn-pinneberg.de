@@ -178,6 +178,21 @@ function kuerzesterWeg(graph, start, ziel) {
 
 /* ---------- Rechnung ---------- */
 
+/**
+ * Schleifen kappen: Liegt der naechste Gleisknoten eines Bahnhofs auf dem Nachbargleis, fuehrt
+ * der kuerzeste Weg am Bahnhof vorbei bis zur naechsten Weiche und zurueck. Dann endet der Weg
+ * schon dort, wo er dem Bahnhof am naechsten kommt (ebenso am Anfang). $punkte: [lat, lon][].
+ */
+function schleifenKappen(punkte, von, bis) {
+	const laenge = (liste) => { let l = 0; for (let i = 1; i < liste.length; i++) l += dist(liste[i - 1], liste[i]); return l; };
+	const naechster = (ziel) => { let idx = 0, best = Infinity; punkte.forEach((p, i) => { const d = dist(p, ziel); if (d < best) { best = d; idx = i; } }); return { idx, abstand: best }; };
+	const ende = naechster(bis);
+	if (ende.idx < punkte.length - 1 && laenge(punkte.slice(ende.idx)) > 2 * ende.abstand + 50) punkte = punkte.slice(0, ende.idx + 1);
+	const anfang = naechster(von);
+	if (anfang.idx > 0 && laenge(punkte.slice(0, anfang.idx + 1)) > 2 * anfang.abstand + 50) punkte = punkte.slice(anfang.idx);
+	return punkte;
+}
+
 /** Weg zwischen zwei Bahnhoefen als Knotenliste, oder null mit Grund. */
 function wegZwischen(graph, stationen, von, bis) {
 	const a = naechsterKnoten(graph, [stationen[von].lat, stationen[von].lon]);
@@ -191,7 +206,7 @@ function wegZwischen(graph, stationen, von, bis) {
 
 /** Knotenliste zu vereinfachten Stuetzpunkten ohne die Endpunkte (die Bahnhoefe selbst). */
 function zwischenpunkte(graph, weg, von, bis) {
-	const punkte = weg.map(id => graph.knoten.get(id));
+	const punkte = schleifenKappen(weg.map(id => graph.knoten.get(id)), von, bis);
 	const voll = [von].concat(punkte, [bis]);
 	const einfach = vereinfachen(voll, TOLERANZ);
 	return einfach.slice(1, -1).map(p => [Number(p[0].toFixed(5)), Number(p[1].toFixed(5))]);
@@ -294,4 +309,4 @@ if (require.main === module) {
 	main().catch(e => { process.stderr.write('Fehler: ' + e.message + '\n'); process.exit(1); });
 }
 
-module.exports = { rechnen, vereinfachen, graphBauen, kuerzesterWeg, schreiben };
+module.exports = { rechnen, vereinfachen, graphBauen, kuerzesterWeg, schreiben, schleifenKappen };
