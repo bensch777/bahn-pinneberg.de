@@ -269,12 +269,15 @@ function test_archiv_seiten_nach_ganzen_tagen()
     t_contains('Neuere Meldungen', nb_render_seitennav(nb_seite($items, 4, 2, $zeit), './'), 'Beschriftung');
 }
 
-function test_meldungen_tabs_und_zurueck()
+function test_meldungen_tabs_und_kopf()
 {
     $html = nb_render_meldungen_tabs('../', 'eilmeldungen');
     t_contains('<a class="tabs__tab" href="../news/">Wichtig</a>', $html, 'Wichtig');
     t_contains('<a class="tabs__tab" href="../eilmeldungen/" aria-current="page">Eilmeldungen</a>', $html, 'aktiver Tab');
-    t_contains('>Startseite</a>', nb_render_zurueck('../'), 'Ruecklink');
+    $kopf = nb_render_kopf('../', 'eilmeldungen');
+    t_contains('<a class="site-nav__link" href="../news/" aria-current="page">Meldungen</a>', $kopf, 'Meldungen aktiv auf Unterseiten');
+    t_contains('<a class="nav-menu__link nav-menu__link--klein" href="../faq/">', $kopf, 'FAQ im Handy-Menue');
+    t_contains('href="../">Lage</a>', $kopf, 'Link zur Startseite');
 }
 
 /** Alle section__title-Texte eines HTML-Schnipsels. */

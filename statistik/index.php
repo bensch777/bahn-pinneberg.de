@@ -90,14 +90,7 @@ function nb_filter_select($name, $label, array $optionen, $wert)
 </head>
 <body>
 
-<header class="site-head">
-	<div class="wrap site-head__row">
-		<a class="site-head__brand" href="<?= $root ?>">Bahn-Pinneberg.de</a>
-		<nav class="site-head__tools" aria-label="Zur&uuml;ck">
-			<?= nb_render_zurueck($root) ?>
-		</nav>
-	</div>
-</header>
+<?= nb_render_kopf($root, 'statistik') ?>
 
 <main class="wrap">
 	<div class="page-head">

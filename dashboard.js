@@ -199,8 +199,9 @@
 
 	function renderFreshness() {
 		var box = document.getElementById('freshness');
+		var busy = box.classList.contains('is-busy');
 		clear(box);
-		box.className = 'freshness';
+		box.className = 'freshness' + (busy ? ' is-busy' : '');
 		var received = state.data && state.data.received_at ? Date.parse(state.data.received_at) : NaN;
 		if (isNaN(received)) {
 			box.classList.add('is-empty');
@@ -217,8 +218,23 @@
 		box.appendChild(el('span', { class: 'dot' }));
 		var text = 'Aktualisiert ' + relTime(latest);
 		if (stale) text += ', Störungsdaten veraltet (Stand ' + fmtDateTime(state.data.received_at) + ')';
-		box.title = 'Lagebild: ' + fmtDateTime(state.data.received_at) + (isNaN(abfMs) ? '' : ', Abfahrten: ' + fmtDateTime(abf.fetched_at));
+		box.title = 'Lagebild: ' + fmtDateTime(state.data.received_at) + (isNaN(abfMs) ? '' : ', Abfahrten: ' + fmtDateTime(abf.fetched_at)) + '. Antippen zum Aktualisieren';
 		box.appendChild(document.createTextNode(text));
+		box.appendChild(refreshIcon());
+		box.appendChild(el('span', { class: 'visually-hidden', text: ', jetzt aktualisieren' }));
+	}
+
+	/** Kreispfeil hinter der Zeitangabe: zeigt, dass ein Tipp nachlaedt, und dreht sich dabei. */
+	function refreshIcon() {
+		var ns = 'http://www.w3.org/2000/svg';
+		var svg = document.createElementNS(ns, 'svg');
+		svg.setAttribute('class', 'freshness__icon');
+		svg.setAttribute('viewBox', '0 0 24 24');
+		svg.setAttribute('aria-hidden', 'true');
+		var path = document.createElementNS(ns, 'path');
+		path.setAttribute('d', 'M17.65 6.35A7.96 7.96 0 0 0 12 4a8 8 0 1 0 7.74 10h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35Z');
+		svg.appendChild(path);
+		return svg;
 	}
 
 	/* ---------- Lagebild ---------- */
@@ -1210,11 +1226,14 @@
 		document.addEventListener('visibilitychange', function () { if (!document.hidden) { refresh(); refreshDepartures(); refreshS3(); } });
 	}
 
-	/** Manuell nachladen, vor allem fuer die Webapp ohne Browserleiste. Das Icon dreht sich, solange geladen wird. */
+	/**
+	 * Manuell nachladen per Tipp auf die Zeitangabe. Die Seite laedt jede Minute und
+	 * beim Zurueckholen in den Vordergrund ohnehin selbst nach; das hier ist fuer die
+	 * Webapp ohne Browserleiste und fuer alle, die es genau wissen wollen.
+	 */
 	function initRefreshButton() {
-		var btn = document.getElementById('refresh-button');
-		if (!btn) return;
-		if (!window.fetch || !window.Promise) { btn.hidden = true; return; }
+		var btn = document.getElementById('freshness');
+		if (!btn || !window.fetch || !window.Promise) return;
 		btn.addEventListener('click', function () {
 			if (btn.classList.contains('is-busy')) return;
 			btn.classList.add('is-busy');
@@ -1222,7 +1241,7 @@
 			Promise.all([refresh(), refreshDepartures(), refreshS3()]).then(done, done);
 			function done() {
 				// mindestens eine halbe Umdrehung, sonst flackert es nur
-				setTimeout(function () { btn.classList.remove('is-busy'); }, Math.max(0, 600 - (Date.now() - started)));
+				setTimeout(function () { btn.classList.remove('is-busy'); renderFreshness(); }, Math.max(0, 600 - (Date.now() - started)));
 			}
 		});
 	}

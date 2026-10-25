@@ -1,6 +1,6 @@
 <?php
 /**
- * Haeufige Fragen zum Nordbahn Monitor. Eigene Seite, nur aus dem Footer
+ * Haeufige Fragen zum Nordbahn Monitor. Eigene Seite, aus Footer und Handy-Menue
  * verlinkt; die Fragen stehen zusaetzlich als FAQPage-JSON-LD im Head.
  */
 
@@ -80,14 +80,7 @@ $description = 'Wie Bahn-Pinneberg.de Störungen, Abfahrten und Eilmeldungen der
 </head>
 <body>
 
-<header class="site-head">
-	<div class="wrap site-head__row">
-		<a class="site-head__brand" href="<?= $root ?>">Bahn-Pinneberg.de</a>
-		<nav class="site-head__tools" aria-label="Zur&uuml;ck">
-			<?= nb_render_zurueck($root) ?>
-		</nav>
-	</div>
-</header>
+<?= nb_render_kopf($root, 'faq') ?>
 
 <main class="wrap">
 	<div class="page-head">

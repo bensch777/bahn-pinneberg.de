@@ -25,7 +25,8 @@ Das Wurzelverzeichnis des Repos ist das Web-Root. Reines PHP ohne Framework, kei
 | `api/subscribe.php`, `api/notify.php`, `api/webpush.php` | Web Push: Abos annehmen, Ereignisse erkennen, verschlüsselt versenden (VAPID, aes128gcm, ohne Fremdpakete) |
 | `sw.js` | Service Worker, zeigt Push-Nachrichten an |
 | `api/store.php`, `api/render.php` | Gemeinsame Funktionen, Konfiguration, Bahnhofsliste |
-| `faq/`, `changelog/` | Eigene Seiten, nur aus dem Footer verlinkt |
+| `faq/`, `changelog/` | Eigene Seiten, verlinkt aus dem Footer und dem Handy-Menü |
+| `nav.js`, `nb_render_kopf()` in `api/render.php` | Kopfzeile aller Seiten: Bereiche Lage, Meldungen, Live-Karte, Statistik; unter 720 px hinter einem Menü-Knopf (`<details>`, klappt auch ohne JavaScript), `nav.js` schließt es bei Klick daneben und mit Escape |
 | `cache/` | Daten auf dem Server (nicht im Repo, nicht im Deploy) |
 | `tests/` | Tests, siehe unten |
 

@@ -108,11 +108,44 @@ button { font: inherit; color: inherit; }
 	overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
 }
 
-/* Kopf */
-.site-head { border-bottom: 1px solid var(--line); background: var(--surface); }
-.site-head__row { display: flex; justify-content: space-between; align-items: center; height: 48px; }
-.site-head__brand { font-weight: 600; text-decoration: none; font-size: 14px; }
-.site-head__tools { display: flex; gap: 4px; align-items: center; }
+/* Kopf: bleibt oben stehen, damit Bereiche und Glocke von ueberall erreichbar sind.
+   z-index ueber den Leaflet-Ebenen (bis 1000) der Live-Karte. */
+.site-head { position: sticky; top: 0; z-index: 1100; border-bottom: 1px solid var(--line); background: var(--surface); }
+.site-head__row { display: flex; align-items: center; gap: 20px; height: 52px; }
+.site-head__brand { font-weight: 600; text-decoration: none; font-size: 14px; white-space: nowrap; }
+.site-head__tools { display: flex; gap: 4px; align-items: center; margin-left: auto; }
+.site-nav { display: flex; gap: 2px; align-items: center; }
+.site-nav__link {
+	padding: 6px 10px; border-radius: 8px; font-size: 14px; font-weight: 500; color: var(--ink-2); text-decoration: none; white-space: nowrap;
+}
+.site-nav__link:hover { color: var(--ink); background: var(--surface-2); }
+.site-nav__link[aria-current="page"] { color: var(--ink); background: var(--surface-2); }
+.site-nav__link:focus-visible { outline: 2px solid var(--series); outline-offset: 1px; }
+/* Menue-Knopf nur auf schmalen Bildschirmen; dann klappt die Liste als Blatt unter dem Kopf auf */
+.nav-menu { display: none; }
+.nav-menu__knopf { list-style: none; padding: 0 7px; height: 36px; }
+.nav-menu__knopf::-webkit-details-marker { display: none; }
+.nav-menu__zu, .nav-menu[open] .nav-menu__auf { display: none; }
+.nav-menu[open] .nav-menu__zu { display: block; }
+.nav-menu[open] .nav-menu__knopf { color: var(--ink); background: var(--surface-2); }
+.nav-menu__panel {
+	position: absolute; left: 0; right: 0; top: 100%; background: var(--surface); border-bottom: 1px solid var(--line);
+	box-shadow: 0 16px 30px rgba(0, 0, 0, 0.14);
+}
+.nav-menu__list { list-style: none; margin: 0 auto; padding: 6px 8px 12px; max-width: 1040px; }
+.nav-menu__link {
+	display: block; padding: 12px 10px; border-radius: 8px; font-size: 16px; font-weight: 500; color: var(--ink); text-decoration: none;
+}
+.nav-menu__link:hover, .nav-menu__link:focus-visible { background: var(--surface-2); outline: none; }
+.nav-menu__link[aria-current="page"] { color: var(--series); font-weight: 600; }
+.nav-menu__link[aria-current="page"]::after { content: '\2022'; margin-left: 8px; }
+.nav-menu__link--klein { padding: 9px 10px; font-size: 14.5px; color: var(--ink-2); }
+.nav-menu__trenner { height: 1px; margin: 6px 10px; background: var(--line); }
+@media (max-width: 720px) {
+	.site-nav { display: none; }
+	.nav-menu { display: block; }
+	.site-head__row { height: 48px; }
+}
 .tool {
 	display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 10px; border-radius: 8px;
 	border: 1px solid transparent; background: transparent; color: var(--ink-2); font-size: 13px; font-weight: 500;
@@ -139,11 +172,6 @@ button { font: inherit; color: inherit; }
 .menu__group legend { padding: 0; font-size: 12px; color: var(--muted); }
 .menu__hint { margin: 0 0 4px; font-size: 12.5px; color: var(--warning-text, var(--muted)); }
 .menu[hidden] { display: none; }
-.tool--refresh { padding: 0 7px; }
-.tool--refresh.is-busy { color: var(--series); }
-.tool--refresh.is-busy .tool__icon { animation: tool-spin 0.8s linear infinite; }
-@keyframes tool-spin { to { transform: rotate(360deg); } }
-@media (prefers-reduced-motion: reduce) { .tool--refresh.is-busy .tool__icon { animation: none; opacity: 0.5; } }
 
 .page-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 24px; padding: 36px 0 8px; flex-wrap: wrap; }
 .page-head h1 { font-size: 30px; font-weight: 700; letter-spacing: -0.02em; margin: 0 0 6px; }
@@ -153,6 +181,14 @@ button { font: inherit; color: inherit; }
 .freshness.is-stale .dot { background: var(--warning); }
 .freshness[hidden] { display: none; }
 .freshness.is-empty .dot { background: var(--muted); }
+/* Auf der Startseite laedt ein Tipp auf die Zeitangabe sofort nach (Webapp ohne Browserleiste) */
+button.freshness { padding: 4px 8px; margin: 0 -8px 0 0; border: 0; border-radius: 8px; background: transparent; color: var(--muted); cursor: pointer; }
+button.freshness:hover { color: var(--ink-2); background: var(--surface-2); }
+button.freshness:focus-visible { outline: 2px solid var(--series); outline-offset: 1px; }
+.freshness__icon { width: 14px; height: 14px; fill: currentColor; flex: none; }
+.freshness.is-busy .freshness__icon { animation: tool-spin 0.8s linear infinite; }
+@keyframes tool-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .freshness.is-busy .freshness__icon { animation: none; opacity: 0.5; } }
 
 /* Abschnitte */
 .section { margin: 28px 0 0; }
@@ -245,10 +281,6 @@ button { font: inherit; color: inherit; }
 .incident__link a::after { content: ' \2192'; }
 .incident__link a:hover { text-decoration: underline; }
 /* Ereignisseite: Artikel in schmaler Lesespalte */
-.zurueck { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px 0 8px; border-radius: 8px; font-size: 14px; font-weight: 500; color: var(--ink-2); text-decoration: none; }
-.zurueck:hover { color: var(--ink); background: var(--surface-2); }
-.zurueck:focus-visible { outline: 2px solid var(--series); outline-offset: 1px; }
-.zurueck__icon { width: 18px; height: 18px; fill: currentColor; }
 .artikel { max-width: 760px; margin: 0 auto; padding: 36px 0 8px; }
 .artikel__kopf { margin: 0 0 22px; }
 .artikel__dachzeile { margin: 0 0 10px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; font-size: 13px; color: var(--muted); }
