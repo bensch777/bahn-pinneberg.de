@@ -235,11 +235,12 @@
 	var zugLayer = L.layerGroup().addTo(map);
 	var marker = {}; // zugnummer -> { m: Marker, zug, linie }
 
+	var ZUG_BILD = app.getAttribute('data-zug-bild') || '';
 	function iconHtml(z, l) {
 		var d = l ? l.verspaetung : z.verspaetung;
 		var k = delayKlasse(d);
 		return '<span class="zug zug--' + esc(linieKlasse(z.linie)) + (l ? ' zug--' + l.status : '') + (k ? ' zug--' + k : '') + '">'
-			+ '<svg class="zug__icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 2h10a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3l1.5 2.5h-2L15 18H9l-1.5 2.5h-2L7 18a3 3 0 0 1-3-3V5a3 3 0 0 1 3-3Zm0 3v6h10V5H7Zm1 9a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Zm8 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Z"/></svg>'
+			+ (ZUG_BILD ? '<img class="zug__bild" src="' + esc(ZUG_BILD) + '" alt="" width="28" height="28">' : '')
 			+ '<b class="zug__linie">' + esc(z.linie) + '</b>'
 			+ (d >= 3 ? '<i class="zug__delay">+' + d + '</i>' : '')
 			+ '</span>';
@@ -280,7 +281,7 @@
 			gesehen[z.zug] = true;
 			n++;
 			var e = marker[z.zug];
-			var icon = L.divIcon({ className: 'zug-icon', html: iconHtml(z, l), iconSize: [64, 26], iconAnchor: [32, 13], popupAnchor: [0, -12] });
+			var icon = L.divIcon({ className: 'zug-icon', html: iconHtml(z, l), iconSize: [90, 30], iconAnchor: [14, 15], popupAnchor: [20, -14] });
 			if (!e) {
 				var m = L.marker(pos, { icon: icon, riseOnHover: true, keyboard: true, title: z.linie + ' ' + z.von + ' → ' + z.nach, zIndexOffset: 1000 });
 				m.bindPopup(function () { return popupHtml(z); }, { maxWidth: 300, className: 'karte-popup-wrap' });
@@ -331,7 +332,7 @@
 			}
 			e.m.setLatLng(pos);
 			if (e.status !== l.status || e.delay !== l.verspaetung) {
-				e.m.setIcon(L.divIcon({ className: 'zug-icon', html: iconHtml(e.zug, l), iconSize: [64, 26], iconAnchor: [32, 13], popupAnchor: [0, -12] }));
+				e.m.setIcon(L.divIcon({ className: 'zug-icon', html: iconHtml(e.zug, l), iconSize: [90, 30], iconAnchor: [14, 15], popupAnchor: [20, -14] }));
 				e.status = l.status;
 				e.delay = l.verspaetung;
 			}

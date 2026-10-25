@@ -603,16 +603,17 @@ button { font: inherit; color: inherit; }
 .karte .karte-label::before { display: none; }
 .karte .karte-tip { font-size: 12px; font-weight: 500; padding: 3px 7px; }
 @media (prefers-color-scheme: dark) { .karte .karte-label { color: #f0efec; text-shadow: 0 0 2px #121211, 0 0 2px #121211, 0 0 4px #121211, 0 0 4px #121211; } .karte .karte-tip { background: var(--surface); color: var(--ink); border-color: var(--line); } }
-/* Zugmarker: Chip mit Linienfarbe, Zugsymbol und Verspaetung */
-.zug-icon { background: transparent; border: 0; display: flex; align-items: center; justify-content: center; }
-.zug { display: inline-flex; align-items: center; gap: 4px; height: 24px; padding: 0 7px 0 5px; border-radius: 7px; background: #5b5b58; color: #fff; font-size: 12px; font-weight: 700; letter-spacing: 0.01em; white-space: nowrap; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35), 0 0 0 1.5px rgba(255, 255, 255, 0.95); cursor: pointer; }
-.zug__icon { width: 14px; height: 14px; fill: currentColor; flex: none; }
-.zug--rb60, .linie--rb60 { background: #eb6834; }
-.zug--rb61, .linie--rb61 { background: #2a78d6; }
-.zug--rb71, .linie--rb71 { background: #1f9d55; }
+/* Zugmarker: Nordbahn-Zug (karte/zug.png) mit Linienbadge und Verspaetung daneben */
+.zug-icon { background: transparent; border: 0; display: flex; align-items: center; justify-content: flex-start; }
+.zug { display: inline-flex; align-items: center; gap: 3px; height: 30px; white-space: nowrap; cursor: pointer; }
+.zug__bild { width: 28px; height: 28px; flex: none; filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.45)); }
+.zug__linie { display: inline-block; height: 22px; line-height: 22px; padding: 0 7px; border-radius: 6px; background: #5b5b58; color: #fff; font-size: 12px; font-weight: 700; letter-spacing: 0.01em; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35), 0 0 0 1.5px rgba(255, 255, 255, 0.95); }
+.zug--rb60 .zug__linie, .linie--rb60 { background: #eb6834; }
+.zug--rb61 .zug__linie, .linie--rb61 { background: #2a78d6; }
+.zug--rb71 .zug__linie, .linie--rb71 { background: #1f9d55; }
 .zug--wartet { opacity: 0.8; }
 .zug--ziel { opacity: 0.65; }
-.zug__delay { font-style: normal; font-size: 11px; line-height: 1; padding: 3px 4px; border-radius: 5px; background: var(--warning); color: #1a1a19; }
+.zug__delay { font-style: normal; font-size: 11px; font-weight: 700; height: 22px; line-height: 22px; padding: 0 5px; border-radius: 6px; background: var(--warning); color: #1a1a19; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35), 0 0 0 1.5px rgba(255, 255, 255, 0.95); }
 .zug--stark .zug__delay { background: var(--critical); color: #fff; }
 .linie { display: inline-block; min-width: 44px; text-align: center; padding: 3px 7px; border-radius: 6px; font-size: 12px; font-weight: 700; line-height: 1.2; color: #fff; background: #5b5b58; flex: none; }
 /* Liste unter der Karte */

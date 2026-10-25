@@ -15,6 +15,7 @@ $assetVersion = (int) @filemtime(__DIR__ . '/../dashboard.css');
 
 $changelog = [
     ['2026-10-25', [
+        ['Live-Karte: Gleise und Nordbahn-Zug', 'Die Strecke folgt jetzt den echten Gleisen aus OpenStreetMap statt gerader Linien zwischen den Bahnhöfen, in den Farben der Linien, die dort fahren. Jeder Zug ist ein kleiner Nordbahn-Triebwagen mit Linienbadge und Verspätung daneben.'],
         ['Live-Karte: wo die Züge gerade sind', 'Neue Seite „Nordbahn live“ unter /karte/, verlinkt im Footer: eine Karte mit allen Zügen der RB60, RB61 und RB71, die unterwegs sind oder in den nächsten 20 Minuten starten. Jeder Zug ist ein Chip in Linienfarbe mit Verspätung; ein Tipp darauf zeigt Laufweg, nächsten Halt, Gleis und Hinweis. Filter nach Linie und Ausschnitt (Gesamtnetz, Hamburg – Elmshorn, die Äste nach Itzehoe und Wrist), darunter die Liste aller Züge mit ihrer Lage. Die Positionen sind gerechnet, nicht geortet: aus dem Laufweg mit Prognose je Halt aus dem Stationsmonitor; zwischen zwei Abrufen fahren die Züge nach diesen Zeiten weiter. Die Karte selbst (Leaflet) liegt auf dem eigenen Server, nur die Kacheln kommen von OpenStreetMap. Auch als JSON unter api/karte.'],
     ]],
     ['2026-10-23', [

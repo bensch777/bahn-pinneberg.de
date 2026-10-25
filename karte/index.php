@@ -120,7 +120,7 @@ function nb_karte_liste(array $zuege)
 	</div>
 </header>
 
-<main class="wrap" id="karte-app" data-endpoint="<?= $root ?>api/karte">
+<main class="wrap" id="karte-app" data-endpoint="<?= $root ?>api/karte" data-zug-bild="<?= $root ?>karte/zug.png?v=<?= (int) @filemtime(__DIR__ . '/zug.png') ?>">
 	<div class="page-head">
 		<div>
 			<h1>Nordbahn live</h1>
