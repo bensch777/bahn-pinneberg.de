@@ -1,7 +1,7 @@
 <?php
 /**
- * Changelog des Nordbahn Monitors: alle Aenderungen nach Datum, nur aus dem
- * Footer verlinkt. Neue Eintraege oben anfuegen.
+ * Changelog des Nordbahn Monitors: alle Aenderungen nach Datum, verlinkt aus
+ * Footer und Handy-Menue. Neue Eintraege oben anfuegen.
  */
 
 require __DIR__ . '/../api/store.php';
@@ -15,6 +15,7 @@ $assetVersion = (int) @filemtime(__DIR__ . '/../dashboard.css');
 
 $changelog = [
     ['2026-10-25', [
+        ['Neue Kopfzeile mit Menü', 'Oben stehen jetzt auf jeder Seite die Bereiche Lage, Meldungen, Live-Karte und Statistik, die aktuelle Seite ist hervorgehoben. Auf dem Handy liegen sie hinter dem Menü-Knopf rechts, zusammen mit den häufigen Fragen und „Was ist neu“. Die Kopfzeile bleibt beim Scrollen oben stehen, die Glocke für Benachrichtigungen bleibt neben dem Menü direkt erreichbar. Der Knopf zum Aktualisieren ist weg: Die Seite lädt jede Minute und beim Zurückkehren in die App ohnehin selbst nach. Wer sofort nachladen will, tippt auf „Aktualisiert vor …“.'],
         ['Live-Karte ohne Filter und mit weniger Text', 'Die Chips für Linie und Ausschnitt sind weg, die Karte öffnet im Abschnitt des Heimatbahnhofs. Die Erklärung, wie die Positionen entstehen, ist auf einen Satz geschrumpft und steht ausführlich in den häufigen Fragen. Unter der Liste nennt ein fester Absatz Linien und Halte.'],
         ['Live-Karte: Gleise und Nordbahn-Zug', 'Die Strecke folgt jetzt den echten Gleisen aus OpenStreetMap statt gerader Linien zwischen den Bahnhöfen, in den Farben der Linien, die dort fahren. Jeder Zug ist ein kleiner Nordbahn-Triebwagen mit Linienbadge und Verspätung daneben; wartende Züge stehen über ihrem Startbahnhof, angekommene darunter.'],
         ['Live-Karte: wo die Züge gerade sind', 'Neue Seite „Nordbahn live“ unter /karte/, verlinkt im Footer: eine Karte mit allen Zügen der RB60, RB61 und RB71, die unterwegs sind oder in den nächsten 20 Minuten starten. Jeder Zug ist ein Chip in Linienfarbe mit Verspätung; ein Tipp darauf zeigt Laufweg, nächsten Halt, Gleis und Hinweis. Der Kartenausschnitt richtet sich beim Laden nach dem Heimatbahnhof der Startseite (Hamburg – Elmshorn, der Ast nach Itzehoe oder nach Wrist), darunter die Liste aller Züge mit ihrer Lage. Die Positionen sind gerechnet, nicht geortet: aus dem Laufweg mit Prognose je Halt aus dem Stationsmonitor; zwischen zwei Abrufen fahren die Züge nach diesen Zeiten weiter. Die Karte selbst (Leaflet) liegt auf dem eigenen Server, nur die Kacheln kommen von OpenStreetMap. Auch als JSON unter api/karte.'],
@@ -151,14 +152,7 @@ function nb_datum($iso)
 </head>
 <body>
 
-<header class="site-head">
-	<div class="wrap site-head__row">
-		<a class="site-head__brand" href="<?= $root ?>">Bahn-Pinneberg.de</a>
-		<nav class="site-head__tools" aria-label="Zur&uuml;ck">
-			<?= nb_render_zurueck($root) ?>
-		</nav>
-	</div>
-</header>
+<?= nb_render_kopf($root, 'changelog') ?>
 
 <main class="wrap">
 	<div class="page-head">

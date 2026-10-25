@@ -1221,10 +1221,58 @@ function nb_render_meldungen_tabs($root, $aktiv)
     return $html . '</nav>';
 }
 
-/** Ruecklink oben rechts auf allen Unterseiten. */
-function nb_render_zurueck($root)
+/**
+ * Kopfzeile aller Seiten: Name, Hauptnavigation und rechts optionale Werkzeuge
+ * ($tools, z. B. die Glocke der Startseite). Auf breiten Bildschirmen stehen die
+ * Bereiche nebeneinander, auf dem Handy hinter dem Menue-Knopf, zusammen mit FAQ
+ * und Changelog. Das Menue ist ein <details>, klappt also auch ohne JavaScript;
+ * nav.js schliesst es bei Klick daneben und mit Escape.
+ * $aktiv: lage, news, eilmeldungen, stoerungen, ereignis, karte, statistik, faq, changelog oder impressum.
+ */
+function nb_render_kopf($root, $aktiv, $tools = '')
 {
-    return '<a class="zurueck" href="' . nb_e($root) . '"><svg class="zurueck__icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11H7.8l5.6-5.6L12 4l-8 8 8 8 1.4-1.4L7.8 13H20v-2Z"/></svg>Startseite</a>';
+    $bereiche = [
+        'lage' => ['', 'Lage', ['lage']],
+        'news' => ['news/', 'Meldungen', ['news', 'eilmeldungen', 'stoerungen', 'ereignis']],
+        'karte' => ['karte/', 'Live-Karte', ['karte']],
+        'statistik' => ['statistik/', 'Statistik', ['statistik']],
+    ];
+    $extra = [
+        'faq' => ['faq/', 'H&auml;ufige Fragen'],
+        'changelog' => ['changelog/', 'Was ist neu'],
+    ];
+    $link = function ($class, $pfad, $label, $an) use ($root) {
+        return '<a class="' . $class . '" href="' . nb_e($root . $pfad) . '"' . ($an ? ' aria-current="page"' : '') . '>' . $label . '</a>';
+    };
+    $leiste = '';
+    $menue = '';
+    foreach ($bereiche as $b) {
+        $an = in_array($aktiv, $b[2], true);
+        $leiste .= $link('site-nav__link', $b[0], $b[1], $an);
+        $menue .= '<li>' . $link('nav-menu__link', $b[0], $b[1], $an) . '</li>';
+    }
+    $menue .= '<li class="nav-menu__trenner" role="separator"></li>';
+    foreach ($extra as $key => $b) {
+        $menue .= '<li>' . $link('nav-menu__link nav-menu__link--klein', $b[0], $b[1], $aktiv === $key) . '</li>';
+    }
+    $version = (int) @filemtime(__DIR__ . '/../nav.js');
+
+    return '<header class="site-head">'
+        . '<div class="wrap site-head__row">'
+        . '<a class="site-head__brand" href="' . nb_e($root) . '">Bahn-Pinneberg.de</a>'
+        . '<nav class="site-nav" aria-label="Bereiche">' . $leiste . '</nav>'
+        . '<div class="site-head__tools">' . $tools
+        . '<details class="nav-menu" id="nav-menu">'
+        . '<summary class="tool nav-menu__knopf" title="Men&uuml;">'
+        . '<svg class="tool__icon nav-menu__auf" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18v2H3V6Zm0 5h18v2H3v-2Zm0 5h18v2H3v-2Z"/></svg>'
+        . '<svg class="tool__icon nav-menu__zu" viewBox="0 0 24 24" aria-hidden="true"><path d="m6.4 5 5.6 5.6L17.6 5 19 6.4 13.4 12l5.6 5.6-1.4 1.4-5.6-5.6L6.4 19 5 17.6l5.6-5.6L5 6.4 6.4 5Z"/></svg>'
+        . '<span class="visually-hidden">Men&uuml;</span></summary>'
+        . '<nav class="nav-menu__panel" aria-label="Men&uuml;"><ul class="nav-menu__list">' . $menue . '</ul></nav>'
+        . '</details>'
+        . '</div>'
+        . '</div>'
+        . '<script src="' . nb_e($root) . 'nav.js?v=' . $version . '" defer></script>'
+        . '</header>';
 }
 
 /* ---------- Lage als Markdown (lage.md, fuer KI-Assistenten und Skripte) ---------- */

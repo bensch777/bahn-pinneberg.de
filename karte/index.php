@@ -126,14 +126,7 @@ function nb_karte_liste(array $zuege)
 </head>
 <body>
 
-<header class="site-head">
-	<div class="wrap site-head__row">
-		<a class="site-head__brand" href="<?= $root ?>">Bahn-Pinneberg.de</a>
-		<nav class="site-head__tools" aria-label="Zur&uuml;ck">
-			<?= nb_render_zurueck($root) ?>
-		</nav>
-	</div>
-</header>
+<?= nb_render_kopf($root, 'karte') ?>
 
 <main class="wrap" id="karte-app" data-endpoint="<?= $root ?>api/karte" data-heimat-ansicht="<?= nb_e(json_encode($heimatAnsicht, JSON_UNESCAPED_UNICODE)) ?>" data-zug-bild="<?= $root ?>karte/zug.png?v=<?= (int) @filemtime(__DIR__ . '/zug.png') ?>">
 	<div class="page-head">
