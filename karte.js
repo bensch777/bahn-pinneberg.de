@@ -202,26 +202,29 @@
 	// Dauerhafte Bahnhofsnamen liegen unter den Zuegen (Leaflets Tooltip-Ebene laege darueber)
 	map.createPane('labels').style.zIndex = 450;
 
-	// Strecke: helle Kante unter dunkler Linie, darauf die Halte
+	// Strecke: eine Linie je Kante in Linienfarbe. Fahren dort mehrere Linien, wechseln
+	// sich ihre Farben in Abschnitten ab (gestrichelte Lagen ueber einer durchgehenden).
 	var netz = L.layerGroup().addTo(map);
-	Object.keys(graph).forEach(function (von) {
-		Object.keys(graph[von]).forEach(function (bis) {
-			if (von < bis) {
-				L.polyline(graph[von][bis], { color: '#ffffff', weight: 7, opacity: 0.9, interactive: false }).addTo(netz);
-			}
-		});
-	});
-	Object.keys(graph).forEach(function (von) {
-		Object.keys(graph[von]).forEach(function (bis) {
-			if (von < bis) {
-				L.polyline(graph[von][bis], { color: '#3a3a38', weight: 3, opacity: 1, interactive: false }).addTo(netz);
-			}
-		});
+	var STRICH = 14; // Laenge eines Farbabschnitts in Pixeln
+	function linienFarbe(id) {
+		return (strecke.linien && strecke.linien[id] && strecke.linien[id].farbe) || '#5b5b58';
+	}
+	(strecke.kanten || []).forEach(function (k) {
+		var punkte = graph[k.von] && graph[k.von][k.bis];
+		if (!punkte) return;
+		var linien = (k.linien && k.linien.length ? k.linien : ['']).slice();
+		L.polyline(punkte, { color: linienFarbe(linien[0]), weight: 4, opacity: 1, lineCap: 'butt', lineJoin: 'round', interactive: false }).addTo(netz);
+		for (var i = 1; i < linien.length; i++) {
+			L.polyline(punkte, {
+				color: linienFarbe(linien[i]), weight: 4, opacity: 1, lineCap: 'butt', lineJoin: 'round', interactive: false,
+				dashArray: STRICH + ' ' + STRICH * (linien.length - 1), dashOffset: String(STRICH * i)
+			}).addTo(netz);
+		}
 	});
 	Object.keys(strecke.stationen || {}).forEach(function (id) {
 		var s = strecke.stationen[id];
 		if (s.knoten) return;
-		var m = L.circleMarker([s.lat, s.lon], { radius: s.gross ? 5.5 : 3.5, color: '#3a3a38', weight: 2, fillColor: '#ffffff', fillOpacity: 1, pane: 'markerPane' }).addTo(netz);
+		var m = L.circleMarker([s.lat, s.lon], { radius: s.gross ? 5 : 3.5, color: '#3a3a38', weight: 1.5, fillColor: '#ffffff', fillOpacity: 1, pane: 'markerPane' }).addTo(netz);
 		var seite = s.label || 'right';
 		var versatz = { right: [7, 0], left: [-7, 0], top: [0, -8], bottom: [0, 8] }[seite] || [7, 0];
 		m.bindTooltip(esc(s.name), s.gross
