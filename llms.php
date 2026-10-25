@@ -28,7 +28,8 @@ echo "## Daten als JSON\n\n";
 echo "- [api/data](" . $site . "/api/data): Lagebild mit `stoerungen` (aktive Infrastrukturstörungen mit `titel`, `text`, `ki_titel`, `ki_text` in Alltagssprache, `beginn`, `ende`, `abgelaufen`), `eilmeldungen_live` (aktuell auf nordbahn.de), `eilmeldungen` (Historie) und `stoerungen_verlauf` (Logbuch mit `first_seen`, `last_seen`).\n";
 echo "- [api/abfahrten?bhf=APD](" . $site . "/api/abfahrten?bhf=APD): nächste Züge in `richtungen.hin` (Heimat → Hamburg) und `richtungen.rueck` (Hamburg → Heimat). Je Zug `zeit` (ISO 8601, mit Verspätung), `verspaetung` (Minuten), `linie`, `ziel`, `gleis`, `gleis_plan`, `ausfall`, `hinweis`, `ab` (Hbf, Dammtor oder Altona), `teil` (Teilausfall: `art` endet/beginnt mit `name`), `ersatz` (Ersatzabfahrt bei Ausfall).\n";
 echo "- [api/s3](" . $site . "/api/s3): S-Bahn S3 zwischen Pinneberg und Hamburg Hbf aus der HVV-Schnittstelle (Geofox): `s3.level`, `s3.title`, `s3.detail` (ok, warn, alert), `s3.abfahrten` (zeit, ist, ziel, ab, delay_min, ausfall, gleis), `s3.meldungen` (HVV-Meldungen zu S3, RB60, RB61 und RB71 mit titel, text, geplant, aktiv, von, bis, linien). `ok` ist false, wenn die Schnittstelle nicht eingerichtet oder nicht erreichbar ist.\n";
-echo "- Beide Endpunkte sind öffentlich, ohne Schlüssel, nur lesend. Bitte nicht häufiger als einmal pro Minute abrufen.\n\n";
+echo "- [api/karte](" . $site . "/api/karte): Zugpositionen für die Live-Karte, berechnet aus dem Stationsmonitor (keine GPS-Ortung): `zuege[]` mit `zug`, `linie`, `von`, `nach`, `richtung` (nord, hamburg), `status` (wartet, halt, unterwegs, ziel), `verspaetung` (Minuten am nächsten Halt), `hinweis`, `lage` (`von`/`nach` oder `bei` mit Zeiten, `anteil` 0–1 zwischen den Halten, `lat`, `lon`, `text`) und `halte[]` (id, name, an, ab, an_ist, ab_ist, verspaetung, ausfall, gleis).\n";
+echo "- Alle Endpunkte sind öffentlich, ohne Schlüssel, nur lesend. Bitte nicht häufiger als einmal pro Minute abrufen.\n\n";
 
 echo "## Seiten\n\n";
 echo "- [Startseite](" . $site . "/): Lagebild, Abfahrtstafel, letzte Meldungen (JavaScript für Live-Aktualisierung).\n";
@@ -36,6 +37,7 @@ echo "- [Häufige Fragen](" . $site . "/faq/): Datenquellen, Bedeutung der Statu
 echo "- [Alle Eilmeldungen](" . $site . "/eilmeldungen/) und [alle Infrastrukturstörungen](" . $site . "/stoerungen/): Archiv nach Tagen, 50 Einträge je Seite (`?seite=N`).\n";
 echo "- Ereignisseiten: `" . $site . "/stoerung/<key>/` (z. B. BZI_33570) mit Pendler-Text, Originalmeldung, Verlauf, betroffenen Zügen und Eilmeldungen im Zeitraum; `" . $site . "/eilmeldung/<id>/` (z. B. em-123456) je Eilmeldung. lage.md und die Archive verlinken darauf.\n";
 echo "- [Wichtige Meldungen](" . $site . "/news/): nur die Störungen mit schwerer Einschränkung, Ausfällen, Umleitungen oder Ersatzverkehr und die Eilmeldungen zu Ersatzverkehr, Sperrungen, Bauarbeiten oder mehreren Zügen; einzelne kurzfristige Zugausfälle fehlen hier bewusst.\n";
+echo "- [Live-Karte](" . $site . "/karte/): wo die Züge gerade sind, mit Filter nach Linie und Streckenabschnitt; Positionen gerechnet aus Laufweg und Prognose, nicht geortet.\n";
 echo "- [Statistik](" . $site . "/statistik/): Pünktlichkeit je Zug und Bahnhof (Filter bhf, richtung=hin|rueck, tage=7|14|30|60, zeit=morgens|abends, werktage=1) und Infrastrukturstörungen mit Ursachen (ansicht=strecke).\n";
 echo "- [Was ist neu](" . $site . "/changelog/): Änderungen der Seite.\n\n";
 

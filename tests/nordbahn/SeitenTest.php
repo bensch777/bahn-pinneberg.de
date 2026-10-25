@@ -23,7 +23,7 @@ function test_alle_seiten_rendern_ohne_fehler()
 {
     $seiten = [
         'index.php' => [], 'news/index.php' => [], 'eilmeldungen/index.php' => ['seite' => '2'], 'stoerungen/index.php' => [],
-        'statistik/index.php' => [], 'faq/index.php' => [], 'changelog/index.php' => [], 'impressum/index.php' => [],
+        'statistik/index.php' => [], 'karte/index.php' => [], 'faq/index.php' => [], 'changelog/index.php' => [], 'impressum/index.php' => [],
         'stoerung.php' => ['key' => 'GIBTSNICHT'], 'eilmeldung.php' => ['id' => 'em-0'],
         'sitemap.php' => [], 'llms.php' => [], 'lage.php' => [], 'robots.php' => [], 'api/data.php' => [],
     ];
@@ -36,6 +36,10 @@ function test_alle_seiten_rendern_ohne_fehler()
         t_assert($out !== '', $datei . ': keine Ausgabe');
     }
     t_contains('<h1>Wichtige Meldungen</h1>', t_seite_rendern('news/index.php'), 'news rendert');
+    $karte = t_seite_rendern('karte/index.php');
+    t_contains('id="karte-strecke"', $karte, 'Live-Karte traegt das Streckennetz');
+    t_contains('vendor/leaflet/leaflet.js', $karte, 'Live-Karte laedt Leaflet vom eigenen Host');
+    t_contains('id="karte-liste"', $karte, 'Live-Karte hat die Zugliste');
     t_contains('Störung nicht gefunden', t_seite_rendern('stoerung.php', ['key' => 'GIBTSNICHT']), 'unbekannte Stoerung');
     if (!gf_aktiv()) {
         t_contains('"ok":false', t_seite_rendern('api/s3.php'), 'api/s3 ohne Zugang');

@@ -18,8 +18,12 @@ function nb_csp_nonce()
     return $nonce;
 }
 
-/** Schickt die CSP, sofern noch keine Ausgabe begonnen hat. */
-function nb_send_security_headers()
+/**
+ * Schickt die CSP, sofern noch keine Ausgabe begonnen hat. $extra erlaubt einer
+ * Seite weitere Quellen je Direktive, z. B. ['img-src' => 'https://tile.openstreetmap.org']
+ * fuer die Kartenkacheln der Live-Karte.
+ */
+function nb_send_security_headers(array $extra = [])
 {
     if (headers_sent()) {
         return;
@@ -36,7 +40,7 @@ function nb_send_security_headers()
         "default-src 'self'",
         "script-src 'self' 'nonce-" . nb_csp_nonce() . "'" . $plausibleOrigin,
         "style-src 'self'",
-        "img-src 'self' data:",
+        "img-src 'self' data:" . (isset($extra['img-src']) ? ' ' . $extra['img-src'] : ''),
         "font-src 'self'",
         "connect-src 'self'" . $plausibleOrigin,
         "manifest-src 'self'",

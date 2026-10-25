@@ -14,6 +14,9 @@ $root = '../';
 $assetVersion = (int) @filemtime(__DIR__ . '/../dashboard.css');
 
 $changelog = [
+    ['2026-10-25', [
+        ['Live-Karte: wo die Züge gerade sind', 'Neue Seite „Nordbahn live“ unter /karte/, verlinkt im Footer: eine Karte mit allen Zügen der RB60, RB61 und RB71, die unterwegs sind oder in den nächsten 20 Minuten starten. Jeder Zug ist ein Chip in Linienfarbe mit Verspätung; ein Tipp darauf zeigt Laufweg, nächsten Halt, Gleis und Hinweis. Filter nach Linie und Ausschnitt (Gesamtnetz, Hamburg – Elmshorn, die Äste nach Itzehoe und Wrist), darunter die Liste aller Züge mit ihrer Lage. Die Positionen sind gerechnet, nicht geortet: aus dem Laufweg mit Prognose je Halt aus dem Stationsmonitor; zwischen zwei Abrufen fahren die Züge nach diesen Zeiten weiter. Die Karte selbst (Leaflet) liegt auf dem eigenen Server, nur die Kacheln kommen von OpenStreetMap. Auch als JSON unter api/karte.'],
+    ]],
     ['2026-10-23', [
         ['Statistik als Dashboard', 'Die Statistikseite hat zwei Ansichten: „Züge“ und „Strecke“. Bei den Zügen lassen sich Bahnhof, Richtung, Zeitraum (7, 14, 30 oder 60 Tage), Tageszeit (morgens, abends) und Werktage wählen. Oben stehen Pünktlichkeit, Ausfälle, mittlere Verspätung und wie viele Tage beobachtet wurden, darunter ein Verlauf je Tag und die Tabelle je Zug, sortierbar nach Abfahrt oder Ausfällen. „Strecke“ zeigt die Infrastrukturstörungen im gewählten Zeitraum. Die Filter stehen in der Adresse, ein Link zeigt also genau diese Auswahl. Ohne Auswahl gilt der Bahnhof von der Startseite.'],
         ['Unterseiten aufgeräumt', 'Oben rechts führt überall „← Startseite“ zurück statt „Zur Lage“. Wichtige Meldungen, Eilmeldungen und Störungen haben eine gemeinsame Filterleiste „Wichtig · Eilmeldungen · Störungen“, jede Ansicht behält ihre eigene Adresse. Geblättert wird nur noch unten, und eine Seite endet nie mitten in einem Tag.'],

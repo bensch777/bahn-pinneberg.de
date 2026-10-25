@@ -1,5 +1,5 @@
 <?php
-/** Sitemap: Startseite, FAQ, Archive, Statistik und Changelog. Wird als sitemap.xml ausgeliefert. */
+/** Sitemap: Startseite, FAQ, Archive, Live-Karte, Statistik und Changelog. Wird als sitemap.xml ausgeliefert. */
 require __DIR__ . '/api/store.php';
 
 define('SITEMAP_BASE', nordbahn_site_url() . '/');
@@ -14,6 +14,7 @@ $urls = [
     ['loc' => SITEMAP_BASE . 'eilmeldungen/', 'priority' => '0.6'],
     ['loc' => SITEMAP_BASE . 'stoerungen/', 'priority' => '0.6'],
     ['loc' => SITEMAP_BASE . 'news/', 'priority' => '0.7'],
+    ['loc' => SITEMAP_BASE . 'karte/', 'priority' => '0.7'],
     ['loc' => SITEMAP_BASE . 'statistik/', 'priority' => '0.6'],
     ['loc' => SITEMAP_BASE . 'changelog/', 'priority' => '0.4'],
 ];

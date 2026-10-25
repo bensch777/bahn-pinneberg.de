@@ -1,0 +1,49 @@
+{
+	"_hinweis": "Streckennetz der Nordbahn fuer die Live-Karte. 'gross' zeigt den Namen dauerhaft, 'label' die Seite dafuer (right, left, top, bottom). Bahnhofskoordinaten aus den DB-Stammdaten (DS100-Kuerzel wie im Stationsmonitor), der Verlauf zwischen den Halten ist vereinfacht: Stuetzpunkte sind die S-Bahn-Halte zwischen Hamburg und Pinneberg, sonst gerade Linien. 'knoten' sind Abzweige ohne Halt (Altona-Nord). Kanten gelten in beide Richtungen; 'zwischen' sind die Stuetzpunkte ohne die Endpunkte.",
+	"stationen": {
+		"AH":   { "name": "Hamburg Hbf",     "lat": 53.55274, "lon": 10.00691, "gross": true },
+		"ADF":  { "name": "Hamburg Dammtor", "lat": 53.56075, "lon": 9.98957 },
+		"AA":   { "name": "Hamburg-Altona",  "lat": 53.55270, "lon": 9.93518, "gross": true, "label": "left" },
+		"J":    { "name": "Abzweig Altona-Nord", "lat": 53.55800, "lon": 9.93800, "knoten": true },
+		"AP":   { "name": "Pinneberg",       "lat": 53.65518, "lon": 9.79761, "gross": true },
+		"APD":  { "name": "Prisdorf",        "lat": 53.67529, "lon": 9.76022 },
+		"ATM":  { "name": "Tornesch",        "lat": 53.69731, "lon": 9.71497 },
+		"AEL":  { "name": "Elmshorn",        "lat": 53.75403, "lon": 9.65941, "gross": true },
+		"AHZH": { "name": "Herzhorn",        "lat": 53.78354, "lon": 9.48388 },
+		"AGST": { "name": "Glückstadt",      "lat": 53.78861, "lon": 9.42832 },
+		"AKM":  { "name": "Krempe",          "lat": 53.83411, "lon": 9.48176 },
+		"AKHD": { "name": "Kremperheide",    "lat": 53.88118, "lon": 9.48038 },
+		"AIZ":  { "name": "Itzehoe",         "lat": 53.92387, "lon": 9.51029, "gross": true },
+		"AHOT": { "name": "Horst (Holst)",   "lat": 53.80460, "lon": 9.64516 },
+		"ADH":  { "name": "Dauenhof",        "lat": 53.85246, "lon": 9.68066 },
+		"AWST": { "name": "Wrist",           "lat": 53.93238, "lon": 9.74813, "gross": true }
+	},
+	"kanten": [
+		{ "von": "AH",   "bis": "ADF",  "zwischen": [[53.55600, 10.00400], [53.55720, 9.99750]] },
+		{ "von": "ADF",  "bis": "J",    "zwischen": [[53.56372, 9.96720], [53.56176, 9.94974], [53.55970, 9.94250]] },
+		{ "von": "AA",   "bis": "J",    "zwischen": [[53.55600, 9.93700]] },
+		{ "von": "J",    "bis": "AP",   "zwischen": [[53.56200, 9.93600], [53.56857, 9.93426], [53.57969, 9.93092], [53.58984, 9.91834], [53.59589, 9.90710], [53.60258, 9.89374], [53.61582, 9.86776], [53.63038, 9.83909], [53.64437, 9.81384]] },
+		{ "von": "AP",   "bis": "APD",  "zwischen": [] },
+		{ "von": "APD",  "bis": "ATM",  "zwischen": [] },
+		{ "von": "ATM",  "bis": "AEL",  "zwischen": [[53.73500, 9.67600]] },
+		{ "von": "AEL",  "bis": "AHZH", "zwischen": [[53.76600, 9.64500]] },
+		{ "von": "AHZH", "bis": "AGST", "zwischen": [] },
+		{ "von": "AGST", "bis": "AKM",  "zwischen": [[53.80500, 9.44500]] },
+		{ "von": "AKM",  "bis": "AKHD", "zwischen": [] },
+		{ "von": "AKHD", "bis": "AIZ",  "zwischen": [[53.91000, 9.48800]] },
+		{ "von": "AEL",  "bis": "AHOT", "zwischen": [[53.77000, 9.65800]] },
+		{ "von": "AHOT", "bis": "ADH",  "zwischen": [] },
+		{ "von": "ADH",  "bis": "AWST", "zwischen": [] }
+	],
+	"ansichten": {
+		"netz":    { "name": "Gesamtnetz",          "stationen": ["AH", "AA", "AIZ", "AWST", "AGST"] },
+		"hamburg": { "name": "Hamburg – Elmshorn",  "stationen": ["AH", "AA", "AEL"] },
+		"itzehoe": { "name": "Elmshorn – Itzehoe",  "stationen": ["AEL", "AGST", "AIZ"] },
+		"wrist":   { "name": "Elmshorn – Wrist",    "stationen": ["AEL", "AWST"] }
+	},
+	"linien": {
+		"RB60": { "name": "RB60", "farbe": "#eb6834", "lauf": "Hamburg-Altona – Elmshorn – Itzehoe" },
+		"RB61": { "name": "RB61", "farbe": "#2a78d6", "lauf": "Hamburg Hbf – Elmshorn – Itzehoe" },
+		"RB71": { "name": "RB71", "farbe": "#1f9d55", "lauf": "Hamburg Hbf – Elmshorn – Wrist" }
+	}
+}

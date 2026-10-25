@@ -17,6 +17,7 @@ $map = [
     '/api/subscribe' => '/api/subscribe.php',
     '/api/push-key'  => '/api/push-key.php',
     '/api/s3'        => '/api/s3.php',
+    '/api/karte'     => '/api/karte.php',
     '/sitemap.xml'   => '/sitemap.php',
     '/llms.txt'      => '/llms.php',
     '/lage.md'       => '/lage.php',
@@ -28,6 +29,7 @@ $map = [
     '/faq/'          => '/faq/index.php',
     '/changelog/'    => '/changelog/index.php',
     '/statistik/'    => '/statistik/index.php',
+    '/karte/'        => '/karte/index.php',
     '/impressum/'    => '/impressum/index.php',
 ];
 if (preg_match('#^/(cache|tests|dev|\.git)(/|$)#', $path) || preg_match('#^/(config(\.example)?\.php|README\.md)$#', $path)) {

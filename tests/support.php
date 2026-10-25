@@ -28,6 +28,8 @@ function t_reset()
     }
     @unlink(GF_MELDUNGEN_CACHE);
     @unlink(GF_STATIONEN_CACHE);
+    @unlink(KA_CACHE);
+    @unlink(KA_LOCK);
 }
 
 /* ---------- Geofox (HVV GTI) ---------- */
@@ -173,7 +175,8 @@ function t_tafel($name, array $abfahrten, ?DateTime $now = null)
 
 /**
  * Zugauskunft wie xml_v3?zug=NR. Ein Halt ist [id, name, ankunft, abfahrt, optionen]
- * mit optionen: ausfall (bool), an_prog / ab_prog (Prognosetexte), gleis.
+ * mit optionen: ausfall (bool), an_prog / ab_prog (Prognosetexte), an_min / ab_min
+ * (Prognose in Minuten, fuer die Live-Karte), gleis.
  * Bei einem Ausfall stehen beide Prognosen auf "Halt entfällt!", sofern nicht
  * anders angegeben; so meldet es die Nordbahn fuer einen Durchfahrtshalt.
  */
@@ -187,14 +190,14 @@ function t_zug($nr, $linie, $ursache, array $halte, $zuglauf = '')
     $xml .= '<istBus>false</istBus><istZug>true</istZug><ursachetext>' . t_h($ursache) . '</ursachetext><ursacheris>' . t_h($ursache) . '</ursacheris>';
     foreach ($halte as $h) {
         [$id, $name, $an, $ab] = $h;
-        $o = ($h[4] ?? []) + ['ausfall' => false, 'an_prog' => null, 'ab_prog' => null, 'gleis' => ''];
-        $anProg = $o['an_prog'] ?? ($o['ausfall'] ? 'Halt entfällt!' : ($an !== '' ? 'pünktlich' : ' '));
-        $abProg = $o['ab_prog'] ?? ($o['ausfall'] ? 'Halt entfällt!' : ($ab !== '' ? 'pünktlich' : ' '));
+        $o = ($h[4] ?? []) + ['ausfall' => false, 'an_prog' => null, 'ab_prog' => null, 'an_min' => 0, 'ab_min' => 0, 'gleis' => ''];
+        $anProg = $o['an_prog'] ?? ($o['ausfall'] ? 'Halt entfällt!' : ($an !== '' ? ($o['an_min'] ? '+ ' . $o['an_min'] . ' Min' : 'pünktlich') : ' '));
+        $abProg = $o['ab_prog'] ?? ($o['ausfall'] ? 'Halt entfällt!' : ($ab !== '' ? ($o['ab_min'] ? '+ ' . $o['ab_min'] . ' Min' : 'pünktlich') : ' '));
         $xml .= '<halt><bhf id="' . $id . '">' . t_h($name) . '</bhf>'
             . ($an !== '' ? '<ankunft>' . $an . '</ankunft><ankunftsek>' . $an . ':00</ankunftsek>' : '')
             . ($ab !== '' ? '<abfahrt>' . $ab . '</abfahrt><abfahrtsek>' . $ab . ':00</abfahrtsek>' : '')
             . '<anprognose>' . t_h($anProg) . '</anprognose><abprognose>' . t_h($abProg) . '</abprognose>'
-            . '<anprognosemin>0</anprognosemin><abprognosemin>0</abprognosemin>'
+            . '<anprognosemin>' . (int) $o['an_min'] . '</anprognosemin><abprognosemin>' . (int) $o['ab_min'] . '</abprognosemin>'
             . ($o['gleis'] !== '' ? '<gleis>' . $o['gleis'] . '</gleis>' : '')
             . '<datum>15.10.2026</datum><ursacheris>' . ($o['ausfall'] ? t_h($ursache) : '') . '</ursacheris>'
             . '<ausfall>' . t_b($o['ausfall']) . '</ausfall><sev>false</sev></halt>';
