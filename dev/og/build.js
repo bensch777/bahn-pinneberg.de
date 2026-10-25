@@ -15,7 +15,7 @@ const LAGEN = [
   { name: 'warn',  color: '#fab219', icon: '!', title: 'Betrieb beeinträchtigt' },
   { name: 'alert', color: '#d33b3b', icon: '!', title: 'Störung auf der Strecke' },
   { name: 'info',  color: '#2a78d6', icon: 'i', title: 'Störungen, Abfahrten und Eilmeldungen' },
-  { name: 'karte', color: '#1f9d55', image: '../../karte/zug.png', title: 'Nordbahn live: wo die Züge gerade sind', sub: 'RB60, RB61 und RB71 auf der Karte · berechnete Positionen, keine GPS-Ortung', foot: 'Live-Karte mit Verspätung und nächstem Halt je Zug' },
+  { name: 'karte', color: '#1f9d55', image: '../../karte/zug.png', title: 'Nordbahn live: Wo ist mein Zug?', sub: 'RB60, RB61 und RB71 jetzt auf der Karte · Hamburg – Elmshorn – Itzehoe / Wrist', foot: 'Verspätung und nächster Halt je Zug, jede Minute neu' },
 ];
 const nur = process.argv[2] || '';
 

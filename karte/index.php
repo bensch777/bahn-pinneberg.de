@@ -34,18 +34,23 @@ $heimatAnsicht = [];
 foreach (NORDBAHN_BAHNHOEFE as $id => $bhf) {
     $heimatAnsicht[$id] = $bhf['ast'] === 'stamm' ? 'hamburg' : $bhf['ast'];
 }
+// Fester Text unter der Liste mit allen Halten, auch wenn gerade kein Zug faehrt
+$halteNamen = ['Hamburg Hbf', 'Hamburg Dammtor', 'Hamburg-Altona'];
+foreach (NORDBAHN_BAHNHOEFE as $bhf) {
+    $halteNamen[] = $bhf['name'];
+}
 // Nur lesen: die Seite fragt den Monitor nicht selbst, das macht api/karte auf Anfrage des Scripts
 $stand = nordbahn_read_json(KA_CACHE);
 $zuege = is_array($stand) && is_array($stand['zuege'] ?? null) ? $stand['zuege'] : [];
 $standJson = json_encode($stand ?? ka_leer(), $jsonFlags) ?: 'null';
 $streckeJson = json_encode($strecke, $jsonFlags) ?: '{}';
 
-$title = 'Nordbahn live – Zugkarte RB60, RB61 und RB71 zwischen Hamburg, Elmshorn, Itzehoe und Wrist';
-$description = 'Wo die Züge der Nordbahn gerade sind: Live-Karte der RB60, RB61 und RB71 mit berechneten Positionen aus dem Stationsmonitor, Verspätung und nächstem Halt je Zug. Keine GPS-Ortung, Stand jede Minute.';
+$title = 'Nordbahn live: Wo ist mein Zug? RB60, RB61 und RB71 jetzt auf der Karte';
+$description = 'RB60, RB61 und RB71 live auf der Karte: wo jeder Zug der Nordbahn gerade ist, mit Verspätung und nächstem Halt zwischen Hamburg, Pinneberg, Elmshorn, Itzehoe und Wrist. Jede Minute aktuell.';
 $jsonLd = [
     '@context' => 'https://schema.org',
     '@type' => 'WebPage',
-    'name' => 'Nordbahn live – Zugkarte',
+    'name' => 'Nordbahn live: Wo ist mein Zug?',
     'description' => $description,
     'url' => SITE_URL . '/karte/',
     'inLanguage' => 'de',
@@ -107,7 +112,7 @@ function nb_karte_liste(array $zuege)
 <meta property="og:image" content="<?= SITE_URL ?>/og/karte.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="Nordbahn live: Zugkarte der RB60, RB61 und RB71">
+<meta property="og:image:alt" content="Nordbahn live: Wo ist mein Zug? RB60, RB61 und RB71 auf der Karte">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="<?= nb_e($title) ?>">
 <meta name="twitter:description" content="<?= nb_e($description) ?>">
@@ -134,7 +139,7 @@ function nb_karte_liste(array $zuege)
 	<div class="page-head">
 		<div>
 			<h1>Nordbahn live</h1>
-			<p class="page-head__lead">RB60 &middot; RB61 &middot; RB71 &ndash; wo die Z&uuml;ge gerade sind. Berechnete Positionen aus dem Stationsmonitor der Nordbahn, keine GPS-Ortung.</p>
+			<p class="page-head__lead">Wo die Z&uuml;ge der RB60, RB61 und RB71 gerade sind.</p>
 		</div>
 		<p class="freshness<?= $zuege ? '' : ' is-empty' ?>" id="karte-freshness" aria-live="polite"><span class="dot"></span><span id="karte-freshness-text"><?= is_array($stand) && !empty($stand['fetched_at']) ? 'Letzter Abruf ' . nb_e(nb_fmt_uhr(nb_ts($stand['fetched_at']))) : 'Noch kein Stand' ?></span></p>
 	</div>
@@ -155,7 +160,12 @@ function nb_karte_liste(array $zuege)
 			</ul>
 		</div>
 		<div class="card" id="karte-liste"><?= nb_karte_liste($zuege) ?></div>
-		<p class="section__note">Die Positionen sind gerechnet, nicht geortet: Aus dem Laufweg jedes Zuges (Soll-Zeit plus Prognose je Halt, Quelle Stationsmonitor der Nordbahn) ergibt sich, zwischen welchen Halten er gerade ist und wie weit. Zwischen zwei Abrufen bewegen sich die Z&uuml;ge nach diesen Zeiten weiter, eine neue Prognose kann sie springen lassen. <?= !empty($strecke['_quelle']) ? 'Der Streckenverlauf folgt den Gleisen laut OpenStreetMap.' : 'Der Streckenverlauf ist vereinfacht.' ?> Z&uuml;ge erscheinen bis 20 Minuten vor der Abfahrt am Startbahnhof. Kartendaten &copy; <a href="https://www.openstreetmap.org/copyright" rel="noopener">OpenStreetMap</a>-Mitwirkende.</p>
+		<p class="section__note">Positionen berechnet aus Fahrplan und Prognose der Nordbahn, nicht geortet; Z&uuml;ge erscheinen bis 20 Minuten vor der Abfahrt. Kartendaten &copy; <a href="https://www.openstreetmap.org/copyright" rel="noopener">OpenStreetMap</a>-Mitwirkende.</p>
+	</section>
+
+	<section class="section" aria-labelledby="ueber-h">
+		<h2 class="section__title" id="ueber-h">Welche Z&uuml;ge die Karte zeigt</h2>
+		<p class="section__note section__note--text">Alle Z&uuml;ge der Nordbahn auf den Linien RB61 Hamburg Hbf &ndash; Itzehoe, RB71 Hamburg Hbf &ndash; Wrist und RB60 Hamburg-Altona &ndash; Itzehoe, mit den Halten <?= nb_e(implode(', ', $halteNamen)) ?>. Je Zug stehen Lage, Versp&auml;tung, n&auml;chster Halt und Gleis dabei, die Karte aktualisiert sich jede Minute. St&ouml;rungen, Eilmeldungen und die n&auml;chsten Abfahrten am eigenen Bahnhof zeigt die <a href="<?= $root ?>">Startseite</a>, die P&uuml;nktlichkeit je Zug die <a href="<?= $root ?>statistik/">Statistik</a>.</p>
 	</section>
 </main>
 

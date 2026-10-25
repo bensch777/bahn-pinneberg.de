@@ -612,6 +612,7 @@ button { font: inherit; color: inherit; }
 .zugliste__lage { font-size: 13px; color: var(--muted); }
 .zugliste__leer { margin: 0; color: var(--muted); font-size: 14.5px; }
 #karte-liste { padding: 6px 18px; }
+.section__note--text { font-size: 14px; line-height: 1.55; color: var(--ink-2); }
 #karte-liste .zugliste__leer { padding: 8px 0; }
 /* Popup eines Zuges */
 .karte-popup p { margin: 0 0 6px; }
