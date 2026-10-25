@@ -311,10 +311,6 @@
 				delete marker[zug];
 			}
 		});
-		var anzahl = document.getElementById('karte-anzahl');
-		var text = document.getElementById('karte-anzahl-text');
-		if (anzahl) anzahl.textContent = String(n);
-		if (text) text.textContent = (n === 1 ? 'Zug' : 'Züge') + ' dargestellt';
 		var leer = document.getElementById('karte-leer');
 		if (leer) {
 			var msg = !state.ok && !state.zuege.length ? 'Gerade keine Daten vom Stationsmonitor.' : (n === 0 ? 'Gerade kein Zug auf der Karte.' : '');
@@ -363,14 +359,15 @@
 		el.innerHTML = zeilen.length ? '<ul class="zugliste">' + zeilen.join('') + '</ul>' : '<p class="zugliste__leer">' + (state.ok || state.zuege.length ? 'Gerade kein Zug auf der Karte.' : 'Gerade keine Daten vom Stationsmonitor.') + '</p>';
 	}
 
+	/** Hinweis nur, wenn der Stand alt ist oder der Monitor nicht antwortet; sonst bleibt die Zeile weg. */
 	function kopfSchreiben() {
 		var el = document.getElementById('karte-freshness');
 		var text = document.getElementById('karte-freshness-text');
 		if (!el || !text) return;
-		var alt = state.fetchedAt ? Date.now() - state.fetchedAt > STALE_MS : true;
-		el.classList.toggle('is-stale', !!state.fetchedAt && (alt || !state.ok));
-		el.classList.toggle('is-empty', !state.fetchedAt);
-		text.textContent = state.fetchedAt ? 'Letzter Abruf ' + uhrSek(state.fetchedAt) + (!state.ok ? ' · Monitor nicht erreichbar' : '') : 'Noch kein Stand';
+		var alt = !!state.fetchedAt && Date.now() - state.fetchedAt > STALE_MS;
+		var problem = state.fetchedAt ? (alt || !state.ok) : false;
+		el.hidden = !problem;
+		text.textContent = problem ? 'Stand ' + uhr(state.fetchedAt) + ' Uhr, Stationsmonitor gerade nicht erreichbar' : '';
 	}
 
 	/* ---------- Daten ---------- */

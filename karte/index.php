@@ -134,10 +134,8 @@ function nb_karte_liste(array $zuege)
 			<h1>Nordbahn live</h1>
 			<p class="page-head__lead">Wo die Z&uuml;ge der RB60, RB61 und RB71 gerade sind.</p>
 		</div>
-		<p class="freshness<?= $zuege ? '' : ' is-empty' ?>" id="karte-freshness" aria-live="polite"><span class="dot"></span><span id="karte-freshness-text"><?= is_array($stand) && !empty($stand['fetched_at']) ? 'Letzter Abruf ' . nb_e(nb_fmt_uhr(nb_ts($stand['fetched_at']))) : 'Noch kein Stand' ?></span></p>
+		<p class="freshness is-stale" id="karte-freshness" aria-live="polite" hidden><span class="dot"></span><span id="karte-freshness-text"></span></p>
 	</div>
-
-	<p class="karte-status" id="karte-status"><strong id="karte-anzahl"><?= count($zuege) ?></strong> <span id="karte-anzahl-text"><?= count($zuege) === 1 ? 'Zug' : 'Züge' ?> dargestellt</span></p>
 
 	<div class="karte" id="karte" role="region" aria-label="Karte mit den Zugpositionen">
 		<noscript><p class="karte__leer">Die Karte braucht JavaScript. Die Liste darunter zeigt den letzten Stand.</p></noscript>
