@@ -99,9 +99,14 @@ function nb_karte_liste(array $zuege)
 <meta property="og:url" content="<?= SITE_URL ?>/karte/">
 <meta property="og:title" content="<?= nb_e($title) ?>">
 <meta property="og:description" content="<?= nb_e($description) ?>">
-<meta property="og:image" content="<?= SITE_URL ?>/og/info.png">
+<meta property="og:image" content="<?= SITE_URL ?>/og/karte.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Nordbahn live: Zugkarte der RB60, RB61 und RB71">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="<?= nb_e($title) ?>">
+<meta name="twitter:description" content="<?= nb_e($description) ?>">
+<meta name="twitter:image" content="<?= SITE_URL ?>/og/karte.png">
 <link rel="icon" type="image/svg+xml" href="<?= $root ?>favicon.svg">
 <link rel="apple-touch-icon" href="<?= $root ?>icon-180.png">
 <link rel="stylesheet" href="<?= $root ?>vendor/leaflet/leaflet.css?v=<?= $leafletVersion ?>">
