@@ -80,8 +80,7 @@ $jsonLd = [
 <main class="wrap">
 	<div class="page-head">
 		<div>
-			<h1>Wichtige Meldungen</h1>
-			<p class="page-head__lead">Was viele Pendler betrifft: St&ouml;rungen mit schwerer Einschr&auml;nkung, Ausf&auml;llen, Umleitungen oder Ersatzverkehr sowie Eilmeldungen zu Ersatzverkehr, Sperrungen, Bauarbeiten oder mehreren Z&uuml;gen. Einzelne kurzfristige Zugausf&auml;lle stehen bei <a href="<?= $root ?>eilmeldungen/">allen Eilmeldungen</a>.</p>
+			<h1>Meldungen</h1>
 		</div>
 	</div>
 
@@ -89,9 +88,6 @@ $jsonLd = [
 <?= nb_render_news($items) ?>
 <?= nb_render_seitennav($blatt, './') ?>
 
-	<section class="section">
-		<p class="section__note">Die Auswahl trifft die Seite automatisch nach festen Regeln, siehe <a href="<?= $root ?>faq/">H&auml;ufige Fragen</a>.</p>
-	</section>
 </main>
 
 <?php $current = 'news'; require __DIR__ . '/../inc/footer.php'; ?>

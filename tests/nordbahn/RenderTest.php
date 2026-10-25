@@ -405,8 +405,8 @@ function test_wichtig_items_und_startseite()
     t_eq(true, $items[1]['aktiv'], 'laufende Stoerung markiert');
 
     $html = nb_render_wichtig_eintrag($items[0], $jetzt);
-    t_contains('<p class="feed__kicker feed__kicker--eilmeldung">Eilmeldung der Nordbahn</p><p class="feed__title"><a href="./eilmeldung/em-2/rb71-ersatzverkehr-elmshorn-wrist-bis-18-uhr/">RB71: Ersatzverkehr Elmshorn – Wrist bis 18 Uhr</a></p>', $html, 'Eilmeldung mit Rubrik und Link');
-    t_contains('<p class="feed__kicker feed__kicker--stoerung">Infrastrukturst&ouml;rung</p><p class="feed__title"><a href="./stoerung/GROSS/ausfaelle-bei-tornesch/">Ausfälle bei Tornesch</a></p><p class="feed__meta">bis 09:00 Uhr · 1 Std.<br>Weiche klemmte.</p>', nb_render_wichtig_eintrag($items[2], $jetzt), 'Stoerung mit Ende, Dauer und Text');
+    t_contains('<p class="feed__kicker feed__kicker--eilmeldung">Eilmeldung</p><p class="feed__title"><a href="./eilmeldung/em-2/rb71-ersatzverkehr-elmshorn-wrist-bis-18-uhr/">RB71: Ersatzverkehr Elmshorn – Wrist bis 18 Uhr</a></p>', $html, 'Eilmeldung mit Rubrik und Link');
+    t_contains('<p class="feed__kicker feed__kicker--stoerung">St&ouml;rung</p><p class="feed__title"><a href="./stoerung/GROSS/ausfaelle-bei-tornesch/">Ausfälle bei Tornesch</a></p><p class="feed__meta">bis 09:00 Uhr · 1 Std.<br>Weiche klemmte.</p>', nb_render_wichtig_eintrag($items[2], $jetzt), 'Stoerung mit Ende, Dauer und Text');
 
     $markiert = nb_wichtig_markieren($data, $jetzt);
     t_eq(true, $markiert['stoerungen'][0]['wichtig'], 'laufende Stoerung markiert');
@@ -415,7 +415,7 @@ function test_wichtig_items_und_startseite()
 
     $news = nb_render_news(array_slice($items, 0, 2), $jetzt);
     t_contains('<h2 class="section__title">Heute, 15.10.2026</h2>', $news, 'Tagesabschnitt');
-    t_contains('Infrastrukturst&ouml;rung <span class="dep__ab dep__ab--aktiv">aktiv</span>', $news, 'laufende Stoerung in der Rubrikzeile');
+    t_contains('St&ouml;rung <span class="dep__ab dep__ab--aktiv">aktiv</span>', $news, 'laufende Stoerung in der Rubrikzeile');
 }
 
 function test_aktuelle_meldungen()

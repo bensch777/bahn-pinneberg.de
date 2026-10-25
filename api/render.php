@@ -747,7 +747,7 @@ function nb_wichtig_items(array $data, $now = null)
 function nb_render_wichtig_eintrag(array $it, $now, $mitTag = true)
 {
     $zeit = $mitTag ? nb_fmt_wann($it['ts'], $now) : nb_fmt_uhr($it['ts']);
-    $rubrik = $it['art'] === 'stoerung' ? 'Infrastrukturst&ouml;rung' : 'Eilmeldung der Nordbahn';
+    $rubrik = $it['art'] === 'stoerung' ? 'St&ouml;rung' : 'Eilmeldung';
     $meta = [];
     if ($it['art'] === 'stoerung') {
         $meta[] = $it['aktiv'] ? 'dauert an, bisher ' . nb_dauer($it['ende'] - $it['start']) : nb_fmt_bis($it['start'], $it['ende'], $now) . ' · ' . nb_dauer($it['ende'] - $it['start']);

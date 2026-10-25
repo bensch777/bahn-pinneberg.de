@@ -475,7 +475,7 @@
 		return el('li', istHeute(it.ts) ? { class: 'is-heute' } : {}, [
 			el('div', { class: 'feed__time' }, [fmtWann(it.ts)]),
 			el('div', {}, [
-				el('p', { class: 'feed__kicker feed__kicker--' + it.art, text: it.art === 'stoerung' ? 'Infrastrukturstörung' : 'Eilmeldung der Nordbahn' }),
+				el('p', { class: 'feed__kicker feed__kicker--' + it.art, text: it.art === 'stoerung' ? 'Störung' : 'Eilmeldung' }),
 				el('p', { class: 'feed__title' }, [el('a', { href: it.link, text: it.titel })]),
 				it.meta || it.text ? meta : null
 			])
