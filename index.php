@@ -143,10 +143,10 @@ $jsonLd = [
 <meta name="twitter:image" content="<?= nb_e($ogImage) ?>">
 
 <link rel="icon" id="favicon" type="image/png" sizes="64x64" href="<?= $root ?>icon-64.png">
-<link rel="apple-touch-icon" href="<?= $root ?>icon-180.png">
+<link rel="apple-touch-icon" href="<?= $root ?>icon-180.png?v=2">
 <link rel="manifest" href="<?= $root ?>manifest.webmanifest">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Bahn PI">
+<meta name="apple-mobile-web-app-title" content="Bahn Pinneberg">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="alternate" type="text/markdown" href="<?= $root ?>lage.md" title="Aktuelle Lage als Text">
 <link rel="stylesheet" href="<?= $root ?>dashboard.css?v=<?= $assetVersion ?>">
