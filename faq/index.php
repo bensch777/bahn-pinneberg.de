@@ -15,7 +15,7 @@ $assetVersion = (int) @filemtime(__DIR__ . '/../dashboard.css');
 
 $faq = [
     ['Was bedeutet „Nordbahn beeinträchtigt“ oder „Nordbahn gestört“?',
-     'Die Karte zählt, wie viele der nächsten Züge in beide Richtungen betroffen sind: Zugausfälle, Umleitungen über Hamburg-Altona und Verspätungen ab zehn Minuten. Bis zu einem Viertel der Züge heißt „beeinträchtigt“, darüber „gestört“.'],
+     'Die Karte zählt, wie viele der nächsten Züge in beide Richtungen betroffen sind: Zugausfälle, Umleitungen über Hamburg-Altona und Verspätungen ab zehn Minuten. Bis zu einem Viertel der Züge heißt „beeinträchtigt“, darüber „gestört“. Fahren RB61 und RB71 wegen Bauarbeiten laut Sonderfahrplan der Nordbahn nur ab und bis Altona, zählt das nicht als Umleitung: Die Karte zeigt dann gelb „Nordbahn fährt nach Baufahrplan“ mit dem Text des Sonderfahrplans, gezählt werden nur noch Ausfälle und Verspätungen.'],
     ['Woher kommen die Daten?',
      'Abfahrten, Gleise und Verspätungen stammen vom Stationsmonitor der Nordbahn, Eilmeldungen von nordbahn.de, Infrastrukturstörungen von strecken-info.de der DB InfraGO. Die S-Bahn S3 und die HVV-Meldungen kommen über die Schnittstelle des HVV (Geofox). Abfahrten und S3 werden jede Minute geladen, Störungen und Eilmeldungen alle zwei Minuten.'],
     ['Was zeigt die Karte „S3 Pinneberg – Hamburg“?',

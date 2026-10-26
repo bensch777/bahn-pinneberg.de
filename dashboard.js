@@ -341,6 +341,31 @@
 	 */
 	var BETRIEB_ALERT_ANTEIL = 0.25;
 
+	/**
+	 * Aktiver Sonderfahrplan, nach dem RB61 und RB71 planmaessig ab/bis Altona fahren
+	 * (wie nb_baufahrplan): dann sind Fahrten ueber Altona keine Umleitung.
+	 */
+	function baufahrplan(data) {
+		var heute = new Date().toLocaleDateString('sv-SE', { timeZone: TZ });
+		var treffer = null;
+		((data && data.sonderfahrplaene) || []).some(function (s) {
+			var titel = s.title || '';
+			if (s.von <= heute && heute <= s.bis && /RB\s?(61|71)/i.test(titel) && /\b(ab|bis|nach|in)\s+(hamburg-)?altona\b/i.test(titel)) {
+				treffer = s;
+				return true;
+			}
+			return false;
+		});
+		return treffer;
+	}
+
+	/** "Bis 02.11.: Alle Züge …" (wie nb_baufahrplan_text). */
+	function baufahrplanText(bau) {
+		var text = (bau.title || '').replace(/^[^:]*\d{1,2}\.\d{1,2}\.(\d{2,4})?\s*:\s*/, '');
+		var m = /^\d{4}-(\d{2})-(\d{2})$/.exec(bau.bis || '');
+		return (m ? 'Bis ' + m[2] + '.' + m[1] + '.: ' : '') + text;
+	}
+
 	function renderBetrieb(result) {
 		var card = document.getElementById('status-betrieb');
 		if (!result) {
@@ -351,6 +376,7 @@
 		}
 		if (card) card.removeAttribute('data-ssr');
 		if (!result.richtungen) { setStatus('status-betrieb', 'unknown', 'Nordbahn-Lage unbekannt'); return; }
+		var bau = baufahrplan(state.data);
 		var total = 0, ausfaelle = 0, umleitungen = 0, verspaetet = 0, maxDelay = 0, teil = 0, teilOrt = '';
 		['hin', 'rueck'].forEach(function (key) {
 			(result.richtungen[key] || []).slice(0, 6).forEach(function (d) {
@@ -360,13 +386,15 @@
 				var altona = !rb60 && (/altona/i.test(d.ab || '') || /altona/i.test(d.ziel || '') || !!d.ersatz);
 				if (d.teil && !d.teil.plan) { teil++; teilOrt = d.teil.name; }
 				else if (d.ausfall && !d.ersatz) ausfaelle++;
-				else if (altona) umleitungen++;
+				else if (altona && !bau) umleitungen++;
 				else if (d.verspaetung >= 10) { verspaetet++; maxDelay = Math.max(maxDelay, d.verspaetung); }
 			});
 		});
 		var betroffen = ausfaelle + umleitungen + verspaetet + teil;
+		var bauText = bau ? baufahrplanText(bau) : '';
 		if (!total || !betroffen) {
-			setStatus('status-betrieb', result.ok ? 'ok' : 'unknown', result.ok ? 'Nordbahn fährt planmäßig' : 'Nordbahn-Lage unbekannt');
+			if (bau && result.ok) setStatus('status-betrieb', 'warn', 'Nordbahn fährt nach Baufahrplan', bauText);
+			else setStatus('status-betrieb', result.ok ? 'ok' : 'unknown', result.ok ? 'Nordbahn fährt planmäßig' : 'Nordbahn-Lage unbekannt');
 			return;
 		}
 		var parts = [];
@@ -378,8 +406,8 @@
 		var level = anteil > BETRIEB_ALERT_ANTEIL ? 'alert' : 'warn';
 		var prozent = Math.round(anteil * 100);
 		setStatus('status-betrieb', level,
-			level === 'alert' ? 'Nordbahn gestört' : 'Nordbahn beeinträchtigt',
-			betroffen + ' von ' + total + ' Zügen (' + prozent + ' %): ' + parts.join(', '));
+			level === 'alert' ? 'Nordbahn gestört' : (bau ? 'Nordbahn fährt nach Baufahrplan' : 'Nordbahn beeinträchtigt'),
+			(bau ? bauText + ' · ' : '') + betroffen + ' von ' + total + ' Zügen (' + prozent + ' %): ' + parts.join(', '));
 	}
 
 	function renderIncident(s) {
@@ -1175,6 +1203,8 @@
 		state.data = data || {};
 		prepare(state.data);
 		renderAll();
+		// Ein neuer Sonderfahrplan aendert die Fahrplankarte auch ohne neue Abfahrten
+		if (departuresState.last) renderBetrieb(departuresState.last);
 	}
 
 	function refresh() {

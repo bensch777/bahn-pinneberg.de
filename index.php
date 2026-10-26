@@ -47,7 +47,7 @@ $json = json_encode(
     JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
 );
 if ($json === false) {
-    $json = '{"received_at":null,"stoerungen":[],"eilmeldungen_live":[],"eilmeldungen":[],"stoerungen_verlauf":[]}';
+    $json = '{"received_at":null,"stoerungen":[],"eilmeldungen_live":[],"sonderfahrplaene":[],"eilmeldungen":[],"stoerungen_verlauf":[]}';
 }
 
 $aktiv = count($data['stoerungen']);
@@ -55,7 +55,7 @@ $items = nb_items($data);
 $cards = [
     'infra'   => nb_status_infra($data),
     'eil'     => nb_status_eil($data, $items),
-    'betrieb' => nb_status_betrieb(nb_read_abfahrten($heimat)),
+    'betrieb' => nb_status_betrieb(nb_read_abfahrten($heimat), nb_baufahrplan($data)),
 ];
 // S-Bahn S3 und HVV-Meldungen nur mit Zugang zur HVV-Schnittstelle (config.php)
 $gfAktiv = gf_aktiv();

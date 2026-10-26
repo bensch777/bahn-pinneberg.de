@@ -14,6 +14,9 @@ $root = '../';
 $assetVersion = (int) @filemtime(__DIR__ . '/../dashboard.css');
 
 $changelog = [
+    ['2026-10-26', [
+        ['Baufahrplan statt „gestört“', 'Fahren RB61 und RB71 wegen Bauarbeiten planmäßig nur ab und bis Hamburg-Altona, galt jeder Zug bisher als Umleitung und die Karte stand auf rot „Nordbahn gestört“. Jetzt liest die Seite auch die Sonderfahrpläne der Nordbahn mit. Ist einer mit „ab/bis Hamburg-Altona“ gerade gültig, zeigt die Karte gelb „Nordbahn fährt nach Baufahrplan“ mit dem Text des Sonderfahrplans und bis wann er gilt. Ausfälle und Verspätungen zählen weiter wie bisher.'],
+    ]],
     ['2026-10-25', [
         ['Schlankerer Footer', 'Meldungen, Live-Karte und Statistik stehen nur noch in der Kopfzeile. Der Footer zeigt, was dort fehlt: die Kanäle auf Telegram und X, die häufigen Fragen, „Was ist neu“ und das Impressum.'],
         ['Meldungen aufgeräumt', 'Wichtig, Eilmeldungen und Störungen sind jetzt ein Bereich „Meldungen“ mit drei Kategorien zum Durchklicken. Die Einleitungen („erfasst seit dem …“) und die Quellenhinweise unter den Listen sind weg, woher die Daten kommen, steht in den häufigen Fragen. Die Rubriken heißen kurz „Störung“ und „Eilmeldung“, auch bei den aktuellen Meldungen auf der Startseite.'],

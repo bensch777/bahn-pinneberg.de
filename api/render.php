@@ -221,8 +221,44 @@ function nb_read_abfahrten($heimat)
     return $abf;
 }
 
-/** Karte 3: Fahrplanlage nach dem Anteil betroffener Zuege (wie renderBetrieb im Script). */
-function nb_status_betrieb($abf)
+/**
+ * Aktiver Sonderfahrplan der Nordbahn, nach dem RB61 und RB71 planmaessig ab/bis Altona fahren,
+ * z. B. bei Bauarbeiten "26.10. - 02.11.: Alle Züge der Linien RB 61 und RB 71 fahren ab/bis
+ * Hamburg-Altona; …". Gilt von 'von' bis einschliesslich 'bis' (deutsche Zeit). Wie
+ * baufahrplan() im Script.
+ *
+ * @return array|null der Sonderfahrplan oder null
+ */
+function nb_baufahrplan(array $data, $now = null)
+{
+    $heute = (new DateTime('@' . ($now ?? time())))->setTimezone(new DateTimeZone('Europe/Berlin'))->format('Y-m-d');
+    foreach ($data['sonderfahrplaene'] ?? [] as $s) {
+        $titel = (string) ($s['title'] ?? '');
+        if (($s['von'] ?? '') <= $heute && $heute <= ($s['bis'] ?? '')
+            && preg_match('/RB\s?(61|71)/i', $titel) && preg_match('/\b(ab|bis|nach|in)\s+(hamburg-)?altona\b/iu', $titel)) {
+            return $s;
+        }
+    }
+
+    return null;
+}
+
+/** "Bis 02.11.: Alle Züge …" aus dem Sonderfahrplan, ohne den Zeitraum vorn im Titel. */
+function nb_baufahrplan_text(array $bau)
+{
+    $text = preg_replace('/^[^:]*\d{1,2}\.\d{1,2}\.(\d{2,4})?\s*:\s*/u', '', (string) $bau['title']);
+    $bis = DateTime::createFromFormat('!Y-m-d', (string) $bau['bis']);
+
+    return ($bis ? 'Bis ' . $bis->format('d.m.') . ': ' : '') . $text;
+}
+
+/**
+ * Karte 3: Fahrplanlage nach dem Anteil betroffener Zuege (wie renderBetrieb im Script).
+ * Mit $bau (nb_baufahrplan) sind Fahrten ueber Altona planmaessig: die Karte ist dann
+ * mindestens gelb und nennt den Sonderfahrplan, gezaehlt werden nur Ausfaelle und
+ * Verspaetungen.
+ */
+function nb_status_betrieb($abf, $bau = null)
 {
     if (!$abf || empty($abf['richtungen'])) {
         return ['level' => 'unknown', 'title' => 'Lade Nordbahn …', 'detail' => ''];
@@ -247,7 +283,7 @@ function nb_status_betrieb($abf)
                 $teilOrt = $d['teil']['name'] ?? '';
             } elseif (!empty($d['ausfall']) && empty($d['ersatz'])) {
                 $ausfaelle++;
-            } elseif ($altona) {
+            } elseif ($altona && !$bau) {
                 $umleitungen++;
             } elseif (($d['verspaetung'] ?? 0) >= 10) {
                 $verspaetet++;
@@ -256,8 +292,11 @@ function nb_status_betrieb($abf)
         }
     }
     $betroffen = $ausfaelle + $umleitungen + $verspaetet + $teil;
+    $bauText = $bau ? nb_baufahrplan_text($bau) : '';
     if (!$total || !$betroffen) {
-        return ['level' => 'ok', 'title' => 'Nordbahn fährt planmäßig', 'detail' => ''];
+        return $bau
+            ? ['level' => 'warn', 'title' => 'Nordbahn fährt nach Baufahrplan', 'detail' => $bauText]
+            : ['level' => 'ok', 'title' => 'Nordbahn fährt planmäßig', 'detail' => ''];
     }
     $parts = [];
     if ($ausfaelle) {
@@ -277,8 +316,8 @@ function nb_status_betrieb($abf)
 
     return [
         'level'  => $level,
-        'title'  => $level === 'alert' ? 'Nordbahn gestört' : 'Nordbahn beeinträchtigt',
-        'detail' => $betroffen . ' von ' . $total . ' Zügen (' . round($anteil * 100) . ' %): ' . implode(', ', $parts),
+        'title'  => $level === 'alert' ? 'Nordbahn gestört' : ($bau ? 'Nordbahn fährt nach Baufahrplan' : 'Nordbahn beeinträchtigt'),
+        'detail' => ($bau ? $bauText . ' · ' : '') . $betroffen . ' von ' . $total . ' Zügen (' . round($anteil * 100) . ' %): ' . implode(', ', $parts),
     ];
 }
 
@@ -1339,7 +1378,7 @@ function nb_lage_md(array $data, $abf, $heimat, $now = null, $gf = null)
     $md .= "## Lage auf einen Blick\n\n";
     $infra = nb_status_infra($data);
     $eil = nb_status_eil($data, $items);
-    $betrieb = nb_status_betrieb($abf);
+    $betrieb = nb_status_betrieb($abf, nb_baufahrplan($data, $now));
     $zeile = function ($label, $st) {
         return '- ' . $label . ': ' . $st['title'] . ($st['detail'] !== '' ? ' (' . $st['detail'] . ')' : '') . "\n";
     };

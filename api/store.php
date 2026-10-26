@@ -317,6 +317,32 @@ function nordbahn_clean_live($raw)
 }
 
 /**
+ * Sonderfahrplan der Nordbahn-Seite (Bauarbeiten, Ersatzverkehr) mit Zeitraum. von und bis
+ * kommen aus data-day-start und data-day-end der Seite, bis gilt einschliesslich.
+ *
+ * @return array|null null ohne gueltige ID, Titel oder Zeitraum
+ */
+function nordbahn_clean_sonderfahrplan($raw)
+{
+    if (!is_array($raw)) {
+        return null;
+    }
+    $id = nordbahn_text($raw['id'] ?? '', 40);
+    $title = nordbahn_text($raw['title'] ?? '', 300);
+    $von = nordbahn_text($raw['von'] ?? '', 10);
+    $bis = nordbahn_text($raw['bis'] ?? '', 10);
+    if (!preg_match('/^sev-\d+$/', $id) || $title === '' || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $von) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $bis)) {
+        return null;
+    }
+    $link = nordbahn_text($raw['link'] ?? '', 500);
+    if (!preg_match('#^https://(www\.)?nordbahn\.de/#', $link)) {
+        $link = '';
+    }
+
+    return ['id' => $id, 'title' => $title, 'von' => $von, 'bis' => $bis, 'link' => $link];
+}
+
+/**
  * Bereinigt ein komplettes Push-Paket.
  *
  * @return array|null null, wenn die Grundstruktur nicht passt
@@ -349,6 +375,17 @@ function nordbahn_clean_payload($raw)
         }
     }
 
+    $sonder = [];
+    foreach (is_array($raw['sonderfahrplaene'] ?? null) ? $raw['sonderfahrplaene'] : [] as $e) {
+        $clean = nordbahn_clean_sonderfahrplan($e);
+        if ($clean !== null) {
+            $sonder[] = $clean;
+        }
+        if (count($sonder) >= 50) {
+            break;
+        }
+    }
+
     $historie = [];
     foreach ($raw['eilmeldungen'] as $e) {
         $clean = nordbahn_clean_eilmeldung($e);
@@ -370,6 +407,7 @@ function nordbahn_clean_payload($raw)
         ],
         'stoerungen'        => $stoerungen,
         'eilmeldungen_live' => $live,
+        'sonderfahrplaene'  => $sonder,
         'eilmeldungen'      => $historie,
     ];
 }
@@ -444,6 +482,7 @@ function nordbahn_dataset()
             'quellen'           => ['strecken_info_ok' => false, 'nordbahn_ok' => false],
             'stoerungen'        => [],
             'eilmeldungen_live' => [],
+            'sonderfahrplaene'  => [],
             'eilmeldungen'      => [],
         ];
     }

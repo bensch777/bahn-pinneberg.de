@@ -43,6 +43,78 @@ function test_betrieb_ersatz_zaehlt_nicht_doppelt()
     t_eq('warn', $s['level'], 'ein Fuenftel: beeintraechtigt, nicht gestoert');
 }
 
+/* ---------- Baufahrplan: RB61/RB71 planmaessig ab/bis Altona ---------- */
+
+/** Sonderfahrplan wie auf nordbahn.de (sev-1025), Zeitraum 26.10. bis 02.11.2026. */
+function t_bau(array $override = [])
+{
+    return $override + [
+        'id' => 'sev-1025', 'von' => '2026-10-26', 'bis' => '2026-11-02',
+        'title' => '26.10. - 02.11.: Alle Züge der Linien RB 61 und RB 71 fahren ab/bis Hamburg-Altona; Ersatzverkehr mit Bussen zwischen Elmshorn und Itzehoe',
+        'link' => 'https://www.nordbahn.de/reiseplanung/eilmeldungen-sonderfahrplaene/sev-1025/',
+    ];
+}
+
+function test_baufahrplan_nur_im_zeitraum_und_mit_altona()
+{
+    $data = ['sonderfahrplaene' => [
+        t_bau(['id' => 'sev-932', 'title' => 'Gleis 13/14 im Hamburger Hauptbahnhof vom 08.06. bis 30.11.2026 nicht barrierefrei zu erreichen', 'von' => '2026-05-28', 'bis' => '2026-12-31']),
+        t_bau(),
+    ]];
+    $ts = function ($s) { return (new DateTime($s, new DateTimeZone('Europe/Berlin')))->getTimestamp(); };
+    t_eq('sev-1025', nb_baufahrplan($data, $ts('2026-10-26 00:05'))['id'] ?? null, 'ab dem ersten Tag, deutsche Zeit');
+    t_eq('sev-1025', nb_baufahrplan($data, $ts('2026-11-02 23:55'))['id'] ?? null, 'bis einschliesslich zum letzten Tag');
+    t_eq(null, nb_baufahrplan($data, $ts('2026-11-03 00:05')), 'danach nicht mehr');
+    t_eq(null, nb_baufahrplan($data, $ts('2026-10-25 23:55')), 'vorher noch nicht');
+    t_eq(null, nb_baufahrplan(['sonderfahrplaene' => [t_bau(['title' => 'Ersatzverkehr zwischen Altona und Pinneberg für RB 61'])]], $ts('2026-10-27 08:00')), 'Altona ohne ab/bis ist kein Baufahrplan');
+    t_eq(null, nb_baufahrplan([], $ts('2026-10-27 08:00')), 'ohne Sonderfahrplaene');
+}
+
+function test_betrieb_baufahrplan_altona_ist_planmaessig_aber_gelb()
+{
+    $abf = t_abf(
+        [['ziel' => 'Hamburg-Altona'], ['ziel' => 'Hamburg-Altona', 'linie' => 'RB 61'], ['ziel' => 'Hamburg-Altona', 'linie' => 'RB 60']],
+        [['ab' => 'Altona'], ['ab' => 'Altona', 'linie' => 'RB 61']]
+    );
+    t_eq('alert', nb_status_betrieb($abf)['level'], 'ohne Sonderfahrplan: Umleitungen');
+    $s = nb_status_betrieb($abf, t_bau());
+    t_eq('warn', $s['level'], 'mit Sonderfahrplan gelb');
+    t_eq('Nordbahn fährt nach Baufahrplan', $s['title'], 'Titel');
+    t_eq('Bis 02.11.: Alle Züge der Linien RB 61 und RB 71 fahren ab/bis Hamburg-Altona; Ersatzverkehr mit Bussen zwischen Elmshorn und Itzehoe', $s['detail'], 'Text des Sonderfahrplans ohne Zeitraum vorn');
+}
+
+function test_betrieb_baufahrplan_zaehlt_ausfaelle_und_verspaetungen()
+{
+    $s = nb_status_betrieb(t_abf(
+        [['ziel' => 'Hamburg-Altona', 'verspaetung' => 23], ['ziel' => 'Hamburg-Altona'], ['ziel' => 'Hamburg-Altona'], ['ziel' => 'Hamburg-Altona']],
+        [['ab' => 'Altona'], ['ab' => 'Altona'], ['ab' => 'Altona'], ['ab' => 'Altona']]
+    ), t_bau());
+    t_eq('warn', $s['level'], 'ein Verspaeteter von acht bleibt gelb');
+    t_eq('Nordbahn fährt nach Baufahrplan', $s['title'], 'Titel');
+    t_contains(' · 1 von 8 Zügen (13 %): Verspätungen bis 23 Min', $s['detail'], 'Verspaetung zaehlt weiter, Altona nicht');
+
+    $s = nb_status_betrieb(t_abf(
+        [['ziel' => 'Hamburg-Altona', 'ausfall' => true], ['ziel' => 'Hamburg-Altona', 'ausfall' => true], ['ziel' => 'Hamburg-Altona']],
+        [['ab' => 'Altona'], ['ab' => 'Altona']]
+    ), t_bau());
+    t_eq('alert', $s['level'], 'zwei Ausfaelle von fuenf: gestoert');
+    t_eq('Nordbahn gestört', $s['title'], 'Titel bei Stoerung');
+    t_contains('Bis 02.11.: ', $s['detail'], 'Sonderfahrplan bleibt im Text');
+}
+
+function test_payload_sonderfahrplaene_bereinigt()
+{
+    $clean = nordbahn_clean_payload(['eilmeldungen' => [], 'sonderfahrplaene' => [
+        t_bau(),
+        t_bau(['id' => 'em-1']),
+        t_bau(['von' => '26.10.2026']),
+        t_bau(['link' => 'https://example.org/']),
+    ]]);
+    t_eq(['sev-1025', 'sev-1025'], array_column($clean['sonderfahrplaene'], 'id'), 'nur sev-IDs mit ISO-Datum');
+    t_eq('', $clean['sonderfahrplaene'][1]['link'], 'fremder Link faellt weg');
+    t_eq([], nordbahn_clean_payload(['eilmeldungen' => []])['sonderfahrplaene'], 'altes Paket ohne Feld');
+}
+
 /* ---------- Letzte Stoerungen (Verlauf) ---------- */
 
 function t_verlauf_data()

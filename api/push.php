@@ -81,6 +81,7 @@ $antwort = json_encode([
     'stoerungen'   => count($payload['stoerungen']),
     'eilmeldungen' => count($payload['eilmeldungen']),
     'live'         => count($payload['eilmeldungen_live']),
+    'sonder'       => count($payload['sonderfahrplaene']),
     'log'          => $logSize,
 ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 ignore_user_abort(true);
