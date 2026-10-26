@@ -15,6 +15,7 @@ $assetVersion = (int) @filemtime(__DIR__ . '/../dashboard.css');
 
 $changelog = [
     ['2026-10-26', [
+        ['Home-Bildschirm: „Bahn Pinneberg“ und neues Symbol', 'Das Symbol auf dem Home-Bildschirm heißt jetzt „Bahn Pinneberg“ statt „Bahn PI“. Safari merkt sich das App-Symbol sehr lange, deshalb zeigte der Dialog „Zum Home-Bildschirm“ oft noch das alte blaue „N“. Das Symbol hat jetzt eine neue Adresse, Safari lädt den Nordbahn-Zug damit frisch. Wer die Seite schon auf dem Home-Bildschirm hat, entfernt sie einmal und fügt sie neu hinzu.'],
         ['Baufahrplan statt „gestört“', 'Fahren RB61 und RB71 wegen Bauarbeiten planmäßig nur ab und bis Hamburg-Altona, galt jeder Zug bisher als Umleitung und die Karte stand auf rot „Nordbahn gestört“. Jetzt liest die Seite auch die Sonderfahrpläne der Nordbahn mit. Ist einer mit „ab/bis Hamburg-Altona“ gerade gültig, zeigt die Karte gelb „Nordbahn fährt nach Baufahrplan“ mit dem Text des Sonderfahrplans und bis wann er gilt. Ausfälle und Verspätungen zählen weiter wie bisher.'],
     ]],
     ['2026-10-25', [
@@ -152,7 +153,7 @@ function nb_datum($iso)
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <link rel="icon" type="image/png" sizes="64x64" href="<?= $root ?>icon-64.png">
-<link rel="apple-touch-icon" href="<?= $root ?>icon-180.png">
+<link rel="apple-touch-icon" href="<?= $root ?>icon-180.png?v=2">
 <link rel="stylesheet" href="<?= $root ?>dashboard.css?v=<?= $assetVersion ?>">
 <script type="application/ld+json"><?= json_encode($jsonLd, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) ?></script>
 <?php require __DIR__ . '/../inc/analytics.php'; ?>
