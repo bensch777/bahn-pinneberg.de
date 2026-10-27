@@ -14,20 +14,24 @@ function test_logbuch_verlauf_schritte()
     nordbahn_update_log([$s('Stromlos', 'Schwere Störung.', '2026-10-17T05:00:00Z')], '2026-10-17T01:04:00Z'); // Pendler-Text nachgetragen
     nordbahn_update_log([$s('Stromlos. Reparatur läuft.', 'Reparatur läuft.', '2026-10-17T05:00:00Z')], '2026-10-17T03:00:00Z'); // neuer Text
     nordbahn_update_log([$s('Stromlos. Reparatur läuft.', 'Reparatur läuft.', '2026-10-17T10:00:00Z')], '2026-10-17T04:30:00Z'); // neues Ende
+    nordbahn_update_log([$s('Stromlos. Reparatur läuft.', 'Reparatur läuft, dauert länger.', '2026-10-17T10:00:00Z')], '2026-10-17T04:35:00Z'); // KI formuliert nach
     $log = nordbahn_read_json(NORDBAHN_LOG_FILE);
     $v = $log['X']['verlauf'];
-    t_eq(4, count($v), 'vier Staende: neu, KI nachgetragen, Text, Ende');
+    t_eq(5, count($v), 'fuenf Staende: neu, KI nachgetragen, Text, Ende, KI neu formuliert');
     t_eq('2026-10-17T01:00:00Z', $v[0]['t'], 'erster Schritt traegt first_seen');
     t_eq('2026-10-17T04:30:00Z', $v[3]['t'], 'letzter Schritt zum Zeitpunkt der Aenderung');
 
     $schritte = nb_verlauf_schritte($v);
-    t_eq(['neu', 'text', 'ende'], array_column($schritte, 'art'), 'nachgetragener Pendler-Text ist kein eigener Schritt');
+    t_eq(['neu', 'text', 'ende'], array_column($schritte, 'art'), 'nachgetragener oder neu formulierter Pendler-Text ist kein eigener Schritt');
     t_eq('Schwere Störung.', $schritte[0]['ki_text'], 'Pendler-Text im ersten Schritt eingearbeitet');
+    t_eq('Reparatur läuft, dauert länger.', $schritte[2]['ki_text'], 'neu formulierter Text im Schritt der Aenderung');
+    t_eq(strtotime('2026-10-17T04:30:00Z'), $schritte[2]['ts'], 'Schritt behaelt die Zeit der Aenderung bei strecken-info');
     $html = nb_render_verlauf_schritte($schritte, strtotime('2026-10-17 06:00:00 Europe/Berlin'));
     t_contains('Störung gemeldet', $html, 'Schritt neu');
     t_contains('Neuer Stand', $html, 'Schritt Text');
     t_contains('Neues voraussichtliches Ende', $html, 'Schritt Ende');
     t_contains('Gemeldetes Ende: heute, 12:00 Uhr', $html, 'Ende im Schritt');
+    t_eq(false, strpos($html, 'Pendler-Text'), 'kein Schritt "Pendler-Text aktualisiert"');
     unlink(NORDBAHN_LOG_FILE);
 }
 
