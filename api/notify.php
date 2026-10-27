@@ -5,8 +5,15 @@
  * aufgerufen, also alle zwei Minuten, wenn n8n neue Daten liefert.
  *
  * Abos liegen in cache/push-subs.json (je Abo: Endpunkt, Schluessel,
- * Heimatbahnhof, Zeitregel). cache/push-state.json merkt sich, was schon
- * gemeldet wurde, damit nichts doppelt kommt.
+ * Heimatbahnhof, Zeitregel, gemerkte Zuege, "nur meine Zuege").
+ * cache/push-state.json merkt sich, was schon gemeldet wurde, damit nichts
+ * doppelt kommt.
+ *
+ * Meine Zuege: Wer in der Abfahrtstafel einen Zug merkt, bekommt zu diesem Zug
+ * an den gewaehlten Wochentagen ab einer Stunde vor der Abfahrt eine Meldung bei
+ * Ausfall, Abfahrt von einem anderen Hamburger Bahnhof, Teilausfall, Bus statt
+ * Zug, Verspaetung ab fuenf Minuten (erneut bei 10, 15, 20, 30, 45, 60) und
+ * Gleiswechsel. Diese Meldungen kommen unabhaengig von der Zeitregel.
  */
 
 require_once __DIR__ . '/store.php';
@@ -18,6 +25,9 @@ const NB_PUSH_MAX_SUBS   = 5000;
 const NB_PUSH_KI_WARTEN  = 6 * 60;   // Sekunden, die eine Stoerung auf den Pendler-Text wartet
 const NB_PUSH_SEEN_KEEP  = 3 * 86400; // Sekunden, die gemeldete Ereignisse gemerkt bleiben
 const NB_PUSH_ZUG_FENSTER = 90 * 60;  // nur Ausfaelle in den naechsten 90 Minuten melden
+const NB_PUSH_MAX_ZUEGE  = 8;         // gemerkte Zuege je Abo
+const NB_PUSH_MEIN_FENSTER = 60 * 60; // gemerkte Zuege ab einer Stunde vor der Abfahrt beobachten
+const NB_PUSH_MEIN_STUFEN = [5, 10, 15, 20, 30, 45, 60]; // Verspaetungen (Min.), ab denen (erneut) gemeldet wird
 
 /** VAPID-Konfiguration aus config.php, oder null wenn Web Push nicht eingerichtet ist. */
 function nb_push_vapid()
@@ -98,16 +108,89 @@ function nb_push_sub_id($endpoint)
     return substr(hash('sha256', $endpoint), 0, 32);
 }
 
+/** Schluessel eines gemerkten Zugs: Bahnhof, Richtung und Zugnummer. */
+function nb_push_zug_key(array $z)
+{
+    return $z['heimat'] . ':' . $z['richtung'] . ':' . $z['zug'];
+}
+
 /**
- * Legt ein Abo an oder aktualisiert Heimat und Zeitregel. $alt ist der alte
- * Endpunkt, wenn der Browser das Abo erneuert hat (pushsubscriptionchange).
+ * Prueft die gemerkten Zuege aus dem Browser. Je Zug: Bahnhof (heimat),
+ * Richtung (hin/rueck), Zugnummer, weitere Nummern desselben Pendelzugs
+ * (nummern, z. B. im Baufahrplan; siehe api/fahrplan.php), Linie, Planzeit HH:MM am Abfahrtsbahnhof,
+ * Abfahrtsbahnhof in Hamburg (ab, nur rueck), Ziel und Wochentage (1 = Montag,
+ * ohne Angabe Mo-Fr). Liefert null, wenn keine Liste kam; dann bleibt die alte.
  */
-function nb_push_subscribe(array $sub, $heimat, $zeit, $alt = '')
+function nb_push_clean_zuege($raw)
+{
+    if (!is_array($raw)) {
+        return null;
+    }
+    $str = function ($v) {
+        return is_scalar($v) ? (string) $v : '';
+    };
+    $text = function ($v, $max) use ($str) {
+        return mb_substr(trim(preg_replace('/[\x00-\x1F\x7F]+/u', ' ', $str($v))), 0, $max);
+    };
+    $out = [];
+    foreach ($raw as $z) {
+        if (!is_array($z)) {
+            continue;
+        }
+        $heimat = $str($z['heimat'] ?? '');
+        $richtung = $str($z['richtung'] ?? '');
+        $zug = $str($z['zug'] ?? '');
+        $zeit = $str($z['zeit'] ?? '');
+        if (!isset(NORDBAHN_BAHNHOEFE[$heimat]) || !in_array($richtung, ['hin', 'rueck'], true)
+            || !preg_match('/^\d{1,6}$/', $zug) || !preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $zeit)) {
+            continue;
+        }
+        $tage = [];
+        foreach (is_array($z['tage'] ?? null) ? $z['tage'] : [] as $t) {
+            if (is_int($t) || (is_string($t) && ctype_digit($t))) {
+                $t = (int) $t;
+                if ($t >= 1 && $t <= 7) {
+                    $tage[$t] = $t;
+                }
+            }
+        }
+        ksort($tage);
+        $eintrag = [
+            'heimat'   => $heimat,
+            'richtung' => $richtung,
+            'zug'      => $zug,
+            'linie'    => $text($z['linie'] ?? '', 12),
+            'zeit'     => $zeit,
+            'ab'       => $richtung === 'rueck' ? $text($z['ab'] ?? '', 30) : '',
+            'ziel'     => $text($z['ziel'] ?? '', 60),
+            'tage'     => $tage ? array_values($tage) : [1, 2, 3, 4, 5],
+            // eigene Nummer zuerst, dazu hoechstens vier Varianten
+            'nummern'  => array_slice(array_values(array_unique(array_merge([$zug], array_filter(
+                is_array($z['nummern'] ?? null) ? array_map($str, $z['nummern']) : [],
+                function ($n) { return preg_match('/^\d{1,6}$/', $n) === 1; }
+            )))), 0, 5),
+        ];
+        $out[nb_push_zug_key($eintrag)] = $out[nb_push_zug_key($eintrag)] ?? $eintrag;
+        if (count($out) >= NB_PUSH_MAX_ZUEGE) {
+            break;
+        }
+    }
+
+    return array_values($out);
+}
+
+/**
+ * Legt ein Abo an oder aktualisiert Heimat, Zeitregel, gemerkte Zuege und
+ * "nur meine Zuege". $alt ist der alte Endpunkt, wenn der Browser das Abo
+ * erneuert hat (pushsubscriptionchange). $zuege und $nur bleiben ohne Angabe
+ * (null), wie sie waren.
+ */
+function nb_push_subscribe(array $sub, $heimat, $zeit, $alt = '', ?array $zuege = null, $nur = null)
 {
     $heimat = isset(NORDBAHN_BAHNHOEFE[$heimat]) ? $heimat : null;
     $zeit = $zeit === 'immer' ? 'immer' : ($zeit === 'pendel' ? 'pendel' : null);
 
-    return nb_push_with_subs(function (array &$subs) use ($sub, $heimat, $zeit, $alt) {
+    return nb_push_with_subs(function (array &$subs) use ($sub, $heimat, $zeit, $alt, $zuege, $nur) {
         $id = nb_push_sub_id($sub['endpoint']);
         $vorher = $subs[$id] ?? null;
         if ($vorher === null && $alt !== '' && isset($subs[nb_push_sub_id($alt)])) {
@@ -123,6 +206,8 @@ function nb_push_subscribe(array $sub, $heimat, $zeit, $alt = '')
             'auth'     => $sub['auth'],
             'heimat'   => $heimat ?? ($vorher['heimat'] ?? NORDBAHN_HEIMAT_DEFAULT),
             'zeit'     => $zeit ?? ($vorher['zeit'] ?? 'pendel'),
+            'zuege'    => $zuege ?? ($vorher['zuege'] ?? []),
+            'nur'      => $nur !== null ? (bool) $nur : !empty($vorher['nur']),
             'seit'     => $vorher['seit'] ?? gmdate('Y-m-d\TH:i:s\Z'),
             'stand'    => gmdate('Y-m-d\TH:i:s\Z'),
         ];
@@ -292,6 +377,179 @@ function nb_push_events_abfahrten($result, $heimat, $now)
     return $events;
 }
 
+/** Uhrzeit HH:MM in deutscher Zeit zu einem Zeitstempel. */
+function nb_push_uhr($ts)
+{
+    return (new DateTime('@' . $ts))->setTimezone(new DateTimeZone('Europe/Berlin'))->format('H:i');
+}
+
+/**
+ * Sucht einen gemerkten Zug in der Abfahrten-Antwort seines Bahnhofs: erst ueber
+ * die Zugnummer oder eine seiner Varianten (nummern; bei zwei Zeilen derselben Nummer, Ausfall am Hbf und Ersatz ab
+ * Altona, die vom gemerkten Startbahnhof), sonst ueber Linie und Planzeit (neue
+ * Zugnummer nach dem Fahrplanwechsel). Wer am Dammtor einsteigt, bekommt die
+ * Werte des Dammtor-Halts.
+ */
+function nb_push_finde_zug($result, array $z)
+{
+    $rows = is_array($result) ? ($result['richtungen'][$z['richtung']] ?? []) : [];
+    $treffer = null;
+    foreach (is_array($rows) ? $rows : [] as $d) {
+        if (!in_array((string) ($d['zug'] ?? ''), $z['nummern'] ?? [$z['zug']], true)) {
+            continue;
+        }
+        $gleichesAb = (string) ($d['ab'] ?? '') === $z['ab'] || ($z['ab'] === 'Dammtor' && ($d['ab'] ?? '') === 'Hbf');
+        if ($treffer === null || ($gleichesAb && empty($d['ersatz_fuer']))) {
+            $treffer = $d;
+        }
+    }
+    if ($treffer === null) {
+        foreach (is_array($rows) ? $rows : [] as $d) {
+            $plan = strtotime((string) ($d['zeit_plan'] ?? $d['zeit'] ?? ''));
+            if ($plan !== false && nb_push_uhr($plan) === $z['zeit'] && (string) ($d['linie'] ?? '') === $z['linie'] && empty($d['ersatz_fuer'])) {
+                $treffer = $d;
+                break;
+            }
+        }
+    }
+    if ($treffer !== null && $z['ab'] === 'Dammtor' && ($treffer['ab'] ?? '') === 'Hbf' && !empty($treffer['dammtor']) && empty($treffer['ausfall'])) {
+        $dt = $treffer['dammtor'];
+        $treffer = array_merge($treffer, [
+            'zeit' => $dt['zeit'], 'ist' => $dt['ist'], 'verspaetung' => $dt['verspaetung'],
+            'gleis' => $dt['gleis'], 'gleis_plan' => $dt['gleis_plan'], 'ausfall' => !empty($dt['ausfall']), 'ab' => 'Dammtor',
+        ]);
+    }
+
+    return $treffer;
+}
+
+/**
+ * Meldungen zu gemerkten Zuegen eines Bahnhofs ($zuege: Schluessel => Zug).
+ * Je Zug und Tag merkt sich $state['sent'] die gemeldeten Teile (Ausfall,
+ * Ersatz, Teilausfall, Bus, Verspaetungsstufe, Gleis). Ein Ereignis entsteht
+ * nur, wenn ein Teil neu ist, und beschreibt dann die ganze Lage des Zugs. Alle
+ * Meldungen zu einem Zug und Tag tragen denselben tag, die neue ersetzt also die
+ * alte auf dem Geraet. Eine Verspaetung meldet sich erneut erst ab der naechsten
+ * Stufe, kleiner werdende Verspaetungen bleiben still.
+ */
+function nb_push_events_meine($result, array $zuege, array $state, $now)
+{
+    $events = [];
+    $sent = is_array($state['sent'] ?? null) ? $state['sent'] : [];
+    foreach ($zuege as $key => $z) {
+        $d = nb_push_finde_zug($result, $z);
+        if ($d === null) {
+            continue;
+        }
+        $zeit = strtotime((string) ($d['zeit'] ?? ''));
+        $plan = strtotime((string) ($d['zeit_plan'] ?? $d['zeit'] ?? ''));
+        if ($zeit === false || $plan === false) {
+            continue;
+        }
+        $ausfall = !empty($d['ausfall']);
+        $ab = $ausfall ? $zeit + 5 * 60 : (strtotime((string) ($d['ist'] ?? '')) ?: $zeit);
+        if ($ab < $now - 60 || min($zeit, $plan) > $now + NB_PUSH_MEIN_FENSTER) {
+            continue; // schon weg oder noch zu weit hin
+        }
+        $berlin = (new DateTime('@' . $plan))->setTimezone(new DateTimeZone('Europe/Berlin'));
+        $prefix = 'mein:' . $key . ':' . $berlin->format('Y-m-d') . ':';
+        $uhr = $berlin->format('H:i');
+        $linie = (string) ($d['linie'] ?? $z['linie']);
+        $teil = is_array($d['teil'] ?? null) && empty($d['teil']['plan']) ? $d['teil'] : null;
+        $v = $ausfall ? 0 : (int) ($d['verspaetung'] ?? 0);
+        $gleis = (string) ($d['gleis'] ?? '');
+        $gleisPlan = (string) ($d['gleis_plan'] ?? '');
+
+        // Teile der Lage, wichtigster zuerst: [Kennung, Titel]
+        $teile = [];
+        if ($ausfall && !empty($d['ersatz']['ab'])) {
+            $teile[] = ['ersatz:' . $d['ersatz']['ab'], $linie . ' ' . $uhr . ' fährt heute ab ' . $d['ersatz']['ab']];
+        } elseif ($ausfall && $teil !== null && $teil['art'] === 'beginnt') {
+            $teile[] = ['teil:beginnt:' . $teil['id'], $linie . ' ' . $uhr . ' fährt erst ab ' . $teil['name']];
+        } elseif ($ausfall) {
+            $teile[] = ['ausfall', $linie . ' um ' . $uhr . ' fällt aus'];
+        } elseif ($teil !== null) {
+            $teile[] = ['teil:' . $teil['art'] . ':' . $teil['id'], $teil['art'] === 'beginnt'
+                ? $linie . ' ' . $uhr . ' startet erst in ' . $teil['name']
+                : $linie . ' um ' . $uhr . ' endet heute in ' . $teil['name']];
+        }
+        if (!empty($d['bus'])) {
+            $teile[] = ['bus', $linie . ' um ' . $uhr . ': Bus statt Zug'];
+        }
+        $stufe = 0;
+        foreach (NB_PUSH_MEIN_STUFEN as $s) {
+            if ($v >= $s) {
+                $stufe = $s;
+            }
+        }
+        if ($stufe > 0) {
+            $hoeher = false;
+            foreach (NB_PUSH_MEIN_STUFEN as $s) {
+                $hoeher = $hoeher || ($s >= $stufe && !empty($sent[$prefix . 'plus:' . $s]));
+            }
+            $teile[] = ['plus:' . $stufe, $linie . ' um ' . $uhr . ': +' . $v . ' Min.', $hoeher];
+        }
+        if (!$ausfall && $gleisPlan !== '' && $gleis !== '') {
+            $teile[] = ['gleis:' . $gleis, $linie . ' um ' . $uhr . ' heute von Gleis ' . $gleis];
+        }
+
+        $neu = array_values(array_filter($teile, function ($t) use ($sent, $prefix) {
+            return empty($sent[$prefix . $t[0]]) && empty($t[2]);
+        }));
+        if (!$neu) {
+            continue;
+        }
+
+        // Text: Strecke, dann alles, was zur Lage gehoert
+        $heimatName = NORDBAHN_BAHNHOEFE[$z['heimat']]['name'] ?? $z['heimat'];
+        if ($z['richtung'] === 'hin') {
+            $strecke = $heimatName . ' → ' . ($z['ziel'] !== '' ? $z['ziel'] : 'Hamburg');
+        } else {
+            $start = $z['ab'] !== '' ? $z['ab'] : (string) ($d['ab'] ?? '');
+            $strecke = (in_array($start, ['Hbf', 'Altona', 'Dammtor'], true) ? 'Hamburg ' : '') . $start . ' → ' . $heimatName;
+        }
+        $saetze = ['Dein Zug ' . $strecke];
+        if ($ausfall && !empty($d['ersatz']['ab'])) {
+            $e = $d['ersatz'];
+            $et = strtotime((string) ($e['zeit'] ?? ''));
+            $saetze[] = 'Fällt ab ' . ($d['ab'] ?? 'Hbf') . ' aus, fährt stattdessen ab ' . $e['ab']
+                . ($et ? ' um ' . nb_push_uhr($et) . ' Uhr' : '')
+                . ((int) ($e['verspaetung'] ?? 0) >= 3 ? ' (+' . (int) $e['verspaetung'] . ')' : '')
+                . (!empty($e['gleis']) ? ', Gleis ' . $e['gleis'] : '');
+        } elseif ($ausfall && $teil !== null && $teil['art'] === 'beginnt') {
+            $saetze[] = 'Startet heute erst in ' . $teil['name'];
+        } elseif ($ausfall) {
+            $saetze[] = 'Fällt heute aus';
+        } elseif ($teil !== null && $teil['art'] === 'beginnt') {
+            $saetze[] = 'Abfahrt dort um ' . nb_push_uhr($zeit) . ' Uhr' . ($gleis !== '' ? ', Gleis ' . $gleis : '');
+        } elseif ($teil !== null) {
+            $saetze[] = 'Fährt nur bis ' . $teil['name'] . ($teil['id'] === 'AP' ? ', weiter mit der S-Bahn' : '');
+        }
+        if (!$ausfall && $v >= 3) {
+            $saetze[] = 'Voraussichtlich ' . nb_push_uhr($ab) . ' Uhr statt ' . nb_push_uhr($zeit) . ' (+' . $v . ')';
+        }
+        if (!$ausfall && $gleisPlan !== '' && $gleis !== '') {
+            $saetze[] = 'Heute Gleis ' . $gleis . ' statt ' . $gleisPlan;
+        }
+        if (!empty($d['hinweis'])) {
+            $saetze[] = rtrim((string) $d['hinweis'], '. ');
+        }
+
+        $events[] = [
+            'id'        => $prefix . implode('+', array_column($neu, 0)),
+            'teile'     => array_map(function ($t) use ($prefix) { return $prefix . $t[0]; }, $neu),
+            'tag'       => rtrim($prefix, ':'),
+            'title'     => $neu[0][1],
+            'body'      => implode('. ', $saetze) . '.',
+            'url'       => './',
+            'mein'      => $key,
+            'wochentag' => (int) $berlin->format('N'),
+        ];
+    }
+
+    return $events;
+}
+
 /**
  * Ein Durchlauf: Ereignisse bestimmen, an passende Abos schicken, Zustand
  * fortschreiben. $abfahrten liefert je Heimat-ID die Abfahrten-Antwort
@@ -324,9 +582,24 @@ function nb_push_run_mit(array $alt, array $neu, $now, ?callable $abfahrten, ?ca
 
     $events = nb_push_events_data($alt, $neu, $state, $now);
 
+    // Bahnhoefe fuer Ausfaelle am Heimatbahnhof (Abos ohne "nur meine Zuege") und
+    // die gemerkten Zuege je Bahnhof; jede Tafel wird nur einmal gelesen
     $heimaten = [];
-    foreach ($subs as $sub) {
-        $heimaten[$sub['heimat'] ?? NORDBAHN_HEIMAT_DEFAULT] = true;
+    $meine = [];
+    $subZuege = [];
+    foreach ($subs as $id => $sub) {
+        if (empty($sub['nur'])) {
+            $heimaten[$sub['heimat'] ?? NORDBAHN_HEIMAT_DEFAULT] = true;
+        }
+        foreach (is_array($sub['zuege'] ?? null) ? $sub['zuege'] : [] as $z) {
+            if (!is_array($z) || !isset($z['heimat'], $z['richtung'], $z['zug'])) {
+                continue;
+            }
+            $key = nb_push_zug_key($z);
+            $z += ['linie' => '', 'zeit' => '', 'ab' => '', 'ziel' => '', 'tage' => [1, 2, 3, 4, 5], 'nummern' => [$z['zug']]];
+            $meine[$z['heimat']][$key] = $meine[$z['heimat']][$key] ?? $z;
+            $subZuege[$id][$key] = array_map('intval', (array) $z['tage']);
+        }
     }
     $abfahrten = $abfahrten ?? function ($heimat) {
         if (!defined('NORDBAHN_ABF_LIB')) {
@@ -336,11 +609,17 @@ function nb_push_run_mit(array $alt, array $neu, $now, ?callable $abfahrten, ?ca
 
         return abf_cached($heimat);
     };
-    foreach (array_keys($heimaten) as $heimat) {
+    foreach (array_keys($heimaten + $meine) as $heimat) {
         if (!isset(NORDBAHN_BAHNHOEFE[$heimat])) {
             continue;
         }
-        foreach (nb_push_events_abfahrten($abfahrten($heimat), $heimat, $now) as $ev) {
+        $result = $abfahrten($heimat);
+        if (isset($heimaten[$heimat])) {
+            foreach (nb_push_events_abfahrten($result, $heimat, $now) as $ev) {
+                $events[] = $ev;
+            }
+        }
+        foreach (nb_push_events_meine($result, $meine[$heimat] ?? [], $state, $now) as $ev) {
             $events[] = $ev;
         }
     }
@@ -354,21 +633,30 @@ function nb_push_run_mit(array $alt, array $neu, $now, ?callable $abfahrten, ?ca
     $tot = [];
     foreach ($events as $ev) {
         $state['sent'][$ev['id']] = $now;
+        foreach ($ev['teile'] ?? [] as $teil) {
+            $state['sent'][$teil] = $now;
+        }
         $payload = json_encode([
             'title' => mb_substr($ev['title'], 0, 120),
             'body'  => mb_substr($ev['body'], 0, 400),
             'url'   => $ev['url'],
-            'tag'   => $ev['id'],
+            'tag'   => $ev['tag'] ?? $ev['id'],
             'ts'    => $now,
         ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         foreach ($subs as $id => $sub) {
             if (isset($tot[$id])) {
                 continue;
             }
-            if (!empty($ev['heimat']) && ($sub['heimat'] ?? '') !== $ev['heimat']) {
+            if (isset($ev['mein'])) {
+                // Gemerkter Zug: nur wer ihn gemerkt hat, an seinen Wochentagen, ohne Zeitregel
+                if (!in_array($ev['wochentag'], $subZuege[$id][$ev['mein']] ?? [], true)) {
+                    continue;
+                }
+            } elseif (!empty($sub['nur'])) {
                 continue;
-            }
-            if (($sub['zeit'] ?? 'pendel') === 'pendel' && !nb_push_in_pendelzeit($now)) {
+            } elseif (!empty($ev['heimat']) && ($sub['heimat'] ?? '') !== $ev['heimat']) {
+                continue;
+            } elseif (($sub['zeit'] ?? 'pendel') === 'pendel' && !nb_push_in_pendelzeit($now)) {
                 continue;
             }
             $r = $sender($sub, $payload, $vapid);

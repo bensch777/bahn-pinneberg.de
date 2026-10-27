@@ -156,7 +156,8 @@ button { font: inherit; color: inherit; }
 .tool:focus-visible { outline: 2px solid var(--series); outline-offset: 1px; }
 .tool__icon { width: 18px; height: 18px; fill: currentColor; flex: none; }
 .tool--toggle { padding: 0 7px; }
-.tool--toggle[aria-pressed="true"] { color: var(--series); background: var(--surface-2); }
+.tool--toggle[aria-pressed="true"], .tool--an { color: var(--series); background: var(--surface-2); }
+.tool--toggle[aria-current="page"] { color: var(--ink); background: var(--surface-2); }
 .tool--toggle:disabled { opacity: 0.45; cursor: default; }
 .tool--toggle:disabled:hover { background: transparent; color: var(--ink-2); }
 @media (max-width: 560px) { .tool span:not(.visually-hidden) { display: none; } .tool { padding: 0 7px; } }
@@ -173,6 +174,8 @@ button { font: inherit; color: inherit; }
 .menu__group legend { padding: 0; font-size: 12px; color: var(--muted); }
 .menu__hint { margin: 0 0 4px; font-size: 12.5px; color: var(--warning-text, var(--muted)); }
 .menu[hidden] { display: none; }
+.menu { max-height: calc(100vh - 80px); overflow-y: auto; }
+.menu__group[hidden], .menu__hint[hidden] { display: none; }
 
 .page-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 24px; padding: 36px 0 8px; flex-wrap: wrap; }
 .page-head h1 { font-size: 30px; font-weight: 700; letter-spacing: -0.02em; margin: 0 0 6px; }
@@ -596,6 +599,55 @@ a.status:focus-visible { outline: 2px solid var(--series); outline-offset: 2px; 
 .dep__platform--wechsel { color: var(--series-2); font-weight: 700; }
 .dep__platform small { display: block; font-size: 11px; font-weight: 500; color: var(--muted); text-decoration: line-through; }
 .dep--cancelled .dep__dest, .dep--cancelled .dep__line { opacity: 0.7; }
+/* Meine Zuege: Liste, Richtung, Suche mit Vorschlaegen */
+.meine { padding: 14px 18px 16px; }
+.meine__intro { margin: 0 0 10px; font-size: 13.5px; color: var(--ink-2); }
+.meine__liste { list-style: none; margin: 0 0 12px; padding: 0; }
+.meine__liste:empty { display: none; }
+.meine__zug { padding: 10px 0; border-top: 1px solid var(--line); }
+.meine__zug:first-child { border-top: 0; padding-top: 2px; }
+.meine__kopf { display: flex; align-items: baseline; gap: 8px; font-variant-numeric: tabular-nums; }
+.meine__zeit { font-size: 18px; }
+.meine__linie { font-weight: 700; font-size: 13px; color: var(--series); white-space: nowrap; }
+.meine__strecke { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink-2); }
+.meine__weg { flex: none; border: 0; background: transparent; color: var(--muted); font-size: 22px; line-height: 1; padding: 0 4px; cursor: pointer; }
+.meine__weg:hover { color: var(--ink); }
+.meine__tage { display: flex; gap: 4px; margin-top: 8px; max-width: 360px; }
+.meine__tag {
+	flex: 1; padding: 4px 0; border-radius: 6px; border: 1px solid var(--line); background: transparent;
+	color: var(--muted); font: inherit; font-size: 12px; cursor: pointer;
+}
+.meine__tag[aria-pressed="true"] { color: #fff; background: var(--series); border-color: var(--series); font-weight: 600; }
+.meine__neu { display: grid; gap: 10px; }
+.meine__bahnhof { justify-self: start; }
+
+/* Einstellungen */
+.einstellung { padding: 14px 18px 16px; }
+.einstellung__schalter { display: flex; gap: 10px; align-items: center; font-size: 15px; font-weight: 600; cursor: pointer; }
+.einstellung__schalter input { width: 18px; height: 18px; margin: 0; accent-color: var(--series); }
+.einstellung__hinweis { margin: 6px 0 0; font-size: 13px; color: var(--ink-2); }
+.einstellung__hinweis[hidden] { display: none; }
+.einstellung__gruppe { border: 0; margin: 12px 0 0; padding: 10px 0 0; border-top: 1px solid var(--line); }
+.einstellung__gruppe[hidden] { display: none; }
+.einstellung__gruppe legend { padding: 0; font-size: 12.5px; color: var(--muted); }
+.einstellung__loeschen {
+	margin-top: 12px; font: inherit; font-size: 13.5px; font-weight: 600; padding: 7px 14px; border-radius: 8px;
+	border: 1px solid var(--critical); background: transparent; color: var(--critical-text); cursor: pointer;
+}
+.einstellung__loeschen:hover { background: color-mix(in srgb, var(--critical) 12%, transparent); }
+.installieren { margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--line); font-size: 14px; }
+.installieren summary { cursor: pointer; font-weight: 600; color: var(--series); }
+.installieren__wege { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 24px; }
+@media (max-width: 640px) { .installieren__wege { grid-template-columns: 1fr; } }
+.installieren h3 { margin: 12px 0 4px; font-size: 14px; }
+.installieren ol { margin: 0; padding-left: 20px; color: var(--ink-2); }
+.installieren li { margin: 4px 0; }
+.installieren__icon { display: inline-block; width: 18px; height: 18px; vertical-align: -3px; color: var(--series); }
+.installieren__icon svg { width: 100%; height: 100%; fill: currentColor; }
+.daten { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; font-size: 14px; }
+.daten dt { color: var(--muted); }
+.daten dd { margin: 0; }
+@media (max-width: 420px) { .daten { grid-template-columns: 1fr; gap: 0; } .daten dd { margin-bottom: 8px; } }
 .board__empty { margin: 0; padding: 14px 0 10px; color: var(--muted); font-size: 13.5px; }
 @media (max-width: 420px) {
 	.dep { grid-template-columns: 10px 62px 48px 1fr auto; gap: 0 8px; }

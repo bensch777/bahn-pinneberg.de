@@ -4,11 +4,13 @@
  *
  * URL: /api/subscribe (POST, JSON)
  *   { "action": "subscribe", "subscription": PushSubscription.toJSON(),
- *     "heimat": "APD", "zeit": "pendel"|"immer", "alt": alter Endpunkt (optional) }
+ *     "heimat": "APD", "zeit": "pendel"|"immer", "alt": alter Endpunkt (optional),
+ *     "zuege": [gemerkte Zuege, siehe nb_push_clean_zuege] (optional),
+ *     "nur": true|false, nur Meldungen zu gemerkten Zuegen (optional) }
  *   { "action": "unsubscribe", "endpoint": "..." }
  *
  * Nur von der eigenen Seite (Origin-Pruefung). Gespeichert werden Endpunkt
- * und Schluessel des Abos, Heimatbahnhof und Zeitregel.
+ * und Schluessel des Abos, Heimatbahnhof, Zeitregel und die gemerkten Zuege.
  */
 
 require __DIR__ . '/store.php';
@@ -56,7 +58,8 @@ $sub = nb_push_clean_subscription($in['subscription'] ?? null);
 if ($sub === null) {
     sub_respond(400, ['ok' => false, 'error' => 'Abo unvollstaendig.']);
 }
-$ok = nb_push_subscribe($sub, (string) ($in['heimat'] ?? ''), (string) ($in['zeit'] ?? ''), (string) ($in['alt'] ?? ''));
+$nur = isset($in['nur']) ? !empty($in['nur']) : null;
+$ok = nb_push_subscribe($sub, (string) ($in['heimat'] ?? ''), (string) ($in['zeit'] ?? ''), (string) ($in['alt'] ?? ''), nb_push_clean_zuege($in['zuege'] ?? null), $nur);
 if ($ok === false) {
     sub_respond(503, ['ok' => false, 'error' => 'Abo konnte nicht gespeichert werden.']);
 }
