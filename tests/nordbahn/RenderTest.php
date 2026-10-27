@@ -145,7 +145,7 @@ function test_stoerung_hinweis_ohne_folgen()
 
     $jetzt = nb_ts(T_NOW);
     $hinweis = ['key' => 'EID', 'titel' => 'Signalstörung', 'einschraenkung' => 'leicht', 'wirkungen' => ['Verspätungen'], 'ki_titel' => 'Eidelstedt: Betrieb wieder planmäßig', 'ki_text' => 'Keine spürbaren Folgen.', 'ki_folgen' => 'keine', 'beginn' => '2026-10-14T10:00:00Z'];
-    $stoerung = ['key' => 'HBF', 'titel' => 'Weichenstörung', 'einschraenkung' => 'leicht', 'wirkungen' => ['Verspätungen'], 'ki_folgen' => 'verspaetungen', 'beginn' => '2026-10-15T05:00:00Z'];
+    $stoerung = ['key' => 'HBF', 'titel' => 'Weichenstörung', 'text' => '', 'einschraenkung' => 'leicht', 'wirkungen' => ['Verspätungen'], 'ki_titel' => '', 'ki_text' => '', 'ki_folgen' => 'verspaetungen', 'beginn' => '2026-10-15T05:00:00Z'];
     $data = ['received_at' => T_NOW, 'quellen' => ['strecken_info_ok' => true], 'stoerungen' => [$hinweis]];
     t_eq(['level' => 'ok', 'title' => 'Keine Infrastrukturstörung', 'detail' => '1 Hinweis ohne Folgen'], nb_status_infra($data), 'nur Hinweise: gruen mit Zeile');
     $data['stoerungen'] = [$hinweis, $stoerung];
