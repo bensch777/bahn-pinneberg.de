@@ -481,7 +481,7 @@
 		});
 		state.items.forEach(function (it) {
 			var ms = isNaN(it.stand) ? it.ms : it.stand;
-			if (ms >= now - EIL_AKUT_MS) liste.push({ art: 'eilmeldung', ts: ms, titel: it.title || it.id, text: it.text, link: ereignisLink('eilmeldung', it.id, it.title || it.id), meta: '' });
+			if (ms >= now - EIL_AKUT_MS) liste.push({ art: 'eilmeldung', ts: ms, titel: it.title || it.id, text: it.text, link: ereignisLink('eilmeldung', it.id, it.title || it.id), meta: '', id: it.id });
 		});
 		var gesehen = {};
 		(state.hvv || []).forEach(function (m) {
@@ -496,18 +496,87 @@
 		return liste;
 	}
 
-	/** Stoerung oder Eilmeldung als Listeneintrag (wie nb_render_wichtig_eintrag). */
+	/** Stoerung oder Eilmeldung als Listeneintrag (wie nb_render_wichtig_eintrag); Eilmeldungen mit Knopf zum Ausblenden. */
 	function meldungEintrag(it) {
 		var meta = el('p', { class: 'feed__meta' }, [it.meta]);
 		if (it.text) { if (it.meta) meta.appendChild(el('br')); meta.appendChild(document.createTextNode(it.text)); }
-		return el('li', istHeute(it.ts) ? { class: 'is-heute' } : {}, [
+		var attrs = istHeute(it.ts) ? { class: 'is-heute' } : {};
+		var weg = it.art === 'eilmeldung' && it.id;
+		if (weg) attrs['data-eil-id'] = it.id;
+		return el('li', attrs, [
 			el('div', { class: 'feed__time' }, [fmtWann(it.ts)]),
 			el('div', {}, [
 				el('p', { class: 'feed__kicker feed__kicker--' + it.art, text: it.art === 'stoerung' ? 'Störung' : 'Eilmeldung' }),
 				el('p', { class: 'feed__title' }, [el('a', { href: it.link, text: it.titel })]),
 				it.meta || it.text ? meta : null
-			])
+			]),
+			weg ? el('button', { type: 'button', class: 'feed__weg', 'data-weg': it.id, 'aria-label': 'Eilmeldung ausblenden', title: 'Diese Eilmeldung für mich ausblenden', text: '\u00d7' }) : null
 		]);
+	}
+
+	/* ---------- Eilmeldungen ausblenden ---------- */
+
+	var EIL_WEG_KEY = 'nordbahn.eil.weg';          // { "<id>": <Zeitpunkt des Wegklickens in ms> }
+	var EIL_WEG_MAX_MS = 7 * 24 * 3600 * 1000;    // so lange bleibt ein Eintrag gemerkt (akut ist eine Eilmeldung nur vier Stunden)
+
+	/** Weggeklickte Eilmeldungen aus dem Browser; alte Eintraege fallen beim Lesen weg. */
+	function eilWegLesen() {
+		var weg = {};
+		try { weg = JSON.parse(storage('get', EIL_WEG_KEY) || '{}') || {}; } catch (e) { weg = {}; }
+		var grenze = Date.now() - EIL_WEG_MAX_MS, out = {};
+		Object.keys(weg).forEach(function (id) { if (typeof weg[id] === 'number' && weg[id] >= grenze) out[id] = weg[id]; });
+		return out;
+	}
+
+	function eilWegSchreiben(weg) {
+		storage('set', EIL_WEG_KEY, JSON.stringify(weg));
+	}
+
+	/**
+	 * Wendet die Auswahl auf die Liste im Bereich "Aktuelle Meldungen" an, egal ob sie vom
+	 * Server oder vom Script kommt: weggeklickte Eilmeldungen werden versteckt, die Knoepfe
+	 * sichtbar, darunter steht, wie viele fehlen, mit "Wieder anzeigen". Bleibt gar nichts
+	 * mehr, verschwindet der Bereich wie bei ruhiger Lage.
+	 */
+	function eilWegAnwenden() {
+		var section = document.getElementById('meldungen');
+		var box = document.getElementById('meldungen-inhalt');
+		if (!section || !box) return;
+		var weg = eilWegLesen(), sichtbar = 0, versteckt = 0;
+		Array.prototype.forEach.call(box.querySelectorAll('.feed__weg'), function (b) { b.hidden = false; });
+		Array.prototype.forEach.call(box.querySelectorAll('#meldungen-feed > li'), function (li) {
+			var id = li.getAttribute('data-eil-id');
+			li.hidden = !!(id && weg[id]);
+			if (li.hidden) versteckt++; else sichtbar++;
+		});
+		var hinweis = box.querySelector('.feed__weg-hinweis');
+		if (hinweis) hinweis.parentNode.removeChild(hinweis);
+		if (versteckt) {
+			hinweis = el('p', { class: 'feed__weg-hinweis' + (sichtbar ? '' : ' is-allein') }, [
+				plural(versteckt, 'Eilmeldung', 'Eilmeldungen') + ' ausgeblendet · ',
+				el('button', { type: 'button', class: 'feed__weg-zurueck', text: 'Wieder anzeigen' })
+			]);
+			box.appendChild(hinweis);
+		}
+		section.hidden = !sichtbar && !versteckt;
+	}
+
+	/** Klicks im Bereich: × blendet eine Eilmeldung aus, "Wieder anzeigen" holt die versteckten dieser Liste zurueck. */
+	function bindEilWeg() {
+		var box = document.getElementById('meldungen-inhalt');
+		if (!box) return;
+		box.addEventListener('click', function (ev) {
+			var btn = ev.target && ev.target.closest ? ev.target.closest('.feed__weg, .feed__weg-zurueck') : null;
+			if (!btn) return;
+			var weg = eilWegLesen();
+			if (btn.classList.contains('feed__weg')) {
+				weg[btn.getAttribute('data-weg')] = Date.now();
+			} else {
+				Array.prototype.forEach.call(box.querySelectorAll('#meldungen-feed > li[hidden][data-eil-id]'), function (li) { delete weg[li.getAttribute('data-eil-id')]; });
+			}
+			eilWegSchreiben(weg);
+			eilWegAnwenden();
+		});
 	}
 
 	/** Bereich "Aktuelle Meldungen" (wie nb_render_aktuelle_meldungen); ohne Meldung ausgeblendet. */
@@ -526,6 +595,7 @@
 		var ol = el('ol', { class: 'feed', id: 'meldungen-feed' });
 		liste.forEach(function (it) { ol.appendChild(it.art === 'hvv' ? hvvEintrag(it.meldung, now) : meldungEintrag(it)); });
 		box.appendChild(ol);
+		eilWegAnwenden();
 	}
 
 	/* ---------- Abfahrten ---------- */
@@ -1231,7 +1301,10 @@
 		var raw = document.getElementById('nordbahn-data');
 		var data = {};
 		try { data = JSON.parse(raw.textContent); } catch (e) { data = {}; }
+		bindEilWeg();
 		setData(data);
+		// Mit HVV-Zugang steht bis zur Antwort von api/s3 noch die Liste vom Server
+		eilWegAnwenden();
 		setInterval(refresh, REFRESH_MS);
 		setInterval(renderFreshness, 60000);
 		setInterval(function () { if (!document.hidden) window.location.reload(); }, RELOAD_MS);
