@@ -1463,8 +1463,8 @@
 
 	/** Liste "Meine Zuege": Zeit, Linie, Strecke, Lage heute, Wochentage zum Umschalten, Kreuz zum Vergessen. */
 	/**
-	 * Startseite: die gemerkten Zuege von heute mit ihrer Lage aus der Tafel, ohne
-	 * gemerkte Zuege eine Zeile, die zu den Einstellungen fuehrt.
+	 * Startseite: die gemerkten Zuege von heute mit ihrer Lage aus der Tafel. Ohne
+	 * gemerkte Zuege bleibt die Karte weg, eingerichtet wird ueber die Glocke.
 	 */
 	function renderMeineKurz() {
 		var box = document.getElementById('meine-kurz');
@@ -1474,13 +1474,8 @@
 		var jetzt = uhrJetzt();
 		var link = root() + 'einstellungen/#meine';
 		clear(box);
-		box.hidden = false;
-		if (!alle.length) {
-			box.className = 'meine-kurz meine-kurz--leer';
-			box.appendChild(el('a', { class: 'meine-kurz__einrichten', href: link, text: 'Benachrichtigung für deinen Zug einrichten →' }));
-			return;
-		}
-		box.className = 'card meine-kurz';
+		box.hidden = !alle.length;
+		if (!alle.length) return;
 		box.appendChild(el('div', { class: 'meine-kurz__kopf' }, [
 			el('h3', { class: 'meine-kurz__titel', text: 'Meine Züge' }),
 			el('a', { class: 'meine-kurz__link', href: link, text: 'Bearbeiten' })
