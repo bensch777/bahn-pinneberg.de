@@ -234,7 +234,7 @@ function nb_stoerungen_im_zeitraum(array $data, $start, $ende, $ausser = '')
  * Minuten nach der Aenderung bei strecken-info an und ist nur deren lesbare Fassung,
  * also wandert er in den vorigen Schritt.
  */
-function nb_verlauf_schritte(array $verlauf)
+function nb_verlauf_schritte(array $verlauf, $aufgehoben = null)
 {
     $out = [];
     $vorher = null;
@@ -262,6 +262,10 @@ function nb_verlauf_schritte(array $verlauf)
         }
         $out[] = ['ts' => $ts, 'art' => $art, 'ki_titel' => (string) ($v['ki_titel'] ?? ''), 'ki_text' => (string) ($v['ki_text'] ?? ''), 'text' => (string) ($v['text'] ?? ''), 'ende' => (string) ($v['ende'] ?? '')];
         $vorher = $v;
+    }
+    // Abschluss der Geschichte: die Aufhebung als letzter Schritt
+    if ($aufgehoben !== null && $out) {
+        $out[] = ['ts' => (int) $aufgehoben, 'art' => 'aufgehoben', 'ki_titel' => '', 'ki_text' => '', 'text' => '', 'ende' => '', 'dauer' => nb_dauer(max(60, (int) $aufgehoben - $out[0]['ts']))];
     }
 
     return $out;
@@ -299,37 +303,62 @@ function nb_render_zuege_liste(array $info)
     return $h . '</table>';
 }
 
-/** Verlauf einer Stoerung als Zeitleiste. */
+/**
+ * Verlauf einer Stoerung als Aenderungsliste: je Schritt ein Etikett (Gemeldet, Update,
+ * Verlängert, Verkürzt, Aufgehoben), die Zeit und nur das, was sich geaendert hat: der
+ * neue Text, ein verschobenes Ende als "Ende: 22:51 Uhr → morgen 14:51 Uhr", zum Schluss
+ * die Dauer. Mehr als NB_VERLAUF_SICHTBAR + 1 Schritte: die aelteren eingeklappt.
+ */
+const NB_VERLAUF_SICHTBAR = 3;
+
 function nb_render_verlauf_schritte(array $schritte, $now = null)
 {
     if (!$schritte) {
         return '';
     }
-    $label = ['neu' => 'Störung gemeldet', 'ende' => 'Neues voraussichtliches Ende', 'text' => 'Neuer Stand'];
-    $h = '<ol class="zeitleiste">';
+    $now = $now ?? time();
+    $items = [];
     $vorText = null;
-    $vorTitel = null;
-    $vorEnde = null;
+    $vorEnde = '';
     foreach ($schritte as $s) {
-        // Unveraenderte Texte und Titel nicht in jedem Schritt wiederholen
         $text = $s['ki_text'] !== '' ? $s['ki_text'] : $s['text'];
-        if ($text === $vorText) {
+        if ($text === $vorText || $s['art'] === 'aufgehoben') {
             $text = '';
         } else {
             $vorText = $text;
         }
-        $hinweis = $s['ende'] !== '' && $s['ende'] !== $vorEnde ? 'Gemeldetes Ende: ' . nb_fmt_wann(nb_ts($s['ende']), $now, true) : '';
-        $vorEnde = $s['ende'];
-        $titel = $label[$s['art']] ?? 'Aktualisiert';
-        if ($s['ki_titel'] !== '' && $s['art'] !== 'neu' && $s['ki_titel'] !== $vorTitel) {
-            $titel .= ': ' . $s['ki_titel'];
+        $etikett = ['neu' => 'Gemeldet', 'text' => 'Update', 'ende' => 'Ende verschoben', 'aufgehoben' => 'Aufgehoben'][$s['art']] ?? 'Update';
+        $hinweis = '';
+        if ($s['art'] === 'ende' && $s['ende'] !== '') {
+            $neu = nb_ts($s['ende']);
+            $alt = nb_ts($vorEnde);
+            if ($neu !== null && $alt !== null) {
+                $etikett = $neu > $alt ? 'Verlängert' : 'Verkürzt';
+                // Am selben Tag den Tag nicht wiederholen: "gestern 19:03 Uhr → 20:03 Uhr"
+                $neuText = nb_fmt_tag_rel($alt, $now) === nb_fmt_tag_rel($neu, $now) ? nb_fmt_uhr($neu) : nb_fmt_zeit_rel($neu, $now);
+                $hinweis = 'Ende: ' . nb_fmt_zeit_rel($alt, $now) . ' → ' . $neuText;
+            } elseif ($neu !== null) {
+                $hinweis = 'Ende: ' . nb_fmt_zeit_rel($neu, $now);
+            }
+        } elseif ($s['art'] === 'neu' && $s['ende'] !== '' && nb_ts($s['ende']) !== null) {
+            $hinweis = 'Voraussichtlich bis ' . nb_fmt_zeit_rel(nb_ts($s['ende']), $now);
+        } elseif ($s['art'] === 'aufgehoben') {
+            $hinweis = 'Dauer ' . ($s['dauer'] ?? '');
         }
-        if ($s['ki_titel'] !== '') {
-            $vorTitel = $s['ki_titel'];
+        if ($s['ende'] !== '') {
+            $vorEnde = $s['ende'];
         }
-        $h .= '<li class="ist-' . $s['art'] . '"><time class="zeitleiste__zeit">' . nb_e(nb_fmt_wann($s['ts'], $now)) . '</time><p class="zeitleiste__titel">' . nb_e($titel) . '</p>'
-            . ($text !== '' || $hinweis !== '' ? '<p class="zeitleiste__text">' . nb_e($text) . ($hinweis !== '' ? '<span class="zeitleiste__hinweis">' . nb_e($hinweis) . '</span>' : '') . '</p>' : '') . '</li>';
+        $items[] = '<li class="ist-' . $s['art'] . '"><p class="zeitleiste__kopf"><span class="zeitleiste__etikett">' . nb_e($etikett) . '</span><time class="zeitleiste__zeit" datetime="' . date('c', $s['ts']) . '">' . nb_e(nb_fmt_wann($s['ts'], $now)) . '</time></p>'
+            . ($text !== '' ? '<p class="zeitleiste__text">' . nb_e($text) . '</p>' : '')
+            . ($hinweis !== '' ? '<p class="zeitleiste__hinweis">' . nb_e($hinweis) . '</p>' : '')
+            . '</li>';
     }
+    $h = '';
+    if (count($items) > NB_VERLAUF_SICHTBAR + 1) {
+        $alt = array_splice($items, 0, count($items) - NB_VERLAUF_SICHTBAR);
+        $h .= '<details class="zeitleiste__mehr"><summary>' . nb_plural(count($alt), 'früherer Schritt', 'frühere Schritte') . ' anzeigen</summary><ol class="zeitleiste zeitleiste--alt">' . implode('', $alt) . '</ol></details>';
+    }
+    $h .= '<ol class="zeitleiste">' . implode('', $items);
 
     return $h . '</ol>';
 }

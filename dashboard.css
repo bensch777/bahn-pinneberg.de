@@ -286,7 +286,13 @@ a.status:focus-visible { outline: 2px solid var(--series); outline-offset: 2px; 
 .incident { padding: 16px 18px; }
 .incident__title { margin: 0 0 4px; font-size: 16px; font-weight: 600; }
 .incident__text { margin: 0 0 10px; color: var(--ink-2); }
-.incident__meta { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 18px; margin: 0; font-size: 13px; }
+.incident__meta { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 18px; margin: 10px 0 0; font-size: 13px; }
+/* Zeitraum als Satz plus Zeitbalken (Karte auf der Startseite, Kopf der Ereignisseite) */
+.zeitraum { margin: 0; font-size: 13.5px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.zeitbalken { width: 100%; height: 5px; margin: 6px 0 0; border-radius: 3px; background: color-mix(in srgb, var(--line) 70%, transparent); overflow: hidden; }
+.zeitbalken .bar__fill { height: 100%; border-radius: 3px; background: var(--series); }
+.zeitbalken--ueber .bar__fill { background: var(--warning); }
+.incident .zeitbalken { max-width: 360px; }
 @media (max-width: 560px) { .incident__meta { grid-template-columns: 1fr; } }
 .incident__meta dt { color: var(--muted); font-weight: 500; }
 .incident__meta dd { margin: 0 0 4px; }
@@ -303,6 +309,9 @@ a.status:focus-visible { outline: 2px solid var(--series); outline-offset: 2px; 
 .artikel__titel { margin: 0 0 14px; font-size: 36px; line-height: 1.12; font-weight: 700; letter-spacing: -0.025em; text-wrap: balance; }
 .artikel__vorspann { margin: 0 0 14px; font-size: 19px; line-height: 1.5; color: var(--ink-2); }
 .artikel__vorspann--leer { font-style: italic; color: var(--muted); }
+.artikel__status { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 12px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.artikel__status .zeitraum { flex: 1 1 240px; }
+.artikel__status .zeitbalken { flex-basis: 100%; margin-top: 0; }
 .artikel__meta { margin: 0; padding: 12px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); font-size: 13.5px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 0; }
 .artikel__meta > span + span::before { content: '\00b7'; margin: 0 8px; }
 .artikel__meta a { color: var(--series); text-decoration: none; }
@@ -353,12 +362,25 @@ a.status:focus-visible { outline: 2px solid var(--series); outline-offset: 2px; 
 .zeitleiste li::before { content: ''; position: absolute; left: 7px; top: 10px; bottom: -6px; width: 2px; background: var(--line); }
 .zeitleiste li:last-child::before { display: none; }
 .zeitleiste li::after { content: ''; position: absolute; left: 3px; top: 6px; width: 10px; height: 10px; border-radius: 50%; background: var(--series); box-shadow: 0 0 0 3px var(--page); }
-.zeitleiste li.ist-ende::after { background: var(--good); }
+.zeitleiste li.ist-ende::after { background: var(--warning); }
 .zeitleiste li.ist-neu::after { background: var(--series-2); }
-.zeitleiste__zeit { display: block; font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
-.zeitleiste__titel { margin: 2px 0 2px; font-weight: 600; font-size: 15px; }
+.zeitleiste li.ist-aufgehoben::after { background: var(--good); }
+.zeitleiste__kopf { margin: 0 0 3px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+.zeitleiste__etikett { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--series); }
+.ist-neu .zeitleiste__etikett { color: var(--series-2); }
+.ist-ende .zeitleiste__etikett { color: var(--warn-text); }
+.ist-aufgehoben .zeitleiste__etikett { color: var(--good-text); }
+.zeitleiste__zeit { font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .zeitleiste__text { margin: 0; color: var(--ink-2); font-size: 14.5px; line-height: 1.5; }
-.zeitleiste__hinweis { display: block; margin-top: 2px; font-size: 13px; color: var(--muted); }
+.zeitleiste__hinweis { margin: 2px 0 0; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+/* Aeltere Schritte eingeklappt, der Strich laeuft durch */
+.zeitleiste__mehr { margin: 0; }
+.zeitleiste__mehr summary { position: relative; padding: 0 0 20px 30px; font-size: 13.5px; color: var(--series); cursor: pointer; list-style: none; }
+.zeitleiste__mehr summary::-webkit-details-marker { display: none; }
+.zeitleiste__mehr summary::before { content: ''; position: absolute; left: 7px; top: 10px; bottom: -6px; width: 2px; background: var(--line); }
+.zeitleiste__mehr summary::after { content: ''; position: absolute; left: 3px; top: 6px; width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--axis); box-sizing: border-box; background: var(--page); }
+.zeitleiste__mehr[open] summary { display: none; }
+.zeitleiste--alt li:last-child::before { display: block; }
 
 /* Betroffene Zuege */
 .zuege { width: 100%; border-collapse: collapse; }

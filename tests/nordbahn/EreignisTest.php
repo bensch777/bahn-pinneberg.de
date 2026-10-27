@@ -26,12 +26,29 @@ function test_logbuch_verlauf_schritte()
     t_eq('Schwere Störung.', $schritte[0]['ki_text'], 'Pendler-Text im ersten Schritt eingearbeitet');
     t_eq('Reparatur läuft, dauert länger.', $schritte[2]['ki_text'], 'neu formulierter Text im Schritt der Aenderung');
     t_eq(strtotime('2026-10-17T04:30:00Z'), $schritte[2]['ts'], 'Schritt behaelt die Zeit der Aenderung bei strecken-info');
-    $html = nb_render_verlauf_schritte($schritte, strtotime('2026-10-17 06:00:00 Europe/Berlin'));
-    t_contains('Störung gemeldet', $html, 'Schritt neu');
-    t_contains('Neuer Stand', $html, 'Schritt Text');
-    t_contains('Neues voraussichtliches Ende', $html, 'Schritt Ende');
-    t_contains('Gemeldetes Ende: heute, 12:00 Uhr', $html, 'Ende im Schritt');
+    $jetzt = strtotime('2026-10-17 06:00:00 Europe/Berlin');
+    $html = nb_render_verlauf_schritte($schritte, $jetzt);
+    t_contains('<span class="zeitleiste__etikett">Gemeldet</span>', $html, 'Etikett neu');
+    t_contains('<p class="zeitleiste__hinweis">Voraussichtlich bis 07:00 Uhr</p>', $html, 'erstes gemeldetes Ende beim ersten Schritt');
+    t_contains('<span class="zeitleiste__etikett">Update</span>', $html, 'Etikett Text');
+    t_contains('<span class="zeitleiste__etikett">Verlängert</span>', $html, 'Etikett Ende');
+    t_contains('<p class="zeitleiste__hinweis">Ende: 07:00 Uhr → 12:00 Uhr</p>', $html, 'altes und neues Ende');
     t_eq(false, strpos($html, 'Pendler-Text'), 'kein Schritt "Pendler-Text aktualisiert"');
+    t_eq(false, strpos($html, 'zeitleiste__mehr'), 'drei Schritte: nichts eingeklappt');
+    t_eq(1, substr_count($html, 'Reparatur läuft, dauert länger.'), 'Text nur im Schritt der Aenderung, nicht wiederholt');
+
+    // Aufgehoben: Abschluss mit Dauer; viele Schritte: die aelteren eingeklappt
+    $mit = nb_verlauf_schritte($v, strtotime('2026-10-17T05:10:00Z'));
+    t_eq('aufgehoben', end($mit)['art'], 'letzter Schritt Aufhebung');
+    t_eq('4 Std. 10 Min.', end($mit)['dauer'], 'Dauer seit dem ersten Schritt');
+    $html = nb_render_verlauf_schritte($mit, $jetzt);
+    t_contains('<span class="zeitleiste__etikett">Aufgehoben</span>', $html, 'Etikett Aufgehoben');
+    t_contains('<p class="zeitleiste__hinweis">Dauer 4 Std. 10 Min.</p>', $html, 'Dauer im letzten Schritt');
+    t_eq(false, strpos($html, 'zeitleiste__mehr'), 'vier Schritte: nichts eingeklappt');
+    $viele = array_merge($mit, $mit);
+    $html = nb_render_verlauf_schritte($viele, $jetzt);
+    t_contains('<details class="zeitleiste__mehr"><summary>5 frühere Schritte anzeigen</summary><ol class="zeitleiste zeitleiste--alt">', $html, 'aeltere Schritte eingeklappt');
+    t_eq(3, substr_count(explode('</details>', $html)[1], '<li '), 'drei Schritte sichtbar');
     unlink(NORDBAHN_LOG_FILE);
 }
 
