@@ -330,6 +330,7 @@
 			clear(ul);
 			ul.hidden = list.length === 0;
 			list.forEach(function (s) { ul.appendChild(renderIncident(s)); });
+			wegAnwenden();
 		}
 	}
 
@@ -436,11 +437,12 @@
 		else if (s.abgelaufen) zeit += (zeit ? ', ' : '') + 'dauert länger als gemeldet';
 		row('Zeitraum', zeit);
 
-		return el('li', { class: 'card incident' }, [
+		return el('li', s.key ? { class: 'card incident', 'data-weg-id': 'st:' + s.key } : { class: 'card incident' }, [
 			el('h4', { class: 'incident__title', text: titel }),
 			text ? el('p', { class: 'incident__text', text: text }) : null,
 			meta,
-			s.key ? el('p', { class: 'incident__link' }, [el('a', { href: ereignisLink('stoerung', s.key, s.ki_titel || s.titel), text: 'Details und Verlauf' })]) : null
+			s.key ? el('p', { class: 'incident__link' }, [el('a', { href: ereignisLink('stoerung', s.key, s.ki_titel || s.titel), text: 'Details und Verlauf' })]) : null,
+			s.key ? wegKnopf('incident__weg', 'Störung') : null
 		]);
 	}
 
@@ -477,11 +479,11 @@
 	function aktuelleMeldungen(now) {
 		var liste = [];
 		verlaufItems(state.data).forEach(function (it) {
-			if (it.ende >= now - STOERUNG_NACHLAUF_MS) liste.push({ art: 'stoerung', ts: it.start, titel: it.titel, text: it.text, link: ereignisLink('stoerung', it.key, it.titel), meta: fmtBis(it.start, it.ende) + ' · ' + fmtDauer(it.ende - it.start) });
+			if (it.ende >= now - STOERUNG_NACHLAUF_MS) liste.push({ art: 'stoerung', ts: it.start, titel: it.titel, text: it.text, link: ereignisLink('stoerung', it.key, it.titel), meta: fmtBis(it.start, it.ende) + ' · ' + fmtDauer(it.ende - it.start), wegId: 'st:' + it.key });
 		});
 		state.items.forEach(function (it) {
 			var ms = isNaN(it.stand) ? it.ms : it.stand;
-			if (ms >= now - EIL_AKUT_MS) liste.push({ art: 'eilmeldung', ts: ms, titel: it.title || it.id, text: it.text, link: ereignisLink('eilmeldung', it.id, it.title || it.id), meta: '', id: it.id });
+			if (ms >= now - EIL_AKUT_MS) liste.push({ art: 'eilmeldung', ts: ms, titel: it.title || it.id, text: it.text, link: ereignisLink('eilmeldung', it.id, it.title || it.id), meta: '', wegId: it.id ? 'eil:' + it.id : '' });
 		});
 		var gesehen = {};
 		(state.hvv || []).forEach(function (m) {
@@ -496,86 +498,118 @@
 		return liste;
 	}
 
-	/** Stoerung oder Eilmeldung als Listeneintrag (wie nb_render_wichtig_eintrag); Eilmeldungen mit Knopf zum Ausblenden. */
+	/** Stoerung oder Eilmeldung als Listeneintrag (wie nb_render_wichtig_eintrag), mit Knopf zum Wegklicken. */
 	function meldungEintrag(it) {
 		var meta = el('p', { class: 'feed__meta' }, [it.meta]);
 		if (it.text) { if (it.meta) meta.appendChild(el('br')); meta.appendChild(document.createTextNode(it.text)); }
 		var attrs = istHeute(it.ts) ? { class: 'is-heute' } : {};
-		var weg = it.art === 'eilmeldung' && it.id;
-		if (weg) attrs['data-eil-id'] = it.id;
+		if (it.wegId) attrs['data-weg-id'] = it.wegId;
+		var rubrik = it.art === 'stoerung' ? 'Störung' : 'Eilmeldung';
 		return el('li', attrs, [
 			el('div', { class: 'feed__time' }, [fmtWann(it.ts)]),
 			el('div', {}, [
-				el('p', { class: 'feed__kicker feed__kicker--' + it.art, text: it.art === 'stoerung' ? 'Störung' : 'Eilmeldung' }),
+				el('p', { class: 'feed__kicker feed__kicker--' + it.art, text: rubrik }),
 				el('p', { class: 'feed__title' }, [el('a', { href: it.link, text: it.titel })]),
 				it.meta || it.text ? meta : null
 			]),
-			weg ? el('button', { type: 'button', class: 'feed__weg', 'data-weg': it.id, 'aria-label': 'Eilmeldung ausblenden', title: 'Diese Eilmeldung für mich ausblenden', text: '\u00d7' }) : null
+			it.wegId ? wegKnopf('feed__weg', rubrik) : null
 		]);
 	}
 
-	/* ---------- Eilmeldungen ausblenden ---------- */
+	/* ---------- Meldungen wegklicken ---------- */
 
-	var EIL_WEG_KEY = 'nordbahn.eil.weg';          // { "<id>": <Zeitpunkt des Wegklickens in ms> }
-	var EIL_WEG_MAX_MS = 7 * 24 * 3600 * 1000;    // so lange bleibt ein Eintrag gemerkt (akut ist eine Eilmeldung nur vier Stunden)
+	/*
+	 * Jede Meldung auf der Startseite (Stoerungskarten, "Aktuelle Meldungen") traegt eine
+	 * Kennung in data-weg-id: eil:<id>, st:<key> oder hvv:<id>. Wer sie wegklickt, sieht sie
+	 * in diesem Browser nicht mehr; die Kennungen liegen in localStorage. Die Lagekarten
+	 * oben zeigen weiter die ganze Lage.
+	 */
+	var WEG_KEY = 'nordbahn.meldungen.weg';   // { "<kennung>": <Zeitpunkt des Wegklickens in ms> }
+	var WEG_MAX_MS = 7 * 24 * 3600 * 1000;     // so lange bleibt ein Eintrag gemerkt
 
-	/** Weggeklickte Eilmeldungen aus dem Browser; alte Eintraege fallen beim Lesen weg. */
-	function eilWegLesen() {
+	/** Knopf zum Wegklicken (wie nb_weg_knopf), hier gleich sichtbar. */
+	function wegKnopf(klasse, art) {
+		return el('button', { type: 'button', class: klasse, 'aria-label': art + ' ausblenden', title: 'Diese Meldung für mich ausblenden', text: '\u00d7' });
+	}
+
+	/** Weggeklickte Meldungen aus dem Browser; alte Eintraege fallen beim Lesen weg. */
+	function wegLesen() {
 		var weg = {};
-		try { weg = JSON.parse(storage('get', EIL_WEG_KEY) || '{}') || {}; } catch (e) { weg = {}; }
-		var grenze = Date.now() - EIL_WEG_MAX_MS, out = {};
+		try { weg = JSON.parse(storage('get', WEG_KEY) || '{}') || {}; } catch (e) { weg = {}; }
+		var grenze = Date.now() - WEG_MAX_MS, out = {};
 		Object.keys(weg).forEach(function (id) { if (typeof weg[id] === 'number' && weg[id] >= grenze) out[id] = weg[id]; });
 		return out;
 	}
 
-	function eilWegSchreiben(weg) {
-		storage('set', EIL_WEG_KEY, JSON.stringify(weg));
+	function wegSchreiben(weg) {
+		storage('set', WEG_KEY, JSON.stringify(weg));
+	}
+
+	/** Versteckt die weggeklickten unter den Eintraegen, zaehlt sichtbare und versteckte. */
+	function wegZaehlen(lis, weg) {
+		var z = { sichtbar: 0, versteckt: 0, ids: [] };
+		Array.prototype.forEach.call(lis, function (li) {
+			var id = li.getAttribute('data-weg-id');
+			li.hidden = !!(id && weg[id]);
+			if (li.hidden) { z.versteckt++; z.ids.push(id); } else z.sichtbar++;
+		});
+		return z;
+	}
+
+	/** Zeile "N Meldungen ausgeblendet · Wieder anzeigen" in `parent`, direkt hinter `nach` (am Ende bei null). */
+	function wegHinweis(parent, nach, z, klasse, one, many) {
+		var alt = parent.querySelector(':scope > .weg-hinweis');
+		if (alt) parent.removeChild(alt);
+		if (!z.versteckt) return;
+		// Erst nach dem Entfernen: die alte Zeile kann selbst der Nachbar von `nach` gewesen sein
+		parent.insertBefore(el('p', { class: 'weg-hinweis ' + klasse, 'data-ids': JSON.stringify(z.ids) }, [
+			plural(z.versteckt, one, many) + ' ausgeblendet · ',
+			el('button', { type: 'button', class: 'weg-zurueck', text: 'Wieder anzeigen' })
+		]), nach ? nach.nextSibling : null);
 	}
 
 	/**
-	 * Wendet die Auswahl auf die Liste im Bereich "Aktuelle Meldungen" an, egal ob sie vom
-	 * Server oder vom Script kommt: weggeklickte Eilmeldungen werden versteckt, die Knoepfe
-	 * sichtbar, darunter steht, wie viele fehlen, mit "Wieder anzeigen". Bleibt gar nichts
-	 * mehr, verschwindet der Bereich wie bei ruhiger Lage.
+	 * Wendet die Auswahl auf Stoerungskarten und "Aktuelle Meldungen" an, egal ob sie vom
+	 * Server oder vom Script kommen: weggeklickte Eintraege werden versteckt, die Knoepfe
+	 * sichtbar, darunter steht, wie viele fehlen, mit "Wieder anzeigen". Sind unter den
+	 * aktuellen Meldungen alle weg, bleibt nur diese Zeile; ohne Meldung verschwindet der
+	 * Bereich wie bei ruhiger Lage.
 	 */
-	function eilWegAnwenden() {
+	function wegAnwenden() {
+		var weg = wegLesen();
+		Array.prototype.forEach.call(document.querySelectorAll('.feed__weg, .incident__weg'), function (b) { b.hidden = false; });
+		var ul = document.getElementById('incidents');
+		if (ul) {
+			var zk = wegZaehlen(ul.querySelectorAll(':scope > li'), weg);
+			wegHinweis(ul.parentNode, ul, zk, 'weg-hinweis--karten', 'Störung', 'Störungen');
+			ul.hidden = !zk.sichtbar;
+		}
 		var section = document.getElementById('meldungen');
 		var box = document.getElementById('meldungen-inhalt');
-		if (!section || !box) return;
-		var weg = eilWegLesen(), sichtbar = 0, versteckt = 0;
-		Array.prototype.forEach.call(box.querySelectorAll('.feed__weg'), function (b) { b.hidden = false; });
-		Array.prototype.forEach.call(box.querySelectorAll('#meldungen-feed > li'), function (li) {
-			var id = li.getAttribute('data-eil-id');
-			li.hidden = !!(id && weg[id]);
-			if (li.hidden) versteckt++; else sichtbar++;
-		});
-		var hinweis = box.querySelector('.feed__weg-hinweis');
-		if (hinweis) hinweis.parentNode.removeChild(hinweis);
-		if (versteckt) {
-			hinweis = el('p', { class: 'feed__weg-hinweis' + (sichtbar ? '' : ' is-allein') }, [
-				plural(versteckt, 'Eilmeldung', 'Eilmeldungen') + ' ausgeblendet · ',
-				el('button', { type: 'button', class: 'feed__weg-zurueck', text: 'Wieder anzeigen' })
-			]);
-			box.appendChild(hinweis);
+		if (section && box) {
+			var zm = wegZaehlen(box.querySelectorAll('#meldungen-feed > li'), weg);
+			wegHinweis(box, null, zm, 'weg-hinweis--feed' + (zm.sichtbar ? '' : ' is-allein'), 'Meldung', 'Meldungen');
+			section.hidden = !zm.sichtbar && !zm.versteckt;
 		}
-		section.hidden = !sichtbar && !versteckt;
 	}
 
-	/** Klicks im Bereich: × blendet eine Eilmeldung aus, "Wieder anzeigen" holt die versteckten dieser Liste zurueck. */
-	function bindEilWeg() {
-		var box = document.getElementById('meldungen-inhalt');
-		if (!box) return;
-		box.addEventListener('click', function (ev) {
-			var btn = ev.target && ev.target.closest ? ev.target.closest('.feed__weg, .feed__weg-zurueck') : null;
+	/** Klicks: × blendet die Meldung des Eintrags aus, "Wieder anzeigen" holt die versteckten dieser Liste zurueck. */
+	function bindWeg() {
+		document.addEventListener('click', function (ev) {
+			var btn = ev.target && ev.target.closest ? ev.target.closest('.feed__weg, .incident__weg, .weg-zurueck') : null;
 			if (!btn) return;
-			var weg = eilWegLesen();
-			if (btn.classList.contains('feed__weg')) {
-				weg[btn.getAttribute('data-weg')] = Date.now();
+			var weg = wegLesen();
+			if (btn.classList.contains('weg-zurueck')) {
+				var ids = [];
+				try { ids = JSON.parse(btn.closest('.weg-hinweis').getAttribute('data-ids')) || []; } catch (e) { ids = []; }
+				ids.forEach(function (id) { delete weg[id]; });
 			} else {
-				Array.prototype.forEach.call(box.querySelectorAll('#meldungen-feed > li[hidden][data-eil-id]'), function (li) { delete weg[li.getAttribute('data-eil-id')]; });
+				var li = btn.closest('[data-weg-id]');
+				if (!li) return;
+				weg[li.getAttribute('data-weg-id')] = Date.now();
 			}
-			eilWegSchreiben(weg);
-			eilWegAnwenden();
+			wegSchreiben(weg);
+			wegAnwenden();
 		});
 	}
 
@@ -595,7 +629,7 @@
 		var ol = el('ol', { class: 'feed', id: 'meldungen-feed' });
 		liste.forEach(function (it) { ol.appendChild(it.art === 'hvv' ? hvvEintrag(it.meldung, now) : meldungEintrag(it)); });
 		box.appendChild(ol);
-		eilWegAnwenden();
+		wegAnwenden();
 	}
 
 	/* ---------- Abfahrten ---------- */
@@ -911,7 +945,7 @@
 			body.push(p);
 		}
 		var zeit = !isNaN(von) ? von : (Date.parse(m.stand || '') || now);
-		return el('li', { class: 'is-heute' }, [el('div', { class: 'feed__time' }, [fmtWann(zeit)]), el('div', {}, body)]);
+		return el('li', m.id ? { class: 'is-heute', 'data-weg-id': 'hvv:' + m.id } : { class: 'is-heute' }, [el('div', { class: 'feed__time' }, [fmtWann(zeit)]), el('div', {}, body), m.id ? wegKnopf('feed__weg', 'HVV-Meldung') : null]);
 	}
 
 	/** Karte, Tafeln und HVV-Meldungen aus der Antwort von api/s3; die Statusregel rechnet der Server (gf_status). */
@@ -1301,10 +1335,10 @@
 		var raw = document.getElementById('nordbahn-data');
 		var data = {};
 		try { data = JSON.parse(raw.textContent); } catch (e) { data = {}; }
-		bindEilWeg();
+		bindWeg();
 		setData(data);
 		// Mit HVV-Zugang steht bis zur Antwort von api/s3 noch die Liste vom Server
-		eilWegAnwenden();
+		wegAnwenden();
 		setInterval(refresh, REFRESH_MS);
 		setInterval(renderFreshness, 60000);
 		setInterval(function () { if (!document.hidden) window.location.reload(); }, RELOAD_MS);

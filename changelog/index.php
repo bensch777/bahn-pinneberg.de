@@ -15,7 +15,7 @@ $assetVersion = (int) @filemtime(__DIR__ . '/../dashboard.css');
 
 $changelog = [
     ['2026-10-27', [
-        ['Eilmeldungen wegklicken', 'Jede Eilmeldung unter „Aktuelle Meldungen“ hat jetzt ein Kreuz. Ein Tipp darauf blendet sie aus, etwa wenn sie eine Linie betrifft, mit der man nicht fährt. Der Browser merkt sich das, die Meldung bleibt auch nach dem Neuladen weg. Unter der Liste steht, wie viele ausgeblendet sind, „Wieder anzeigen“ holt sie zurück. Die Auswahl bleibt im eigenen Browser, es wird nichts an den Server geschickt; Störungen und HVV-Meldungen lassen sich nicht wegklicken, die Lagekarten zeigen weiter alles.'],
+        ['Meldungen wegklicken', 'Jede Störungskarte und jede Meldung unter „Aktuelle Meldungen“ hat jetzt ein Kreuz. Ein Tipp darauf blendet sie aus, etwa wenn sie eine Linie oder einen Abschnitt betrifft, mit dem man nichts zu tun hat. Der Browser merkt sich das, die Meldung bleibt auch nach dem Neuladen weg. Darunter steht, wie viele ausgeblendet sind, „Wieder anzeigen“ holt sie zurück. Die Auswahl bleibt im eigenen Browser, es wird nichts an den Server geschickt. Die Lagekarten oben zeigen weiter die ganze Lage.'],
     ]],
     ['2026-10-26', [
         ['Home-Bildschirm: „Bahn Pinneberg“ und neues Symbol', 'Das Symbol auf dem Home-Bildschirm heißt jetzt „Bahn Pinneberg“ statt „Bahn PI“. Safari merkt sich das App-Symbol sehr lange, deshalb zeigte der Dialog „Zum Home-Bildschirm“ oft noch das alte blaue „N“. Das Symbol hat jetzt eine neue Adresse, Safari lädt den Nordbahn-Zug damit frisch. Wer die Seite schon auf dem Home-Bildschirm hat, entfernt sie einmal und fügt sie neu hinzu.'],
