@@ -15,6 +15,7 @@ $assetVersion = (int) @filemtime(__DIR__ . '/../dashboard.css');
 
 $changelog = [
     ['2026-10-27', [
+        ['Feedback-Knopf', 'Unten links auf jeder Seite gibt es jetzt „Feedback“: Fehler, Idee oder Sonstiges auswählen, ein paar Sätze schreiben, abschicken. Die Nachricht geht direkt beim Betreiber ein, ein Kontakt ist nur nötig, wenn du eine Antwort möchtest.'],
         ['Lagekarten führen zu „Aktiv“', 'Die Karten „Infrastruktur“ und „Eilmeldungen“ auf der Startseite sind jetzt Links. Sie führen zur neuen Kategorie „Aktiv“ unter Meldungen: alles, was gerade gilt, ohne Wichtig-Filter. Laufende Infrastrukturstörungen, ein Baufahrplan, Eilmeldungen der letzten vier Stunden, gerade aufgehobene Störungen und gültige HVV-Meldungen. Auch leichte Störungen stehen dort, die unter „Wichtig“ bewusst fehlen.'],
         ['Meldungen wegklicken', 'Jede Störungskarte und jede Meldung unter „Aktuelle Meldungen“ hat jetzt ein Kreuz. Ein Tipp darauf blendet sie aus, etwa wenn sie eine Linie oder einen Abschnitt betrifft, mit dem man nichts zu tun hat. Der Browser merkt sich das sieben Tage lang, die Meldung bleibt auch nach dem Neuladen weg. Die Auswahl bleibt im eigenen Browser, es wird nichts an den Server geschickt. Die Lagekarten oben zeigen weiter die ganze Lage, und unter „Meldungen · Aktiv“ stehen immer alle Meldungen, auch die weggeklickten.'],
     ]],

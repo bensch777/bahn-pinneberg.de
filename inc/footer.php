@@ -34,3 +34,7 @@
 		</div>
 	</div>
 </footer>
+<?php if (nordbahn_feedback_webhook() !== ''): ?>
+<?= nb_render_feedback($root) ?>
+
+<?php endif; ?>

@@ -25,6 +25,7 @@ Das Wurzelverzeichnis des Repos ist das Web-Root. Reines PHP ohne Framework, kei
 | `api/revision.php` | Holt die aktuelle Revision von strecken-info.de für n8n |
 | `api/subscribe.php`, `api/notify.php`, `api/webpush.php` | Web Push: Abos annehmen, Ereignisse erkennen, verschlüsselt versenden (VAPID, aes128gcm, ohne Fremdpakete) |
 | `sw.js` | Service Worker, zeigt Push-Nachrichten an |
+| `api/feedback.php`, `feedback.js`, `nb_render_feedback()` in `api/render.php` | Feedback-Knopf unten links auf jeder Seite (Footer): Dialog mit Art, Nachricht und optionalem Kontakt, `feedback.js` schickt ihn an `/api/feedback`, der Endpunkt reicht ihn an einen Discord-Webhook weiter. Nur POST vom eigenen Origin, Bot-Filter, Honeypot, fünf Nachrichten je Besucher und Stunde (`cache/feedback/`), `allowed_mentions` leer. Aus, solange `NORDBAHN_FEEDBACK_WEBHOOK` in `config.php` leer ist |
 | `api/store.php`, `api/render.php` | Gemeinsame Funktionen, Konfiguration, Bahnhofsliste |
 | `faq/`, `changelog/` | Eigene Seiten, verlinkt aus dem Footer und dem Handy-Menü |
 | `nav.js`, `nb_render_kopf()` in `api/render.php` | Kopfzeile aller Seiten: Bereiche Start, Meldungen, Live-Karte, Statistik; unter 720 px hinter einem Menü-Knopf (`<details>`, klappt auch ohne JavaScript), `nav.js` schließt es bei Klick daneben und mit Escape |
@@ -39,7 +40,8 @@ Die Daten kommen aus zwei n8n-Workflows: „Nordbahn Dashboard Push“ sammelt S
 
 - `NORDBAHN_PUSH_TOKEN`: muss mit dem Token in den n8n-Workflows übereinstimmen
 - `NORDBAHN_SITE_URL`: öffentliche Adresse, Grundlage für Canonical, Open Graph, Sitemap und robots.txt
-- `NORDBAHN_PLAUSIBLE_JS`: Script-URL der Plausible-Site, leer für kein Analytics. Jeder Seitenaufruf trägt die Eigenschaft `heimat` (gewählter Heimatbahnhof oder „Prisdorf (Vorgabe)“), dazu die Ereignisse `Bahnhof` (Wechsel) und `Telegram` (Klick). In Plausible unter Properties bzw. Goals auswerten.
+- `NORDBAHN_PLAUSIBLE_JS`: Script-URL der Plausible-Site, leer für kein Analytics. Jeder Seitenaufruf trägt die Eigenschaft `heimat` (gewählter Heimatbahnhof oder „Prisdorf (Vorgabe)“), dazu die Ereignisse `Bahnhof` (Wechsel), `Telegram` (Klick) und `Feedback` (abgeschickt, mit `art`). In Plausible unter Properties bzw. Goals auswerten.
+- `NORDBAHN_FEEDBACK_WEBHOOK`: Discord-Webhook für das Feedback-Formular, leer für keinen Feedback-Knopf
 - `NORDBAHN_VAPID_PUBLIC`, `NORDBAHN_VAPID_PRIVATE`, `NORDBAHN_VAPID_SUBJECT`: Schlüsselpaar für Web Push, erzeugen mit `php dev/vapid.php`; ohne Schlüssel gibt es nur Benachrichtigungen bei geöffnetem Tab
 - `NORDBAHN_GOOGLE_VERIFICATION`, `NORDBAHN_BING_VERIFICATION`: Verifizierungs-Codes für Search Console und Bing Webmaster Tools
 - `NORDBAHN_IMPRESSUM`: optional, überschreibt die Impressumsangaben Feld für Feld (`name`, `zusatz`, `strasse`, `ort`, `land`, `email`, `hoster`)

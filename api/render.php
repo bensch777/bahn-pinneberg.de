@@ -1298,6 +1298,37 @@ function nb_render_meldungen_tabs($root, $aktiv)
 }
 
 /**
+ * Feedback: schwebender Knopf unten links und der Dialog dazu (inc/footer.php auf
+ * jeder Seite, nur wenn nordbahn_feedback_webhook() gesetzt ist). feedback.js blendet
+ * den Knopf ein und schickt das Formular an api/feedback; ohne Script bleibt er weg.
+ */
+function nb_render_feedback($root)
+{
+    $version = (int) @filemtime(__DIR__ . '/../feedback.js');
+
+    return '<button type="button" class="feedback" id="feedback-open" aria-haspopup="dialog" aria-controls="feedback-dialog" hidden>'
+        . '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3C6.98 3 3 6.36 3 10.5c0 2.3 1.24 4.35 3.2 5.71-.13 1.2-.6 2.32-1.36 3.25a.5.5 0 0 0 .45.82c1.9-.28 3.5-1.02 4.72-1.9.94.2 1.93.31 2.99.31 5.02 0 9-3.36 9-7.5S17.02 3 12 3z"/></svg>'
+        . '<span>Feedback</span></button>'
+        . '<dialog class="feedback-dialog" id="feedback-dialog" aria-labelledby="feedback-titel">'
+        . '<form class="feedback-form" id="feedback-form" method="post" action="' . nb_e($root) . 'api/feedback" novalidate>'
+        . '<div class="feedback-dialog__head"><h2 class="feedback-dialog__title" id="feedback-titel">Feedback</h2>'
+        . '<button type="button" class="feedback-dialog__close" aria-label="Schlie&szlig;en">&times;</button></div>'
+        . '<p class="feedback-dialog__intro">Fehler gefunden, etwas stimmt nicht oder eine Idee? Schreib es hier rein, es landet direkt beim Betreiber.</p>'
+        . '<div class="feedback-form__hp" aria-hidden="true"><label for="feedback-website">Website</label><input type="text" id="feedback-website" name="website" tabindex="-1" autocomplete="off"></div>'
+        . '<label for="feedback-art">Art</label>'
+        . '<select id="feedback-art" name="art"><option value="fehler">Fehler</option><option value="idee">Idee</option><option value="sonst" selected>Sonstiges</option></select>'
+        . '<label for="feedback-nachricht">Deine Nachricht</label>'
+        . '<textarea id="feedback-nachricht" name="nachricht" rows="5" maxlength="2000" required placeholder="Was ist dir aufgefallen? Bei Fehlern helfen Bahnhof, Uhrzeit und Zug."></textarea>'
+        . '<label for="feedback-kontakt">Kontakt (optional)</label>'
+        . '<input type="text" id="feedback-kontakt" name="kontakt" maxlength="120" autocomplete="off" placeholder="E-Mail oder Telegram-Name, nur wenn du eine Antwort m&ouml;chtest">'
+        . '<button type="submit" class="feedback-form__submit">Absenden</button>'
+        . '<p class="feedback-form__status" role="status" aria-live="polite"></p>'
+        . '<p class="feedback-form__hinweis">Deine Nachricht geht mit Seite und Browser-Kennung in einen privaten Discord-Kanal des Betreibers. Bitte keine sensiblen Daten.</p>'
+        . '</form></dialog>'
+        . '<script src="' . nb_e($root) . 'feedback.js?v=' . $version . '" defer></script>';
+}
+
+/**
  * Kopfzeile aller Seiten: Name, Hauptnavigation und rechts optionale Werkzeuge
  * ($tools, z. B. die Glocke der Startseite). Auf breiten Bildschirmen stehen die
  * Bereiche nebeneinander, auf dem Handy hinter dem Menue-Knopf, zusammen mit FAQ

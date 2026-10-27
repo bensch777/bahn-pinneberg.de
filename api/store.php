@@ -101,6 +101,18 @@ function nordbahn_plausible_js()
     return array_key_exists('NORDBAHN_PLAUSIBLE_JS', $config) ? trim((string) $config['NORDBAHN_PLAUSIBLE_JS']) : '';
 }
 
+/**
+ * Discord-Webhook fuer das Feedback-Formular (NORDBAHN_FEEDBACK_WEBHOOK in config.php),
+ * leer wenn nicht eingerichtet; dann zeigt keine Seite den Feedback-Knopf.
+ */
+function nordbahn_feedback_webhook()
+{
+    $config = nordbahn_config();
+    $url = array_key_exists('NORDBAHN_FEEDBACK_WEBHOOK', $config) ? trim((string) $config['NORDBAHN_FEEDBACK_WEBHOOK']) : '';
+
+    return preg_match('#^https://(discord\.com|discordapp\.com)/api/webhooks/#', $url) ? $url : '';
+}
+
 /** Liest eine JSON-Datei als Array, oder null wenn sie fehlt oder kaputt ist. */
 function nordbahn_read_json($file)
 {
