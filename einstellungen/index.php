@@ -1,10 +1,10 @@
 <?php
 /**
- * Einstellungen: Meine Zuege, Benachrichtigungen und was gespeichert ist.
- * Erreichbar ueber die Glocke im Kopf jeder Seite und aus dem Handy-Menue.
- * Alles liegt im Browser, gemerkte Zuege zusaetzlich am Push-Abo; dashboard.js
- * steuert die Seite (data-seite="einstellungen"), ohne JavaScript bleibt nur
- * der Hinweis.
+ * Einstellungen: Meine Zuege und Benachrichtigungen, im Stil einer
+ * Systemeinstellung (Karten mit Zeilen, Kippschalter, Segmente). Erreichbar
+ * ueber die Glocke im Kopf jeder Seite und aus dem Handy-Menue. Alles liegt im
+ * Browser, gemerkte Zuege zusaetzlich am Push-Abo; dashboard.js steuert die
+ * Seite (data-seite="einstellungen"), ohne JavaScript bleibt nur der Hinweis.
  */
 
 require __DIR__ . '/../api/store.php';
@@ -18,6 +18,7 @@ $root = '../';
 $assetVersion = max((int) @filemtime(__DIR__ . '/../dashboard.js'), (int) @filemtime(__DIR__ . '/../dashboard.css'));
 $heimat = NORDBAHN_HEIMAT_DEFAULT;
 $name = NORDBAHN_BAHNHOEFE[$heimat]['name'];
+
 $title = 'Einstellungen – Bahn-Pinneberg.de';
 $description = 'Meine Züge und Benachrichtigungen für Bahn-Pinneberg.de: Push-Nachricht, wenn dein Zug später kommt, ausfällt oder woanders abfährt.';
 ?>
@@ -49,30 +50,30 @@ $description = 'Meine Züge und Benachrichtigungen für Bahn-Pinneberg.de: Push-
 	<div class="page-head">
 		<div>
 			<h1>Einstellungen</h1>
-			<p class="page-head__lead">Gilt f&uuml;r diesen Browser. Es gibt kein Konto, gespeichert wird im Browser und f&uuml;r Push-Nachrichten am Abo.</p>
+			<p class="page-head__lead">Gilt f&uuml;r diesen Browser, ohne Konto.</p>
 		</div>
 	</div>
+
 	<noscript><p class="notice">Die Einstellungen brauchen JavaScript.</p></noscript>
 
 	<section id="meine" class="section" aria-labelledby="meine-h">
-		<div class="section__head">
-			<h2 id="meine-h" class="section__title">Meine Z&uuml;ge</h2>
-		</div>
-		<div class="card meine">
-			<p class="meine__intro">Push-Nachricht ab einer Stunde vor der Abfahrt, wenn dein Zug sp&auml;ter kommt, ausf&auml;llt, woanders abf&auml;hrt oder das Gleis wechselt.</p>
+		<div class="card einst">
+			<h2 id="meine-h" class="einst__label">Meine Z&uuml;ge</h2>
+			<p class="einst__intro">Push-Nachricht ab einer Stunde vor der Abfahrt, wenn dein Zug sp&auml;ter kommt, ausf&auml;llt, woanders abf&auml;hrt oder das Gleis wechselt.</p>
 			<ul class="meine__liste" id="meine-zuege-liste"></ul>
+			<p class="meine__leer-hinweis" id="meine-leer">Noch kein Zug gemerkt. Such unten deine Abfahrt, zum Beispiel 8:13.</p>
 			<div class="meine__neu">
-				<label class="heimat meine__bahnhof">
-					<span class="heimat__label">Bahnhof</span>
+				<div class="einst__zeile">
+					<label class="einst__text" for="heimat">Bahnhof</label>
 					<select id="heimat" class="heimat__select" data-heimat-default="<?= $heimat ?>">
 <?php foreach (NORDBAHN_BAHNHOEFE as $id => $bhf): ?>
 						<option value="<?= $id ?>" data-ast="<?= $bhf['ast'] ?>"<?= $id === $heimat ? ' selected' : '' ?>><?= nb_e($bhf['name']) ?></option>
 <?php endforeach; ?>
 					</select>
-				</label>
-				<div class="meine__richtung" role="radiogroup" aria-label="Richtung">
-					<label class="meine__seg"><input type="radio" name="meine-richtung" value="hin" checked><span id="meine-label-hin"><?= nb_e($name) ?> &rarr; Hamburg</span></label>
-					<label class="meine__seg"><input type="radio" name="meine-richtung" value="rueck"><span id="meine-label-rueck">Hamburg &rarr; <?= nb_e($name) ?></span></label>
+				</div>
+				<div class="segment" role="radiogroup" aria-label="Richtung">
+					<label class="segment__opt"><input type="radio" name="meine-richtung" value="hin" checked><span id="meine-label-hin"><?= nb_e($name) ?> &rarr; Hamburg</span></label>
+					<label class="segment__opt"><input type="radio" name="meine-richtung" value="rueck"><span id="meine-label-rueck">Hamburg &rarr; <?= nb_e($name) ?></span></label>
 				</div>
 				<div class="meine__suche">
 					<label class="visually-hidden" for="meine-suche">Zug suchen</label>
@@ -85,23 +86,28 @@ $description = 'Meine Züge und Benachrichtigungen für Bahn-Pinneberg.de: Push-
 	</section>
 
 	<section id="benachrichtigungen" class="section" aria-labelledby="benachrichtigungen-h">
-		<div class="section__head">
-			<h2 id="benachrichtigungen-h" class="section__title">Benachrichtigungen</h2>
-		</div>
-		<div class="card einstellung">
-			<label class="einstellung__schalter"><input type="checkbox" id="notify-on"> <span>Benachrichtigungen auf diesem Ger&auml;t</span></label>
-			<p class="einstellung__hinweis" id="notify-hint" hidden></p>
-			<p class="einstellung__hinweis" id="notify-push-hint" hidden></p>
-			<fieldset class="einstellung__gruppe">
-				<legend>Was</legend>
-				<label class="menu__row"><input type="radio" name="notify-was" value="alles"> <span>Alle Ausf&auml;lle und St&ouml;rungen<small>Zugausf&auml;lle am Bahnhof, Infrastrukturst&ouml;rungen, Eilmeldungen, dazu meine Z&uuml;ge</small></span></label>
-				<label class="menu__row"><input type="radio" name="notify-was" value="nur"> <span>Nur meine Z&uuml;ge<small>Versp&auml;tung, Ausfall, anderer Bahnhof, Gleiswechsel</small></span></label>
-			</fieldset>
-			<fieldset class="einstellung__gruppe" id="notify-wann">
-				<legend>Wann</legend>
-				<label class="menu__row"><input type="radio" name="notify-zeit" value="pendel"> <span>Nur zu Pendelzeiten<small>Mo&ndash;Fr, 6&ndash;9 und 16&ndash;19 Uhr; meine Z&uuml;ge melden sich immer zu ihrer Abfahrt</small></span></label>
-				<label class="menu__row"><input type="radio" name="notify-zeit" value="immer"> <span>Immer</span></label>
-			</fieldset>
+		<div class="card einst">
+			<h2 id="benachrichtigungen-h" class="einst__label">Benachrichtigungen</h2>
+			<label class="einst__zeile einst__zeile--schalter" for="notify-on">
+				<span class="einst__text">Auf diesem Ger&auml;t<small class="einst__hinweis" id="notify-hint" hidden></small><small class="einst__hinweis" id="notify-push-hint" hidden></small></span>
+				<span class="schalter"><input type="checkbox" id="notify-on" role="switch"><span class="schalter__knopf" aria-hidden="true"></span></span>
+			</label>
+			<div class="einst__zeile einst__zeile--stapel" id="notify-was">
+				<span class="einst__text" id="notify-was-label">Was</span>
+				<div class="segment" role="radiogroup" aria-labelledby="notify-was-label">
+					<label class="segment__opt"><input type="radio" name="notify-was" value="alles"><span>Alles</span></label>
+					<label class="segment__opt"><input type="radio" name="notify-was" value="nur"><span>Nur meine Z&uuml;ge</span></label>
+				</div>
+				<p class="einst__erklaerung" id="notify-was-text"></p>
+			</div>
+			<div class="einst__zeile einst__zeile--stapel" id="notify-wann">
+				<span class="einst__text" id="notify-wann-label">Wann</span>
+				<div class="segment" role="radiogroup" aria-labelledby="notify-wann-label">
+					<label class="segment__opt"><input type="radio" name="notify-zeit" value="pendel"><span>Pendelzeiten</span></label>
+					<label class="segment__opt"><input type="radio" name="notify-zeit" value="immer"><span>Immer</span></label>
+				</div>
+				<p class="einst__erklaerung" id="notify-wann-text"></p>
+			</div>
 			<details class="installieren" id="installieren">
 				<summary>So kommt die Seite auf den Home-Bildschirm</summary>
 				<div class="installieren__wege">
@@ -127,19 +133,10 @@ $description = 'Meine Züge und Benachrichtigungen für Bahn-Pinneberg.de: Push-
 		</div>
 	</section>
 
-	<section id="daten" class="section" aria-labelledby="daten-h">
-		<div class="section__head">
-			<h2 id="daten-h" class="section__title">Gespeicherte Daten</h2>
-		</div>
-		<div class="card einstellung">
-			<dl class="daten" id="daten-liste"></dl>
-			<button type="button" class="einstellung__loeschen" id="daten-loeschen">Alles l&ouml;schen</button>
-		</div>
-	</section>
+	<p class="einst__fuss">Alles liegt nur in diesem Browser und f&uuml;r Push-Nachrichten am Abo. <button type="button" class="einst__loeschen" id="daten-loeschen">Alles l&ouml;schen</button></p>
 </main>
 
 <?php $current = 'einstellungen'; require __DIR__ . '/../inc/footer.php'; ?>
-
 <script src="<?= $root ?>dashboard.js?v=<?= $assetVersion ?>" defer></script>
 </body>
 </html>
