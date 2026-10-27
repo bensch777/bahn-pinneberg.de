@@ -1345,6 +1345,7 @@ function nb_render_kopf($root, $aktiv, $tools = '')
         'statistik' => ['statistik/', 'Statistik', ['statistik']],
     ];
     $extra = [
+        'einstellungen' => ['einstellungen/', 'Einstellungen'],
         'faq' => ['faq/', 'H&auml;ufige Fragen'],
         'changelog' => ['changelog/', 'Was ist neu'],
     ];
@@ -1363,12 +1364,18 @@ function nb_render_kopf($root, $aktiv, $tools = '')
         $menue .= '<li>' . $link('nav-menu__link nav-menu__link--klein', $b[0], $b[1], $aktiv === $key) . '</li>';
     }
     $version = (int) @filemtime(__DIR__ . '/../nav.js');
+    // Glocke: fuehrt zu den Einstellungen (Benachrichtigungen, Meine Zuege); ob sie an
+    // sind, setzt dashboard.js auf Start- und Einstellungsseite
+    $glocke = '<a class="tool tool--toggle" id="notify-toggle" href="' . nb_e($root) . 'einstellungen/"'
+        . ($aktiv === 'einstellungen' ? ' aria-current="page"' : '') . ' title="Benachrichtigungen und Einstellungen">'
+        . '<svg class="tool__icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22a2.5 2.5 0 0 0 2.4-2h-4.8a2.5 2.5 0 0 0 2.4 2Zm7-6.3V11c0-3.3-2-6.1-5-6.8V3.5a2 2 0 1 0-4 0v.7C7 4.9 5 7.7 5 11v4.7L3 17.5V19h18v-1.5l-2-1.8ZM17 16.5H7V11c0-2.8 2.1-5 5-5s5 2.2 5 5v5.5Z"/></svg>'
+        . '<span class="visually-hidden" id="notify-label">Benachrichtigungen und Einstellungen</span></a>';
 
     return '<header class="site-head">'
         . '<div class="wrap site-head__row">'
         . '<a class="site-head__brand" href="' . nb_e($root) . '"><img class="site-head__logo" src="' . nb_e($root) . 'icon-64.png" alt="" width="28" height="28">Bahn-Pinneberg.de</a>'
         . '<nav class="site-nav" aria-label="Bereiche">' . $leiste . '</nav>'
-        . '<div class="site-head__tools">' . $tools
+        . '<div class="site-head__tools">' . $tools . $glocke
         . '<details class="nav-menu" id="nav-menu">'
         . '<summary class="tool nav-menu__knopf" title="Men&uuml;">'
         . '<svg class="tool__icon nav-menu__auf" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18v2H3V6Zm0 5h18v2H3v-2Zm0 5h18v2H3v-2Z"/></svg>'

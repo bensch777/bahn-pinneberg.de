@@ -116,7 +116,8 @@ function nb_push_zug_key(array $z)
 
 /**
  * Prueft die gemerkten Zuege aus dem Browser. Je Zug: Bahnhof (heimat),
- * Richtung (hin/rueck), Zugnummer, Linie, Planzeit HH:MM am Abfahrtsbahnhof,
+ * Richtung (hin/rueck), Zugnummer, weitere Nummern desselben Pendelzugs
+ * (nummern, z. B. im Baufahrplan; siehe api/fahrplan.php), Linie, Planzeit HH:MM am Abfahrtsbahnhof,
  * Abfahrtsbahnhof in Hamburg (ab, nur rueck), Ziel und Wochentage (1 = Montag,
  * ohne Angabe Mo-Fr). Liefert null, wenn keine Liste kam; dann bleibt die alte.
  */
@@ -163,6 +164,11 @@ function nb_push_clean_zuege($raw)
             'ab'       => $richtung === 'rueck' ? $text($z['ab'] ?? '', 30) : '',
             'ziel'     => $text($z['ziel'] ?? '', 60),
             'tage'     => $tage ? array_values($tage) : [1, 2, 3, 4, 5],
+            // eigene Nummer zuerst, dazu hoechstens vier Varianten
+            'nummern'  => array_slice(array_values(array_unique(array_merge([$zug], array_filter(
+                is_array($z['nummern'] ?? null) ? array_map($str, $z['nummern']) : [],
+                function ($n) { return preg_match('/^\d{1,6}$/', $n) === 1; }
+            )))), 0, 5),
         ];
         $out[nb_push_zug_key($eintrag)] = $out[nb_push_zug_key($eintrag)] ?? $eintrag;
         if (count($out) >= NB_PUSH_MAX_ZUEGE) {
@@ -355,7 +361,7 @@ function nb_push_uhr($ts)
 
 /**
  * Sucht einen gemerkten Zug in der Abfahrten-Antwort seines Bahnhofs: erst ueber
- * die Zugnummer (bei zwei Zeilen derselben Nummer, Ausfall am Hbf und Ersatz ab
+ * die Zugnummer oder eine seiner Varianten (nummern; bei zwei Zeilen derselben Nummer, Ausfall am Hbf und Ersatz ab
  * Altona, die vom gemerkten Startbahnhof), sonst ueber Linie und Planzeit (neue
  * Zugnummer nach dem Fahrplanwechsel). Wer am Dammtor einsteigt, bekommt die
  * Werte des Dammtor-Halts.
@@ -365,7 +371,7 @@ function nb_push_finde_zug($result, array $z)
     $rows = is_array($result) ? ($result['richtungen'][$z['richtung']] ?? []) : [];
     $treffer = null;
     foreach (is_array($rows) ? $rows : [] as $d) {
-        if ((string) ($d['zug'] ?? '') !== $z['zug']) {
+        if (!in_array((string) ($d['zug'] ?? ''), $z['nummern'] ?? [$z['zug']], true)) {
             continue;
         }
         $gleichesAb = (string) ($d['ab'] ?? '') === $z['ab'] || ($z['ab'] === 'Dammtor' && ($d['ab'] ?? '') === 'Hbf');
@@ -566,7 +572,7 @@ function nb_push_run_mit(array $alt, array $neu, $now, ?callable $abfahrten, ?ca
                 continue;
             }
             $key = nb_push_zug_key($z);
-            $z += ['linie' => '', 'zeit' => '', 'ab' => '', 'ziel' => '', 'tage' => [1, 2, 3, 4, 5]];
+            $z += ['linie' => '', 'zeit' => '', 'ab' => '', 'ziel' => '', 'tage' => [1, 2, 3, 4, 5], 'nummern' => [$z['zug']]];
             $meine[$z['heimat']][$key] = $meine[$z['heimat']][$key] ?? $z;
             $subZuege[$id][$key] = array_map('intval', (array) $z['tage']);
         }

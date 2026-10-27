@@ -155,30 +155,7 @@ $jsonLd = [
 </head>
 <body data-push-key="<?= nb_e(nb_push_public_key()) ?>">
 
-<?php ob_start(); // Glocke rechts im Kopf, vor dem Menue-Knopf ?>
-<div class="tool-menu" id="notify-wrap">
-	<button type="button" class="tool tool--toggle" id="notify-toggle" aria-pressed="false" aria-expanded="false" aria-controls="notify-menu" title="Benachrichtigungen">
-		<svg class="tool__icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22a2.5 2.5 0 0 0 2.4-2h-4.8a2.5 2.5 0 0 0 2.4 2Zm7-6.3V11c0-3.3-2-6.1-5-6.8V3.5a2 2 0 1 0-4 0v.7C7 4.9 5 7.7 5 11v4.7L3 17.5V19h18v-1.5l-2-1.8ZM17 16.5H7V11c0-2.8 2.1-5 5-5s5 2.2 5 5v5.5Z"/></svg>
-		<span class="visually-hidden" id="notify-label">Benachrichtigungen</span>
-	</button>
-	<div class="menu" id="notify-menu" hidden>
-		<label class="menu__row"><input type="checkbox" id="notify-on"> <span>Benachrichtigungen einschalten</span></label>
-		<p class="menu__hint" id="notify-hint" hidden></p>
-		<p class="menu__hint" id="notify-push-hint" hidden></p>
-		<fieldset class="menu__group">
-			<legend>Was</legend>
-			<label class="menu__row"><input type="radio" name="notify-was" value="alles"> <span>Alle Ausf&auml;lle und St&ouml;rungen<small>am Heimatbahnhof, dazu meine Z&uuml;ge</small></span></label>
-			<label class="menu__row"><input type="radio" name="notify-was" value="nur"> <span>Nur meine Z&uuml;ge<small>Versp&auml;tung, Ausfall, anderer Bahnhof, Gleis</small></span></label>
-		</fieldset>
-		<fieldset class="menu__group" id="notify-wann">
-			<legend>Wann</legend>
-			<label class="menu__row"><input type="radio" name="notify-zeit" value="pendel"> <span>Nur zu Pendelzeiten<small>Mo&ndash;Fr, 6&ndash;9 und 16&ndash;19 Uhr</small></span></label>
-			<label class="menu__row"><input type="radio" name="notify-zeit" value="immer"> <span>Immer</span></label>
-		</fieldset>
-		<a class="menu__link" id="notify-meine-link" href="#meine">Meine Z&uuml;ge bearbeiten</a>
-	</div>
-</div>
-<?= nb_render_kopf($root, 'lage', ob_get_clean()) ?>
+<?= nb_render_kopf($root, 'lage') ?>
 
 <main class="wrap" id="app">
 	<div class="page-head">
@@ -234,6 +211,7 @@ $jsonLd = [
 				<p class="section__sub" id="abfahrten-sub"></p>
 			</div>
 		</div>
+		<div class="card meine-kurz" id="meine-kurz" hidden></div>
 		<div class="boards">
 			<div class="card board" data-richtung="hin">
 				<div class="board__head">
@@ -247,28 +225,6 @@ $jsonLd = [
 				</div>
 				<ol class="board__list" aria-live="polite"></ol>
 			</div>
-		</div>
-	</section>
-
-	<section id="meine" class="section" aria-labelledby="meine-h" hidden>
-		<div class="section__head">
-			<h2 id="meine-h" class="section__title">Meine Z&uuml;ge</h2>
-		</div>
-		<div class="card meine">
-			<p class="meine__intro">Push-Nachricht ab einer Stunde vor der Abfahrt, wenn dein Zug sp&auml;ter kommt, ausf&auml;llt, woanders abf&auml;hrt oder das Gleis wechselt.</p>
-			<ul class="meine__liste" id="meine-zuege-liste"></ul>
-			<div class="meine__neu">
-				<div class="meine__richtung" role="radiogroup" aria-label="Richtung">
-					<label class="meine__seg"><input type="radio" name="meine-richtung" value="hin" checked><span id="meine-label-hin"><?= nb_e($bahnhof['name']) ?> &rarr; Hamburg</span></label>
-					<label class="meine__seg"><input type="radio" name="meine-richtung" value="rueck"><span id="meine-label-rueck">Hamburg &rarr; <?= nb_e($bahnhof['name']) ?></span></label>
-				</div>
-				<div class="meine__suche">
-					<label class="visually-hidden" for="meine-suche">Zug suchen</label>
-					<input id="meine-suche" class="meine__eingabe" type="search" placeholder="Abfahrt suchen, z. B. 8:13" autocomplete="off" enterkeyhint="done" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="meine-vorschlaege">
-					<ul class="meine__vorschlaege" id="meine-vorschlaege" role="listbox" aria-label="Passende Z&uuml;ge" hidden></ul>
-				</div>
-			</div>
-			<p class="meine__hinweis" id="meine-hinweis" hidden></p>
 		</div>
 	</section>
 
