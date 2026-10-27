@@ -782,8 +782,13 @@ function nb_wichtig_items(array $data, $now = null)
     return $out;
 }
 
-/** Ein Eintrag der Wichtig-Listen (Rubrik, Titel, Text, bei Stoerungen Ende und Dauer). */
-function nb_render_wichtig_eintrag(array $it, $now, $mitTag = true)
+/**
+ * Ein Eintrag der Wichtig-Listen (Rubrik, Titel, Text, bei Stoerungen Ende und Dauer).
+ * $ausblendbar: Eilmeldungen bekommen einen Knopf zum Ausblenden (nur "Aktuelle
+ * Meldungen" auf der Startseite). Der Knopf ist bis zum Start des Scripts versteckt,
+ * ohne JavaScript taete er nichts; das Script merkt sich die Auswahl im Browser.
+ */
+function nb_render_wichtig_eintrag(array $it, $now, $mitTag = true, $ausblendbar = false)
 {
     $zeit = $mitTag ? nb_fmt_wann($it['ts'], $now) : nb_fmt_uhr($it['ts']);
     $rubrik = $it['art'] === 'stoerung' ? 'St&ouml;rung' : 'Eilmeldung';
@@ -792,11 +797,15 @@ function nb_render_wichtig_eintrag(array $it, $now, $mitTag = true)
         $meta[] = $it['aktiv'] ? 'dauert an, bisher ' . nb_dauer($it['ende'] - $it['start']) : nb_fmt_bis($it['start'], $it['ende'], $now) . ' · ' . nb_dauer($it['ende'] - $it['start']);
     }
 
-    return '<li' . (nb_ist_heute($it['ts'], $now) ? ' class="is-heute"' : '') . '><div class="feed__time">' . nb_e($zeit) . '</div><div>'
+    $weg = $ausblendbar && $it['art'] === 'eilmeldung' && ($it['id'] ?? '') !== '';
+
+    return '<li' . (nb_ist_heute($it['ts'], $now) ? ' class="is-heute"' : '') . ($weg ? ' data-eil-id="' . nb_e($it['id']) . '"' : '') . '><div class="feed__time">' . nb_e($zeit) . '</div><div>'
         . '<p class="feed__kicker feed__kicker--' . $it['art'] . '">' . $rubrik . ($it['art'] === 'stoerung' && $it['aktiv'] ? ' <span class="dep__ab dep__ab--aktiv">aktiv</span>' : '') . '</p>'
         . '<p class="feed__title"><a href="' . nb_e($it['link']) . '">' . nb_e($it['titel']) . '</a></p>'
         . ($meta || $it['text'] !== '' ? '<p class="feed__meta">' . nb_e(implode('', $meta)) . ($meta && $it['text'] !== '' ? '<br>' : '') . nb_e($it['text']) . '</p>' : '')
-        . '</div></li>';
+        . '</div>'
+        . ($weg ? '<button type="button" class="feed__weg" data-weg="' . nb_e($it['id']) . '" aria-label="Eilmeldung ausblenden" title="Diese Eilmeldung f&uuml;r mich ausblenden" hidden>&times;</button>' : '')
+        . '</li>';
 }
 
 /** Seite /news/: ein Abschnitt je Tag. */
@@ -965,7 +974,12 @@ function nb_aktuelle_meldungen(array $data, ?array $hvv, $now = null)
     return $liste;
 }
 
-/** Inhalt des Bereichs "Aktuelle Meldungen" (wie renderMeldungen im Script); leer heisst: Bereich ausblenden. */
+/**
+ * Inhalt des Bereichs "Aktuelle Meldungen" (wie renderMeldungen im Script); leer
+ * heisst: Bereich ausblenden. Eilmeldungen lassen sich hier wegklicken, das Script
+ * merkt sich die Auswahl im Browser (localStorage) und blendet sie beim naechsten
+ * Besuch wieder aus.
+ */
 function nb_render_aktuelle_meldungen(array $liste, $now = null)
 {
     $now = $now ?? time();
@@ -974,7 +988,7 @@ function nb_render_aktuelle_meldungen(array $liste, $now = null)
     }
     $html = '<ol class="feed" id="meldungen-feed">';
     foreach ($liste as $it) {
-        $html .= $it['art'] === 'hvv' ? nb_render_hvv_eintrag($it['meldung'], $now) : nb_render_wichtig_eintrag($it, $now);
+        $html .= $it['art'] === 'hvv' ? nb_render_hvv_eintrag($it['meldung'], $now) : nb_render_wichtig_eintrag($it, $now, true, true);
     }
 
     return $html . '</ol>';

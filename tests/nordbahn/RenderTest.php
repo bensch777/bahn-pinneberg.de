@@ -519,7 +519,12 @@ function test_aktuelle_meldungen()
 
     $hvv[] = ['id' => 'U2', 'titel' => 'S3: Signalstörung (Update)', 'text' => '', 'geplant' => false, 'aktiv' => true, 'von' => $iso($jetzt - 300), 'bis' => $iso($jetzt + 3600), 'linien' => ['S3']];
     t_eq(1, substr_count(nb_render_aktuelle_meldungen(nb_aktuelle_meldungen($data, $hvv, $jetzt), $jetzt), 'S3: Signalstörung'), 'Doppelte HVV-Meldung nur einmal');
-    t_contains('<ol class="feed" id="meldungen-feed">', nb_render_aktuelle_meldungen($liste, $jetzt), 'Liste');
+    $html = nb_render_aktuelle_meldungen($liste, $jetzt);
+    t_contains('<ol class="feed" id="meldungen-feed">', $html, 'Liste');
+    t_contains('<li class="is-heute" data-eil-id="em-neu">', $html, 'Eilmeldung traegt ihre ID zum Ausblenden');
+    t_contains('</div><button type="button" class="feed__weg" data-weg="em-neu" aria-label="Eilmeldung ausblenden" title="Diese Eilmeldung f&uuml;r mich ausblenden" hidden>&times;</button></li>', $html, 'Knopf zum Ausblenden, bis zum Script versteckt');
+    t_eq(1, substr_count($html, 'feed__weg'), 'nur Eilmeldungen lassen sich ausblenden, Stoerungen und HVV nicht');
+    t_eq(false, strpos(nb_render_news(nb_wichtig_items($data, $jetzt), $jetzt), 'feed__weg'), 'auf /news/ kein Knopf zum Ausblenden');
 
     $ruhig = nb_aktuelle_meldungen(['stoerungen' => [], 'stoerungen_verlauf' => [], 'eilmeldungen' => [], 'eilmeldungen_live' => []], null, $jetzt);
     t_eq('', nb_render_aktuelle_meldungen($ruhig, $jetzt), 'ruhige Lage: nichts, der Bereich wird ausgeblendet');
