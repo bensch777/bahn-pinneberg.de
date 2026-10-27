@@ -759,6 +759,19 @@
 				// Gleiswechsel: das heutige Gleis faellt auf, das Plangleis steht klein darunter
 				var platform = el('div', { class: 'dep__platform' + (d.gleis_plan ? ' dep__platform--wechsel' : ''), text: d.gleis ? 'Gl. ' + d.gleis : '' });
 				if (d.gleis_plan) platform.appendChild(el('small', { text: 'statt ' + d.gleis_plan }));
+				// Stern: Zug merken, dann kommen Meldungen zu genau diesem Zug (Meine Zuege)
+				if (d.zug && 'Notification' in window) { // ohne Benachrichtigungen (iPhone ohne Home-Bildschirm) kein Stern
+					var mein = istMeiner(d, key);
+					if (mein) cls += ' dep--mein';
+					var stern = el('button', {
+						type: 'button', class: 'dep__merk', 'aria-pressed': mein ? 'true' : 'false',
+						'aria-label': (mein ? 'Nicht mehr merken: ' : 'Zug merken: ') + fmtClock(d.zeit) + ' ' + d.linie,
+						title: mein ? 'Gemerkt. Tipp zum Entfernen' : 'Zug merken und bei Problemen benachrichtigen',
+						text: mein ? '★' : '☆'
+					});
+					stern.addEventListener('click', function (ev) { ev.stopPropagation(); merkenUmschalten(d, key); });
+					platform.appendChild(stern);
+				}
 				var row = el('li', { class: cls }, [
 					el('span', { class: 'dep__dot', 'aria-hidden': 'true' }),
 					time,
@@ -1092,7 +1105,7 @@
 				return sub || reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(pushKey()) });
 			});
 		}).then(function (sub) {
-			return pushPost({ action: 'subscribe', subscription: sub.toJSON(), heimat: heimatState.id, zeit: notifyZeit() });
+			return pushPost({ action: 'subscribe', subscription: sub.toJSON(), heimat: heimatState.id, zeit: notifyZeit(), zuege: meineZuege(), nur: notifyNur() });
 		}).then(function () {
 			storage('set', PUSH_KEY, '1');
 		});
@@ -1109,7 +1122,7 @@
 		}).catch(function () { /* egal */ });
 	}
 
-	/** Heimat oder Zeitregel geaendert: Abo beim Server nachziehen. */
+	/** Heimat, Zeitregel oder meine Zuege geaendert: Abo beim Server nachziehen. */
 	function pushSync() {
 		if (!pushActive()) return;
 		pushSubscribe().catch(function () { /* beim naechsten Mal */ });
@@ -1117,6 +1130,136 @@
 
 	function notifyZeit() {
 		return storage('get', NOTIFY_ZEIT_KEY) === 'immer' ? 'immer' : 'pendel';
+	}
+
+	/* ---------- Meine Zuege ---------- */
+
+	/*
+	 * Gemerkte Zuege liegen im Browser und reisen mit dem Push-Abo zum Server
+	 * (api/subscribe). Der meldet sich ab einer Stunde vor der Abfahrt bei
+	 * Verspaetung, Ausfall, Abfahrt von einem anderen Bahnhof, Teilausfall und
+	 * Gleiswechsel, an den gewaehlten Wochentagen (siehe api/notify.php).
+	 */
+	var MEINE_KEY = 'nordbahn.meine';           // gemerkte Zuege als JSON-Liste
+	var NOTIFY_NUR_KEY = 'nordbahn.notify.nur'; // "1" = nur Meldungen zu meinen Zuegen
+	var MEINE_MAX = 8;                          // wie NB_PUSH_MAX_ZUEGE
+	var TAGE = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
+	var notifyMenuOpen = null;                  // setzt initNotifyButton
+
+	function notifyNur() {
+		return storage('get', NOTIFY_NUR_KEY) === '1';
+	}
+
+	function meineZuege() {
+		try {
+			var list = JSON.parse(storage('get', MEINE_KEY) || '[]');
+			return Array.isArray(list) ? list.filter(function (z) { return z && z.zug && z.heimat && z.richtung; }) : [];
+		} catch (e) { return []; }
+	}
+
+	function meineSpeichern(list) {
+		storage('set', MEINE_KEY, JSON.stringify(list));
+		renderMeineZuege();
+		if (departuresState.last) renderDepartures(departuresState.last);
+		pushSync();
+	}
+
+	function istMeiner(d, richtung) {
+		return !!d.zug && meineZuege().some(function (z) { return z.heimat === heimatState.id && z.richtung === richtung && z.zug === d.zug; });
+	}
+
+	/** Wochentag heute in Deutschland, 1 = Montag. */
+	function wochentagHeute() {
+		try {
+			var tag = new Intl.DateTimeFormat('en-US', { timeZone: TZ, weekday: 'short' }).format(new Date());
+			return ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].indexOf(tag) + 1;
+		} catch (e) { return 0; }
+	}
+
+	/**
+	 * Zug aus der Tafel merken oder vergessen. Eine Ersatzzeile ("Ersatz fuer den
+	 * 17:04 ab Hbf") merkt den Zug, fuer den sie faehrt. Gemerkt wird Mo-Fr, am
+	 * Wochenende zusaetzlich der heutige Tag.
+	 */
+	function merkenUmschalten(d, richtung) {
+		var list = meineZuege();
+		var rest = list.filter(function (z) { return !(z.heimat === heimatState.id && z.richtung === richtung && z.zug === d.zug); });
+		var voll = document.getElementById('meine-zuege-voll');
+		if (voll) voll.hidden = true;
+		if (rest.length < list.length) { meineSpeichern(rest); return; }
+		if (list.length >= MEINE_MAX) {
+			if (voll) voll.hidden = false;
+			if (notifyMenuOpen) notifyMenuOpen(true);
+			return;
+		}
+		var tage = [1, 2, 3, 4, 5];
+		var heute = wochentagHeute();
+		if (heute > 5) tage.push(heute);
+		list.push({
+			heimat: heimatState.id,
+			richtung: richtung,
+			zug: d.zug,
+			linie: d.linie,
+			zeit: fmtClock(d.ersatz_fuer ? d.ersatz_fuer.zeit : (d.zeit_plan || d.zeit)),
+			ab: richtung === 'rueck' ? (d.ersatz_fuer ? d.ersatz_fuer.ab : d.ab) || '' : '',
+			ziel: d.ziel || '',
+			tage: tage
+		});
+		track('Zug gemerkt', { richtung: richtung });
+		meineSpeichern(list);
+		// Ohne Benachrichtigungen bringt der Stern nichts: Menue zeigen, dort steht der Hinweis
+		if (!notifyEnabled() && notifyMenuOpen) notifyMenuOpen(true);
+	}
+
+	function bahnhofName(id) {
+		var opt = document.querySelector('#heimat option[value="' + id + '"]');
+		return opt ? opt.textContent : id;
+	}
+
+	/** Liste im Glockenmenue: Zeit, Linie, Strecke, Wochentage zum Umschalten, Kreuz zum Vergessen. */
+	function renderMeineZuege() {
+		var ul = document.getElementById('meine-zuege-liste');
+		if (!ul) return;
+		var list = meineZuege();
+		clear(ul);
+		list.forEach(function (z, i) {
+			var ziel = /altona/i.test(z.ziel) ? 'Altona' : /dammtor/i.test(z.ziel) ? 'Dammtor' : /hbf|hauptbahnhof/i.test(z.ziel) ? 'Hbf' : (z.ziel || 'Hamburg');
+			var strecke = z.richtung === 'hin' ? bahnhofName(z.heimat) + ' → ' + ziel : (z.ab || 'Hamburg') + ' → ' + bahnhofName(z.heimat);
+			var weg = el('button', { type: 'button', class: 'meine__weg', title: 'Vergessen', 'aria-label': 'Zug ' + z.zeit + ' ' + z.linie + ' vergessen', text: '×' });
+			weg.addEventListener('click', function (ev) {
+				ev.stopPropagation(); // die Liste wird neu gebaut, das Menue soll offen bleiben
+				meineSpeichern(meineZuege().filter(function (x, j) { return j !== i; }));
+			});
+			var tage = el('div', { class: 'meine__tage', role: 'group', 'aria-label': 'Wochentage für ' + z.zeit + ' ' + z.linie });
+			TAGE.forEach(function (name, j) {
+				var an = (z.tage || []).indexOf(j + 1) >= 0;
+				var b = el('button', { type: 'button', class: 'meine__tag', 'aria-pressed': an ? 'true' : 'false', text: name });
+				b.addEventListener('click', function (ev) {
+					ev.stopPropagation();
+					var l = meineZuege();
+					if (!l[i]) return;
+					var neu = (l[i].tage || []).filter(function (t) { return t !== j + 1; });
+					if (!an) neu.push(j + 1);
+					if (!neu.length) return; // mindestens ein Tag, sonst lieber vergessen
+					l[i].tage = neu.sort();
+					meineSpeichern(l);
+				});
+				tage.appendChild(b);
+			});
+			ul.appendChild(el('li', { class: 'meine__zug' }, [
+				el('div', { class: 'meine__kopf' }, [
+					el('strong', { text: z.zeit }), ' ',
+					el('span', { class: 'meine__linie', text: z.linie }), ' ',
+					el('span', { class: 'meine__strecke', text: strecke }),
+					weg
+				]),
+				tage
+			]));
+		});
+		var leer = document.getElementById('meine-zuege-leer');
+		if (leer) leer.hidden = list.length > 0;
+		var aus = document.getElementById('meine-zuege-aus');
+		if (aus) aus.hidden = !list.length || notifyEnabled();
 	}
 
 	/** Pendelzeiten: Montag bis Freitag, 6 bis 9 und 16 bis 19 Uhr deutscher Zeit. */
@@ -1158,6 +1301,7 @@
 				if (!d.ausfall) return;
 				var richtung = key === 'hin' ? heimatState.name + ' → Hamburg' : rueckTitel();
 				events.push({
+					mein: istMeiner(d, key),
 					id: 'zug:' + heimatState.id + ':' + (d.zug || d.linie + d.zeit),
 					title: 'Zugausfall ' + d.linie + ' um ' + fmtClock(d.zeit) + ' Uhr',
 					body: richtung + (d.ab ? ' ab ' + d.ab : '') + (d.hinweis ? '. ' + d.hinweis : '')
@@ -1177,8 +1321,10 @@
 		fresh.forEach(function (ev) { list[ev.id] = Date.now(); });
 		if (fresh.length) storage('set', SEEN_KEY, JSON.stringify(list));
 		if (!notifyPrimed) { notifyPrimed = true; return; }
-		if (!notifyEnabled() || !notifyAllowedNow() || pushActive()) return;
-		fresh.slice(0, 3).forEach(function (ev) {
+		if (!notifyEnabled() || pushActive()) return;
+		// Meine Zuege melden sich immer, alles andere nur ohne "nur meine Zuege" und zur gewaehlten Zeit
+		var allesErlaubt = !notifyNur() && notifyAllowedNow();
+		fresh.filter(function (ev) { return ev.mein || allesErlaubt; }).slice(0, 3).forEach(function (ev) {
 			try {
 				var n = new Notification(ev.title, { body: ev.body, icon: root() + 'icon-192.png', tag: ev.id, lang: 'de' });
 				n.onclick = function () { window.focus(); n.close(); };
@@ -1192,7 +1338,8 @@
 		if (!('Notification' in window)) { btn.hidden = true; return; }
 		var label = document.getElementById('notify-label');
 		var on = notifyEnabled();
-		var text = on ? 'Benachrichtigungen an' + (notifyZeit() === 'pendel' ? ', nur zu Pendelzeiten' : '') : 'Benachrichtigungen aus';
+		var nur = notifyNur();
+		var text = on ? 'Benachrichtigungen an' + (nur ? ', nur meine Züge' : notifyZeit() === 'pendel' ? ', nur zu Pendelzeiten' : '') : 'Benachrichtigungen aus';
 		var hint = document.getElementById('notify-hint');
 		var box = document.getElementById('notify-on');
 		if (Notification.permission === 'denied') {
@@ -1214,6 +1361,10 @@
 		}
 		if (box) box.checked = on;
 		Array.prototype.forEach.call(document.querySelectorAll('input[name="notify-zeit"]'), function (r) { r.checked = r.value === notifyZeit(); });
+		Array.prototype.forEach.call(document.querySelectorAll('input[name="notify-was"]'), function (r) { r.checked = r.value === (nur ? 'nur' : 'alles'); });
+		var wann = document.getElementById('notify-wann');
+		if (wann) wann.hidden = nur; // meine Zuege melden sich zu ihrer Abfahrt, die Zeitregel gilt nur fuer den Rest
+		renderMeineZuege();
 		btn.setAttribute('aria-pressed', on ? 'true' : 'false');
 		btn.title = text;
 		if (label) label.textContent = text;
@@ -1231,6 +1382,7 @@
 			menu.hidden = !show;
 			btn.setAttribute('aria-expanded', show ? 'true' : 'false');
 		}
+		notifyMenuOpen = open;
 		btn.addEventListener('click', function () { open(menu.hidden); });
 		document.addEventListener('click', function (ev) { if (!menu.hidden && wrap && !wrap.contains(ev.target)) open(false); });
 		document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape' && !menu.hidden) { open(false); btn.focus(); } });
@@ -1249,9 +1401,10 @@
 				track('Benachrichtigung an');
 				var done = function () {
 					try {
+						var was = notifyNur() ? 'zu deinen gemerkten Zügen' : 'bei neuen Zugausfällen und Störungen';
 						var body = pushActive()
-							? 'Du bekommst jetzt eine Meldung bei neuen Zugausfällen und Störungen, auch wenn die Seite zu ist.'
-							: 'Du bekommst jetzt eine Meldung bei neuen Zugausfällen und Störungen, solange die Seite offen ist.';
+							? 'Du bekommst jetzt eine Meldung ' + was + ', auch wenn die Seite zu ist.'
+							: 'Du bekommst jetzt eine Meldung ' + was + ', solange die Seite offen ist.';
 						new Notification('Bahn-Pinneberg.de', { body: body, icon: root() + 'icon-192.png', lang: 'de' });
 					} catch (e) { /* egal */ }
 					renderNotifyButton();
@@ -1263,6 +1416,11 @@
 		Array.prototype.forEach.call(document.querySelectorAll('input[name="notify-zeit"]'), function (r) {
 			r.addEventListener('change', function () {
 				if (r.checked) { storage('set', NOTIFY_ZEIT_KEY, r.value); renderNotifyButton(); pushSync(); }
+			});
+		});
+		Array.prototype.forEach.call(document.querySelectorAll('input[name="notify-was"]'), function (r) {
+			r.addEventListener('change', function () {
+				if (r.checked) { storage('set', NOTIFY_NUR_KEY, r.value === 'nur' ? '1' : '0'); renderNotifyButton(); pushSync(); }
 			});
 		});
 	}

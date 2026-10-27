@@ -221,3 +221,189 @@ function test_push_run_mit_vapid()
     @unlink(NB_PUSH_SUBS_FILE);
     @unlink(NB_PUSH_STATE_FILE);
 }
+
+function test_push_meine_zuege_bereinigung()
+{
+    $zuege = nb_push_clean_zuege([
+        ['heimat' => 'APD', 'richtung' => 'hin', 'zug' => '81871', 'linie' => 'RB 71', 'zeit' => '07:18', 'ziel' => 'Hamburg Hbf', 'tage' => [1, '3', 5, 9, 'x']],
+        ['heimat' => 'APD', 'richtung' => 'rueck', 'zug' => '75514', 'linie' => 'RB 61', 'zeit' => '17:04', 'ab' => 'Hbf', 'ziel' => "Itzehoe\n"],
+        ['heimat' => 'APD', 'richtung' => 'hin', 'zug' => '81871', 'zeit' => '07:18'], // doppelt
+        ['heimat' => 'XXX', 'richtung' => 'hin', 'zug' => '1', 'zeit' => '07:18'],
+        ['heimat' => 'APD', 'richtung' => 'quer', 'zug' => '1', 'zeit' => '07:18'],
+        ['heimat' => 'APD', 'richtung' => 'hin', 'zug' => 'abc', 'zeit' => '07:18'],
+        ['heimat' => 'APD', 'richtung' => 'hin', 'zug' => ['1'], 'zeit' => '25:00'],
+        'quatsch',
+    ]);
+    t_eq(2, count($zuege), 'zwei gueltige Zuege, der doppelte zaehlt einmal');
+    t_eq([1, 3, 5], $zuege[0]['tage'], 'Wochentage bereinigt');
+    t_eq('', $zuege[0]['ab'], 'hin ohne Startbahnhof');
+    t_eq([1, 2, 3, 4, 5], $zuege[1]['tage'], 'ohne Tage Mo-Fr');
+    t_eq('Itzehoe', $zuege[1]['ziel'], 'Steuerzeichen raus');
+    t_eq(null, nb_push_clean_zuege(null), 'keine Liste: alte bleibt');
+    $viele = [];
+    for ($i = 1; $i <= 20; $i++) {
+        $viele[] = ['heimat' => 'APD', 'richtung' => 'hin', 'zug' => (string) $i, 'zeit' => '07:18'];
+    }
+    t_eq(NB_PUSH_MAX_ZUEGE, count(nb_push_clean_zuege($viele)), 'hoechstens NB_PUSH_MAX_ZUEGE');
+}
+
+/** Abfahrten-Antwort fuer die Tests zu gemerkten Zuegen. */
+function t_meine_result(array $hin = [], array $rueck = [])
+{
+    $basis = ['zug' => '', 'zeit' => '', 'zeit_plan' => null, 'ist' => null, 'verspaetung' => 0, 'linie' => 'RB 61', 'ziel' => 'Hamburg Hbf',
+        'gleis' => '1', 'gleis_plan' => null, 'ausfall' => false, 'bus' => false, 'hinweis' => '', 'ab' => null, 'ersatz' => null,
+        'teil' => null, 'ersatz_fuer' => null, 'dammtor' => null];
+    $mk = function ($rows) use ($basis) {
+        return array_map(function ($r) use ($basis) { return $r + $basis; }, $rows);
+    };
+
+    return ['ok' => true, 'richtungen' => ['hin' => $mk($hin), 'rueck' => $mk($rueck)]];
+}
+
+function test_push_meine_zuege_ereignisse()
+{
+    $now = (new DateTime('2026-10-15 06:40', new DateTimeZone('Europe/Berlin')))->getTimestamp(); // Donnerstag
+    $hin = ['heimat' => 'APD', 'richtung' => 'hin', 'zug' => '75515', 'linie' => 'RB 61', 'zeit' => '07:12', 'ab' => '', 'ziel' => 'Hamburg Hbf', 'tage' => [1, 2, 3, 4, 5]];
+    $zuege = ['APD:hin:75515' => $hin];
+    $state = ['sent' => []];
+
+    // Puenktlich: nichts
+    $res = t_meine_result([['zug' => '75515', 'zeit' => '2026-10-15T07:12:00+02:00', 'ist' => '2026-10-15T07:12:00+02:00']]);
+    t_eq([], nb_push_events_meine($res, $zuege, $state, $now), 'puenktlich still');
+
+    // +4: noch unter der Schwelle
+    $res = t_meine_result([['zug' => '75515', 'zeit' => '2026-10-15T07:12:00+02:00', 'ist' => '2026-10-15T07:16:00+02:00', 'verspaetung' => 4]]);
+    t_eq([], nb_push_events_meine($res, $zuege, $state, $now), '+4 still');
+
+    // +7 mit Gleiswechsel: eine Meldung, Titel nach der Verspaetung
+    $res = t_meine_result([['zug' => '75515', 'zeit' => '2026-10-15T07:12:00+02:00', 'ist' => '2026-10-15T07:19:00+02:00', 'verspaetung' => 7, 'gleis' => '2', 'gleis_plan' => '1', 'hinweis' => 'Verspätung aus vorheriger Fahrt']]);
+    $ev = nb_push_events_meine($res, $zuege, $state, $now);
+    t_eq(1, count($ev), 'eine Meldung fuer Verspaetung und Gleis');
+    t_eq('RB 61 um 07:12: +7 Min.', $ev[0]['title'], 'Titel');
+    t_eq('Dein Zug Prisdorf → Hamburg Hbf. Voraussichtlich 07:19 Uhr statt 07:12 (+7). Heute Gleis 2 statt 1. Verspätung aus vorheriger Fahrt.', $ev[0]['body'], 'Text');
+    t_eq('mein:APD:hin:75515:2026-10-15', $ev[0]['tag'], 'ein tag je Zug und Tag');
+    t_eq(['mein:APD:hin:75515:2026-10-15:plus:5', 'mein:APD:hin:75515:2026-10-15:gleis:2'], $ev[0]['teile'], 'Teile');
+    t_eq(4, $ev[0]['wochentag'], 'Donnerstag');
+    foreach ($ev[0]['teile'] as $t) {
+        $state['sent'][$t] = $now;
+    }
+
+    // +9 bleibt in der Stufe, +12 meldet sich erneut, danach +6 still
+    $res = t_meine_result([['zug' => '75515', 'zeit' => '2026-10-15T07:12:00+02:00', 'ist' => '2026-10-15T07:21:00+02:00', 'verspaetung' => 9, 'gleis' => '2', 'gleis_plan' => '1']]);
+    t_eq([], nb_push_events_meine($res, $zuege, $state, $now + 120), '+9 gleiche Stufe');
+    $res = t_meine_result([['zug' => '75515', 'zeit' => '2026-10-15T07:12:00+02:00', 'ist' => '2026-10-15T07:24:00+02:00', 'verspaetung' => 12, 'gleis' => '2', 'gleis_plan' => '1']]);
+    $ev = nb_push_events_meine($res, $zuege, $state, $now + 240);
+    t_eq(['mein:APD:hin:75515:2026-10-15:plus:10'], array_column($ev, 'id'), '+12 naechste Stufe');
+    $state['sent'][$ev[0]['teile'][0]] = $now;
+    $res = t_meine_result([['zug' => '75515', 'zeit' => '2026-10-15T07:12:00+02:00', 'ist' => '2026-10-15T07:18:00+02:00', 'verspaetung' => 6, 'gleis' => '2', 'gleis_plan' => '1']]);
+    t_eq([], nb_push_events_meine($res, $zuege, $state, $now + 360), 'kleiner werdende Verspaetung still');
+
+    // Mehr als eine Stunde vorher und nach der Abfahrt: nichts
+    $res = t_meine_result([['zug' => '75515', 'zeit' => '2026-10-15T08:12:00+02:00', 'ist' => '2026-10-15T08:30:00+02:00', 'verspaetung' => 18]]);
+    t_eq([], nb_push_events_meine($res, $zuege, ['sent' => []], $now), 'zu frueh');
+    $res = t_meine_result([['zug' => '75515', 'zeit' => '2026-10-15T06:30:00+02:00', 'ist' => '2026-10-15T06:37:00+02:00', 'verspaetung' => 7]]);
+    t_eq([], nb_push_events_meine($res, $zuege, ['sent' => []], $now), 'schon weg');
+
+    // Neue Zugnummer nach dem Fahrplanwechsel: Linie und Planzeit reichen
+    $res = t_meine_result([['zug' => '99999', 'zeit' => '2026-10-15T07:12:00+02:00', 'ausfall' => true, 'hinweis' => 'Personalmangel']]);
+    $ev = nb_push_events_meine($res, $zuege, ['sent' => []], $now);
+    t_eq('RB 61 um 07:12 fällt aus', $ev[0]['title'] ?? null, 'Ausfall ueber Planzeit gefunden');
+    t_eq('Dein Zug Prisdorf → Hamburg Hbf. Fällt heute aus. Personalmangel.', $ev[0]['body'], 'Ausfalltext');
+}
+
+function test_push_meine_zuege_ersatz_und_teil()
+{
+    $now = (new DateTime('2026-10-15 16:40', new DateTimeZone('Europe/Berlin')))->getTimestamp();
+    $rueck = ['heimat' => 'APD', 'richtung' => 'rueck', 'zug' => '75514', 'linie' => 'RB 61', 'zeit' => '17:04', 'ab' => 'Hbf', 'ziel' => 'Itzehoe', 'tage' => [4]];
+    $zuege = ['APD:rueck:75514' => $rueck];
+    $state = ['sent' => []];
+
+    // Erst nur Ausfall am Hbf, dann kommt der Ersatz ab Altona dazu
+    $res = t_meine_result([], [['zug' => '75514', 'zeit' => '2026-10-15T17:04:00+02:00', 'ausfall' => true, 'ab' => 'Hbf', 'ziel' => 'Itzehoe']]);
+    $ev = nb_push_events_meine($res, $zuege, $state, $now);
+    t_eq('RB 61 um 17:04 fällt aus', $ev[0]['title'], 'erst Ausfall');
+    t_eq('Dein Zug Hamburg Hbf → Prisdorf. Fällt heute aus.', $ev[0]['body'], 'Ausfalltext rueck');
+    $state['sent'][$ev[0]['teile'][0]] = $now;
+
+    $res = t_meine_result([], [
+        ['zug' => '75514', 'zeit' => '2026-10-15T17:04:00+02:00', 'ausfall' => true, 'ab' => 'Hbf', 'ziel' => 'Itzehoe',
+            'ersatz' => ['ab' => 'Altona', 'zeit' => '2026-10-15T17:13:00+02:00', 'ist' => null, 'verspaetung' => 0, 'gleis' => '5', 'gleis_plan' => null]],
+        ['zug' => '75514', 'zeit' => '2026-10-15T17:13:00+02:00', 'ab' => 'Altona', 'ziel' => 'Itzehoe', 'gleis' => '5',
+            'ersatz_fuer' => ['ab' => 'Hbf', 'zeit' => '2026-10-15T17:04:00+02:00']],
+    ]);
+    $ev = nb_push_events_meine($res, $zuege, $state, $now + 120);
+    t_eq(1, count($ev), 'Ersatz meldet sich, nur einmal trotz zwei Zeilen');
+    t_eq('RB 61 17:04 fährt heute ab Altona', $ev[0]['title'], 'Titel Ersatz');
+    t_eq('Dein Zug Hamburg Hbf → Prisdorf. Fällt ab Hbf aus, fährt stattdessen ab Altona um 17:13 Uhr, Gleis 5.', $ev[0]['body'], 'Text Ersatz');
+
+    // Startet erst in Pinneberg (aus der Zugauskunft umgebaute Zeile)
+    $res = t_meine_result([], [['zug' => '75514', 'zeit' => '2026-10-15T17:31:00+02:00', 'zeit_plan' => '2026-10-15T17:04:00+02:00', 'ab' => 'Hbf', 'gleis' => '2',
+        'teil' => ['art' => 'beginnt', 'id' => 'AP', 'name' => 'Pinneberg', 'zeit' => '17:31']]]);
+    $ev = nb_push_events_meine($res, $zuege, ['sent' => []], $now);
+    t_eq('RB 61 17:04 startet erst in Pinneberg', $ev[0]['title'], 'Titel Teil');
+    t_eq('Dein Zug Hamburg Hbf → Prisdorf. Abfahrt dort um 17:31 Uhr, Gleis 2.', $ev[0]['body'], 'Text Teil');
+
+    // Einstieg am Dammtor: Werte des Dammtor-Halts
+    $damm = ['APD:rueck:75514' => ['ab' => 'Dammtor'] + $rueck];
+    $res = t_meine_result([], [['zug' => '75514', 'zeit' => '2026-10-15T17:04:00+02:00', 'ab' => 'Hbf', 'gleis' => '8',
+        'dammtor' => ['zeit' => '2026-10-15T17:07:00+02:00', 'ist' => '2026-10-15T17:13:00+02:00', 'verspaetung' => 6, 'gleis' => '3', 'gleis_plan' => null, 'ausfall' => false]]]);
+    $ev = nb_push_events_meine($res, $damm, ['sent' => []], $now);
+    t_eq('RB 61 um 17:07: +6 Min.', $ev[0]['title'], 'Dammtor-Zeit und -Verspaetung');
+}
+
+function test_push_run_meine_zuege()
+{
+    @unlink(NB_PUSH_SUBS_FILE);
+    @unlink(NB_PUSH_STATE_FILE);
+    $key = wp_new_keypair();
+    openssl_pkey_export($key, $pem);
+    $vapid = ['private_pem' => $pem, 'public' => wp_vapid_public_from_private($pem), 'subject' => 'mailto:test@example.org'];
+    $mk = function ($endpoint, $heimat, $zeit, $zuege, $nur) use ($key) {
+        nb_push_subscribe(['endpoint' => $endpoint, 'p256dh' => wp_b64url_encode(wp_raw_public_key($key)), 'auth' => wp_b64url_encode(random_bytes(16))], $heimat, $zeit, '', nb_push_clean_zuege($zuege), $nur);
+    };
+    $zug = ['heimat' => 'APD', 'richtung' => 'hin', 'zug' => '75515', 'linie' => 'RB 61', 'zeit' => '07:12', 'ziel' => 'Hamburg Hbf'];
+    $mk('https://push.example/nur', 'AEL', 'pendel', [$zug], true);              // nur dieser Zug, Heimat egal
+    $mk('https://push.example/alles', 'APD', 'pendel', [$zug + ['tage' => [4]]], false);
+    $mk('https://push.example/montags', 'AEL', 'immer', [$zug + ['tage' => [1]]], true);
+    $mk('https://push.example/ohne', 'APD', 'immer', [], false);
+
+    // Erneuerung ohne Zuege laesst sie stehen
+    nb_push_subscribe(['endpoint' => 'https://push.example/nur', 'p256dh' => wp_b64url_encode(wp_raw_public_key($key)), 'auth' => wp_b64url_encode(random_bytes(16))], 'AEL', '');
+    $subs = nordbahn_read_json(NB_PUSH_SUBS_FILE);
+    t_eq(1, count($subs[nb_push_sub_id('https://push.example/nur')]['zuege']), 'Zuege bleiben ohne Angabe');
+    t_eq(true, $subs[nb_push_sub_id('https://push.example/nur')]['nur'], 'nur bleibt');
+
+    $now = (new DateTime('2026-10-15 06:40', new DateTimeZone('Europe/Berlin')))->getTimestamp(); // Donnerstag, Pendelzeit
+    $gefragt = [];
+    $abf = function ($heimat) use (&$gefragt) {
+        $gefragt[] = $heimat;
+
+        return $heimat === 'APD' ? t_meine_result([
+            ['zug' => '75515', 'zeit' => '2026-10-15T07:12:00+02:00', 'ist' => '2026-10-15T07:20:00+02:00', 'verspaetung' => 8],
+            ['zug' => '81871', 'zeit' => '2026-10-15T07:18:00+02:00', 'linie' => 'RB 71', 'ausfall' => true],
+        ]) : t_meine_result();
+    };
+    $log = [];
+    $sender = function ($sub, $payload, $vapid) use (&$log) {
+        $p = json_decode($payload, true);
+        $log[] = $sub['endpoint'] . ' ' . $p['tag'];
+
+        return ['status' => 201];
+    };
+    nb_push_run_mit([], [], $now, $abf, $sender, $vapid);
+    sort($log);
+    t_eq([
+        'https://push.example/alles mein:APD:hin:75515:2026-10-15',
+        'https://push.example/alles zug:APD:2026-10-15:81871',
+        'https://push.example/nur mein:APD:hin:75515:2026-10-15',
+        'https://push.example/ohne zug:APD:2026-10-15:81871',
+    ], $log, 'Zugmeldung nur an Abos mit dem Zug und passendem Tag, "nur" ohne Ausfall am Bahnhof');
+    sort($gefragt);
+    t_eq(['APD'], $gefragt, 'Prisdorf einmal gelesen, Elmshorn gar nicht (nur Abos mit "nur")');
+
+    $log = [];
+    nb_push_run_mit([], [], $now + 120, $abf, $sender, $vapid);
+    t_eq([], $log, 'nichts doppelt');
+    @unlink(NB_PUSH_SUBS_FILE);
+    @unlink(NB_PUSH_STATE_FILE);
+}

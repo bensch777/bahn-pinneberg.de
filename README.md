@@ -23,7 +23,7 @@ Das Wurzelverzeichnis des Repos ist das Web-Root. Reines PHP ohne Framework, kei
 | `api/push.php` | Nimmt alle 2 Minuten das Datenpaket aus n8n an (Token-geschützt) |
 | `api/data.php` | Liefert das letzte Paket an den Browser |
 | `api/revision.php` | Holt die aktuelle Revision von strecken-info.de für n8n |
-| `api/subscribe.php`, `api/notify.php`, `api/webpush.php` | Web Push: Abos annehmen, Ereignisse erkennen, verschlüsselt versenden (VAPID, aes128gcm, ohne Fremdpakete) |
+| `api/subscribe.php`, `api/notify.php`, `api/webpush.php` | Web Push: Abos annehmen, Ereignisse erkennen, verschlüsselt versenden (VAPID, aes128gcm, ohne Fremdpakete). „Meine Züge“: gemerkte Züge je Abo (`nb_push_clean_zuege`), Erkennung je Zug in `nb_push_events_meine` |
 | `sw.js` | Service Worker, zeigt Push-Nachrichten an |
 | `api/feedback.php`, `feedback.js`, `nb_render_feedback()` in `api/render.php` | Feedback-Knopf unten links auf jeder Seite (Footer): Dialog mit Art, Nachricht und optionalem Kontakt, `feedback.js` schickt ihn an `/api/feedback`, der Endpunkt reicht ihn an einen Discord-Webhook weiter. Nur POST vom eigenen Origin, Bot-Filter, Honeypot, fünf Nachrichten je Besucher und Stunde (`cache/feedback/`), `allowed_mentions` leer. Aus, solange `NORDBAHN_FEEDBACK_WEBHOOK` in `config.php` leer ist |
 | `api/store.php`, `api/render.php` | Gemeinsame Funktionen, Konfiguration, Bahnhofsliste |
@@ -40,7 +40,7 @@ Die Daten kommen aus zwei n8n-Workflows: „Nordbahn Dashboard Push“ sammelt S
 
 - `NORDBAHN_PUSH_TOKEN`: muss mit dem Token in den n8n-Workflows übereinstimmen
 - `NORDBAHN_SITE_URL`: öffentliche Adresse, Grundlage für Canonical, Open Graph, Sitemap und robots.txt
-- `NORDBAHN_PLAUSIBLE_JS`: Script-URL der Plausible-Site, leer für kein Analytics. Jeder Seitenaufruf trägt die Eigenschaft `heimat` (gewählter Heimatbahnhof oder „Prisdorf (Vorgabe)“), dazu die Ereignisse `Bahnhof` (Wechsel), `Telegram` (Klick) und `Feedback` (abgeschickt, mit `art`). In Plausible unter Properties bzw. Goals auswerten.
+- `NORDBAHN_PLAUSIBLE_JS`: Script-URL der Plausible-Site, leer für kein Analytics. Jeder Seitenaufruf trägt die Eigenschaft `heimat` (gewählter Heimatbahnhof oder „Prisdorf (Vorgabe)“), dazu die Ereignisse `Bahnhof` (Wechsel), `Telegram` (Klick), `Zug gemerkt` (Stern, mit `richtung`) und `Feedback` (abgeschickt, mit `art`). In Plausible unter Properties bzw. Goals auswerten.
 - `NORDBAHN_FEEDBACK_WEBHOOK`: Discord-Webhook für das Feedback-Formular, leer für keinen Feedback-Knopf
 - `NORDBAHN_VAPID_PUBLIC`, `NORDBAHN_VAPID_PRIVATE`, `NORDBAHN_VAPID_SUBJECT`: Schlüsselpaar für Web Push, erzeugen mit `php dev/vapid.php`; ohne Schlüssel gibt es nur Benachrichtigungen bei geöffnetem Tab
 - `NORDBAHN_GOOGLE_VERIFICATION`, `NORDBAHN_BING_VERIFICATION`: Verifizierungs-Codes für Search Console und Bing Webmaster Tools
@@ -50,7 +50,9 @@ Die Daten kommen aus zwei n8n-Workflows: „Nordbahn Dashboard Push“ sammelt S
 
 ## Web Push
 
-Wer Benachrichtigungen einschaltet, bekommt sie auch bei geschlossener Seite: der Browser registriert `sw.js`, abonniert beim Push-Dienst seines Herstellers und meldet das Abo an `api/subscribe` (Endpunkt, Schlüssel, Heimatbahnhof, Zeitregel). Der Versand hängt am n8n-Push: `api/push.php` antwortet n8n und ruft danach `nb_push_run()` auf, das neue Störungen (sobald der Pendler-Text da ist, spätestens nach sechs Minuten), aufgehobene Störungen, neue Eilmeldungen (ohne stumme) und Zugausfälle am Heimatbahnhof der Abonnenten erkennt und verschlüsselt verschickt. Abos mit 404/410 werden gelöscht. Auf dem iPhone funktioniert Push nur, wenn die Seite zum Home-Bildschirm hinzugefügt wurde.
+Wer Benachrichtigungen einschaltet, bekommt sie auch bei geschlossener Seite: der Browser registriert `sw.js`, abonniert beim Push-Dienst seines Herstellers und meldet das Abo an `api/subscribe` (Endpunkt, Schlüssel, Heimatbahnhof, Zeitregel). Der Versand hängt am n8n-Push: `api/push.php` antwortet n8n und ruft danach `nb_push_run()` auf, das neue Störungen (sobald der Pendler-Text da ist, spätestens nach sechs Minuten), aufgehobene Störungen, neue Eilmeldungen (ohne stumme) und Zugausfälle am Heimatbahnhof der Abonnenten erkennt und verschlüsselt verschickt. Abos mit 404/410 werden gelöscht.
+
+**Meine Züge:** Der Stern an einer Abfahrt merkt den Zug im Browser (`localStorage` `nordbahn.meine`: Bahnhof, Richtung, Zugnummer, Linie, Planzeit, Startbahnhof, Ziel, Wochentage) und schickt die Liste mit dem Abo an `api/subscribe` (höchstens acht Züge). `nb_push_run()` liest dafür die Tafel jedes Bahnhofs, an dem jemand einen Zug gemerkt hat, findet den Zug über die Zugnummer (sonst Linie und Planzeit) und meldet ab einer Stunde vor der Abfahrt Ausfall, Ersatz ab einem anderen Hamburger Bahnhof, Teilausfall, Bus, Verspätung ab 5 Minuten (erneut bei 10, 15, 20, 30, 45, 60) und Gleiswechsel. Gemerkt wird in `push-state.json` je Zug und Tag, was schon gemeldet ist; alle Meldungen zu einem Zug und Tag tragen denselben `tag` und ersetzen sich auf dem Gerät. Diese Meldungen gelten unabhängig von der Zeitregel, nur an den gewählten Wochentagen. Mit „Nur meine Züge“ (`nur` im Abo) entfallen Störungen, Eilmeldungen und Ausfälle am Heimatbahnhof. Auf dem iPhone funktioniert Push nur, wenn die Seite zum Home-Bildschirm hinzugefügt wurde.
 
 ## Lokal entwickeln
 
