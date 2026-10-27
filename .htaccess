@@ -35,6 +35,7 @@ RewriteRule ^api/push-key$ api/push-key.php [L]
 RewriteRule ^api/s3$ api/s3.php [L]
 RewriteRule ^api/karte$ api/karte.php [L]
 RewriteRule ^api/feedback$ api/feedback.php [L]
+RewriteRule ^api/fahrplan$ api/fahrplan.php [L]
 
 # Sitemap und robots.txt sind dynamisch (Adresse aus config.php).
 RewriteRule ^sitemap\.xml$ sitemap.php [L]

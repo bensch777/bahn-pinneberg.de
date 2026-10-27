@@ -19,6 +19,7 @@ $map = [
     '/api/s3'        => '/api/s3.php',
     '/api/karte'     => '/api/karte.php',
     '/api/feedback'  => '/api/feedback.php',
+    '/api/fahrplan'  => '/api/fahrplan.php',
     '/sitemap.xml'   => '/sitemap.php',
     '/llms.txt'      => '/llms.php',
     '/lage.md'       => '/lage.php',
