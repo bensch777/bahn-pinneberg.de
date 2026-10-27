@@ -172,6 +172,10 @@ function test_incident_zeitraum_abgelaufen()
     $s = ['key' => 'X', 'titel' => 'Störung', 'ki_titel' => 'Test', 'ki_text' => 'Text', 'beginn' => '2026-10-15T05:00:00Z', 'ende' => '2026-10-15T10:31:00Z'];
     t_contains('voraussichtlich bis 15.10., 12:31 Uhr', nb_render_incident($s), 'laufende Stoerung');
     t_contains('gemeldetes Ende 15.10., 12:31 Uhr überschritten, dauert an', nb_render_incident($s + ['abgelaufen' => true]), 'abgelaufene Stoerung');
+    t_eq(false, strpos(nb_render_incident($s), 'data-weg-id'), 'Karte ohne Flag ohne Knopf');
+    $karte = nb_render_incident($s, true);
+    t_contains('<li class="card incident" data-weg-id="st:X">', $karte, 'Karte traegt die Kennung der Stoerung');
+    t_contains('<button type="button" class="incident__weg" aria-label="Störung ausblenden" title="Diese Meldung f&uuml;r mich ausblenden" hidden>&times;</button></li>', $karte, 'Knopf zum Ausblenden auf der Karte');
     t_eq(true, nordbahn_clean_payload(['eilmeldungen' => [], 'stoerungen' => [['key' => 'X', 'abgelaufen' => true]]])['stoerungen'][0]['abgelaufen'], 'Flag ueberlebt die Bereinigung');
     t_eq(false, nordbahn_clean_payload(['eilmeldungen' => [], 'stoerungen' => [['key' => 'X']]])['stoerungen'][0]['abgelaufen'], 'ohne Flag false');
 }
@@ -521,10 +525,15 @@ function test_aktuelle_meldungen()
     t_eq(1, substr_count(nb_render_aktuelle_meldungen(nb_aktuelle_meldungen($data, $hvv, $jetzt), $jetzt), 'S3: Signalstörung'), 'Doppelte HVV-Meldung nur einmal');
     $html = nb_render_aktuelle_meldungen($liste, $jetzt);
     t_contains('<ol class="feed" id="meldungen-feed">', $html, 'Liste');
-    t_contains('<li class="is-heute" data-eil-id="em-neu">', $html, 'Eilmeldung traegt ihre ID zum Ausblenden');
-    t_contains('</div><button type="button" class="feed__weg" data-weg="em-neu" aria-label="Eilmeldung ausblenden" title="Diese Eilmeldung f&uuml;r mich ausblenden" hidden>&times;</button></li>', $html, 'Knopf zum Ausblenden, bis zum Script versteckt');
-    t_eq(1, substr_count($html, 'feed__weg'), 'nur Eilmeldungen lassen sich ausblenden, Stoerungen und HVV nicht');
+    t_contains('<li class="is-heute" data-weg-id="eil:em-neu">', $html, 'Eilmeldung traegt ihre Kennung zum Ausblenden');
+    t_contains('<li class="is-heute" data-weg-id="st:GERADE">', $html, 'Stoerung traegt ihre Kennung zum Ausblenden');
+    t_contains('<li class="is-heute" data-weg-id="hvv:U">', $html, 'HVV-Meldung traegt ihre Kennung zum Ausblenden');
+    t_contains('</div><button type="button" class="feed__weg" aria-label="Eilmeldung ausblenden" title="Diese Meldung f&uuml;r mich ausblenden" hidden>&times;</button></li>', $html, 'Knopf zum Ausblenden, bis zum Script versteckt');
+    t_contains('aria-label="Störung ausblenden"', $html, 'Knopf bei der Stoerung');
+    t_contains('aria-label="HVV-Meldung ausblenden"', $html, 'Knopf bei der HVV-Meldung');
+    t_eq(3, substr_count($html, 'class="feed__weg"'), 'jede der drei Meldungen hat einen Knopf');
     t_eq(false, strpos(nb_render_news(nb_wichtig_items($data, $jetzt), $jetzt), 'feed__weg'), 'auf /news/ kein Knopf zum Ausblenden');
+    t_eq(false, strpos(nb_render_hvv_eintrag($hvv[0], $jetzt), 'feed__weg'), 'HVV-Eintrag ohne Flag ohne Knopf');
 
     $ruhig = nb_aktuelle_meldungen(['stoerungen' => [], 'stoerungen_verlauf' => [], 'eilmeldungen' => [], 'eilmeldungen_live' => []], null, $jetzt);
     t_eq('', nb_render_aktuelle_meldungen($ruhig, $jetzt), 'ruhige Lage: nichts, der Bereich wird ausgeblendet');

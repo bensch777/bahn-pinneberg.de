@@ -196,7 +196,7 @@ $jsonLd = [
 		<p class="status-rest" id="status-rest"<?= $kompakt['rest'] === '' ? ' hidden' : '' ?>><?= nb_e($kompakt['rest']) ?></p>
 		<ul class="incidents" id="incidents"<?= $aktiv ? '' : ' hidden' ?>>
 <?php foreach ($data['stoerungen'] as $st): ?>
-			<?= nb_render_incident($st) ?>
+			<?= nb_render_incident($st, true) ?>
 
 <?php endforeach; ?>
 		</ul>
