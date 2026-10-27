@@ -640,23 +640,64 @@ a.status:focus-visible { outline: 2px solid var(--series); outline-offset: 2px; 
 	color: var(--muted); font: inherit; font-size: 12px; cursor: pointer;
 }
 .meine__tag[aria-pressed="true"] { color: #fff; background: var(--series); border-color: var(--series); font-weight: 600; }
-.meine__neu { display: grid; gap: 10px; }
-.meine__bahnhof { justify-self: start; }
+.meine__neu { display: grid; gap: 10px; padding-top: 2px; }
 
-/* Einstellungen */
-.einstellung { padding: 14px 18px 16px; }
-.einstellung__schalter { display: flex; gap: 10px; align-items: center; font-size: 15px; font-weight: 600; cursor: pointer; }
-.einstellung__schalter input { width: 18px; height: 18px; margin: 0; accent-color: var(--series); }
-.einstellung__hinweis { margin: 6px 0 0; font-size: 13px; color: var(--ink-2); }
-.einstellung__hinweis[hidden] { display: none; }
-.einstellung__gruppe { border: 0; margin: 12px 0 0; padding: 10px 0 0; border-top: 1px solid var(--line); }
-.einstellung__gruppe[hidden] { display: none; }
-.einstellung__gruppe legend { padding: 0; font-size: 12.5px; color: var(--muted); }
-.einstellung__loeschen {
-	margin-top: 12px; font: inherit; font-size: 13.5px; font-weight: 600; padding: 7px 14px; border-radius: 8px;
-	border: 1px solid var(--critical); background: transparent; color: var(--critical-text); cursor: pointer;
-}
-.einstellung__loeschen:hover { background: color-mix(in srgb, var(--critical) 12%, transparent); }
+/* Einstellungen: Karten mit Zeilen wie in einer Systemeinstellung (einstellungen/) */
+.einst { padding: 6px 18px 14px; }
+.einst__label { margin: 10px 0 2px; font-size: 11.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.einst__intro { margin: 4px 0 10px; font-size: 13.5px; color: var(--ink-2); }
+.einst__zeile { display: flex; align-items: center; justify-content: space-between; gap: 10px 16px; padding: 12px 0; border-top: 1px solid var(--line); }
+.einst__zeile--schalter { cursor: pointer; }
+.einst__zeile--stapel { flex-wrap: wrap; }
+.einst__zeile--stapel .segment { flex: 1 1 260px; max-width: 440px; }
+.einst__zeile[hidden] { display: none; }
+.einst__text { font-size: 15px; font-weight: 500; min-width: 0; }
+.einst__hinweis { display: block; margin-top: 3px; font-size: 12.5px; font-weight: 400; color: var(--muted); }
+.einst__hinweis[hidden] { display: none; }
+.einst__erklaerung { flex-basis: 100%; margin: 0; font-size: 12.5px; color: var(--muted); }
+.einst__erklaerung:empty { display: none; }
+.einst__fuss { margin: 20px 0 0; font-size: 13px; color: var(--muted); }
+.einst__loeschen { font: inherit; font-size: 13px; padding: 0; border: 0; background: transparent; color: var(--critical-text); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.einst__loeschen:focus-visible { outline: 2px solid var(--series); outline-offset: 2px; border-radius: 3px; }
+.einstellungen .installieren { margin-top: 0; }
+/* Kippschalter: die Checkbox liegt unsichtbar ueber dem Knopf, bleibt also fuer Tastatur und Screenreader erhalten */
+.schalter { position: relative; flex: none; width: 46px; height: 28px; }
+.schalter input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.schalter__knopf { position: absolute; inset: 0; border-radius: 999px; background: var(--axis); transition: background 0.15s; }
+.schalter__knopf::after { content: ''; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3); transition: transform 0.15s; }
+.schalter input:checked + .schalter__knopf { background: var(--good); }
+.schalter input:checked + .schalter__knopf::after { transform: translateX(18px); }
+.schalter input:disabled + .schalter__knopf { opacity: 0.45; }
+.schalter input:disabled { cursor: default; }
+.schalter input:focus-visible + .schalter__knopf { outline: 2px solid var(--series); outline-offset: 2px; }
+/* Segment: gestylte Radios wie Tabs, mit Tastatur bedienbar */
+.segment { display: flex; gap: 3px; padding: 3px; border-radius: 10px; background: var(--surface-2); max-width: 100%; }
+.segment__opt { flex: 1; min-width: 0; position: relative; }
+.segment__opt input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.segment__opt span { display: block; padding: 7px 10px; border-radius: 8px; text-align: center; font-size: 13.5px; font-weight: 500; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.segment__opt input:checked + span { background: var(--surface); color: var(--ink); font-weight: 600; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.14); }
+.segment__opt input:focus-visible + span { outline: 2px solid var(--series); outline-offset: -2px; }
+/* Meine Zuege: Suche mit Vorschlagsliste, Platzhalter ohne gemerkten Zug */
+.meine__leer-hinweis { margin: 2px 0 12px; padding: 14px; border: 1px dashed var(--axis); border-radius: 10px; text-align: center; font-size: 13.5px; color: var(--muted); }
+.meine__leer-hinweis[hidden] { display: none; }
+.meine__suche { position: relative; }
+.meine__eingabe { box-sizing: border-box; width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); color: var(--ink); font: inherit; font-size: 16px; }
+.meine__eingabe::-webkit-search-decoration { -webkit-appearance: none; }
+.meine__eingabe:focus-visible { outline: 2px solid var(--series); outline-offset: 1px; }
+.meine__eingabe:disabled { opacity: 0.6; }
+.meine__vorschlaege { position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 30; list-style: none; margin: 0; padding: 4px; max-height: 320px; overflow-y: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18); }
+.meine__vorschlaege[hidden] { display: none; }
+.meine__vorschlag { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; padding: 9px 10px; border-radius: 8px; cursor: pointer; font-size: 14px; font-variant-numeric: tabular-nums; }
+.meine__vorschlag:hover, .meine__vorschlag.is-aktiv { background: var(--surface-2); }
+.meine__vorschlag[aria-disabled="true"] { opacity: 0.5; cursor: default; }
+.meine__vorschlag small { flex: none; font-size: 12px; color: var(--muted); }
+.meine__vorschlag .meine__variante { flex-basis: 100%; margin-top: -2px; }
+.meine__leer { padding: 9px 10px; font-size: 13px; color: var(--muted); }
+.meine__hinweis { margin: 12px 0 0; font-size: 13.5px; color: var(--ink-2); }
+.meine__hinweis[hidden] { display: none; }
+.meine__an { margin-left: 2px; font: inherit; font-size: 13px; font-weight: 600; padding: 6px 12px; border-radius: 8px; border: 0; background: var(--series); color: #fff; cursor: pointer; }
+.meine__weg:focus-visible, .meine__tag:focus-visible, .meine__an:focus-visible { outline: 2px solid var(--series); outline-offset: 1px; }
+
 .installieren { margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--line); font-size: 14px; }
 .installieren summary { cursor: pointer; font-weight: 600; color: var(--series); }
 .installieren__wege { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 24px; }
@@ -666,10 +707,6 @@ a.status:focus-visible { outline: 2px solid var(--series); outline-offset: 2px; 
 .installieren li { margin: 4px 0; }
 .installieren__icon { display: inline-block; width: 18px; height: 18px; vertical-align: -3px; color: var(--series); }
 .installieren__icon svg { width: 100%; height: 100%; fill: currentColor; }
-.daten { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; font-size: 14px; }
-.daten dt { color: var(--muted); }
-.daten dd { margin: 0; }
-@media (max-width: 420px) { .daten { grid-template-columns: 1fr; gap: 0; } .daten dd { margin-bottom: 8px; } }
 .board__empty { margin: 0; padding: 14px 0 10px; color: var(--muted); font-size: 13.5px; }
 @media (max-width: 420px) {
 	.dep { grid-template-columns: 10px 62px 48px 1fr auto; gap: 0 8px; }

@@ -1494,10 +1494,11 @@
 
 	/** Liste "Meine Zuege": Zeit, Linie, Strecke, Wochentage zum Umschalten, Kreuz zum Entfernen. */
 	function renderMeineZuege() {
-		renderDaten();
 		var ul = document.getElementById('meine-zuege-liste');
 		if (!ul) return;
 		var list = meineZuege();
+		var leer = document.getElementById('meine-leer');
+		if (leer) leer.hidden = list.length > 0;
 		clear(ul);
 		list.forEach(function (z, i) {
 			var weg = el('button', { type: 'button', class: 'meine__weg', title: 'Entfernen', 'aria-label': 'Zug ' + z.zeit + ' ' + z.linie + ' entfernen', text: '×' });
@@ -1548,7 +1549,7 @@
 				? 'Auf dem iPhone kommen Meldungen nur, wenn die Seite auf dem Home-Bildschirm liegt. Wie das geht, steht unten bei „Benachrichtigungen“.'
 				: 'Dieser Browser kann keine Benachrichtigungen anzeigen.';
 		} else if (Notification.permission === 'denied') {
-			text = 'Benachrichtigungen sind im Browser blockiert. Erlaube sie für diese Seite in den Browser-Einstellungen.';
+			text = ''; // steht beim Schalter unten
 		} else if (list.length && !notifyEnabled()) {
 			text = 'Noch kommen keine Meldungen.';
 			knopf = el('button', { type: 'button', class: 'meine__an', text: 'Benachrichtigungen einschalten' });
@@ -1670,6 +1671,11 @@
 			}
 			Array.prototype.forEach.call(document.querySelectorAll('input[name="notify-zeit"]'), function (r) { r.checked = r.value === notifyZeit(); });
 			Array.prototype.forEach.call(document.querySelectorAll('input[name="notify-was"]'), function (r) { r.checked = r.value === (nur ? 'nur' : 'alles'); });
+			// Erklaerung nur zur gewaehlten Option
+			var wasText = document.getElementById('notify-was-text');
+			if (wasText) wasText.textContent = nur ? 'Verspätung, Ausfall, anderer Bahnhof oder Gleiswechsel bei meinen Zügen.' : 'Zugausfälle am Bahnhof, Infrastrukturstörungen und Eilmeldungen, dazu meine Züge.';
+			var wannText = document.getElementById('notify-wann-text');
+			if (wannText) wannText.textContent = notifyZeit() === 'pendel' ? 'Mo–Fr, 6–9 und 16–19 Uhr. Meine Züge melden sich immer zu ihrer Abfahrt.' : 'Rund um die Uhr, auch nachts und am Wochenende.';
 			var wann = document.getElementById('notify-wann');
 			if (wann) wann.hidden = nur; // meine Zuege melden sich zu ihrer Abfahrt, die Zeitregel gilt nur fuer den Rest
 			var inst = document.getElementById('installieren');
@@ -1721,28 +1727,7 @@
 		});
 	}
 
-	/* ---------- Gespeicherte Daten (Einstellungen) ---------- */
-
-	/** Was dieser Browser fuer die Seite gespeichert hat, in Worten. */
-	function renderDaten() {
-		var dl = document.getElementById('daten-liste');
-		if (!dl) return;
-		var anzahl = meineZuege().length;
-		var weg = Object.keys(wegLesen()).length;
-		var stadt = storage('get', STADT_KEY);
-		var zeilen = [
-			['Bahnhof', storage('get', HEIMAT_KEY) ? bahnhofName(storage('get', HEIMAT_KEY)) : 'keiner gewählt (Vorgabe Prisdorf)'],
-			['Meine Züge', anzahl ? plural(anzahl, 'Zug', 'Züge') + (pushActive() ? ', im Browser und am Push-Abo' : ', im Browser') : 'keine'],
-			['Benachrichtigungen', notifyEnabled() ? (pushActive() ? 'an, mit Push-Abo beim Server' : 'an, nur solange die Seite offen ist') : 'aus'],
-			['Ausgeblendete Meldungen', weg ? plural(weg, 'Meldung', 'Meldungen') + ', jeweils sieben Tage' : 'keine'],
-			['S3-Stadtbahnhof', stadt ? stadt.charAt(0).toUpperCase() + stadt.slice(1) : 'keiner gewählt']
-		];
-		clear(dl);
-		zeilen.forEach(function (z) {
-			dl.appendChild(el('dt', { text: z[0] }));
-			dl.appendChild(el('dd', { text: z[1] }));
-		});
-	}
+	/* ---------- Alles loeschen (Einstellungen) ---------- */
 
 	function initDaten() {
 		var btn = document.getElementById('daten-loeschen');
@@ -1757,7 +1742,6 @@
 				window.location.reload();
 			});
 		});
-		renderDaten();
 	}
 
 	/* ---------- Steuerung ---------- */
