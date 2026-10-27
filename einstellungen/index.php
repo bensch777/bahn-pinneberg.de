@@ -133,7 +133,6 @@ $description = 'Meine Züge und Benachrichtigungen für Bahn-Pinneberg.de: Push-
 		</div>
 		<div class="card einstellung">
 			<dl class="daten" id="daten-liste"></dl>
-			<p class="einstellung__hinweis">Kein Konto, kein Standort. Was am Push-Abo liegt und wie lange, steht in der <a href="<?= $root ?>impressum/#datenschutz">Datenschutzerkl&auml;rung</a>.</p>
 			<button type="button" class="einstellung__loeschen" id="daten-loeschen">Alles l&ouml;schen</button>
 		</div>
 	</section>
