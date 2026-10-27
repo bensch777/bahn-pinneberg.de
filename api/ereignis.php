@@ -228,7 +228,12 @@ function nb_stoerungen_im_zeitraum(array $data, $start, $ende, $ausser = '')
     return $out;
 }
 
-/** Schritte des Verlaufs fuer die Anzeige: Pendler-Text, der nur nachgetragen wurde, zaehlt nicht als Update. */
+/**
+ * Schritte des Verlaufs fuer die Anzeige: neu, neues Ende, neuer Text. Aendert sich
+ * nur der Pendler-Text der KI, ist das kein eigener Schritt: Er kommt bis zu fuenf
+ * Minuten nach der Aenderung bei strecken-info an und ist nur deren lesbare Fassung,
+ * also wandert er in den vorigen Schritt.
+ */
 function nb_verlauf_schritte(array $verlauf)
 {
     $out = [];
@@ -247,14 +252,12 @@ function nb_verlauf_schritte(array $verlauf)
                 $art = 'ende';
             } elseif (trim((string) ($v['text'] ?? '')) !== trim((string) ($vorher['text'] ?? ''))) {
                 $art = 'text';
-            } elseif (trim((string) ($vorher['ki_text'] ?? '')) === '') {
-                // Pendler-Text nur nachgetragen: in den vorigen Schritt einarbeiten
+            } else {
+                // Nur der Pendler-Text ist neu: in den vorigen Schritt einarbeiten
                 $out[count($out) - 1]['ki_titel'] = (string) ($v['ki_titel'] ?? '');
                 $out[count($out) - 1]['ki_text'] = (string) ($v['ki_text'] ?? '');
                 $vorher = $v;
                 continue;
-            } else {
-                $art = 'ki';
             }
         }
         $out[] = ['ts' => $ts, 'art' => $art, 'ki_titel' => (string) ($v['ki_titel'] ?? ''), 'ki_text' => (string) ($v['ki_text'] ?? ''), 'text' => (string) ($v['text'] ?? ''), 'ende' => (string) ($v['ende'] ?? '')];
@@ -302,7 +305,7 @@ function nb_render_verlauf_schritte(array $schritte, $now = null)
     if (!$schritte) {
         return '';
     }
-    $label = ['neu' => 'Störung gemeldet', 'ende' => 'Neues voraussichtliches Ende', 'text' => 'Neuer Stand', 'ki' => 'Pendler-Text aktualisiert'];
+    $label = ['neu' => 'Störung gemeldet', 'ende' => 'Neues voraussichtliches Ende', 'text' => 'Neuer Stand'];
     $h = '<ol class="zeitleiste">';
     $vorText = null;
     $vorTitel = null;

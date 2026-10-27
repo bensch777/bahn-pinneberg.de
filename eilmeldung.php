@@ -107,7 +107,7 @@ if (!$gefunden) {
 <?php if ($em['text'] !== ''): ?>
 			<p class="artikel__vorspann"><?= nb_e($em['text']) ?></p>
 <?php else: ?>
-			<p class="artikel__vorspann artikel__vorspann--leer">Zu dieser Meldung liegt kein Pendler-Text vor. Was die Nordbahn gemeldet hat, steht unten.</p>
+			<p class="artikel__vorspann artikel__vorspann--leer">Zu dieser Meldung liegt noch keine lesbare Fassung vor. Was die Nordbahn gemeldet hat, steht unten.</p>
 <?php endif; ?>
 			<p class="artikel__meta">
 				<span>Stand <time datetime="<?= date('c', $ts) ?>"><?= nb_e(nb_fmt_tag_lang($ts, $now)) ?>, <?= nb_e(nb_fmt_uhr($ts)) ?></time></span>
@@ -150,7 +150,7 @@ if (!$gefunden) {
 		<footer class="artikel__fuss">
 			<?= nb_render_teilen($pageUrl, $titel) ?>
 			<?= nb_render_weiter(['Zurück zur Startseite' => $root, 'Alle Eilmeldungen' => $root . 'eilmeldungen/#' . nb_anker($id), 'Statistik' => $root . 'statistik/']) ?>
-			<p class="artikel__hinweis">Titel und Pendler-Text werden automatisch aus der Eilmeldung der Nordbahn formuliert. Ma&szlig;geblich ist die Originalmeldung.</p>
+			<p class="artikel__hinweis">Titel und Text werden automatisch aus der Eilmeldung der Nordbahn formuliert. Ma&szlig;geblich ist die Originalmeldung.</p>
 		</footer>
 	</article>
 <?php endif; ?>
