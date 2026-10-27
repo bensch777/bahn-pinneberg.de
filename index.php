@@ -50,7 +50,8 @@ if ($json === false) {
     $json = '{"received_at":null,"stoerungen":[],"eilmeldungen_live":[],"sonderfahrplaene":[],"eilmeldungen":[],"stoerungen_verlauf":[]}';
 }
 
-$aktiv = count($data['stoerungen']);
+$stoerungenTeile = nb_stoerungen_teilen($data['stoerungen']);
+$aktiv = count($stoerungenTeile['stoerungen']); // Hinweise ohne Folgen zaehlen nicht
 $items = nb_items($data);
 $cards = [
     'infra'   => nb_status_infra($data),
@@ -195,7 +196,7 @@ $jsonLd = [
 		</div>
 		<p class="status-rest" id="status-rest"<?= $kompakt['rest'] === '' ? ' hidden' : '' ?>><?= nb_e($kompakt['rest']) ?></p>
 		<ul class="incidents" id="incidents"<?= $aktiv ? '' : ' hidden' ?>>
-<?php foreach ($data['stoerungen'] as $st): ?>
+<?php foreach ($stoerungenTeile['stoerungen'] as $st): ?>
 			<?= nb_render_incident($st, true) ?>
 
 <?php endforeach; ?>

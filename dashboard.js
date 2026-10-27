@@ -285,20 +285,33 @@
 	var EIL_AKUT_MS = 4 * 3600 * 1000;   // so lange gilt eine Eilmeldung als akut
 	var EIL_HINWEIS_MS = 12 * 3600 * 1000; // bis dahin nennt die gruene Karte "Letzte vor …" (wie NB_EIL_HINWEIS_S)
 
+	/**
+	 * Hinweis ohne spuerbare Folgen (wie nb_stoerung_hinweis): Urteil der KI (ki_folgen = keine),
+	 * sonst nur ohne jede Wirkung auf den Nahverkehr und ohne schwere Einschraenkung.
+	 */
+	function istHinweis(st) {
+		var folgen = st.ki_folgen || '';
+		if (folgen) return folgen === 'keine';
+		return Array.isArray(st.wirkungen) && st.wirkungen.length === 0 && String(st.einschraenkung || '').trim().toLowerCase() !== 'schwer';
+	}
+
 	function renderStatus() {
 		var section = document.getElementById('status');
 		if (!section) return;
 
 		var data = state.data;
 		var hasData = data && data.received_at;
-		var list = hasData ? data.stoerungen || [] : [];
+		var alle = hasData ? data.stoerungen || [] : [];
+		var list = alle.filter(function (st) { return !istHinweis(st); });
+		var hinweise = alle.length - list.length;
 		var ok = hasData && data.quellen && data.quellen.strecken_info_ok;
 
 		// Karte 1: Infrastruktur laut strecken-info.de. Stuft strecken-info alle
 		// Stoerungen als "leicht" ein, bleibt die Karte orange; ab "mittel" wird sie rot.
+		// Hinweise ohne Folgen zaehlen nicht, die gruene Karte nennt sie klein.
 		var schwer = list.filter(function (st) { return !/^leicht/i.test(st.einschraenkung || ''); }).length;
 		if (!hasData) setStatus('status-infra', 'unknown', 'Noch keine Daten');
-		else if (list.length === 0 && ok) setStatus('status-infra', 'ok', 'Keine Infrastrukturstörung');
+		else if (list.length === 0 && (ok || hinweise)) setStatus('status-infra', 'ok', 'Keine Infrastrukturstörung', hinweise ? plural(hinweise, 'Hinweis ohne Folgen', 'Hinweise ohne Folgen') : '');
 		else if (list.length === 0) setStatus('status-infra', 'unknown', 'Infrastrukturstörungen unbekannt');
 		else if (schwer === 0) setStatus('status-infra', 'warn', plural(list.length, 'leichte Infrastrukturstörung', 'leichte Infrastrukturstörungen'));
 		else setStatus('status-infra', 'alert', plural(list.length, 'Infrastrukturstörung', 'Infrastrukturstörungen'));
@@ -456,7 +469,7 @@
 		(data.stoerungen || []).forEach(function (s) { if (s.key) aktiv[s.key] = true; });
 		var out = [];
 		(data.stoerungen_verlauf || []).forEach(function (e) {
-			if (!e || !e.key || aktiv[e.key]) return;
+			if (!e || !e.key || aktiv[e.key] || istHinweis(e)) return;
 			var start = Date.parse(e.first_seen), ende = Date.parse(e.last_seen);
 			if (isNaN(start) || isNaN(ende)) return;
 			out.push({ key: e.key, titel: (e.ki_titel || e.titel || 'Störung').trim(), text: (e.ki_text || '').trim(), start: start, ende: Math.max(start, ende) });

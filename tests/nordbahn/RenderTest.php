@@ -132,6 +132,49 @@ function t_verlauf_data()
     ]];
 }
 
+function test_stoerung_hinweis_ohne_folgen()
+{
+    t_eq(true, nb_stoerung_hinweis(['ki_folgen' => 'keine', 'wirkungen' => ['Verspätungen'], 'einschraenkung' => 'schwer']), 'KI-Urteil keine gewinnt');
+    t_eq(false, nb_stoerung_hinweis(['ki_folgen' => 'verspaetungen', 'wirkungen' => []]), 'KI-Urteil verspaetungen ist Stoerung');
+    t_eq(true, nb_stoerung_hinweis(['ki_folgen' => '', 'wirkungen' => [], 'einschraenkung' => 'leicht']), 'ohne Urteil: keine SPNV-Wirkung und leicht ist Hinweis');
+    t_eq(false, nb_stoerung_hinweis(['ki_folgen' => '', 'wirkungen' => [], 'einschraenkung' => 'schwer']), 'ohne Urteil: schwer bleibt Stoerung');
+    t_eq(false, nb_stoerung_hinweis(['wirkungen' => ['Verspätungen']]), 'mit Wirkung Stoerung');
+    t_eq(false, nb_stoerung_hinweis(['key' => 'X', 'titel' => 'ohne Angaben']), 'ohne jede Angabe: im Zweifel Stoerung');
+    t_eq('keine', nordbahn_folgen(' Keine '), 'Folgen normalisiert');
+    t_eq('', nordbahn_folgen('egal'), 'unbekannter Wert wird leer');
+
+    $jetzt = nb_ts(T_NOW);
+    $hinweis = ['key' => 'EID', 'titel' => 'Signalstörung', 'einschraenkung' => 'leicht', 'wirkungen' => ['Verspätungen'], 'ki_titel' => 'Eidelstedt: Betrieb wieder planmäßig', 'ki_text' => 'Keine spürbaren Folgen.', 'ki_folgen' => 'keine', 'beginn' => '2026-10-14T10:00:00Z'];
+    $stoerung = ['key' => 'HBF', 'titel' => 'Weichenstörung', 'einschraenkung' => 'leicht', 'wirkungen' => ['Verspätungen'], 'ki_folgen' => 'verspaetungen', 'beginn' => '2026-10-15T05:00:00Z'];
+    $data = ['received_at' => T_NOW, 'quellen' => ['strecken_info_ok' => true], 'stoerungen' => [$hinweis]];
+    t_eq(['level' => 'ok', 'title' => 'Keine Infrastrukturstörung', 'detail' => '1 Hinweis ohne Folgen'], nb_status_infra($data), 'nur Hinweise: gruen mit Zeile');
+    $data['stoerungen'] = [$hinweis, $stoerung];
+    t_eq(['level' => 'warn', 'title' => '1 leichte Infrastrukturstörung', 'detail' => ''], nb_status_infra($data), 'Hinweis zaehlt nicht mit');
+    $data['quellen']['strecken_info_ok'] = false;
+    $data['stoerungen'] = [$hinweis];
+    t_eq('ok', nb_status_infra($data)['level'], 'Hinweis vorhanden heisst Quelle hat geantwortet');
+    t_eq(['stoerungen' => [$stoerung], 'hinweise' => [$hinweis]], nb_stoerungen_teilen([$hinweis, $stoerung]), 'aufgeteilt');
+
+    t_eq(false, nb_wichtig_stoerung($hinweis + ['wichtig' => true], $jetzt - 3 * 86400, $jetzt), 'Hinweis nie wichtig, auch nicht lang oder markiert');
+    t_eq(true, nb_wichtig_stoerung($stoerung, $jetzt - 3 * 3600, $jetzt), 'lange Stoerung wichtig');
+
+    $iso = function ($ts) { return gmdate('Y-m-d\TH:i:s\Z', $ts); };
+    $verlauf = [
+        ['key' => 'EID', 'titel' => 'Signalstörung', 'ki_folgen' => 'keine', 'first_seen' => $iso($jetzt - 7200), 'last_seen' => $iso($jetzt - 600)],
+        ['key' => 'HBF', 'titel' => 'Weichenstörung', 'ki_folgen' => 'verspaetungen', 'first_seen' => $iso($jetzt - 7200), 'last_seen' => $iso($jetzt - 600)],
+        ['key' => 'SGV', 'titel' => 'Nur Güterzüge', 'wirkungen' => [], 'first_seen' => $iso($jetzt - 7200), 'last_seen' => $iso($jetzt - 600)],
+    ];
+    $d = ['stoerungen' => [], 'stoerungen_verlauf' => $verlauf, 'eilmeldungen' => [], 'eilmeldungen_live' => []];
+    t_eq(['HBF'], array_column(nb_verlauf_items($d), 'key'), 'Verlauf ohne Hinweise');
+    t_eq(['HBF'], array_column(nb_aktuelle_meldungen($d, null, $jetzt), 'key'), 'aktuelle Meldungen ohne Hinweise');
+    $stat = nb_statistik($verlauf, $jetzt, 30);
+    t_eq(1, $stat['gesamt'], 'Statistik zaehlt nur die Stoerung');
+
+    $md = nb_lage_md(['received_at' => T_NOW, 'quellen' => ['strecken_info_ok' => true], 'stoerungen' => [$hinweis, $stoerung]] + $d, ['ok' => false], 'APD', $jetzt);
+    t_contains('### Hinweise ohne spürbare Folgen', $md, 'lage.md nennt Hinweise getrennt');
+    t_contains('- Eidelstedt: Betrieb wieder planmäßig (', $md, 'Hinweis als Zeile');
+}
+
 function test_verlauf_items_aufgehobene_juengste_zuerst()
 {
     $items = nb_verlauf_items(t_verlauf_data());

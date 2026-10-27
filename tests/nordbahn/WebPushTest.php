@@ -119,6 +119,40 @@ function test_push_ereignisse_aus_daten()
     t_eq([], nb_push_events_data(['stoerungen' => [], 'eilmeldungen' => []], ['stoerungen' => [], 'eilmeldungen' => [['id' => 'em-9', 'title' => 'x']]], $state5, $now), 'erster Lauf');
 }
 
+function test_push_hinweise_ohne_folgen()
+{
+    $now = 1000000;
+    $leer = ['stoerungen' => [], 'eilmeldungen' => []];
+    $hinweis = ['key' => 'H', 'titel' => 'Signalstörung', 'ki_titel' => 'Eidelstedt: läuft wieder', 'ki_text' => 'Keine Folgen.', 'ki_folgen' => 'keine'];
+
+    // Neuer Hinweis: nichts, auch nicht nach der Wartezeit; Aufhebung ebenfalls still
+    $state = [];
+    t_eq([], nb_push_events_data($leer, ['stoerungen' => [$hinweis]] + $leer, $state, $now), 'neuer Hinweis still');
+    t_eq([], nb_push_events_data(['stoerungen' => [$hinweis]] + $leer, ['stoerungen' => [$hinweis]] + $leer, $state, $now + NB_PUSH_KI_WARTEN), 'auch spaeter still');
+    t_eq(true, $state['hinweis']['H'], 'als Hinweis gemerkt');
+    t_eq([], nb_push_events_data(['stoerungen' => [$hinweis]] + $leer, $leer, $state, $now + 900), 'Aufhebung eines Hinweises still');
+    t_eq([], $state['hinweis'], 'Hinweis vergessen');
+
+    // Aus dem Hinweis wird eine Stoerung: wie neu melden
+    $state = [];
+    nb_push_events_data($leer, ['stoerungen' => [$hinweis]] + $leer, $state, $now);
+    $stoerung = ['ki_folgen' => 'verspaetungen', 'ki_titel' => 'Eidelstedt: Verspätungen'] + $hinweis;
+    $ev = nb_push_events_data(['stoerungen' => [$hinweis]] + $leer, ['stoerungen' => [$stoerung]] + $leer, $state, $now + 300);
+    t_eq(['stoerung:H'], array_column($ev, 'id'), 'Hinweis wird Stoerung: gemeldet');
+    t_eq('Störung: Eidelstedt: Verspätungen', $ev[0]['title'], 'mit neuem Titel');
+
+    // Gemeldete Stoerung wird Hinweis: Entwarnung sofort, spaetere Aufhebung nicht noch einmal
+    $state = ['sent' => ['stoerung:H' => $now]];
+    $ev = nb_push_events_data(['stoerungen' => [$stoerung]] + $leer, ['stoerungen' => [$hinweis]] + $leer, $state, $now + 600);
+    t_eq(['aufgehoben:H'], array_column($ev, 'id'), 'Entwarnung beim Wechsel zum Hinweis');
+    t_eq('Keine Folgen mehr: Eidelstedt: läuft wieder', $ev[0]['title'], 'Titel der Entwarnung');
+    t_eq('Keine Folgen.', $ev[0]['body'], 'Text der Entwarnung');
+    t_eq([], nb_push_events_data(['stoerungen' => [$hinweis]] + $leer, ['stoerungen' => [$hinweis]] + $leer, $state, $now + 700), 'bleibt still');
+    // Wird sie danach wieder zur Stoerung, bekommt die Meldung eine neue Kennung (Sperre gegen Doppelte)
+    $ev = nb_push_events_data(['stoerungen' => [$hinweis]] + $leer, ['stoerungen' => [$stoerung]] + $leer, $state, $now + 800);
+    t_eq(['stoerung:H:' . ($now + 800)], array_column($ev, 'id'), 'erneut Stoerung: neue Kennung');
+}
+
 function test_push_ereignisse_aus_abfahrten()
 {
     $now = (new DateTime('2026-10-15 07:00', new DateTimeZone('Europe/Berlin')))->getTimestamp();

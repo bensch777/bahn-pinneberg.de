@@ -160,10 +160,50 @@ function nb_plural($n, $one, $many)
 }
 
 /** Karte 1: Infrastruktur laut strecken-info.de. */
+/* ---------- Hinweise ohne spuerbare Folgen ----------
+ * strecken-info fuehrt manche Meldung tagelang als aktiv, obwohl fuer Pendler
+ * nichts mehr passiert ("Betrieb wieder planmaessig, Ersatzteil wird eingebaut").
+ * Solche Meldungen sind Hinweise, keine Stoerungen: Lagekarte bleibt gruen, keine
+ * Karte auf der Startseite, nicht "wichtig", kein Push, nicht in der Statistik.
+ * Sichtbar bleiben sie unter /aktuell/ und auf ihrer Ereignisseite. */
+
+/**
+ * Hinweis ohne spuerbare Folgen? Massgeblich ist das Urteil der KI aus n8n
+ * (ki_folgen = keine; jeder andere Wert heisst Stoerung). Fehlt das Urteil, gilt
+ * eine Meldung nur dann als Hinweis, wenn strecken-info fuer den Nahverkehr gar
+ * keine Wirkung nennt (wirkungen vorhanden, aber leer) und die Einschraenkung
+ * nicht "schwer" ist. Im Zweifel Stoerung: ohne Angaben bleibt es eine.
+ */
+function nb_stoerung_hinweis(array $s)
+{
+    $folgen = (string) ($s['ki_folgen'] ?? '');
+    if ($folgen !== '') {
+        return $folgen === 'keine';
+    }
+
+    return isset($s['wirkungen']) && is_array($s['wirkungen']) && !$s['wirkungen']
+        && mb_strtolower(trim((string) ($s['einschraenkung'] ?? ''))) !== 'schwer';
+}
+
+/** Aktive Stoerungen in echte Stoerungen und Hinweise aufteilen, Reihenfolge bleibt. */
+function nb_stoerungen_teilen(array $liste)
+{
+    $out = ['stoerungen' => [], 'hinweise' => []];
+    foreach ($liste as $s) {
+        if (is_array($s)) {
+            $out[nb_stoerung_hinweis($s) ? 'hinweise' : 'stoerungen'][] = $s;
+        }
+    }
+
+    return $out;
+}
+
+/** Karte 1: Infrastruktur laut strecken-info.de; Hinweise ohne Folgen zaehlen nicht, die gruene Karte nennt sie klein. */
 function nb_status_infra(array $data)
 {
     $hasData = !empty($data['received_at']);
-    $list = $hasData ? ($data['stoerungen'] ?? []) : [];
+    $teile = nb_stoerungen_teilen($hasData ? ($data['stoerungen'] ?? []) : []);
+    $list = $teile['stoerungen'];
     $ok = $hasData && !empty($data['quellen']['strecken_info_ok']);
     $schwer = 0;
     foreach ($list as $st) {
@@ -175,8 +215,10 @@ function nb_status_infra(array $data)
         return ['level' => 'unknown', 'title' => 'Noch keine Daten', 'detail' => ''];
     }
     if (!$list) {
-        return $ok
-            ? ['level' => 'ok', 'title' => 'Keine Infrastrukturstörung', 'detail' => '']
+        $hinweise = count($teile['hinweise']);
+
+        return $ok || $hinweise
+            ? ['level' => 'ok', 'title' => 'Keine Infrastrukturstörung', 'detail' => $hinweise ? nb_plural($hinweise, 'Hinweis ohne Folgen', 'Hinweise ohne Folgen') : '']
             : ['level' => 'unknown', 'title' => 'Infrastrukturstörungen unbekannt', 'detail' => ''];
     }
     if ($schwer === 0) {
@@ -481,8 +523,13 @@ function nb_statistik(array $verlauf, $now = null, $tage = 30)
     $now = $now ?? time();
     $eintraege = [];
     $seit = null;
+    $hinweise = 0;
     foreach ($verlauf as $e) {
         if (!is_array($e) || empty($e['key'])) {
+            continue;
+        }
+        if (nb_stoerung_hinweis($e)) {
+            $hinweise++;
             continue;
         }
         $start = nb_ts($e['first_seen'] ?? '');
@@ -693,7 +740,7 @@ function nb_verlauf_items(array $data, $mitAktiven = false)
     }
     $out = [];
     foreach ($data['stoerungen_verlauf'] ?? [] as $e) {
-        if (!is_array($e) || empty($e['key']) || (!$mitAktiven && isset($aktiv[$e['key']]))) {
+        if (!is_array($e) || empty($e['key']) || (!$mitAktiven && isset($aktiv[$e['key']])) || nb_stoerung_hinweis($e)) {
             continue;
         }
         $start = nb_ts($e['first_seen'] ?? '');
@@ -728,6 +775,9 @@ function nb_verlauf_items(array $data, $mitAktiven = false)
 /** Stoerung: schwere Einschraenkung, Ausfall/Umleitung/Ersatzverkehr/Sperrung als Wirkung oder ab zwei Stunden Dauer. */
 function nb_wichtig_stoerung(array $s, $start, $ende)
 {
+    if (nb_stoerung_hinweis($s)) {
+        return false;
+    }
     if (isset($s['wichtig'])) {
         return (bool) $s['wichtig'];
     }
@@ -1457,7 +1507,8 @@ function nb_lage_md(array $data, $abf, $heimat, $now = null, $gf = null)
     $md .= "\n";
 
     $md .= "## Aktive Infrastrukturstörungen\n\n";
-    $aktive = $data['stoerungen'] ?? [];
+    $teile = nb_stoerungen_teilen($data['stoerungen'] ?? []);
+    $aktive = $teile['stoerungen'];
     if (!$aktive) {
         $md .= "Keine aktive Störung laut strecken-info.de.\n\n";
     }
@@ -1504,6 +1555,17 @@ function nb_lage_md(array $data, $abf, $heimat, $now = null, $gf = null)
         $md .= nb_lage_md_s3($gf, $now);
     }
 
+    foreach ($teile['hinweise'] as $s) {
+        if (!isset($hinweisKopf)) {
+            $hinweisKopf = true;
+            $md .= "### Hinweise ohne spürbare Folgen\n\nLaut strecken-info.de aktiv, für Pendler laut Meldung ohne Auswirkung; zählen nicht als Störung.\n\n";
+        }
+        $titel = $s['ki_titel'] !== '' ? $s['ki_titel'] : $s['titel'];
+        $md .= '- ' . $titel . ' (' . nb_ereignis_url('stoerung', $s['key'], $titel) . ")\n";
+    }
+    if (isset($hinweisKopf)) {
+        $md .= "\n";
+    }
     $md .= "## Letzte Eilmeldungen der Nordbahn\n\n";
     $cutoff = $now - 86400;
     $eilmeldungen = array_reverse(array_values(array_filter($items, function ($it) use ($cutoff) {

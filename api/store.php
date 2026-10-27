@@ -283,7 +283,17 @@ function nordbahn_clean_stoerung($raw)
         // Pendler-Text, den der Alert-Workflow per KI formuliert hat (leer, bis er vorliegt)
         'ki_titel'       => nordbahn_text($raw['ki_titel'] ?? '', 120),
         'ki_text'        => nordbahn_text($raw['ki_text'] ?? '', 600),
+        // Folgen fuer Pendler laut KI: keine, verspaetungen, ausfaelle, sperrung; leer = unbekannt
+        'ki_folgen'      => nordbahn_folgen($raw['ki_folgen'] ?? ''),
     ];
+}
+
+/** Einer der bekannten Werte fuer die Folgen einer Stoerung, sonst leer (unbekannt). */
+function nordbahn_folgen($wert)
+{
+    $wert = mb_strtolower(trim((string) $wert));
+
+    return in_array($wert, ['keine', 'verspaetungen', 'ausfaelle', 'sperrung'], true) ? $wert : '';
 }
 
 /** Eine Eilmeldung aus der Historie (Data Table): ID, Titel, Erfassungszeit. */
@@ -443,8 +453,8 @@ function nordbahn_update_log(array $stoerungen, $nowIso)
             $entry['first_seen'] = $s['beginn'] !== '' ? $s['beginn'] : $nowIso;
         }
         $entry['last_seen'] = $nowIso;
-        foreach (['key', 'titel', 'text', 'abschnitte', 'wirkungen', 'einschraenkung', 'beginn', 'ende', 'ki_titel', 'ki_text'] as $field) {
-            $entry[$field] = $s[$field];
+        foreach (['key', 'titel', 'text', 'abschnitte', 'wirkungen', 'einschraenkung', 'beginn', 'ende', 'ki_titel', 'ki_text', 'ki_folgen'] as $field) {
+            $entry[$field] = $s[$field] ?? '';
         }
         // Verlauf fuer die Ereignisseite: jeder Stand von Text, Pendler-Text oder
         // gemeldetem Ende als Schritt, hoechstens 30
