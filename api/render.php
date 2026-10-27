@@ -338,16 +338,18 @@ function nb_overall_level(array $cards)
     return 'info';
 }
 
-function nb_render_status_card($id, array $st, $versteckt = false)
+/** Eine Lagekarte; mit $href ein Link (Infrastruktur und Eilmeldungen fuehren zu /aktuell/). */
+function nb_render_status_card($id, array $st, $versteckt = false, $href = '')
 {
     $icons = ['ok' => '✓', 'warn' => '!', 'alert' => '!', 'unknown' => '?'];
-    $html = '<div class="card status status--' . nb_e($st['level']) . '" id="' . nb_e($id) . '" data-ssr' . ($versteckt ? ' hidden' : '') . '>';
+    $tag = $href !== '' ? 'a' : 'div';
+    $html = '<' . $tag . ' class="card status status--' . nb_e($st['level']) . '" id="' . nb_e($id) . '"' . ($href !== '' ? ' href="' . nb_e($href) . '"' : '') . ' data-ssr' . ($versteckt ? ' hidden' : '') . '>';
     $html .= '<div class="status__icon" aria-hidden="true">' . ($icons[$st['level']] ?? '?') . '</div>';
     $html .= '<h3 class="status__title">' . nb_e($st['title']);
     if ($st['detail'] !== '') {
         $html .= '<small>' . nb_e($st['detail']) . '</small>';
     }
-    $html .= '</h3></div>';
+    $html .= '</h3></' . $tag . '>';
 
     return $html;
 }
@@ -998,10 +1000,10 @@ function nb_aktuelle_meldungen(array $data, ?array $hvv, $now = null)
 
 /**
  * Inhalt des Bereichs "Aktuelle Meldungen" (wie renderMeldungen im Script); leer
- * heisst: Bereich ausblenden. Jede Meldung laesst sich hier wegklicken, siehe
- * nb_weg_knopf().
+ * heisst: Bereich ausblenden. Auf der Startseite ($ausblendbar) laesst sich jede
+ * Meldung wegklicken, siehe nb_weg_knopf(); /aktuell/ zeigt immer alle.
  */
-function nb_render_aktuelle_meldungen(array $liste, $now = null)
+function nb_render_aktuelle_meldungen(array $liste, $now = null, $ausblendbar = true)
 {
     $now = $now ?? time();
     if (!$liste) {
@@ -1009,7 +1011,7 @@ function nb_render_aktuelle_meldungen(array $liste, $now = null)
     }
     $html = '<ol class="feed" id="meldungen-feed">';
     foreach ($liste as $it) {
-        $html .= $it['art'] === 'hvv' ? nb_render_hvv_eintrag($it['meldung'], $now, true) : nb_render_wichtig_eintrag($it, $now, true, true);
+        $html .= $it['art'] === 'hvv' ? nb_render_hvv_eintrag($it['meldung'], $now, $ausblendbar) : nb_render_wichtig_eintrag($it, $now, true, $ausblendbar);
     }
 
     return $html . '</ol>';
@@ -1283,10 +1285,10 @@ function nb_render_seitennav(array $s, $basis)
     return '<nav class="pager" aria-label="Seiten">' . $neuere . '<span class="pager__info">Seite ' . (int) $s['seite'] . ' von ' . (int) $s['seiten'] . '</span>' . $aeltere . '</nav>';
 }
 
-/** Filterleiste der drei Meldungsseiten; jede bleibt eine eigene Adresse. $aktiv: news, eilmeldungen oder stoerungen. */
+/** Filterleiste der vier Meldungsseiten; jede bleibt eine eigene Adresse. $aktiv: aktuell, news, eilmeldungen oder stoerungen. */
 function nb_render_meldungen_tabs($root, $aktiv)
 {
-    $tabs = ['news' => 'Wichtig', 'eilmeldungen' => 'Eilmeldungen', 'stoerungen' => 'St&ouml;rungen'];
+    $tabs = ['aktuell' => 'Aktiv', 'news' => 'Wichtig', 'eilmeldungen' => 'Eilmeldungen', 'stoerungen' => 'St&ouml;rungen'];
     $html = '<nav class="tabs" aria-label="Meldungen filtern">';
     foreach ($tabs as $pfad => $label) {
         $html .= '<a class="tabs__tab" href="' . nb_e($root . $pfad . '/') . '"' . ($pfad === $aktiv ? ' aria-current="page"' : '') . '>' . $label . '</a>';
@@ -1301,13 +1303,13 @@ function nb_render_meldungen_tabs($root, $aktiv)
  * Bereiche nebeneinander, auf dem Handy hinter dem Menue-Knopf, zusammen mit FAQ
  * und Changelog. Das Menue ist ein <details>, klappt also auch ohne JavaScript;
  * nav.js schliesst es bei Klick daneben und mit Escape.
- * $aktiv: lage, news, eilmeldungen, stoerungen, ereignis, karte, statistik, faq, changelog oder impressum.
+ * $aktiv: lage, aktuell, news, eilmeldungen, stoerungen, ereignis, karte, statistik, faq, changelog oder impressum.
  */
 function nb_render_kopf($root, $aktiv, $tools = '')
 {
     $bereiche = [
         'lage' => ['', 'Start', ['lage']],
-        'news' => ['news/', 'Meldungen', ['news', 'eilmeldungen', 'stoerungen', 'ereignis']],
+        'news' => ['news/', 'Meldungen', ['aktuell', 'news', 'eilmeldungen', 'stoerungen', 'ereignis']],
         'karte' => ['karte/', 'Live-Karte', ['karte']],
         'statistik' => ['statistik/', 'Statistik', ['statistik']],
     ];

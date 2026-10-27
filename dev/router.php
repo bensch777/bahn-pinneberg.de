@@ -24,6 +24,7 @@ $map = [
     '/eilmeldungen/' => '/eilmeldungen/index.php',
     '/stoerungen/'   => '/stoerungen/index.php',
     '/news/'         => '/news/index.php',
+    '/aktuell/'      => '/aktuell/index.php',
     '/robots.txt'    => '/robots.php',
     '/'              => '/index.php',
     '/faq/'          => '/faq/index.php',

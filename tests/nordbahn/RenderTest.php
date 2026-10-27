@@ -348,10 +348,17 @@ function test_archiv_seiten_nach_ganzen_tagen()
 function test_meldungen_tabs_und_kopf()
 {
     $html = nb_render_meldungen_tabs('../', 'eilmeldungen');
-    t_contains('<a class="tabs__tab" href="../news/">Wichtig</a>', $html, 'Wichtig');
+    t_contains('<nav class="tabs" aria-label="Meldungen filtern"><a class="tabs__tab" href="../aktuell/">Aktiv</a><a class="tabs__tab" href="../news/">Wichtig</a>', $html, 'Aktiv vor Wichtig');
     t_contains('<a class="tabs__tab" href="../eilmeldungen/" aria-current="page">Eilmeldungen</a>', $html, 'aktiver Tab');
+    t_contains('<a class="tabs__tab" href="../aktuell/" aria-current="page">Aktiv</a>', nb_render_meldungen_tabs('../', 'aktuell'), 'Aktiv als aktiver Tab');
     $kopf = nb_render_kopf('../', 'eilmeldungen');
     t_contains('<a class="site-nav__link" href="../news/" aria-current="page">Meldungen</a>', $kopf, 'Meldungen aktiv auf Unterseiten');
+    t_contains('<a class="site-nav__link" href="../news/" aria-current="page">Meldungen</a>', nb_render_kopf('../', 'aktuell'), 'Meldungen aktiv auf /aktuell/');
+
+    $karte = nb_render_status_card('status-infra', ['level' => 'warn', 'title' => '2 leichte Infrastrukturstörungen', 'detail' => ''], false, './aktuell/');
+    t_contains('<a class="card status status--warn" id="status-infra" href="./aktuell/" data-ssr>', $karte, 'Lagekarte als Link');
+    t_contains('</h3></a>', $karte, 'Link sauber geschlossen');
+    t_contains('<div class="card status status--ok" id="status-betrieb" data-ssr hidden>', nb_render_status_card('status-betrieb', ['level' => 'ok', 'title' => 'ok', 'detail' => ''], true), 'Lagekarte ohne Link bleibt ein div');
     t_contains('<a class="nav-menu__link nav-menu__link--klein" href="../faq/">', $kopf, 'FAQ im Handy-Menue');
     t_contains('href="../">Start</a>', $kopf, 'Link zur Startseite');
 }
@@ -534,6 +541,7 @@ function test_aktuelle_meldungen()
     t_eq(3, substr_count($html, 'class="feed__weg"'), 'jede der drei Meldungen hat einen Knopf');
     t_eq(false, strpos(nb_render_news(nb_wichtig_items($data, $jetzt), $jetzt), 'feed__weg'), 'auf /news/ kein Knopf zum Ausblenden');
     t_eq(false, strpos(nb_render_hvv_eintrag($hvv[0], $jetzt), 'feed__weg'), 'HVV-Eintrag ohne Flag ohne Knopf');
+    t_eq(false, strpos(nb_render_aktuelle_meldungen($liste, $jetzt, false), 'data-weg-id'), 'auf /aktuell/ ohne Knopf und Kennung');
 
     $ruhig = nb_aktuelle_meldungen(['stoerungen' => [], 'stoerungen_verlauf' => [], 'eilmeldungen' => [], 'eilmeldungen_live' => []], null, $jetzt);
     t_eq('', nb_render_aktuelle_meldungen($ruhig, $jetzt), 'ruhige Lage: nichts, der Bereich wird ausgeblendet');

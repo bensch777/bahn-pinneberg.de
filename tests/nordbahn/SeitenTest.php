@@ -22,7 +22,7 @@ function t_seite_rendern($datei, array $get = [])
 function test_alle_seiten_rendern_ohne_fehler()
 {
     $seiten = [
-        'index.php' => [], 'news/index.php' => [], 'eilmeldungen/index.php' => ['seite' => '2'], 'stoerungen/index.php' => [],
+        'index.php' => [], 'news/index.php' => [], 'aktuell/index.php' => [], 'eilmeldungen/index.php' => ['seite' => '2'], 'stoerungen/index.php' => [],
         'statistik/index.php' => [], 'karte/index.php' => [], 'faq/index.php' => [], 'changelog/index.php' => [], 'impressum/index.php' => [],
         'stoerung.php' => ['key' => 'GIBTSNICHT'], 'eilmeldung.php' => ['id' => 'em-0'],
         'sitemap.php' => [], 'llms.php' => [], 'lage.php' => [], 'robots.php' => [], 'api/data.php' => [],
@@ -36,6 +36,10 @@ function test_alle_seiten_rendern_ohne_fehler()
         t_assert($out !== '', $datei . ': keine Ausgabe');
     }
     t_contains('<h1>Meldungen</h1>', t_seite_rendern('news/index.php'), 'news rendert');
+    $aktuell = t_seite_rendern('aktuell/index.php');
+    t_contains('<a class="tabs__tab" href="../aktuell/" aria-current="page">Aktiv</a>', $aktuell, 'aktuell rendert mit aktivem Tab');
+    t_contains('Gerade ist nichts los', $aktuell, 'aktuell ohne Daten: ruhige Lage');
+    t_contains('href="./aktuell/"', t_seite_rendern('index.php'), 'Lagekarten der Startseite verlinken auf /aktuell/');
     $karte = t_seite_rendern('karte/index.php');
     t_contains('id="karte-strecke"', $karte, 'Live-Karte traegt das Streckennetz');
     t_contains('vendor/leaflet/leaflet.js', $karte, 'Live-Karte laedt Leaflet vom eigenen Host');
