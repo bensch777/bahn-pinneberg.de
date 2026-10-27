@@ -521,8 +521,9 @@
 	/*
 	 * Jede Meldung auf der Startseite (Stoerungskarten, "Aktuelle Meldungen") traegt eine
 	 * Kennung in data-weg-id: eil:<id>, st:<key> oder hvv:<id>. Wer sie wegklickt, sieht sie
-	 * in diesem Browser nicht mehr; die Kennungen liegen in localStorage. Die Lagekarten
-	 * oben zeigen weiter die ganze Lage.
+	 * in diesem Browser sieben Tage lang nicht mehr; die Kennungen liegen in localStorage.
+	 * Die Lagekarten oben zeigen weiter die ganze Lage und fuehren zu /aktuell/, wo immer
+	 * alles steht.
 	 */
 	var WEG_KEY = 'nordbahn.meldungen.weg';   // { "<kennung>": <Zeitpunkt des Wegklickens in ms> }
 	var WEG_MAX_MS = 7 * 24 * 3600 * 1000;     // so lange bleibt ein Eintrag gemerkt
@@ -545,69 +546,40 @@
 		storage('set', WEG_KEY, JSON.stringify(weg));
 	}
 
-	/** Versteckt die weggeklickten unter den Eintraegen, zaehlt sichtbare und versteckte. */
+	/** Versteckt die weggeklickten unter den Eintraegen, liefert die Zahl der sichtbaren. */
 	function wegZaehlen(lis, weg) {
-		var z = { sichtbar: 0, versteckt: 0, ids: [] };
+		var sichtbar = 0;
 		Array.prototype.forEach.call(lis, function (li) {
 			var id = li.getAttribute('data-weg-id');
 			li.hidden = !!(id && weg[id]);
-			if (li.hidden) { z.versteckt++; z.ids.push(id); } else z.sichtbar++;
+			if (!li.hidden) sichtbar++;
 		});
-		return z;
-	}
-
-	/** Zeile "N Meldungen ausgeblendet · Wieder anzeigen" in `parent`, direkt hinter `nach` (am Ende bei null). */
-	function wegHinweis(parent, nach, z, klasse, one, many) {
-		var alt = parent.querySelector(':scope > .weg-hinweis');
-		if (alt) parent.removeChild(alt);
-		if (!z.versteckt) return;
-		// Erst nach dem Entfernen: die alte Zeile kann selbst der Nachbar von `nach` gewesen sein
-		parent.insertBefore(el('p', { class: 'weg-hinweis ' + klasse, 'data-ids': JSON.stringify(z.ids) }, [
-			plural(z.versteckt, one, many) + ' ausgeblendet · ',
-			el('button', { type: 'button', class: 'weg-zurueck', text: 'Wieder anzeigen' })
-		]), nach ? nach.nextSibling : null);
+		return sichtbar;
 	}
 
 	/**
 	 * Wendet die Auswahl auf Stoerungskarten und "Aktuelle Meldungen" an, egal ob sie vom
 	 * Server oder vom Script kommen: weggeklickte Eintraege werden versteckt, die Knoepfe
-	 * sichtbar, darunter steht, wie viele fehlen, mit "Wieder anzeigen". Sind unter den
-	 * aktuellen Meldungen alle weg, bleibt nur diese Zeile; ohne Meldung verschwindet der
-	 * Bereich wie bei ruhiger Lage.
+	 * sichtbar. Bleibt in einer Liste nichts uebrig, verschwindet sie wie bei ruhiger Lage.
 	 */
 	function wegAnwenden() {
 		var weg = wegLesen();
 		Array.prototype.forEach.call(document.querySelectorAll('.feed__weg, .incident__weg'), function (b) { b.hidden = false; });
 		var ul = document.getElementById('incidents');
-		if (ul) {
-			var zk = wegZaehlen(ul.querySelectorAll(':scope > li'), weg);
-			wegHinweis(ul.parentNode, ul, zk, 'weg-hinweis--karten', 'Störung', 'Störungen');
-			ul.hidden = !zk.sichtbar;
-		}
+		if (ul) ul.hidden = !wegZaehlen(ul.querySelectorAll(':scope > li'), weg);
 		var section = document.getElementById('meldungen');
 		var box = document.getElementById('meldungen-inhalt');
-		if (section && box) {
-			var zm = wegZaehlen(box.querySelectorAll('#meldungen-feed > li'), weg);
-			wegHinweis(box, null, zm, 'weg-hinweis--feed' + (zm.sichtbar ? '' : ' is-allein'), 'Meldung', 'Meldungen');
-			section.hidden = !zm.sichtbar && !zm.versteckt;
-		}
+		if (section && box) section.hidden = !wegZaehlen(box.querySelectorAll('#meldungen-feed > li'), weg);
 	}
 
-	/** Klicks: × blendet die Meldung des Eintrags aus, "Wieder anzeigen" holt die versteckten dieser Liste zurueck. */
+	/** Klick auf ×: blendet die Meldung des Eintrags aus. */
 	function bindWeg() {
 		document.addEventListener('click', function (ev) {
-			var btn = ev.target && ev.target.closest ? ev.target.closest('.feed__weg, .incident__weg, .weg-zurueck') : null;
-			if (!btn) return;
+			var btn = ev.target && ev.target.closest ? ev.target.closest('.feed__weg, .incident__weg') : null;
+			var li = btn ? btn.closest('[data-weg-id]') : null;
+			if (!li) return;
 			var weg = wegLesen();
-			if (btn.classList.contains('weg-zurueck')) {
-				var ids = [];
-				try { ids = JSON.parse(btn.closest('.weg-hinweis').getAttribute('data-ids')) || []; } catch (e) { ids = []; }
-				ids.forEach(function (id) { delete weg[id]; });
-			} else {
-				var li = btn.closest('[data-weg-id]');
-				if (!li) return;
-				weg[li.getAttribute('data-weg-id')] = Date.now();
-			}
+			weg[li.getAttribute('data-weg-id')] = Date.now();
 			wegSchreiben(weg);
 			wegAnwenden();
 		});

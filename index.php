@@ -186,8 +186,8 @@ $jsonLd = [
 	<section id="status" class="section" aria-label="Lagekarten">
 		<div class="status-grid">
 			<?= nb_render_status_card('status-alles', ['level' => 'ok', 'title' => 'Alles planmäßig', 'detail' => $kompakt['detail']], !$kompakt['alles']) ?>
-			<?= nb_render_status_card('status-infra', $cards['infra'], $kompakt['versteckt']['infra']) ?>
-			<?= nb_render_status_card('status-eil', $cards['eil'], $kompakt['versteckt']['eil']) ?>
+			<?= nb_render_status_card('status-infra', $cards['infra'], $kompakt['versteckt']['infra'], $root . 'aktuell/') ?>
+			<?= nb_render_status_card('status-eil', $cards['eil'], $kompakt['versteckt']['eil'], $root . 'aktuell/') ?>
 			<?= nb_render_status_card('status-betrieb', $cards['betrieb'], $kompakt['versteckt']['betrieb']) ?>
 <?php if ($gfAktiv): ?>
 			<?= nb_render_status_card('status-s3', $cards['s3'], $kompakt['versteckt']['s3']) ?>
