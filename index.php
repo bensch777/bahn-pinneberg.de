@@ -175,13 +175,7 @@ $jsonLd = [
 			<label class="menu__row"><input type="radio" name="notify-zeit" value="pendel"> <span>Nur zu Pendelzeiten<small>Mo&ndash;Fr, 6&ndash;9 und 16&ndash;19 Uhr</small></span></label>
 			<label class="menu__row"><input type="radio" name="notify-zeit" value="immer"> <span>Immer</span></label>
 		</fieldset>
-		<div class="menu__group meine" id="meine-zuege">
-			<p class="meine__titel">Meine Z&uuml;ge</p>
-			<ul class="meine__liste" id="meine-zuege-liste"></ul>
-			<p class="menu__hint meine__leer" id="meine-zuege-leer">Tippe in der Abfahrtstafel auf den Stern &#9734; neben einem Zug. Dann meldet sich die Seite ab einer Stunde vor der Abfahrt, wenn er sp&auml;ter kommt, ausf&auml;llt, woanders abf&auml;hrt oder das Gleis wechselt.</p>
-			<p class="menu__hint" id="meine-zuege-voll" hidden>H&ouml;chstens acht Z&uuml;ge. Entferne erst einen.</p>
-			<p class="menu__hint" id="meine-zuege-aus" hidden>Schalte oben die Benachrichtigungen ein, damit Meldungen zu deinen Z&uuml;gen kommen.</p>
-		</div>
+		<a class="menu__link" id="notify-meine-link" href="#meine">Meine Z&uuml;ge bearbeiten</a>
 	</div>
 </div>
 <?= nb_render_kopf($root, 'lage', ob_get_clean()) ?>
@@ -253,6 +247,28 @@ $jsonLd = [
 				</div>
 				<ol class="board__list" aria-live="polite"></ol>
 			</div>
+		</div>
+	</section>
+
+	<section id="meine" class="section" aria-labelledby="meine-h" hidden>
+		<div class="section__head">
+			<h2 id="meine-h" class="section__title">Meine Z&uuml;ge</h2>
+		</div>
+		<div class="card meine">
+			<p class="meine__intro">Push-Nachricht ab einer Stunde vor der Abfahrt, wenn dein Zug sp&auml;ter kommt, ausf&auml;llt, woanders abf&auml;hrt oder das Gleis wechselt.</p>
+			<ul class="meine__liste" id="meine-zuege-liste"></ul>
+			<div class="meine__neu">
+				<div class="meine__richtung" role="radiogroup" aria-label="Richtung">
+					<label class="meine__seg"><input type="radio" name="meine-richtung" value="hin" checked><span id="meine-label-hin"><?= nb_e($bahnhof['name']) ?> &rarr; Hamburg</span></label>
+					<label class="meine__seg"><input type="radio" name="meine-richtung" value="rueck"><span id="meine-label-rueck">Hamburg &rarr; <?= nb_e($bahnhof['name']) ?></span></label>
+				</div>
+				<div class="meine__suche">
+					<label class="visually-hidden" for="meine-suche">Zug suchen</label>
+					<input id="meine-suche" class="meine__eingabe" type="search" placeholder="Abfahrt suchen, z. B. 8:13" autocomplete="off" enterkeyhint="done" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="meine-vorschlaege">
+					<ul class="meine__vorschlaege" id="meine-vorschlaege" role="listbox" aria-label="Passende Z&uuml;ge" hidden></ul>
+				</div>
+			</div>
+			<p class="meine__hinweis" id="meine-hinweis" hidden></p>
 		</div>
 	</section>
 
