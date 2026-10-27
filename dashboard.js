@@ -114,6 +114,43 @@
 		return fmtTag(ms, klein) + ', ' + fmtUhr(ms);
 	}
 
+	/** "heute", "gestern", "morgen", sonst "29.10." (wie nb_fmt_tag_rel) */
+	function fmtTagRel(ms, klein) {
+		var heute = tagKey(Date.now());
+		var t = tagKey(ms);
+		if (t === heute) return klein === false ? 'Heute' : 'heute';
+		var p = heute.split('-');
+		var gestern = new Date(Date.UTC(+p[0], +p[1] - 1, +p[2] - 1)).toISOString().slice(0, 10);
+		var morgen = new Date(Date.UTC(+p[0], +p[1] - 1, +p[2] + 1)).toISOString().slice(0, 10);
+		if (t === gestern) return klein === false ? 'Gestern' : 'gestern';
+		if (t === morgen) return klein === false ? 'Morgen' : 'morgen';
+		return new Date(ms).toLocaleDateString('de-DE', { timeZone: TZ, day: '2-digit', month: '2-digit' });
+	}
+
+	/** "14:50 Uhr" (heute), "gestern 15:49 Uhr", "morgen 14:00 Uhr", "29.10., 14:00 Uhr" (wie nb_fmt_zeit_rel) */
+	function fmtZeitRel(ms, klein) {
+		var tag = fmtTagRel(ms, klein);
+		if (tag.toLowerCase() === 'heute') return fmtUhr(ms);
+		return tag + (/^\d/.test(tag) ? ', ' : ' ') + fmtUhr(ms);
+	}
+
+	/** Zeitraum einer laufenden Stoerung in einem Satz (wie nb_zeitraum_satz); ende in ms oder null */
+	function fmtZeitraum(start, ende, now, abgelaufen) {
+		var satz = 'Seit ' + fmtZeitRel(start) + ' (' + fmtDauer(Math.max(60000, now - start)) + ')';
+		if (ende !== null && ende > start && now > ende) satz += ' · länger als gemeldet, Ende war ' + fmtZeitRel(ende);
+		else if (abgelaufen) satz += ' · länger als gemeldet';
+		else if (ende !== null && ende > start) satz += ' · voraussichtlich bis ' + fmtZeitRel(ende);
+		return satz;
+	}
+
+	/** Zeitbalken von Beginn bis gemeldetem Ende (wie nb_render_zeitbalken), null ohne Ende */
+	function zeitbalken(start, ende, now, abgelaufen) {
+		if (ende === null || ende <= start) return null;
+		var ueber = abgelaufen || now > ende;
+		var w = ueber ? 100 : Math.max(5, Math.min(100, 5 * Math.round(20 * (now - start) / (ende - start))));
+		return el('div', { class: 'zeitbalken' + (ueber ? ' zeitbalken--ueber' : ''), 'aria-hidden': 'true' }, [el('div', { class: 'bar__fill', 'data-w': String(w) })]);
+	}
+
 	/** Ende einer Stoerung: am selben Tag nur die Uhrzeit (wie nb_fmt_bis) */
 	function fmtBis(start, ende) {
 		return 'bis ' + (tagKey(start) === tagKey(ende) ? fmtUhr(ende) : fmtWann(ende, true));
@@ -445,17 +482,20 @@
 			row('Auswirkung', (s.wirkungen || []).join(', '));
 			row('Einschränkung', s.einschraenkung ? s.einschraenkung.charAt(0).toUpperCase() + s.einschraenkung.slice(1) : '');
 		}
-		var zeit = '';
-		if (s.beginn) zeit = 'seit ' + fmtDateTime(s.beginn);
-		// "abgelaufen": das gemeldete Ende ist vorbei, die Stoerung dauert aber an
-		if (s.ende) zeit += (zeit ? ', ' : '') + (s.abgelaufen ? 'gemeldetes Ende ' + fmtDateTime(s.ende) + ' überschritten, dauert an' : 'voraussichtlich bis ' + fmtDateTime(s.ende));
-		else if (s.abgelaufen) zeit += (zeit ? ', ' : '') + 'dauert länger als gemeldet';
-		row('Zeitraum', zeit);
+		// Zeitraum als Satz plus Zeitbalken (wie nb_render_incident). "abgelaufen": das gemeldete
+		// Ende ist vorbei, die Stoerung dauert aber an.
+		var now = Date.now();
+		var start = Date.parse(s.beginn || '');
+		if (isNaN(start)) start = now;
+		var ende = Date.parse(s.ende || '');
+		ende = isNaN(ende) ? null : ende;
 
 		return el('li', s.key ? { class: 'card incident', 'data-weg-id': 'st:' + s.key } : { class: 'card incident' }, [
 			el('h4', { class: 'incident__title', text: titel }),
 			text ? el('p', { class: 'incident__text', text: text }) : null,
-			meta,
+			el('p', { class: 'zeitraum', text: fmtZeitraum(start, ende, now, !!s.abgelaufen) }),
+			zeitbalken(start, ende, now, !!s.abgelaufen),
+			meta.childNodes.length ? meta : null,
 			s.key ? el('p', { class: 'incident__link' }, [el('a', { href: ereignisLink('stoerung', s.key, s.ki_titel || s.titel), text: 'Details und Verlauf' })]) : null,
 			s.key ? wegKnopf('incident__weg', 'Störung') : null
 		]);
@@ -483,6 +523,7 @@
 		var min = Math.round(ms / 60000);
 		if (min < 60) return Math.max(1, min) + ' Min.';
 		var h = Math.floor(min / 60), rest = min % 60;
+		if (h >= 24) { var d = Math.floor(h / 24); h %= 24; return d + (d === 1 ? ' Tag' : ' Tage') + (h ? ' ' + h + ' Std.' : ''); }
 		return h + ' Std.' + (rest ? ' ' + rest + ' Min.' : '');
 	}
 

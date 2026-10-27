@@ -55,7 +55,8 @@ if (!$gefunden) {
     $zuege = nb_zuege_im_zeitraum($st['start'], $st['ende']);
     $eil = nb_eilmeldungen_im_zeitraum(nb_items($data), $st['start'], $st['ende']);
     $andere = nb_stoerungen_im_zeitraum($data, $st['start'], $st['ende'], $key);
-    $schritte = nb_verlauf_schritte($st['verlauf']);
+    $schritte = nb_verlauf_schritte($st['verlauf'], $st['aktiv'] ? null : $st['ende']);
+    $endeGemeldet = nb_ts($st['ende_gemeldet']);
     $abschnitte = [];
     foreach ($st['abschnitte'] as $a) {
         $teil = implode(' – ', array_filter([$a['von'] ?? '', $a['bis'] ?? '']));
@@ -117,10 +118,6 @@ if (!$gefunden) {
 <?php elseif ($st['betriebsstellen']): ?>
 				<span><?= nb_e(implode(', ', $st['betriebsstellen'])) ?></span>
 <?php endif; ?>
-				<span class="pill <?= $st['aktiv'] ? 'pill--aktiv pill--live' : 'pill--aufgehoben' ?>"><?= $st['aktiv'] ? 'Aktiv' : 'Aufgehoben' ?></span>
-<?php if (nb_stoerung_hinweis($st)): ?>
-				<span class="pill pill--teil" title="F&uuml;r Pendler laut Meldung ohne Auswirkung; z&auml;hlt nicht als St&ouml;rung">Ohne sp&uuml;rbare Folgen</span>
-<?php endif; ?>
 			</p>
 			<h1 class="artikel__titel"><?= nb_e($st['titel']) ?></h1>
 <?php if ($st['ki_text'] !== ''): ?>
@@ -128,19 +125,17 @@ if (!$gefunden) {
 <?php elseif ($st['text'] !== ''): ?>
 			<p class="artikel__vorspann"><?= nb_e($st['text']) ?></p>
 <?php endif; ?>
-			<p class="artikel__meta">
-				<span>Gemeldet <time datetime="<?= date('c', $st['start']) ?>"><?= nb_e(nb_fmt_tag_lang($st['start'], $now)) ?>, <?= nb_e(nb_fmt_uhr($st['start'])) ?></time></span>
+			<div class="artikel__status">
+				<span class="pill <?= $st['aktiv'] ? 'pill--aktiv pill--live' : 'pill--aufgehoben' ?>"><?= $st['aktiv'] ? 'Aktiv' : 'Aufgehoben' ?></span>
+<?php if (nb_stoerung_hinweis($st)): ?>
+				<span class="pill pill--teil" title="F&uuml;r Pendler laut Meldung ohne Auswirkung; z&auml;hlt nicht als St&ouml;rung">Ohne sp&uuml;rbare Folgen</span>
+<?php endif; ?>
+				<p class="zeitraum"><time datetime="<?= date('c', $st['start']) ?>"><?= nb_e(nb_zeitraum_satz($st['start'], $st['aktiv'] ? $endeGemeldet : null, $now, $st['aktiv'] ? null : $st['ende'], $st['abgelaufen'])) ?></time></p>
 <?php if ($st['aktiv']): ?>
-				<span>Dauert an, bisher <?= nb_e($dauer) ?></span>
-<?php if ($st['ende_gemeldet'] !== ''): ?>
-				<span><?= $st['abgelaufen'] ? 'Gemeldetes Ende ' . nb_e(nb_fmt_datetime($st['ende_gemeldet'])) . ' &uuml;berschritten' : 'Voraussichtlich bis ' . nb_e(nb_fmt_datetime($st['ende_gemeldet'])) ?></span>
+				<?= nb_render_zeitbalken($st['start'], $endeGemeldet, $now, $st['abgelaufen']) ?>
+
 <?php endif; ?>
-<?php else: ?>
-				<span>Aufgehoben <time datetime="<?= date('c', $st['ende']) ?>"><?= nb_e(nb_fmt_bis($st['start'], $st['ende'], $now)) ?></time></span>
-				<span>Dauer <?= nb_e($dauer) ?></span>
-<?php endif; ?>
-				<span>Quelle <a href="https://strecken-info.de/#/suche/<?= nb_e(rawurlencode($key)) ?>" rel="noopener nofollow">strecken-info.de</a></span>
-			</p>
+			</div>
 		</header>
 
 <?php if ($abschnitte || $st['betriebsstellen'] || $st['wirkungen'] || $st['einschraenkung'] !== ''): ?>
@@ -172,9 +167,7 @@ if (!$gefunden) {
 <?php if ($st['text'] !== ''): ?>
 				<p class="quelle__text"><?= nb_e($st['text']) ?></p>
 <?php endif; ?>
-<?php if ($st['beginn_gemeldet'] !== '' || $st['ende_gemeldet'] !== ''): ?>
-				<p class="quelle__fuss"><?= $st['beginn_gemeldet'] !== '' ? 'Gemeldeter Beginn ' . nb_e(nb_fmt_datetime($st['beginn_gemeldet'])) : '' ?><?= $st['beginn_gemeldet'] !== '' && $st['ende_gemeldet'] !== '' ? ' · ' : '' ?><?= $st['ende_gemeldet'] !== '' ? 'gemeldetes Ende ' . nb_e(nb_fmt_datetime($st['ende_gemeldet'])) : '' ?></p>
-<?php endif; ?>
+				<p class="quelle__fuss"><a href="https://strecken-info.de/#/suche/<?= nb_e(rawurlencode($key)) ?>" rel="noopener nofollow">Meldung bei strecken-info.de &#8599;</a></p>
 			</blockquote>
 		</section>
 

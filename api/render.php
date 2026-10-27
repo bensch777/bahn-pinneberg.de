@@ -92,6 +92,87 @@ function nb_fmt_wann($ts, $now = null, $klein = false)
     return nb_fmt_tag($ts, $now, $klein) . ', ' . $uhr . ' Uhr';
 }
 
+/** "heute", "gestern", "morgen", sonst "29.10." (gross am Satzanfang mit $klein = false). */
+function nb_fmt_tag_rel($ts, $now = null, $klein = true)
+{
+    $tz = new DateTimeZone('Europe/Berlin');
+    $tag = (new DateTime('@' . (int) $ts))->setTimezone($tz)->format('Y-m-d');
+    $heute = (new DateTime('@' . (int) ($now ?? time())))->setTimezone($tz);
+    if ($tag === $heute->format('Y-m-d')) {
+        return $klein ? 'heute' : 'Heute';
+    }
+    if ($tag === (clone $heute)->modify('-1 day')->format('Y-m-d')) {
+        return $klein ? 'gestern' : 'Gestern';
+    }
+    if ($tag === (clone $heute)->modify('+1 day')->format('Y-m-d')) {
+        return $klein ? 'morgen' : 'Morgen';
+    }
+
+    return (new DateTime('@' . (int) $ts))->setTimezone($tz)->format('d.m.');
+}
+
+/**
+ * Uhrzeit mit relativem Tag, so wie man es sagt: heute nur "14:50 Uhr", sonst
+ * "gestern 15:49 Uhr", "morgen 14:00 Uhr" oder "29.10., 14:00 Uhr" (wie fmtZeitRel im Script).
+ */
+function nb_fmt_zeit_rel($ts, $now = null, $klein = true)
+{
+    $tag = nb_fmt_tag_rel($ts, $now, $klein);
+    $uhr = (new DateTime('@' . (int) $ts))->setTimezone(new DateTimeZone('Europe/Berlin'))->format('H:i') . ' Uhr';
+    if (mb_strtolower($tag) === 'heute') {
+        return $uhr;
+    }
+
+    return $tag . (preg_match('/^\d/', $tag) ? ', ' : ' ') . $uhr;
+}
+
+/**
+ * Zeitraum einer Stoerung in einem Satz (wie fmtZeitraum im Script):
+ *   laufend          "Seit 14:50 Uhr (4 Std.) · voraussichtlich bis morgen 14:00 Uhr"
+ *   Ende ueberschritten "Seit gestern 15:49 Uhr (1 Tag 3 Std.) · länger als gemeldet, Ende war 14:00 Uhr"
+ *   ohne Ende        "Seit 14:50 Uhr (4 Std.)"
+ *   aufgehoben       "Gestern 14:50 Uhr bis 18:00 Uhr (3 Std. 10 Min.)"
+ * $ende ist das gemeldete Ende (null ohne), $aufgehoben der Zeitpunkt der Aufhebung (null solange
+ * aktiv), $abgelaufen das Flag von strecken-info (Ende vorbei, Stoerung dauert an), falls das
+ * gemeldete Ende selbst noch vorn liegt.
+ */
+function nb_zeitraum_satz($start, $ende, $now, $aufgehoben = null, $abgelaufen = false)
+{
+    if ($aufgehoben !== null) {
+        $bis = nb_fmt_tag_rel($start, $now) === nb_fmt_tag_rel($aufgehoben, $now)
+            ? (new DateTime('@' . (int) $aufgehoben))->setTimezone(new DateTimeZone('Europe/Berlin'))->format('H:i') . ' Uhr'
+            : nb_fmt_zeit_rel($aufgehoben, $now);
+
+        return nb_fmt_zeit_rel($start, $now, false) . ' bis ' . $bis . ' (' . nb_dauer(max(60, $aufgehoben - $start)) . ')';
+    }
+    $satz = 'Seit ' . nb_fmt_zeit_rel($start, $now) . ' (' . nb_dauer(max(60, $now - $start)) . ')';
+    if ($ende !== null && $ende > $start && $now > $ende) {
+        $satz .= ' · länger als gemeldet, Ende war ' . nb_fmt_zeit_rel($ende, $now);
+    } elseif ($abgelaufen) {
+        $satz .= ' · länger als gemeldet';
+    } elseif ($ende !== null && $ende > $start) {
+        $satz .= ' · voraussichtlich bis ' . nb_fmt_zeit_rel($ende, $now);
+    }
+
+    return $satz;
+}
+
+/**
+ * Zeitbalken von Beginn bis gemeldetem Ende, gefuellt bis jetzt (5-Prozent-Stufen ueber
+ * data-w, CSP-konform ohne Inline-Style). Ist das Ende ueberschritten, ist der Balken
+ * voll und gelb. Leer ohne gemeldetes Ende oder nach der Aufhebung.
+ */
+function nb_render_zeitbalken($start, $ende, $now, $abgelaufen = false)
+{
+    if ($ende === null || $ende <= $start) {
+        return '';
+    }
+    $ueber = $abgelaufen || $now > $ende;
+    $w = $ueber ? 100 : nb_bar_stufe($now - $start, $ende - $start);
+
+    return '<div class="zeitbalken' . ($ueber ? ' zeitbalken--ueber' : '') . '" aria-hidden="true"><div class="bar__fill" data-w="' . $w . '"></div></div>';
+}
+
 /** Ende einer Stoerung: am selben Tag nur die Uhrzeit, sonst mit Tag. */
 function nb_fmt_bis($start, $ende, $now = null)
 {
@@ -453,17 +534,14 @@ function nb_render_incident(array $s, $ausblendbar = false)
     $rows['Abschnitt'] = $abschnitte ? implode(', ', $abschnitte) : implode(', ', $s['betriebsstellen'] ?? []);
     $rows['Auswirkung'] = implode(', ', $s['wirkungen'] ?? []);
     $rows['Einschränkung'] = !empty($s['einschraenkung']) ? mb_strtoupper(mb_substr($s['einschraenkung'], 0, 1)) . mb_substr($s['einschraenkung'], 1) : '';
-    $zeit = '';
-    if (!empty($s['beginn'])) {
-        $zeit = 'seit ' . nb_fmt_datetime($s['beginn']);
-    }
-    if (!empty($s['ende'])) {
-        // "abgelaufen": das gemeldete Ende ist vorbei, die Stoerung dauert aber an
-        $zeit .= ($zeit ? ', ' : '') . (!empty($s['abgelaufen']) ? 'gemeldetes Ende ' . nb_fmt_datetime($s['ende']) . ' überschritten, dauert an' : 'voraussichtlich bis ' . nb_fmt_datetime($s['ende']));
-    } elseif (!empty($s['abgelaufen'])) {
-        $zeit .= ($zeit ? ', ' : '') . 'dauert länger als gemeldet';
-    }
-    $rows['Zeitraum'] = $zeit;
+
+    // Zeitraum als Satz plus Zeitbalken (wie renderIncident im Script). "abgelaufen" heisst:
+    // das gemeldete Ende ist vorbei, die Stoerung dauert aber an.
+    $now = time();
+    $start = nb_ts($s['beginn'] ?? '') ?? $now;
+    $ende = nb_ts($s['ende'] ?? '');
+    $abgelaufen = !empty($s['abgelaufen']);
+    $zeitraum = '<p class="zeitraum">' . nb_e(nb_zeitraum_satz($start, $ende, $now, null, $abgelaufen)) . '</p>' . nb_render_zeitbalken($start, $ende, $now, $abgelaufen);
 
     // Liegt der Pendler-Text der KI vor, reichen Titel, Text und Zeitraum; die technischen
     // Details (Originalmeldung, Abschnitt, Wirkung, Einschraenkung) zeigt die Karte nur, solange
@@ -472,7 +550,7 @@ function nb_render_incident(array $s, $ausblendbar = false)
     $titel = $ki && !empty($s['ki_titel']) ? $s['ki_titel'] : ($s['titel'] ?? 'Störung');
     $text = $ki && !empty($s['ki_text']) ? $s['ki_text'] : ($s['text'] ?? '');
     if ($ki) {
-        $rows = ['Zeitraum' => $rows['Zeitraum']];
+        $rows = [];
     }
 
     $weg = $ausblendbar && !empty($s['key']);
@@ -481,14 +559,15 @@ function nb_render_incident(array $s, $ausblendbar = false)
     if ($text !== '') {
         $html .= '<p class="incident__text">' . nb_e($text) . '</p>';
     }
-    $html .= '<dl class="incident__meta">';
-    foreach ($rows as $label => $value) {
-        if ($value === '') {
-            continue;
+    $html .= $zeitraum;
+    $rows = array_filter($rows, function ($v) { return $v !== ''; });
+    if ($rows) {
+        $html .= '<dl class="incident__meta">';
+        foreach ($rows as $label => $value) {
+            $html .= '<div><dt>' . nb_e($label) . '</dt><dd>' . nb_e($value) . '</dd></div>';
         }
-        $html .= '<div><dt>' . nb_e($label) . '</dt><dd>' . nb_e($value) . '</dd></div>';
+        $html .= '</dl>';
     }
-    $html .= '</dl>';
     if ($link !== '') {
         $html .= '<p class="incident__link"><a href="' . nb_e($link) . '">Details und Verlauf</a></p>';
     }
@@ -1086,6 +1165,12 @@ function nb_dauer($sekunden)
     }
     $h = intdiv($min, 60);
     $rest = $min % 60;
+    if ($h >= 24) {
+        $tage = intdiv($h, 24);
+        $h %= 24;
+
+        return $tage . ($tage === 1 ? ' Tag' : ' Tage') . ($h ? ' ' . $h . ' Std.' : '');
+    }
 
     return $h . ' Std.' . ($rest ? ' ' . $rest . ' Min.' : '');
 }

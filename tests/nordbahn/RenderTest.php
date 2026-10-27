@@ -210,11 +210,44 @@ function test_dauer_format()
     t_eq('2 Std. 10 Min.', nb_dauer(2 * 3600 + 10 * 60), 'Stunden und Minuten');
 }
 
+function test_zeit_rel_und_zeitraum_satz()
+{
+    $jetzt = nb_ts(T_NOW); // 15.10.2026, 10:00 Uhr Berlin
+    t_eq('heute', nb_fmt_tag_rel($jetzt - 3600, $jetzt), 'heute');
+    t_eq('gestern', nb_fmt_tag_rel($jetzt - 86400, $jetzt), 'gestern');
+    t_eq('morgen', nb_fmt_tag_rel($jetzt + 86400, $jetzt), 'morgen');
+    t_eq('17.10.', nb_fmt_tag_rel($jetzt + 2 * 86400, $jetzt), 'uebermorgen mit Datum');
+    t_eq('09:00 Uhr', nb_fmt_zeit_rel($jetzt - 3600, $jetzt), 'heute nur die Uhrzeit');
+    t_eq('gestern 10:00 Uhr', nb_fmt_zeit_rel($jetzt - 86400, $jetzt), 'gestern mit Uhrzeit');
+    t_eq('Morgen 14:00 Uhr', nb_fmt_zeit_rel($jetzt + 86400 + 4 * 3600, $jetzt, false), 'morgen gross am Satzanfang');
+    t_eq('17.10., 10:00 Uhr', nb_fmt_zeit_rel($jetzt + 2 * 86400, $jetzt), 'Datum mit Komma');
+
+    t_eq('Seit 05:50 Uhr (4 Std. 10 Min.) · voraussichtlich bis morgen 14:00 Uhr', nb_zeitraum_satz($jetzt - 250 * 60, $jetzt + 86400 + 4 * 3600, $jetzt), 'laufend mit Ende');
+    t_eq('Seit gestern 15:49 Uhr (18 Std. 11 Min.) · länger als gemeldet, Ende war 08:00 Uhr', nb_zeitraum_satz($jetzt - 86400 + 349 * 60, $jetzt - 7200, $jetzt), 'Ende ueberschritten');
+    t_eq('Seit 09:30 Uhr (30 Min.)', nb_zeitraum_satz($jetzt - 1800, null, $jetzt), 'ohne Ende');
+    t_eq('Gestern 14:50 Uhr bis 18:00 Uhr (3 Std. 10 Min.)', nb_zeitraum_satz($jetzt - 86400 + 290 * 60, null, $jetzt, $jetzt - 86400 + 480 * 60), 'aufgehoben am selben Tag');
+    t_eq('Gestern 23:10 Uhr bis 01:00 Uhr (1 Std. 50 Min.)', nb_zeitraum_satz($jetzt - 86400 + 790 * 60, null, $jetzt, $jetzt - 9 * 3600), 'aufgehoben ueber Mitternacht');
+    t_eq('1 Tag 3 Std.', nb_dauer(27 * 3600 + 20 * 60), 'Dauer mit Tagen, Minuten fallen weg');
+    t_eq('2 Tage', nb_dauer(48 * 3600), 'volle Tage');
+
+    t_eq('', nb_render_zeitbalken($jetzt - 3600, null, $jetzt), 'ohne Ende kein Balken');
+    t_contains('<div class="zeitbalken" aria-hidden="true"><div class="bar__fill" data-w="25"></div></div>', nb_render_zeitbalken($jetzt - 3600, $jetzt + 3 * 3600, $jetzt), 'ein Viertel vorbei');
+    t_contains('<div class="zeitbalken zeitbalken--ueber" aria-hidden="true"><div class="bar__fill" data-w="100"></div></div>', nb_render_zeitbalken($jetzt - 3600, $jetzt - 600, $jetzt), 'Ende ueberschritten: voll und gelb');
+}
+
 function test_incident_zeitraum_abgelaufen()
 {
-    $s = ['key' => 'X', 'titel' => 'Störung', 'ki_titel' => 'Test', 'ki_text' => 'Text', 'beginn' => '2026-10-15T05:00:00Z', 'ende' => '2026-10-15T10:31:00Z'];
-    t_contains('voraussichtlich bis 15.10., 12:31 Uhr', nb_render_incident($s), 'laufende Stoerung');
-    t_contains('gemeldetes Ende 15.10., 12:31 Uhr überschritten, dauert an', nb_render_incident($s + ['abgelaufen' => true]), 'abgelaufene Stoerung');
+    $s = ['key' => 'X', 'titel' => 'Störung', 'ki_titel' => 'Test', 'ki_text' => 'Text', 'beginn' => gmdate('Y-m-d\TH:i:s\Z', time() - 2 * 3600), 'ende' => gmdate('Y-m-d\TH:i:s\Z', time() + 6 * 3600)];
+    $html = nb_render_incident($s);
+    t_contains('<p class="zeitraum">Seit ', $html, 'Zeitraum als Satz');
+    t_contains('(2 Std.) · voraussichtlich bis ', $html, 'Dauer und Ende im Satz');
+    t_contains('<div class="zeitbalken" aria-hidden="true"><div class="bar__fill" data-w="25"></div></div>', $html, 'Zeitbalken auf der Karte');
+    t_eq(false, strpos($html, 'incident__meta'), 'mit KI-Text keine Detailzeilen');
+    $abgelaufen = nb_render_incident($s + ['abgelaufen' => true]);
+    t_contains('(2 Std.) · länger als gemeldet</p>', $abgelaufen, 'abgelaufen laut Flag, Ende liegt noch vorn: ohne Uhrzeit');
+    t_contains('länger als gemeldet, Ende war ', nb_render_incident(['ende' => gmdate('Y-m-d\\TH:i:s\\Z', time() - 600)] + $s), 'Ende vorbei: mit Uhrzeit');
+    t_contains('zeitbalken zeitbalken--ueber', $abgelaufen, 'Balken voll und gelb');
+    t_contains('<dl class="incident__meta"><div><dt>Auswirkung</dt>', nb_render_incident(['key' => 'Y', 'titel' => 'Roh', 'wirkungen' => ['Verspätungen']]), 'ohne KI-Text die Detailzeilen');
     t_eq(false, strpos(nb_render_incident($s), 'data-weg-id'), 'Karte ohne Flag ohne Knopf');
     $karte = nb_render_incident($s, true);
     t_contains('<li class="card incident" data-weg-id="st:X">', $karte, 'Karte traegt die Kennung der Stoerung');
