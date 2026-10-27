@@ -211,7 +211,6 @@ $jsonLd = [
 				<p class="section__sub" id="abfahrten-sub"></p>
 			</div>
 		</div>
-		<div class="card meine-kurz" id="meine-kurz" hidden></div>
 		<div class="boards">
 			<div class="card board" data-richtung="hin">
 				<div class="board__head">

@@ -38,7 +38,7 @@ function test_alle_seiten_rendern_ohne_fehler()
     t_contains('<h1>Meldungen</h1>', t_seite_rendern('news/index.php'), 'news rendert');
     $start = t_seite_rendern('index.php');
     t_contains('<a class="tool tool--toggle" id="notify-toggle" href="./einstellungen/"', $start, 'Glocke fuehrt zu den Einstellungen');
-    t_contains('id="meine-kurz"', $start, 'Startseite hat die kompakte Karte Meine Zuege');
+    t_assert(strpos($start, 'meine-kurz') === false, 'keine Karte Meine Zuege auf der Startseite');
     t_assert(strpos($start, 'id="notify-menu"') === false, 'kein Glocken-Dropdown mehr');
     $einst = t_seite_rendern('einstellungen/index.php');
     foreach (['data-seite="einstellungen"', 'id="meine-suche"', 'id="notify-on"', 'id="daten-loeschen"', 'href="../einstellungen/" aria-current="page"'] as $teil) {

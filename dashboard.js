@@ -776,7 +776,6 @@
 		});
 		alertState.ausfaelle = ausfaelle;
 		alertState.verspaetet = verspaetet;
-		renderMeineZuege();
 		updateBadge();
 		notifyNew(collectEvents(result));
 	}
@@ -1439,69 +1438,8 @@
 		renderMeineZuege();
 	}
 
-	/** Lage heute zu einem gemerkten Zug aus der Tafel, falls er dort steht. */
-	function meinStatus(z) {
-		var r = departuresState.last;
-		if (!r || !r.richtungen || !r.heimat || r.heimat.id !== z.heimat) return null;
-		var d = null;
-		(r.richtungen[z.richtung] || []).forEach(function (x) {
-			if (nummernVon(z).indexOf(x.zug) < 0) return;
-			if (!d || (x.ab === z.ab && !x.ersatz_fuer)) d = x;
-		});
-		if (!d) return null;
-		if (d.ausfall && d.ersatz) return { klasse: 'ausfall', text: 'Heute ab ' + d.ersatz.ab + ' um ' + fmtClock(d.ersatz.zeit) + (d.ersatz.gleis ? ', Gl. ' + d.ersatz.gleis : '') };
-		if (d.ausfall) return { klasse: 'ausfall', text: 'Fällt heute aus' + (d.teil && d.teil.art === 'beginnt' ? ', fährt erst ab ' + d.teil.name : '') };
-		var teile = [];
-		var klasse = 'ok';
-		if (d.teil && !d.teil.plan) { teile.push(d.teil.art === 'beginnt' ? 'Startet heute erst in ' + d.teil.name + ' um ' + fmtClock(d.zeit) : 'Endet heute in ' + d.teil.name); klasse = 'warn'; }
-		if (d.bus) { teile.push('Bus statt Zug'); klasse = 'warn'; }
-		if (d.verspaetung >= 3) { teile.push('Heute +' + d.verspaetung + ' Min., ab ' + fmtClock(d.ist)); klasse = 'warn'; }
-		else if (!teile.length) teile.push('Heute pünktlich' + (fmtCountdown(d.ist || d.zeit) ? ', ' + fmtCountdown(d.ist || d.zeit) : ''));
-		if (d.gleis_plan) { teile.push('Gl. ' + d.gleis + ' statt ' + d.gleis_plan); klasse = 'warn'; }
-		return { klasse: klasse, text: teile.join(' · ') };
-	}
-
-	/** Liste "Meine Zuege": Zeit, Linie, Strecke, Lage heute, Wochentage zum Umschalten, Kreuz zum Vergessen. */
-	/**
-	 * Startseite: die gemerkten Zuege von heute mit ihrer Lage aus der Tafel. Ohne
-	 * gemerkte Zuege bleibt die Karte weg, eingerichtet wird ueber die Glocke.
-	 */
-	function renderMeineKurz() {
-		var box = document.getElementById('meine-kurz');
-		if (!box) return;
-		var alle = meineZuege();
-		var heute = wochentagHeute();
-		var jetzt = uhrJetzt();
-		var link = root() + 'einstellungen/#meine';
-		clear(box);
-		box.hidden = !alle.length;
-		if (!alle.length) return;
-		box.appendChild(el('div', { class: 'meine-kurz__kopf' }, [
-			el('h3', { class: 'meine-kurz__titel', text: 'Meine Züge' }),
-			el('a', { class: 'meine-kurz__link', href: link, text: 'Bearbeiten' })
-		]));
-		var list = alle.filter(function (z) { return (z.tage || []).indexOf(heute) >= 0; })
-			.sort(function (a, b) { return a.zeit < b.zeit ? -1 : a.zeit > b.zeit ? 1 : 0; });
-		if (!list.length) {
-			box.appendChild(el('p', { class: 'meine-kurz__leer', text: 'Heute fährt keiner deiner Züge.' }));
-			return;
-		}
-		var ul = el('ul', { class: 'meine-kurz__liste' });
-		list.forEach(function (z) {
-			var status = meinStatus(z);
-			var vorbei = !status && z.zeit < jetzt;
-			ul.appendChild(el('li', { class: 'meine-kurz__zug' + (vorbei ? ' is-vorbei' : '') }, [
-				el('strong', { class: 'meine-kurz__zeit', text: z.zeit }),
-				el('span', { class: 'meine__linie', text: z.linie }),
-				el('span', { class: 'meine__strecke', text: streckeText(z, z.heimat) }),
-				el('span', { class: 'meine-kurz__status' + (status ? ' meine__status--' + status.klasse : ''), text: status ? status.text : (vorbei ? 'vorbei' : '') })
-			]));
-		});
-		box.appendChild(ul);
-	}
-
+	/** Liste "Meine Zuege": Zeit, Linie, Strecke, Wochentage zum Umschalten, Kreuz zum Entfernen. */
 	function renderMeineZuege() {
-		renderMeineKurz();
 		renderDaten();
 		var ul = document.getElementById('meine-zuege-liste');
 		if (!ul) return;
@@ -1527,7 +1465,6 @@
 				});
 				tage.appendChild(b);
 			});
-			var status = meinStatus(z);
 			ul.appendChild(el('li', { class: 'meine__zug' }, [
 				el('div', { class: 'meine__kopf' }, [
 					el('strong', { class: 'meine__zeit', text: z.zeit }), ' ',
@@ -1535,7 +1472,6 @@
 					el('span', { class: 'meine__strecke', text: streckeText(z, z.heimat) }),
 					weg
 				]),
-				status ? el('p', { class: 'meine__status meine__status--' + status.klasse, text: status.text }) : null,
 				tage
 			]));
 		});

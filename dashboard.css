@@ -612,9 +612,6 @@ a.status:focus-visible { outline: 2px solid var(--series); outline-offset: 2px; 
 .meine__strecke { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink-2); }
 .meine__weg { flex: none; border: 0; background: transparent; color: var(--muted); font-size: 22px; line-height: 1; padding: 0 4px; cursor: pointer; }
 .meine__weg:hover { color: var(--ink); }
-.meine__status { margin: 2px 0 0; font-size: 13px; color: var(--muted); }
-.meine__status--warn { color: var(--critical-text); font-weight: 500; }
-.meine__status--ausfall { color: var(--critical-text); font-weight: 600; }
 .meine__tage { display: flex; gap: 4px; margin-top: 8px; max-width: 360px; }
 .meine__tag {
 	flex: 1; padding: 4px 0; border-radius: 6px; border: 1px solid var(--line); background: transparent;
@@ -624,59 +621,6 @@ a.status:focus-visible { outline: 2px solid var(--series); outline-offset: 2px; 
 .meine__neu { display: grid; gap: 10px; }
 .meine__bahnhof { justify-self: start; }
 
-/* Startseite: Meine Zuege kompakt ueber der Tafel */
-.meine-kurz { margin: 0 0 12px; padding: 12px 18px; }
-.meine-kurz[hidden] { display: none; }
-.meine-kurz__kopf { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-bottom: 4px; }
-.meine-kurz__titel { margin: 0; font-size: 15px; font-weight: 600; }
-.meine-kurz__link { font-size: 13px; color: var(--series); text-decoration: none; }
-.meine-kurz__link:hover { text-decoration: underline; }
-.meine-kurz__leer { margin: 0; font-size: 13.5px; color: var(--muted); }
-.meine-kurz__liste { list-style: none; margin: 0; padding: 0; }
-.meine-kurz__zug {
-	display: grid; grid-template-columns: 52px auto minmax(0, 1fr); gap: 2px 10px; align-items: baseline;
-	padding: 6px 0; border-top: 1px solid var(--line); font-variant-numeric: tabular-nums;
-}
-.meine-kurz__zug:first-child { border-top: 0; }
-.meine-kurz__zug .meine__strecke { min-width: 0; }
-.meine-kurz__zeit { font-size: 16px; }
-.meine-kurz__status { grid-column: 2 / -1; font-size: 13px; color: var(--muted); }
-.meine-kurz__status:empty { display: none; }
-.meine-kurz__zug.is-vorbei { opacity: 0.55; }
-@media (min-width: 640px) {
-	.meine-kurz__zug { grid-template-columns: 52px auto minmax(0, 1fr) auto; }
-	.meine-kurz__status { grid-column: auto; text-align: right; }
-}
-.meine__richtung { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; padding: 2px; justify-self: start; max-width: 100%; }
-.meine__seg { position: relative; cursor: pointer; }
-.meine__seg input { position: absolute; opacity: 0; pointer-events: none; }
-.meine__seg span { display: block; padding: 5px 12px; border-radius: 6px; font-size: 13px; color: var(--ink-2); white-space: nowrap; }
-.meine__seg input:checked + span { background: var(--series); color: #fff; font-weight: 600; }
-.meine__seg input:focus-visible + span { outline: 2px solid var(--series); outline-offset: 1px; }
-.meine__suche { position: relative; }
-.meine__eingabe {
-	width: 100%; box-sizing: border-box; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--line);
-	background: var(--surface); color: var(--ink); font: inherit; font-size: 16px;
-}
-.meine__eingabe:focus { outline: 2px solid var(--series); outline-offset: 0; border-color: var(--series); }
-.meine__eingabe:disabled { opacity: 0.6; }
-.meine__vorschlaege {
-	position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 15; list-style: none; margin: 0; padding: 4px;
-	background: var(--surface); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
-	max-height: 320px; overflow-y: auto;
-}
-.meine__vorschlaege[hidden] { display: none; }
-.meine__vorschlag { display: flex; align-items: baseline; gap: 8px; padding: 9px 10px; border-radius: 6px; cursor: pointer; font-variant-numeric: tabular-nums; }
-.meine__vorschlag { flex-wrap: wrap; }
-.meine__vorschlag small { flex: none; font-size: 12px; color: var(--muted); }
-.meine__vorschlag .meine__variante { flex-basis: 100%; margin-top: -2px; }
-.meine__vorschlag:hover, .meine__vorschlag.is-aktiv { background: var(--surface-2); }
-.meine__vorschlag[aria-disabled="true"] { opacity: 0.5; cursor: default; }
-.meine__leer { padding: 9px 10px; font-size: 13px; color: var(--muted); }
-.meine__hinweis { margin: 10px 0 0; font-size: 13px; color: var(--ink-2); }
-.meine__hinweis[hidden] { display: none; }
-.meine__an { margin-left: 2px; font: inherit; font-size: 13px; font-weight: 600; padding: 5px 12px; border-radius: 8px; border: 1px solid var(--series); background: var(--series); color: #fff; cursor: pointer; }
-.meine__weg:focus-visible, .meine__tag:focus-visible, .meine__an:focus-visible { outline: 2px solid var(--series); outline-offset: 1px; }
 /* Einstellungen */
 .einstellung { padding: 14px 18px 16px; }
 .einstellung__schalter { display: flex; gap: 10px; align-items: center; font-size: 15px; font-weight: 600; cursor: pointer; }
