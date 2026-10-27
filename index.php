@@ -162,14 +162,26 @@ $jsonLd = [
 		<span class="visually-hidden" id="notify-label">Benachrichtigungen</span>
 	</button>
 	<div class="menu" id="notify-menu" hidden>
-		<label class="menu__row"><input type="checkbox" id="notify-on"> <span>Bei Ausf&auml;llen und St&ouml;rungen benachrichtigen</span></label>
+		<label class="menu__row"><input type="checkbox" id="notify-on"> <span>Benachrichtigungen einschalten</span></label>
 		<p class="menu__hint" id="notify-hint" hidden></p>
 		<p class="menu__hint" id="notify-push-hint" hidden></p>
 		<fieldset class="menu__group">
+			<legend>Was</legend>
+			<label class="menu__row"><input type="radio" name="notify-was" value="alles"> <span>Alle Ausf&auml;lle und St&ouml;rungen<small>am Heimatbahnhof, dazu meine Z&uuml;ge</small></span></label>
+			<label class="menu__row"><input type="radio" name="notify-was" value="nur"> <span>Nur meine Z&uuml;ge<small>Versp&auml;tung, Ausfall, anderer Bahnhof, Gleis</small></span></label>
+		</fieldset>
+		<fieldset class="menu__group" id="notify-wann">
 			<legend>Wann</legend>
 			<label class="menu__row"><input type="radio" name="notify-zeit" value="pendel"> <span>Nur zu Pendelzeiten<small>Mo&ndash;Fr, 6&ndash;9 und 16&ndash;19 Uhr</small></span></label>
 			<label class="menu__row"><input type="radio" name="notify-zeit" value="immer"> <span>Immer</span></label>
 		</fieldset>
+		<div class="menu__group meine" id="meine-zuege">
+			<p class="meine__titel">Meine Z&uuml;ge</p>
+			<ul class="meine__liste" id="meine-zuege-liste"></ul>
+			<p class="menu__hint meine__leer" id="meine-zuege-leer">Tippe in der Abfahrtstafel auf den Stern &#9734; neben einem Zug. Dann meldet sich die Seite ab einer Stunde vor der Abfahrt, wenn er sp&auml;ter kommt, ausf&auml;llt, woanders abf&auml;hrt oder das Gleis wechselt.</p>
+			<p class="menu__hint" id="meine-zuege-voll" hidden>H&ouml;chstens acht Z&uuml;ge. Entferne erst einen.</p>
+			<p class="menu__hint" id="meine-zuege-aus" hidden>Schalte oben die Benachrichtigungen ein, damit Meldungen zu deinen Z&uuml;gen kommen.</p>
+		</div>
 	</div>
 </div>
 <?= nb_render_kopf($root, 'lage', ob_get_clean()) ?>
