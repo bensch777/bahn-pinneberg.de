@@ -21,13 +21,15 @@ $assetVersion = (int) @filemtime(__DIR__ . '/../dashboard.css');
 
 $data = nordbahn_dataset();
 $now = time();
-$stoerungen = $data['stoerungen'] ?? [];
+$teile = nb_stoerungen_teilen($data['stoerungen'] ?? []);
+$stoerungen = $teile['stoerungen'];
+$hinweise = $teile['hinweise'];
 $bau = nb_baufahrplan($data, $now);
 $gfAktiv = gf_aktiv();
 $gf = $gfAktiv ? nb_read_geofox() : null;
 $meldungen = nb_aktuelle_meldungen($data, $gfAktiv ? ($gf['s3']['meldungen'] ?? []) : null, $now);
 $stand = !empty($data['received_at']) ? nb_ts($data['received_at']) : null;
-$ruhig = !$stoerungen && !$bau && !$meldungen;
+$ruhig = !$stoerungen && !$hinweise && !$bau && !$meldungen;
 
 $pageUrl = SITE_URL . '/aktuell/';
 $title = 'Aktive Meldungen zur Nordbahn RB60/RB61/RB71 – was gerade gilt';
@@ -107,6 +109,19 @@ $jsonLd = [
 
 <?php endforeach; ?>
 		</ul>
+	</section>
+<?php endif; ?>
+
+<?php if ($hinweise): ?>
+	<section class="section">
+		<h2 class="section__title">Hinweise ohne sp&uuml;rbare Folgen</h2>
+		<ul class="incidents">
+<?php foreach ($hinweise as $st): ?>
+			<?= nb_render_incident($st) ?>
+
+<?php endforeach; ?>
+		</ul>
+		<p class="section__note">Laut strecken-info.de noch aktiv, f&uuml;r Pendler laut Meldung ohne Auswirkung. Sie z&auml;hlen nicht als St&ouml;rung, stehen nicht auf der Startseite und l&ouml;sen keine Benachrichtigung aus.</p>
 	</section>
 <?php endif; ?>
 

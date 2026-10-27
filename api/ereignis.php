@@ -117,6 +117,7 @@ function nb_stoerung_finden(array $data, $key)
         'betriebsstellen' => $q['betriebsstellen'] ?? [],
         'wirkungen'       => $q['wirkungen'] ?? [],
         'einschraenkung'  => (string) ($q['einschraenkung'] ?? ''),
+        'ki_folgen'       => (string) ($q['ki_folgen'] ?? ''),
         'beginn_gemeldet' => (string) ($q['beginn'] ?? ''),
         'ende_gemeldet'   => (string) ($q['ende'] ?? ''),
         'abgelaufen'      => $aktiv !== null && !empty($aktiv['abgelaufen']),

@@ -239,11 +239,17 @@ function nb_push_in_pendelzeit($ts)
  * Ereignisse aus altem und neuem Datenpaket: neue Stoerungen (sobald der
  * Pendler-Text da ist, spaetestens nach NB_PUSH_KI_WARTEN), aufgehobene
  * Stoerungen und neue Eilmeldungen (ohne stumme). $state wird fortgeschrieben.
+ *
+ * Hinweise ohne spuerbare Folgen (nb_stoerung_hinweis) loesen nichts aus. Nur
+ * ein Wechsel der Folgen zaehlt: wird aus einem Hinweis eine Stoerung, gilt sie
+ * als neu; wird aus einer gemeldeten Stoerung ein Hinweis, geht die Entwarnung
+ * sofort raus, und die spaetere Aufhebung wird nicht noch einmal gemeldet.
  */
 function nb_push_events_data(array $alt, array $neu, array &$state, $now)
 {
     $events = [];
     $state['pending'] = is_array($state['pending'] ?? null) ? $state['pending'] : [];
+    $state['hinweis'] = is_array($state['hinweis'] ?? null) ? $state['hinweis'] : [];
     $altKeys = [];
     foreach ($alt['stoerungen'] ?? [] as $s) {
         if (!empty($s['key'])) {
@@ -256,8 +262,25 @@ function nb_push_events_data(array $alt, array $neu, array &$state, $now)
             continue;
         }
         $neuKeys[$s['key']] = $s;
+        $titel = !empty($s['ki_titel']) ? $s['ki_titel'] : ($s['titel'] ?? 'Störung');
+        $warHinweis = !empty($state['hinweis'][$s['key']]);
+        if (nb_stoerung_hinweis($s)) {
+            unset($state['pending'][$s['key']]);
+            $state['hinweis'][$s['key']] = true;
+            if (!$warHinweis && !empty($state['sent']['stoerung:' . $s['key']])) {
+                // Gemeldete Stoerung ist nur noch ein Hinweis: das ist die Entwarnung
+                $events[] = [
+                    'id'    => 'aufgehoben:' . $s['key'],
+                    'title' => 'Keine Folgen mehr: ' . $titel,
+                    'body'  => !empty($s['ki_text']) ? $s['ki_text'] : 'Für Pendler laut strecken-info.de ohne Auswirkung.',
+                    'url'   => './',
+                ];
+            }
+            continue;
+        }
+        unset($state['hinweis'][$s['key']]);
         $pending = $state['pending'][$s['key']] ?? null;
-        if (!isset($altKeys[$s['key']]) && $pending === null) {
+        if ((!isset($altKeys[$s['key']]) || $warHinweis) && $pending === null) {
             $state['pending'][$s['key']] = $now;
             $pending = $now;
         }
@@ -268,8 +291,9 @@ function nb_push_events_data(array $alt, array $neu, array &$state, $now)
         if ($ki || $now - $pending >= NB_PUSH_KI_WARTEN) {
             unset($state['pending'][$s['key']]);
             $events[] = [
-                'id'    => 'stoerung:' . $s['key'],
-                'title' => 'Störung: ' . (!empty($s['ki_titel']) ? $s['ki_titel'] : ($s['titel'] ?? 'Störung')),
+                // Nach einem Hinweis eine neue Kennung, sonst wuerde die Sperre gegen Doppelte greifen
+                'id'    => 'stoerung:' . $s['key'] . ($warHinweis && !empty($state['sent']['stoerung:' . $s['key']]) ? ':' . $now : ''),
+                'title' => 'Störung: ' . $titel,
                 'body'  => !empty($s['ki_text']) ? $s['ki_text'] : (string) ($s['text'] ?? ''),
                 'url'   => './',
             ];
@@ -279,9 +303,9 @@ function nb_push_events_data(array $alt, array $neu, array &$state, $now)
         if (isset($neuKeys[$key])) {
             continue;
         }
-        unset($state['pending'][$key]);
+        unset($state['pending'][$key], $state['hinweis'][$key]);
         if (empty($state['sent']['stoerung:' . $key])) {
-            continue; // nie gemeldet, dann auch keine Entwarnung
+            continue; // nie gemeldet (oder nur ein Hinweis), dann auch keine Entwarnung
         }
         $events[] = [
             'id'    => 'aufgehoben:' . $key,

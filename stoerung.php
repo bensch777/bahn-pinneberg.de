@@ -118,6 +118,9 @@ if (!$gefunden) {
 				<span><?= nb_e(implode(', ', $st['betriebsstellen'])) ?></span>
 <?php endif; ?>
 				<span class="pill <?= $st['aktiv'] ? 'pill--aktiv pill--live' : 'pill--aufgehoben' ?>"><?= $st['aktiv'] ? 'Aktiv' : 'Aufgehoben' ?></span>
+<?php if (nb_stoerung_hinweis($st)): ?>
+				<span class="pill pill--teil" title="F&uuml;r Pendler laut Meldung ohne Auswirkung; z&auml;hlt nicht als St&ouml;rung">Ohne sp&uuml;rbare Folgen</span>
+<?php endif; ?>
 			</p>
 			<h1 class="artikel__titel"><?= nb_e($st['titel']) ?></h1>
 <?php if ($st['ki_text'] !== ''): ?>

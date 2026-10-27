@@ -212,7 +212,7 @@ function nb_filter_select($name, $label, array $optionen, $wert)
 			<p class="feed__empty">Keine St&ouml;rung im Zeitraum.</p>
 <?php endif; ?>
 		</div>
-		<p class="section__note">Quelle: strecken-info.de der DB InfraGO, Abschnitt Hamburg &ndash; Itzehoe / Wrist. Die Dauer ist die Zeit, in der die Meldung aktiv war. Eilmeldungen der Nordbahn z&auml;hlen hier nicht mit. Alle St&ouml;rungen einzeln stehen unter <a href="<?= $root ?>stoerungen/">St&ouml;rungen</a>.</p>
+		<p class="section__note">Quelle: strecken-info.de der DB InfraGO, Abschnitt Hamburg &ndash; Itzehoe / Wrist. Die Dauer ist die Zeit, in der die Meldung aktiv war. Eilmeldungen der Nordbahn und Hinweise ohne sp&uuml;rbare Folgen z&auml;hlen hier nicht mit. Alle St&ouml;rungen einzeln stehen unter <a href="<?= $root ?>stoerungen/">St&ouml;rungen</a>.</p>
 	</section>
 <?php endif; ?>
 </main>
