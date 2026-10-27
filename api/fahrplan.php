@@ -6,7 +6,8 @@
  *
  * URL: /api/fahrplan?bhf=APD
  * Antwort: ok, heimat {id, name}, tage (Fenster), hin[], rueck[] je
- *          {zug, linie, zeit "HH:MM", ziel, ab, tage [1 = Montag …]}
+ *          {zug, nummern [zug, Varianten …], linie, zeit "HH:MM", ziel, ab,
+ *           tage [1 = Montag …], varianten [{zug, zeit, ziel, ab}]}
  *
  * Quelle ist das Zuglog (api/zuglog.php). Die Rueckrichtung kommt von den
  * Hamburger Tafeln und gilt fuer alle Bahnhoefe, die der Zug erreicht; die
@@ -24,6 +25,7 @@ require_once __DIR__ . '/abfahrten.php';
 
 const FP_TAGE = 14;    // Beobachtungsfenster in Tagen
 const FP_TTL  = 1800;  // Sekunden, die ein Fahrplan je Bahnhof gilt
+const FP_VARIANTE_MIN = 10; // Minuten, die zwei Varianten desselben Pendelzugs hoechstens auseinanderliegen
 const FP_AB_RANG = ['AH' => 0, 'AA' => 1, 'AP' => 2, 'AEL' => 3, 'ADF' => 4]; // bei gleich oft gesehen: Hbf vor Altona vor Dammtor
 
 /** Bahnhofs-ID zu einem Zielnamen der Tafel ("Itzehoe", "Wrist"), sonst ''. */
@@ -42,12 +44,20 @@ function fp_ziel_id($ziel)
  * Baut die Zuglisten aus Tageslogs (zl_lesen). Je Zugnummer zaehlt der
  * Startbahnhof, an dem er am oeftesten gesehen wurde (Ersatz ab Altona oder
  * die Dammtor-Zeile nach der Abfahrt am Hbf zaehlen so nicht als eigener Zug).
- * Bekommt ein Zug nach dem Fahrplanwechsel eine neue Nummer, bleibt nur die
- * zuletzt gesehene. Reine Funktion, damit sie sich testen laesst.
+ *
+ * Varianten desselben Pendelzugs werden ein Eintrag: Baufahrplan (08:18 nach
+ * Altona statt 08:17 zum Hbf) oder Fahrplanwechsel bringen eine neue
+ * Zugnummer. Zwei Nummern gelten als Varianten, wenn Linie und Richtung
+ * gleich sind, die Planzeiten hoechstens FP_VARIANTE_MIN Minuten auseinander
+ * liegen, sie nie am selben Tag fuhren und beide werktags oder beide nur am
+ * Wochenende fahren (ein Werktags- und ein Wochenendzug bleiben getrennt). Der zuletzt gesehene
+ * fuehrt, die anderen stehen unter nummern und varianten. Reine Funktion,
+ * damit sie sich testen laesst.
  */
 function fp_aus_logs(array $logs, $heimat)
 {
     $zuege = ['hin' => [], 'rueck' => []];
+    $daten = ['hin' => [], 'rueck' => []]; // Tage je Zugnummer, an denen sie fuhr
     ksort($logs);
     foreach ($logs as $tag => $eintraege) {
         $wt = (int) (DateTime::createFromFormat('!Y-m-d', $tag, new DateTimeZone('Europe/Berlin')) ?: new DateTime())->format('N');
@@ -63,6 +73,7 @@ function fp_aus_logs(array $logs, $heimat)
                 continue;
             }
             $station = (string) ($e['station'] ?? '');
+            $daten[$dir][$e['zug']][$tag] = true;
             $z = &$zuege[$dir][$e['zug']][$station];
             if (!is_array($z)) {
                 $z = ['n' => 0, 'tage' => []];
@@ -91,27 +102,78 @@ function fp_aus_logs(array $logs, $heimat)
             });
             $je[] = $stationen[0];
         }
-        // Gleiche Linie, Zeit und Startbahnhof unter zwei Nummern: die zuletzt gesehene gilt
-        $neu = [];
+        // Varianten zusammenfassen, der zuletzt gesehene Zug fuehrt
+        usort($je, function ($a, $b) {
+            return [$b['zuletzt'], $a['zeit']] <=> [$a['zuletzt'], $b['zeit']];
+        });
+        $gruppen = [];
         foreach ($je as $z) {
-            $k = $z['linie'] . '|' . $z['zeit'] . '|' . $z['ab'];
-            if (!isset($neu[$k]) || $z['zuletzt'] > $neu[$k]['zuletzt']) {
-                $neu[$k] = $z;
+            $z['daten'] = $daten[$dir][$z['zug']] ?? [];
+            foreach ($gruppen as &$g) {
+                if (fp_variante($g, $z)) {
+                    $g['varianten'][] = $z;
+                    $g['daten'] += $z['daten'];
+                    $g['tage'] += $z['tage'];
+                    continue 2;
+                }
             }
+            unset($g);
+            $gruppen[] = $z + ['varianten' => []];
         }
-        $neu = array_values($neu);
-        usort($neu, function ($a, $b) {
+        unset($g);
+        usort($gruppen, function ($a, $b) {
             return [$a['zeit'], $a['ab']] <=> [$b['zeit'], $b['ab']];
         });
-        $out[$dir] = array_map(function ($z) {
-            $tage = array_values($z['tage']);
+        $out[$dir] = array_map(function ($g) {
+            $tage = array_values($g['tage']);
             sort($tage);
 
-            return ['zug' => $z['zug'], 'linie' => $z['linie'], 'zeit' => $z['zeit'], 'ziel' => $z['ziel'], 'ab' => $z['ab'], 'tage' => $tage];
-        }, $neu);
+            return [
+                'zug'       => $g['zug'],
+                'nummern'   => array_merge([$g['zug']], array_column($g['varianten'], 'zug')),
+                'linie'     => $g['linie'],
+                'zeit'      => $g['zeit'],
+                'ziel'      => $g['ziel'],
+                'ab'        => $g['ab'],
+                'tage'      => $tage,
+                'varianten' => array_map(function ($v) {
+                    return ['zug' => $v['zug'], 'zeit' => $v['zeit'], 'ziel' => $v['ziel'], 'ab' => $v['ab']];
+                }, $g['varianten']),
+            ];
+        }, $gruppen);
     }
 
     return $out;
+}
+
+/** Minuten seit Mitternacht zu "HH:MM". */
+function fp_minuten($uhr)
+{
+    return preg_match('/^(\d{1,2}):(\d{2})$/', (string) $uhr, $m) ? (int) $m[1] * 60 + (int) $m[2] : -9999;
+}
+
+/**
+ * Ist $z eine Variante des Pendelzugs $g (Gruppe mit gesammelten Tagen)?
+ * Gleiche Linie, Planzeit hoechstens FP_VARIANTE_MIN Minuten daneben (zum
+ * Fuehrenden und zu jeder Variante), nie am selben Tag, beide werktags oder
+ * beide nur am Wochenende. Gemeinsame Wochentage reichen nicht als Bedingung:
+ * beginnt ein Baufahrplan am Mittwoch, fuhr der alte Zug nur Mo-Di.
+ */
+function fp_variante(array $g, array $z)
+{
+    $werktags = function (array $tage) {
+        return (bool) array_intersect_key($tage, [1 => 1, 2 => 1, 3 => 1, 4 => 1, 5 => 1]);
+    };
+    if ($g['linie'] !== $z['linie'] || array_intersect_key($g['daten'], $z['daten']) || $werktags($g['tage']) !== $werktags($z['tage'])) {
+        return false;
+    }
+    foreach (array_merge([$g], $g['varianten']) as $v) {
+        if (abs(fp_minuten($v['zeit']) - fp_minuten($z['zeit'])) > FP_VARIANTE_MIN) {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 /** Fahrplan fuer einen Bahnhof aus dem Cache (FP_TTL), sonst frisch aus dem Zuglog. */

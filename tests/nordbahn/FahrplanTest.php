@@ -25,7 +25,7 @@ function test_fahrplan_aus_zuglog()
         + t_fp_eintrag('AH', 'rueck', '75514', '17:04', 'RB 61', 'Itzehoe', 'Hbf') + t_fp_eintrag('AH', 'rueck', '81870', '17:20', 'RB 71', 'Wrist', 'Hbf');
 
     $fp = fp_aus_logs($logs, 'APD');
-    t_eq(['07:18 81871', '08:13 99999', '09:13 75915'], array_map(function ($z) { return $z['zeit'] . ' ' . $z['zug']; }, $fp['hin']), 'hin: sortiert, nur Prisdorf, neue Nummer gilt');
+    t_eq(['07:18 81871', '08:13 99999/75515', '09:13 75915'], array_map(function ($z) { return $z['zeit'] . ' ' . implode('/', $z['nummern']); }, $fp['hin']), 'hin: sortiert, nur Prisdorf, neue Nummer fuehrt, alte bleibt Variante');
     t_eq([1, 2, 3, 4, 5], $fp['hin'][0]['tage'], 'Wochentage Mo-Fr');
     t_eq([6], $fp['hin'][2]['tage'], 'Samstagszug');
     t_eq(['17:04 Hbf 75514', '17:20 Hbf 81870'], array_map(function ($z) { return $z['zeit'] . ' ' . $z['ab'] . ' ' . $z['zug']; }, $fp['rueck']), 'rueck: Hbf statt Dammtor und Altona');
@@ -34,4 +34,31 @@ function test_fahrplan_aus_zuglog()
     t_eq([], $fp['hin'], 'Itzehoe hin unbekannt');
     t_eq(['75514'], array_column($fp['rueck'], 'zug'), 'Itzehoe: der Zug nach Wrist faellt weg');
     t_eq(['81870'], array_column(fp_aus_logs($logs, 'AWST')['rueck'], 'zug'), 'Wrist: nur der RB 71');
+}
+
+function test_fahrplan_varianten_eines_pendelzugs()
+{
+    $logs = [];
+    // 12.-16.10. regulaer 08:17 zum Hbf, ab 19.10. Baufahrplan 08:18 nach Altona mit neuer Nummer
+    foreach (['2026-10-12', '2026-10-13', '2026-10-14', '2026-10-15', '2026-10-16'] as $tag) {
+        $logs[$tag] = t_fp_eintrag('APD', 'hin', '81817', '08:17', 'RB 71', 'Hamburg Hbf')
+            + t_fp_eintrag('APD', 'hin', '81823', '08:23', 'RB 71', 'Hamburg Hbf') // anderer Zug, faehrt taeglich
+            + t_fp_eintrag('AH', 'rueck', '81870', '17:04', 'RB 71', 'Wrist', 'Hbf');
+    }
+    foreach (['2026-10-19', '2026-10-20', '2026-10-21'] as $tag) {
+        $logs[$tag] = t_fp_eintrag('APD', 'hin', '91818', '08:18', 'RB 71', 'Hamburg-Altona')
+            + t_fp_eintrag('APD', 'hin', '81823', '08:23', 'RB 71', 'Hamburg Hbf')
+            + t_fp_eintrag('AA', 'rueck', '91870', '17:11', 'RB 71', 'Wrist', 'Altona');
+    }
+    // Wochenende: eigener Zug kurz daneben, darf nicht zur Werktagsvariante werden
+    $logs['2026-10-17'] = t_fp_eintrag('APD', 'hin', '71815', '08:15', 'RB 71', 'Hamburg Hbf');
+    $logs['2026-10-18'] = t_fp_eintrag('APD', 'hin', '71815', '08:15', 'RB 71', 'Hamburg Hbf');
+
+    $fp = fp_aus_logs($logs, 'APD');
+    $hin = array_map(function ($z) { return $z['zeit'] . ' ' . implode('/', $z['nummern']); }, $fp['hin']);
+    t_eq(['08:15 71815', '08:18 91818/81817', '08:23 81823'], $hin, 'Baufahrplan-Variante zusammengefasst, Wochenend- und Taktzug nicht');
+    t_eq([['zug' => '81817', 'zeit' => '08:17', 'ziel' => 'Hamburg Hbf', 'ab' => '']], $fp['hin'][1]['varianten'], 'Variante mit Zeit und Ziel');
+    t_eq('Hamburg-Altona', $fp['hin'][1]['ziel'], 'der zuletzt gesehene fuehrt');
+    t_eq([1, 2, 3, 4, 5], $fp['hin'][1]['tage'], 'Wochentage beider Varianten');
+    t_eq(['17:11 91870/81870'], array_map(function ($z) { return $z['zeit'] . ' ' . implode('/', $z['nummern']); }, $fp['rueck']), 'rueck: ab Altona statt Hbf ist dieselbe Fahrt');
 }

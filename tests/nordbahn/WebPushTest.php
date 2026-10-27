@@ -407,3 +407,17 @@ function test_push_run_meine_zuege()
     @unlink(NB_PUSH_SUBS_FILE);
     @unlink(NB_PUSH_STATE_FILE);
 }
+
+function test_push_meine_zuege_varianten()
+{
+    $zuege = nb_push_clean_zuege([['heimat' => 'APD', 'richtung' => 'hin', 'zug' => '91818', 'nummern' => ['91818', '81817', 'x', '1', '2', '3', '4'], 'linie' => 'RB 71', 'zeit' => '08:18', 'ziel' => 'Hamburg-Altona']]);
+    t_eq(['91818', '81817', '1', '2', '3'], $zuege[0]['nummern'], 'eigene Nummer zuerst, nur Ziffern, hoechstens vier weitere');
+    t_eq(['5'], nb_push_clean_zuege([['heimat' => 'APD', 'richtung' => 'hin', 'zug' => '5', 'zeit' => '08:18']])[0]['nummern'], 'ohne Varianten nur die eigene');
+
+    // Nach dem Baufahrplan faehrt wieder der 08:17 zum Hbf: der gemerkte 08:18 meldet sich trotzdem
+    $now = (new DateTime('2026-10-26 07:40', new DateTimeZone('Europe/Berlin')))->getTimestamp();
+    $z = $zuege[0];
+    $res = t_meine_result([['zug' => '81817', 'linie' => 'RB 71', 'zeit' => '2026-10-26T08:17:00+01:00', 'ausfall' => true]]);
+    $ev = nb_push_events_meine($res, [nb_push_zug_key($z) => $z], ['sent' => []], $now);
+    t_eq('RB 71 um 08:17 fällt aus', $ev[0]['title'] ?? null, 'Variante ueber ihre Nummer gefunden');
+}
