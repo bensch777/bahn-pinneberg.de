@@ -633,6 +633,35 @@ function test_eil_karte_hinweis_nur_bis_zwoelf_stunden()
     t_eq('Keine akuten Eilmeldungen', nb_status_eil($data, $item(13 * 3600))['title'], 'Titel bleibt');
 }
 
+function test_eilmeldung_nicht_mehr_auf_nordbahn_de_ist_erledigt()
+{
+    $jetzt = time();
+    $iso = function ($ts) { return gmdate('Y-m-d\TH:i:s\Z', $ts); };
+    $data = [
+        'received_at'       => $iso($jetzt),
+        'quellen'           => ['strecken_info_ok' => true, 'nordbahn_ok' => true],
+        'stoerungen'        => [],
+        'stoerungen_verlauf' => [],
+        'eilmeldungen'      => [
+            ['id' => 'em-weg', 'title' => 'RB 71: Streckensperrung Dauenhof - Wrist', 'seen_at' => $iso($jetzt - 2 * 3600)],
+            ['id' => 'em-da', 'title' => 'RB61: Zugausfall', 'seen_at' => $iso($jetzt - 3 * 3600)],
+        ],
+        'eilmeldungen_live' => [['id' => 'em-da', 'title' => 'RB61: Zugausfall', 'stand' => $iso($jetzt - 3 * 3600), 'link' => 'https://www.nordbahn.de/x/']],
+    ];
+    $ids = function ($d) use ($jetzt) { return array_map(function ($it) { return $it['id']; }, nb_aktuelle_meldungen($d, null, $jetzt)); };
+    t_eq(['em-da'], $ids($data), 'von nordbahn.de entfernte Eilmeldung ist nicht mehr aktuell');
+    $k = nb_status_eil($data, nb_items($data), $jetzt);
+    t_eq('Eilmeldung vor 3 Std.', $k['title'], 'Lagekarte nennt die noch gelistete Meldung');
+
+    $data['eilmeldungen_live'] = [];
+    t_eq([], $ids($data), 'nichts mehr gelistet: keine aktuelle Eilmeldung');
+    $k = nb_status_eil($data, nb_items($data), $jetzt);
+    t_eq(['ok', 'Keine akuten Eilmeldungen', 'Letzte vor 2 Std.'], [$k['level'], $k['title'], $k['detail']], 'Lagekarte gruen mit Hinweis');
+
+    $data['quellen']['nordbahn_ok'] = false;
+    t_eq(['em-weg', 'em-da'], $ids($data), 'nordbahn.de nicht lesbar: nur das Alter zaehlt');
+}
+
 function test_lagekarten_kompakt()
 {
     $ok = function ($detail = '') { return ['level' => 'ok', 'title' => 'x', 'detail' => $detail]; };
