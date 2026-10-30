@@ -1,7 +1,7 @@
 <?php
 /**
  * Gemeinsamer Footer fuer Startseite, FAQ und Changelog. Erwartet $root (Pfad zum
- * Wurzelverzeichnis, "./" oder "../") und $current ("lage", "faq", "news", "eilmeldungen", "stoerungen", "karte", "statistik", "changelog", "impressum", "einstellungen" oder "ereignis").
+ * Wurzelverzeichnis, "./" oder "../") und $current ("lage", "faq", "news", "eilmeldungen", "stoerungen", "karte", "statistik", "changelog", "impressum", "mcp-hilfe", "nutzungsbedingungen", "einstellungen" oder "ereignis").
  */
 ?>
 <footer class="site-foot">
@@ -26,6 +26,12 @@
 <?php endif; ?>
 <?php if ($current !== 'changelog'): ?>
 				<li><a href="<?= $root ?>changelog/">Was ist neu</a></li>
+<?php endif; ?>
+<?php if ($current !== 'mcp-hilfe'): ?>
+				<li><a href="<?= $root ?>mcp-hilfe/">In Claude und ChatGPT</a></li>
+<?php endif; ?>
+<?php if ($current !== 'nutzungsbedingungen'): ?>
+				<li><a href="<?= $root ?>nutzungsbedingungen/" rel="nofollow">Nutzungsbedingungen</a></li>
 <?php endif; ?>
 <?php if ($current !== 'impressum'): ?>
 				<li><a href="<?= $root ?>impressum/" rel="nofollow">Impressum &amp; Datenschutz</a></li>

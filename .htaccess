@@ -37,6 +37,7 @@ RewriteRule ^api/karte$ api/karte.php [L]
 RewriteRule ^api/feedback$ api/feedback.php [L]
 RewriteRule ^api/fahrplan$ api/fahrplan.php [L]
 RewriteRule ^mcp/?$ api/mcp.php [L]
+RewriteRule ^\.well-known/openai-apps-challenge$ openai-challenge.php [L]
 
 # Sitemap und robots.txt sind dynamisch (Adresse aus config.php).
 RewriteRule ^sitemap\.xml$ sitemap.php [L]

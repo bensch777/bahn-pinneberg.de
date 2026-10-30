@@ -23,7 +23,7 @@ function test_alle_seiten_rendern_ohne_fehler()
 {
     $seiten = [
         'index.php' => [], 'news/index.php' => [], 'aktuell/index.php' => [], 'eilmeldungen/index.php' => ['seite' => '2'], 'stoerungen/index.php' => [],
-        'statistik/index.php' => [], 'karte/index.php' => [], 'faq/index.php' => [], 'einstellungen/index.php' => [], 'changelog/index.php' => [], 'impressum/index.php' => [],
+        'statistik/index.php' => [], 'karte/index.php' => [], 'faq/index.php' => [], 'einstellungen/index.php' => [], 'changelog/index.php' => [], 'impressum/index.php' => [], 'mcp-hilfe/index.php' => [], 'nutzungsbedingungen/index.php' => [],
         'stoerung.php' => ['key' => 'GIBTSNICHT'], 'eilmeldung.php' => ['id' => 'em-0'],
         'sitemap.php' => [], 'llms.php' => [], 'lage.php' => [], 'robots.php' => [], 'api/data.php' => [],
     ];
@@ -52,6 +52,8 @@ function test_alle_seiten_rendern_ohne_fehler()
     t_contains('id="karte-strecke"', $karte, 'Live-Karte traegt das Streckennetz');
     t_contains('vendor/leaflet/leaflet.js', $karte, 'Live-Karte laedt Leaflet vom eigenen Host');
     t_contains('id="karte-liste"', $karte, 'Live-Karte hat die Zugliste');
+    t_contains('/mcp</code>', t_seite_rendern('mcp-hilfe/index.php'), 'Anleitung nennt die Adresse');
+    t_contains('id="mcp"', t_seite_rendern('impressum/index.php'), 'Datenschutz zum MCP-Server');
     t_contains('Störung nicht gefunden', t_seite_rendern('stoerung.php', ['key' => 'GIBTSNICHT']), 'unbekannte Stoerung');
     if (!gf_aktiv()) {
         t_contains('"ok":false', t_seite_rendern('api/s3.php'), 'api/s3 ohne Zugang');
