@@ -186,8 +186,8 @@ function nb_feedback_senden($webhook, array $payload)
     return true;
 }
 
-if (PHP_SAPI === 'cli') {
-    return; // als Bibliothek eingebunden (Tests)
+if (PHP_SAPI === 'cli' || defined('NORDBAHN_FEEDBACK_LIB')) {
+    return; // als Bibliothek eingebunden (Tests, mcp.php fuer das Limit)
 }
 
 function nb_feedback_antwort($code, $status)

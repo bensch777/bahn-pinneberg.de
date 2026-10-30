@@ -15,6 +15,7 @@ $assetVersion = (int) @filemtime(__DIR__ . '/../dashboard.css');
 
 $changelog = [
     ['2026-10-30', [
+        ['Bahn-Pinneberg.de in Claude und ChatGPT', 'Die Seite hat jetzt einen MCP-Server unter bahn-pinneberg.de/mcp. Wer ihn in Claude, ChatGPT oder einem anderen Assistenten als Connector einträgt, kann dort einfach fragen: „Gibt es gerade Probleme auf der RB61?“, „Fährt der nächste Zug ab Elmshorn pünktlich?“ oder „Was ist mit der Störung bei Tornesch?“. Die Antwort kommt mit dem Stand von jetzt, nicht aus einem Suchindex von gestern. Ohne Anmeldung, nur lesend. Nebenbei nennt lage.md jetzt Datum und Uhrzeit des Abrufs, und die Abfahrten unter /api/ dürfen von Assistenten abgerufen werden, die sich an robots.txt halten.'],
         ['Erledigte Eilmeldungen verschwinden sofort', 'Eine Eilmeldung galt bisher vier Stunden lang als akut, auch wenn die Nordbahn sie längst von ihrer Seite genommen hatte. So stand morgens noch „Eilmeldung vor 2 Std.: Streckensperrung Dauenhof – Wrist“ oben, obwohl die Sperrung vorbei war. Jetzt zählt eine Eilmeldung nur so lange, wie sie auf nordbahn.de steht, und höchstens vier Stunden. Nimmt die Nordbahn sie herunter, wird die Lagekarte grün und nennt nur noch „Letzte vor …“, und die Meldung verschwindet aus „Aktuelle Meldungen“ und „Meldungen · Aktiv“. Im Verlauf und im Archiv bleibt sie erhalten. Kann nordbahn.de gerade nicht gelesen werden, gilt wie bisher nur das Alter.'],
     ]],
     ['2026-10-27', [

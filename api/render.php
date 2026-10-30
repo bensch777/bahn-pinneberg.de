@@ -1608,11 +1608,17 @@ function nb_lage_md(array $data, $abf, $heimat, $now = null, $gf = null)
 
     $md = "# Bahn-Pinneberg.de: aktuelle Lage\n\n";
     $md .= "Störungen, Abfahrten und Eilmeldungen der Nordbahn-Linien RB61 (Itzehoe – Hamburg Hbf), RB71 (Wrist – Hamburg Hbf) und RB60 (Itzehoe – Hamburg-Altona). Privates Projekt, keine offizielle Seite der Nordbahn. Stand der Störungs- und Eilmeldungsdaten: " . $stand . ".\n\n";
+    // Absolut, weil "Heute" in einer gespeicherten oder zitierten Fassung nicht mehr stimmt
+    $md .= 'Abgerufen am ' . (new DateTime('@' . (int) $now))->setTimezone(new DateTimeZone('Europe/Berlin'))->format('d.m.Y \u\m H:i') . " Uhr (Ortszeit Hamburg). Alle Zeiten Ortszeit; „heute“ und „gestern“ beziehen sich auf diesen Abruf.\n\n";
 
     $md .= "## Lage auf einen Blick\n\n";
     $infra = nb_status_infra($data);
     $eil = nb_status_eil($data, $items);
     $betrieb = nb_status_betrieb($abf, nb_baufahrplan($data, $now));
+    if ($betrieb['level'] === 'unknown') {
+        // "Lade Nordbahn …" passt nur auf der Seite, die gleich nachlaedt; als Text klingt es nach Normalbetrieb
+        $betrieb['title'] = 'keine aktuellen Abfahrtsdaten, Stationsmonitor der Nordbahn gerade nicht erreichbar';
+    }
     $zeile = function ($label, $st) {
         return '- ' . $label . ': ' . $st['title'] . ($st['detail'] !== '' ? ' (' . $st['detail'] . ')' : '') . "\n";
     };
