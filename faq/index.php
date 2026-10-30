@@ -46,6 +46,8 @@ $faq = [
      'Die Seite merkt sich bei jeder Abfrage der Abfahrten je Tag und Zug den letzten Stand vor der Abfahrt: ausgefallen, nur teilweise gefahren, wie viele Minuten verspätet. Nach fünf beobachteten Tagen steht die Bilanz je Bahnhof und Zug auf der Statistikseite. Beobachtet wird nur, was abgefragt wird: Prisdorf durchgehend, andere Bahnhöfe, solange jemand die Seite mit diesem Bahnhof offen hat. Die Werte sind eine Näherung aus der Prognose des Stationsmonitors, keine amtliche Pünktlichkeitsstatistik.'],
     ['Gibt es die Daten auch für Programme oder KI-Assistenten?',
      'Ja. Unter /lage.md steht die aktuelle Lage als Text (Markdown), unter /llms.txt eine Beschreibung der Seite und der Datenfelder, und /api/data sowie /api/abfahrten?bhf=APD liefern alles als JSON. Alles öffentlich und ohne Schlüssel, bitte nicht häufiger als einmal pro Minute abrufen.'],
+    ['Kann ich Claude oder ChatGPT direkt fragen, ob meine Bahn fährt?',
+     'Ja, über den MCP-Server der Seite. In Claude unter Einstellungen → Connectors, in ChatGPT im Entwicklermodus unter Connectors einen eigenen Connector mit der Adresse https://bahn-pinneberg.de/mcp anlegen, eine Anmeldung braucht es nicht. Danach beantwortet der Assistent Fragen wie „Gibt es gerade Probleme zwischen Elmshorn und Hamburg?“ oder „Wann fährt der nächste Zug ab Tornesch?“ mit dem Stand von jetzt statt mit dem, was eine Suchmaschine irgendwann gesehen hat. Der Server kann nur lesen, er kennt die Lage, die Abfahrten und die Details einer Störung.'],
     ['Ist das eine offizielle Seite der Nordbahn?',
      'Nein. Bahn-Pinneberg.de ist ein privates Projekt ohne Verbindung zur NBE Nordbahn Eisenbahngesellschaft, Betreiber siehe Impressum. Verbindliche Auskünfte gibt es auf nordbahn.de.'],
 ];

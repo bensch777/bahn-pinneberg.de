@@ -20,6 +20,7 @@ $map = [
     '/api/karte'     => '/api/karte.php',
     '/api/feedback'  => '/api/feedback.php',
     '/api/fahrplan'  => '/api/fahrplan.php',
+    '/mcp'           => '/api/mcp.php',
     '/sitemap.xml'   => '/sitemap.php',
     '/llms.txt'      => '/llms.php',
     '/lage.md'       => '/lage.php',
