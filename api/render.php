@@ -1615,6 +1615,10 @@ function nb_lage_md(array $data, $abf, $heimat, $now = null, $gf = null)
     $infra = nb_status_infra($data);
     $eil = nb_status_eil($data, $items);
     $betrieb = nb_status_betrieb($abf, nb_baufahrplan($data, $now));
+    if ($betrieb['level'] === 'unknown') {
+        // "Lade Nordbahn …" passt nur auf der Seite, die gleich nachlaedt; als Text klingt es nach Normalbetrieb
+        $betrieb['title'] = 'keine aktuellen Abfahrtsdaten, Stationsmonitor der Nordbahn gerade nicht erreichbar';
+    }
     $zeile = function ($label, $st) {
         return '- ' . $label . ': ' . $st['title'] . ($st['detail'] !== '' ? ' (' . $st['detail'] . ')' : '') . "\n";
     };

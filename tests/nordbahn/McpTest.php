@@ -74,6 +74,9 @@ function test_mcp_lage_und_abfahrten()
 
     $ohne = t_mcp_rpc('tools/call', ['name' => 'abfahrten', 'arguments' => []], t_mcp_quellen([], ['ok' => false]))['result'];
     t_eq(true, $ohne['isError'], 'ohne Tafel ein Fehler');
+    $lageOhne = t_mcp_rpc('tools/call', ['name' => 'lage'], t_mcp_quellen([], ['ok' => false]))['result']['content'][0]['text'];
+    t_contains('- Nordbahn ab Prisdorf: keine aktuellen Abfahrtsdaten, Stationsmonitor der Nordbahn gerade nicht erreichbar', $lageOhne, 'kein "Lade Nordbahn" im Text');
+    t_eq(false, strpos($lageOhne, 'Lade Nordbahn') !== false, 'Ladehinweis nur auf der Seite');
 }
 
 function test_mcp_stoerung_details_und_limit()
