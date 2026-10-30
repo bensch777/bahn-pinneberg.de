@@ -190,6 +190,7 @@
 				id: id, title: kiTitel || title || '', original: title || '', text: (kiText || '').trim(), ms: ms,
 				stand: live && live.stand ? Date.parse(live.stand) : NaN,
 				link: live && live.link ? live.link : '',
+				live: !!live,
 				wichtig: !!wichtig // Einstufung kommt vom Server (nb_wichtig_markieren)
 			});
 		}
@@ -321,8 +322,19 @@
 		rest.hidden = text === '';
 	}
 
-	var EIL_AKUT_MS = 4 * 3600 * 1000;   // so lange gilt eine Eilmeldung als akut
+	var EIL_AKUT_MS = 4 * 3600 * 1000;   // so lange gilt eine Eilmeldung hoechstens als akut
 	var EIL_HINWEIS_MS = 12 * 3600 * 1000; // bis dahin nennt die gruene Karte "Letzte vor …" (wie NB_EIL_HINWEIS_S)
+
+	/**
+	 * Akut (wie nb_eil_akut): juenger als vier Stunden und noch auf nordbahn.de. Was die
+	 * Nordbahn entfernt hat, ist erledigt; war nordbahn.de nicht lesbar, zaehlt nur das Alter.
+	 */
+	function eilAkut(it, now) {
+		var ms = isNaN(it.stand) ? it.ms : it.stand;
+		if (ms < now - EIL_AKUT_MS) return false;
+		var data = state.data;
+		return it.live || !(data && data.quellen && data.quellen.nordbahn_ok);
+	}
 
 	/**
 	 * Hinweis ohne spuerbare Folgen (wie nb_stoerung_hinweis): Urteil der KI (ki_folgen = keine),
@@ -355,17 +367,20 @@
 		else if (schwer === 0) setStatus('status-infra', 'warn', plural(list.length, 'leichte Infrastrukturstörung', 'leichte Infrastrukturstörungen'));
 		else setStatus('status-infra', 'alert', plural(list.length, 'Infrastrukturstörung', 'Infrastrukturstörungen'));
 
-		// Karte 2: Eilmeldungen der Nordbahn, akut heisst juenger als vier Stunden
+		// Karte 2: Eilmeldungen der Nordbahn, akut siehe eilAkut
+		var now = Date.now();
 		var last = state.items.length ? state.items[state.items.length - 1] : null;
+		var akut = state.items.filter(function (it) { return eilAkut(it, now); }).pop();
 		if (!hasData) {
 			setStatus('status-eil', 'unknown', 'Noch keine Daten');
 		} else if (!last) {
 			setStatus('status-eil', 'ok', 'Keine akuten Eilmeldungen');
-		} else {
+		} else if (!akut) {
 			var lastMs = isNaN(last.stand) ? last.ms : last.stand;
-			var age = Date.now() - lastMs;
-			if (age > EIL_AKUT_MS) setStatus('status-eil', 'ok', 'Keine akuten Eilmeldungen', age <= EIL_HINWEIS_MS ? 'Letzte ' + relTime(lastMs) : '');
-			else setStatus('status-eil', age < 3600 * 1000 ? 'alert' : 'warn', 'Eilmeldung ' + relTime(lastMs), last.title);
+			setStatus('status-eil', 'ok', 'Keine akuten Eilmeldungen', now - lastMs <= EIL_HINWEIS_MS ? 'Letzte ' + relTime(lastMs) : '');
+		} else {
+			var akutMs = isNaN(akut.stand) ? akut.ms : akut.stand;
+			setStatus('status-eil', now - akutMs < 3600 * 1000 ? 'alert' : 'warn', 'Eilmeldung ' + relTime(akutMs), akut.title);
 		}
 
 		alertState.stoerungen = list.length;
@@ -528,8 +543,8 @@
 	}
 
 	/**
-	 * Was gerade gilt, aus allen Quellen (wie nb_aktuelle_meldungen): Eilmeldungen der letzten
-	 * vier Stunden, Stoerungen bis eine Stunde nach der Aufhebung, ungeplante HVV-Meldungen, die
+	 * Was gerade gilt, aus allen Quellen (wie nb_aktuelle_meldungen): akute Eilmeldungen (eilAkut),
+	 * Stoerungen bis eine Stunde nach der Aufhebung, ungeplante HVV-Meldungen, die
 	 * jetzt gelten. Geplante HVV-Meldungen bleiben draussen, inhaltsgleiche zaehlen einmal.
 	 */
 	function aktuelleMeldungen(now) {
@@ -539,7 +554,7 @@
 		});
 		state.items.forEach(function (it) {
 			var ms = isNaN(it.stand) ? it.ms : it.stand;
-			if (ms >= now - EIL_AKUT_MS) liste.push({ art: 'eilmeldung', ts: ms, titel: it.title || it.id, text: it.text, link: ereignisLink('eilmeldung', it.id, it.title || it.id), meta: '', wegId: it.id ? 'eil:' + it.id : '' });
+			if (eilAkut(it, now)) liste.push({ art: 'eilmeldung', ts: ms, titel: it.title || it.id, text: it.text, link: ereignisLink('eilmeldung', it.id, it.title || it.id), meta: '', wegId: it.id ? 'eil:' + it.id : '' });
 		});
 		var gesehen = {};
 		(state.hvv || []).forEach(function (m) {

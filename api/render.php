@@ -9,7 +9,7 @@
  * im Script uebereinstimmen.
  */
 
-const NB_EIL_AKUT_S          = 4 * 3600;   // Eilmeldung gilt so lange als akut
+const NB_EIL_AKUT_S          = 4 * 3600;   // Eilmeldung gilt hoechstens so lange als akut
 const NB_EIL_HINWEIS_S       = 12 * 3600;  // bis dahin nennt die gruene Karte "Letzte vor …"
 const NB_STOERUNG_NACHLAUF_S  = 3600;      // aufgehobene Stoerung bleibt so lange unter "Aktuelle Meldungen"
 const NB_BETRIEB_ALERT_ANTEIL = 0.25;      // darueber "Betrieb gestoert" statt "beeintraechtigt"
@@ -214,6 +214,7 @@ function nb_items(array $data)
             'ts'       => $ts,
             'stand'    => $l && !empty($l['stand']) ? nb_ts($l['stand']) : null,
             'link'     => $l && !empty($l['link']) ? $l['link'] : '',
+            'live'     => $l !== null,
             'wichtig'  => $wichtig !== null ? (bool) $wichtig : nb_wichtig_eilmeldung($kiTitel, $kiText, $title),
         ];
     };
@@ -309,24 +310,47 @@ function nb_status_infra(array $data)
     return ['level' => 'alert', 'title' => nb_plural(count($list), 'Infrastrukturstörung', 'Infrastrukturstörungen'), 'detail' => ''];
 }
 
-/** Karte 2: Eilmeldungen der Nordbahn, akut heisst juenger als vier Stunden. */
-function nb_status_eil(array $data, array $items)
+/**
+ * Akut ist eine Eilmeldung, solange sie juenger als vier Stunden ist und noch auf
+ * nordbahn.de steht. Hat die Nordbahn sie entfernt, gilt sie als erledigt. Konnte
+ * nordbahn.de beim letzten Abruf nicht gelesen werden, zaehlt nur das Alter.
+ */
+function nb_eil_akut(array $data, array $it, $now = null)
 {
+    $ts = $it['stand'] ?? $it['ts'];
+    if ($ts < ($now ?? time()) - NB_EIL_AKUT_S) {
+        return false;
+    }
+
+    return !empty($it['live']) || empty($data['quellen']['nordbahn_ok']);
+}
+
+/** Karte 2: Eilmeldungen der Nordbahn, akut siehe nb_eil_akut(). */
+function nb_status_eil(array $data, array $items, $now = null)
+{
+    $now = $now ?? time();
     if (empty($data['received_at'])) {
         return ['level' => 'unknown', 'title' => 'Noch keine Daten', 'detail' => ''];
     }
     if (!$items) {
         return ['level' => 'ok', 'title' => 'Keine akuten Eilmeldungen', 'detail' => ''];
     }
-    $last = $items[count($items) - 1];
-    $ts = $last['stand'] ?? $last['ts'];
-    $age = time() - $ts;
-    if ($age > NB_EIL_AKUT_S) {
-        // Die Nordbahn liefert keine Gueltigkeit; der Hinweis zeigt, ob eine juengere Meldung noch nachwirken kann
-        return ['level' => 'ok', 'title' => 'Keine akuten Eilmeldungen', 'detail' => $age <= NB_EIL_HINWEIS_S ? 'Letzte ' . nb_rel_time($ts) : ''];
+    $akut = null;
+    foreach ($items as $it) {
+        if (nb_eil_akut($data, $it, $now)) {
+            $akut = $it;
+        }
     }
+    if ($akut === null) {
+        // Die Nordbahn liefert keine Gueltigkeit; der Hinweis zeigt, ob eine juengere Meldung noch nachwirken kann
+        $last = $items[count($items) - 1];
+        $ts = $last['stand'] ?? $last['ts'];
 
-    return ['level' => $age < 3600 ? 'alert' : 'warn', 'title' => 'Eilmeldung ' . nb_rel_time($ts), 'detail' => $last['title']];
+        return ['level' => 'ok', 'title' => 'Keine akuten Eilmeldungen', 'detail' => $now - $ts <= NB_EIL_HINWEIS_S ? 'Letzte ' . nb_rel_time($ts) : ''];
+    }
+    $ts = $akut['stand'] ?? $akut['ts'];
+
+    return ['level' => $now - $ts < 3600 ? 'alert' : 'warn', 'title' => 'Eilmeldung ' . nb_rel_time($ts), 'detail' => $akut['title']];
 }
 
 /** Letzter Stand der Abfahrten fuer den Bahnhof, wenn er juenger als zehn Minuten ist. */
@@ -1103,7 +1127,7 @@ function nb_aktuelle_meldungen(array $data, ?array $hvv, $now = null)
     }
     foreach (nb_items($data) as $it) {
         $ts = $it['stand'] ?? $it['ts'];
-        if ($ts >= $now - NB_EIL_AKUT_S) {
+        if (nb_eil_akut($data, $it, $now)) {
             $titel = $it['title'] !== '' ? $it['title'] : $it['id'];
             $liste[] = ['art' => 'eilmeldung', 'ts' => $ts, 'titel' => $titel, 'text' => $it['text'], 'link' => nb_link('eilmeldung', $it['id'], $titel), 'id' => $it['id']];
         }

@@ -3,7 +3,7 @@
  * Aktive Meldungen (/aktuell/): was gerade gilt, ohne Wichtig-Filter und ohne
  * Wegklicken. Laufende Infrastrukturstoerungen als Karten, ein gueltiger
  * Baufahrplan, darunter die aktuellen Meldungen wie auf der Startseite
- * (nb_aktuelle_meldungen: Eilmeldungen der letzten vier Stunden, gerade
+ * (nb_aktuelle_meldungen: akute Eilmeldungen laut nb_eil_akut, gerade
  * aufgehobene Stoerungen, gueltige HVV-Meldungen). Ziel der Lagekarten
  * "Infrastruktur" und "Eilmeldungen". Rein server-seitig.
  */
@@ -33,7 +33,7 @@ $ruhig = !$stoerungen && !$hinweise && !$bau && !$meldungen;
 
 $pageUrl = SITE_URL . '/aktuell/';
 $title = 'Aktive Meldungen zur Nordbahn RB60/RB61/RB71 – was gerade gilt';
-$description = 'Was gerade auf den Nordbahn-Linien zwischen Hamburg, Pinneberg, Elmshorn, Itzehoe und Wrist gilt: laufende Infrastrukturstörungen, Baufahrplan, Eilmeldungen der letzten vier Stunden, gerade aufgehobene Störungen'
+$description = 'Was gerade auf den Nordbahn-Linien zwischen Hamburg, Pinneberg, Elmshorn, Itzehoe und Wrist gilt: laufende Infrastrukturstörungen, Baufahrplan, aktuelle Eilmeldungen, gerade aufgehobene Störungen'
     . ($gfAktiv ? ' und gültige HVV-Meldungen' : '') . '. Ohne Filter, alle Meldungen.';
 $jsonLd = [
     '@context' => 'https://schema.org',
@@ -87,7 +87,7 @@ $jsonLd = [
 
 <?php if ($ruhig): ?>
 	<section class="section">
-		<ol class="feed card"><li><p class="feed__empty">Gerade ist nichts los: keine Infrastrukturst&ouml;rung, kein Baufahrplan, keine Eilmeldung der letzten vier Stunden<?= $gfAktiv ? ', keine HVV-Meldung' : '' ?>.</p></li></ol>
+		<ol class="feed card"><li><p class="feed__empty">Gerade ist nichts los: keine Infrastrukturst&ouml;rung, kein Baufahrplan, keine aktuelle Eilmeldung<?= $gfAktiv ? ', keine HVV-Meldung' : '' ?>.</p></li></ol>
 	</section>
 <?php endif; ?>
 
