@@ -18,6 +18,7 @@ $urls = [
     ['loc' => SITEMAP_BASE . 'karte/', 'priority' => '0.7'],
     ['loc' => SITEMAP_BASE . 'statistik/', 'priority' => '0.6'],
     ['loc' => SITEMAP_BASE . 'changelog/', 'priority' => '0.4'],
+    ['loc' => SITEMAP_BASE . 'mcp-hilfe/', 'priority' => '0.5'],
 ];
 
 // Ereignisseiten der letzten 60 Tage: Stoerungen aus dem Logbuch, Eilmeldungen aus der Historie

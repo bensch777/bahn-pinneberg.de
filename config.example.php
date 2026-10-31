@@ -47,6 +47,10 @@ return [
     // und die Adresse hier eintragen. Leer: kein Feedback-Knopf.
     'NORDBAHN_FEEDBACK_WEBHOOK' => '',
 
+    // Token fuer den Domain-Nachweis im ChatGPT-App-Verzeichnis (platform.openai.com,
+    // ChatGPT Apps). Wird unter /.well-known/openai-apps-challenge ausgeliefert.
+    'NORDBAHN_OPENAI_CHALLENGE' => '',
+
     'NORDBAHN_GOOGLE_VERIFICATION' => '',
     'NORDBAHN_BING_VERIFICATION' => '',
 

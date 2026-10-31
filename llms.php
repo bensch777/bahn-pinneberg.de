@@ -25,7 +25,7 @@ echo "- [Lage als Markdown](" . $site . "/lage.md): Status, aktive Störungen, n
 echo "- Bahnhofskürzel: " . implode(', ', $bahnhoefe) . ". Hamburg: AH = Hamburg Hbf, ADF = Hamburg Dammtor, AA = Hamburg-Altona.\n\n";
 
 echo "## MCP-Server\n\n";
-echo "- " . $site . "/mcp: Remote-MCP-Server (Streamable HTTP, ohne Anmeldung, nur lesend) zum Eintragen als Connector in Claude, ChatGPT oder anderen MCP-Clients. Werkzeuge: `lage` (wie lage.md, Parameter `bahnhof` als Name oder Kürzel), `abfahrten` (`bahnhof`, `richtung` hamburg|zurueck|beide, `anzahl`) und `stoerung` (`key` aus lage, Details einer Infrastrukturstörung).\n\n";
+echo "- " . $site . "/mcp: Remote-MCP-Server (Streamable HTTP, ohne Anmeldung, nur lesend) zum Eintragen als Connector in Claude, ChatGPT oder anderen MCP-Clients. Anleitung: " . $site . "/mcp-hilfe/. Werkzeuge: `lage` (wie lage.md, Parameter `bahnhof` als Name oder Kürzel), `abfahrten` (`bahnhof`, `richtung` hamburg|zurueck|beide, `anzahl`) und `stoerung` (`key` aus lage, Details einer Infrastrukturstörung).\n\n";
 
 echo "## Daten als JSON\n\n";
 echo "- [api/data](" . $site . "/api/data): Lagebild mit `stoerungen` (aktive Infrastrukturstörungen mit `titel`, `text`, `ki_titel`, `ki_text` in Alltagssprache, `beginn`, `ende`, `abgelaufen`), `eilmeldungen_live` (aktuell auf nordbahn.de), `eilmeldungen` (Historie) und `stoerungen_verlauf` (Logbuch mit `first_seen`, `last_seen`).\n";
