@@ -1032,6 +1032,15 @@ function nb_status_s3($gf)
     return ['level' => $gf['s3']['level'] ?? 'unknown', 'title' => (string) ($gf['s3']['title'] ?? 'S3'), 'detail' => (string) ($gf['s3']['detail'] ?? '')];
 }
 
+/**
+ * Linienname als farbiger Tag wie auf der Livekarte (Klasse linie--rb61 usw. in dashboard.css).
+ */
+function nb_render_linie($linie)
+{
+    $linie = (string) $linie;
+    return '<span class="linie linie--' . nb_e(preg_replace('/[^a-z0-9]/', '', strtolower($linie))) . '">' . nb_e($linie) . '</span>';
+}
+
 /** S3-Abfahrten ab Pinneberg als Zeilen der Abfahrtstafel (wie renderS3 im Script). */
 function nb_render_s3_abfahrten(array $liste, $ab = 'Pinneberg')
 {
@@ -1050,7 +1059,7 @@ function nb_render_s3_abfahrten(array $liste, $ab = 'Pinneberg')
         $zeit = nb_ts($d['zeit'] ?? '');
         $html .= '<li class="' . $cls . '"><span class="dep__dot"></span><div class="dep__time">' . nb_e($zeit ? nb_fmt_uhr($zeit) : '--:--')
             . (!empty($d['ausfall']) ? '<small>fällt aus</small>' : ($late ? '<small>+' . (int) $d['delay_min'] . ' → ' . nb_e(nb_fmt_uhr(nb_ts($d['ist']) ?? $zeit)) . '</small>' : '')) . '</div>'
-            . '<div class="dep__line">' . nb_e($d['linie'] ?? 'S3') . '</div>'
+            . '<div class="dep__line">' . nb_render_linie($d['linie'] ?? 'S3') . '</div>'
             . '<div class="dep__dest"><span class="dep__ziel">' . nb_e($d['ziel'] ?? '') . '</span></div>'
             . '<div class="dep__platform">' . (($d['gleis'] ?? '') !== '' ? 'Gl. ' . nb_e($d['gleis']) : '') . '</div></li>';
     }

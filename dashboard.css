@@ -645,7 +645,6 @@ a.status:focus-visible { outline: 2px solid var(--series); outline-offset: 2px; 
 .meine__zug:first-child { border-top: 0; padding-top: 2px; }
 .meine__kopf { display: flex; align-items: baseline; gap: 8px; font-variant-numeric: tabular-nums; }
 .meine__zeit { font-size: 18px; }
-.meine__linie { font-weight: 700; font-size: 13px; color: var(--series); white-space: nowrap; }
 .meine__strecke { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink-2); }
 .meine__weg { flex: none; border: 0; background: transparent; color: var(--muted); font-size: 22px; line-height: 1; padding: 0 4px; cursor: pointer; }
 .meine__weg:hover { color: var(--ink); }
@@ -808,14 +807,16 @@ a.status:focus-visible { outline: 2px solid var(--series); outline-offset: 2px; 
 .zug { display: inline-flex; align-items: center; gap: 3px; height: 30px; white-space: nowrap; cursor: pointer; }
 .zug__bild { width: 28px; height: 28px; flex: none; filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.45)); }
 .zug__linie { display: inline-block; height: 22px; line-height: 22px; padding: 0 7px; border-radius: 6px; background: #5b5b58; color: #fff; font-size: 12px; font-weight: 700; letter-spacing: 0.01em; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35), 0 0 0 1.5px rgba(255, 255, 255, 0.95); }
+/* Linientag: farbig wie auf der Livekarte, auch auf der Startseite (Abfahrten, Meine Zuege) */
+.linie { display: inline-block; min-width: 44px; text-align: center; padding: 3px 7px; border-radius: 6px; font-size: 12px; font-weight: 700; line-height: 1.2; color: #fff; background: #5b5b58; flex: none; white-space: nowrap; }
 .zug--rb60 .zug__linie, .linie--rb60 { background: #eb6834; }
 .zug--rb61 .zug__linie, .linie--rb61 { background: #2a78d6; }
 .zug--rb71 .zug__linie, .linie--rb71 { background: #1f9d55; }
+.linie--s3 { background: #9c2a7f; }
 .zug--wartet { opacity: 0.8; }
 .zug--ziel { opacity: 0.65; }
 .zug__delay { font-style: normal; font-size: 11px; font-weight: 700; height: 22px; line-height: 22px; padding: 0 5px; border-radius: 6px; background: var(--warning); color: #1a1a19; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35), 0 0 0 1.5px rgba(255, 255, 255, 0.95); }
 .zug--stark .zug__delay { background: var(--critical); color: #fff; }
-.linie { display: inline-block; min-width: 44px; text-align: center; padding: 3px 7px; border-radius: 6px; font-size: 12px; font-weight: 700; line-height: 1.2; color: #fff; background: #5b5b58; flex: none; }
 /* Liste unter der Karte */
 .zugliste { list-style: none; margin: 0; padding: 0; }
 .zugliste li { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); font-size: 14.5px; }
