@@ -59,7 +59,9 @@ jobs:
           fi
 
       # Spiegelt das Repo ins Web-Root. config.php und cache/ liegen nur auf dem
-      # Server und bleiben durch die Ausnahmen bei --delete unangetastet.
+      # Server und bleiben durch die Ausnahmen bei --delete unangetastet. v2/ ist
+      # der Rest einer Design-Vorschau, den SFTP nicht loeschen kann (liefert 403);
+      # ohne Ausnahme bricht jeder Deploy am Ende mit "Directory is not empty" ab.
       # Zugangsdaten gehen per -u und nicht in der URL mit, damit Sonderzeichen
       # im Passwort (: @ /) die Adresse nicht zerlegen. DEPLOY_HOST ist nur der
       # Hostname, DEPLOY_PATH der absolute Pfad zum Web-Root.
@@ -84,6 +86,7 @@ jobs:
               --exclude='^dev/' \
               --exclude='^config\.php$' \
               --exclude='^cache/' \
+              --exclude='^v2/' \
               --exclude='^README\.md$' \
               --exclude='^php-error\.log$' \
               --exclude='^error_log$' \
