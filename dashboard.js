@@ -687,12 +687,131 @@
 		return 'in ' + diff + ' Min';
 	}
 
-	/** Vormittags steht die Fahrt in die Stadt oben, nachmittags der Rueckweg; gilt fuer Nordbahn und S3. */
-	function orderBoards() {
+	/**
+	 * Vormittags steht die Fahrt in die Stadt oben, nachmittags der Rueckweg; gilt fuer Nordbahn
+	 * und S3. Auf dem Handy zeigt die Seite nur eine Richtung, der Umschalter (.richtung) waehlt
+	 * sie fuer Tafeln und Antwortblock; die Wahl gilt bis zum naechsten Laden der Seite.
+	 */
+	var richtungState = { wahl: null };
+
+	function aktuelleRichtung() {
+		if (richtungState.wahl) return richtungState.wahl;
 		var hour = parseInt(new Date().toLocaleTimeString('de-DE', { timeZone: TZ, hour: '2-digit', hour12: false }), 10);
+		return hour >= 12 ? 'rueck' : 'hin';
+	}
+
+	function orderBoards() {
+		var r = aktuelleRichtung();
 		Array.prototype.forEach.call(document.querySelectorAll('.boards'), function (boards) {
-			boards.classList.toggle('boards--rueck-first', hour >= 12);
+			boards.classList.toggle('boards--rueck-first', r === 'rueck');
+			boards.classList.toggle('boards--nur-hin', r === 'hin');
+			boards.classList.toggle('boards--nur-rueck', r === 'rueck');
 		});
+		Array.prototype.forEach.call(document.querySelectorAll('.richtung button'), function (b) {
+			b.setAttribute('aria-pressed', b.getAttribute('data-richtung') === r ? 'true' : 'false');
+		});
+		renderAntwort();
+	}
+
+	function initRichtung() {
+		Array.prototype.forEach.call(document.querySelectorAll('.richtung button'), function (b) {
+			b.addEventListener('click', function () {
+				richtungState.wahl = b.getAttribute('data-richtung');
+				orderBoards();
+				track('Richtung', { richtung: richtungState.wahl });
+			});
+		});
+	}
+
+	/** CSS-Klasse der Linienfarbe: dep--rb61, dep--rb71, dep--rb60, dep--s3 */
+	function linieKlasse(linie, praefix) {
+		var k = String(linie || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+		return /^(rb61|rb71|rb60|s3)$/.test(k) ? ' ' + (praefix || 'dep--') + k : '';
+	}
+
+	function linienSchild(linie) {
+		return el('span', { class: 'dep__linie' + linieKlasse(linie, 'linie--'), text: linie || '' });
+	}
+
+	/* ---------- Antwortblock: der naechste Zug ---------- */
+
+	function abZeit(d) { return Date.parse((d.ist || d.zeit) || ''); }
+
+	/** Erste Abfahrt, die noch nicht weg ist und nicht ausfaellt. */
+	function naechsteFahrt(deps, nach) {
+		var jetzt = Date.now() - 30000;
+		for (var i = 0; i < deps.length; i++) {
+			var d = deps[i];
+			if (d.ausfall || d === nach) continue;
+			if (abZeit(d) < jetzt) continue;
+			if (nach && abZeit(d) <= abZeit(nach)) continue;
+			return d;
+		}
+		return null;
+	}
+
+	function renderAntwort() {
+		var box = document.getElementById('antwort');
+		if (!box) return;
+		var result = departuresState.last;
+		var r = aktuelleRichtung();
+		var deps = (result && result.richtungen && result.richtungen[r]) || [];
+		var d = naechsteFahrt(deps);
+		if (!result || !d) { box.hidden = true; return; }
+		var verspaetung = d.verspaetung || 0;
+		var late = verspaetung >= 3;
+		var zuHause = heimatState.name;
+		var frage = r === 'hin' ? 'Dein nächster Zug ab ' + zuHause + ' nach Hamburg' : 'Dein nächster Zug nach ' + zuHause;
+		var zeit = el('div', { class: 'antwort__zeit' }, [fmtClock(late && d.ist ? d.ist : d.zeit)]);
+		if (late) zeit.appendChild(el('s', { text: fmtClock(d.zeit) }));
+		var cd = fmtCountdown(d.ist || d.zeit);
+		var lage = d.bus ? 'Bus statt Zug' : late ? '+' + verspaetung + ' Min' : 'pünktlich';
+		if (cd) lage += ', ' + cd;
+		var zug = el('div', { class: 'antwort__zug' }, [linienSchild(d.linie)]);
+		var wo = [];
+		if (r === 'rueck' && d.ab) wo.push('ab ' + d.ab);
+		if (d.gleis) wo.push('Gleis ' + d.gleis + (d.gleis_plan ? ' (statt ' + d.gleis_plan + ')' : ''));
+		if (r === 'rueck' && d.ziel) wo.push('nach ' + d.ziel);
+		zug.appendChild(document.createTextNode(wo.join(' · ')));
+		var info = el('div', { class: 'antwort__info' }, [zug, el('span', { class: 'antwort__lage', text: lage })]);
+		if (d.teil && d.teil.art === 'endet' && !d.teil.plan) info.appendChild(el('span', { text: 'Endet heute in ' + d.teil.name }));
+
+		// Ausfaelle in der Liste: nennen, damit niemand auf einen gestrichenen Zug wartet
+		var weg = deps.slice(0, 6).filter(function (x) { return x.ausfall && abZeit(x) >= Date.now() - 60000; });
+		var hinweis = weg.length ? 'Fällt aus: ' + weg.map(function (x) { return fmtClock(x.zeit) + ' ' + x.linie; }).join(', ') : '';
+
+		var alt = el('p', { class: 'antwort__alt' });
+		var s3 = s3Alternative(r);
+		if (s3) {
+			alt.appendChild(linienSchild('S3'));
+			var t = s3.ab === 'Pinneberg' ? 'Alternative ab Pinneberg ' : 'Alternative ab ' + s3.ab + ' ';
+			alt.appendChild(document.createTextNode(t));
+			alt.appendChild(el('b', { text: fmtClock(s3.ist || s3.zeit) }));
+			alt.appendChild(document.createTextNode(s3.delay_min >= 3 ? ', heute +' + s3.delay_min : s3.gleis ? ', Gleis ' + s3.gleis : ''));
+		} else {
+			var danach = naechsteFahrt(deps, d);
+			if (danach) {
+				alt.appendChild(linienSchild(danach.linie));
+				alt.appendChild(document.createTextNode('Danach '));
+				alt.appendChild(el('b', { text: fmtClock(danach.ist || danach.zeit) }));
+				if (danach.verspaetung >= 3) alt.appendChild(document.createTextNode(', heute +' + danach.verspaetung));
+			}
+		}
+
+		clear(box);
+		box.className = 'antwort' + (late || d.bus ? ' antwort--spaet' : '');
+		box.appendChild(el('p', { class: 'antwort__frage', text: frage }));
+		box.appendChild(el('div', { class: 'antwort__haupt' }, [zeit, info]));
+		box.appendChild(el('p', { class: 'antwort__hinweis', text: hinweis }));
+		box.appendChild(alt);
+		box.hidden = false;
+	}
+
+	/** S3 als Plan B, nur fuer Pinneberg: hin ab Pinneberg, zurueck ab dem gewaehlten Stadtbahnhof. */
+	function s3Alternative(r) {
+		if (heimatState.id !== 'AP' || !s3State.last || !s3State.last.ok || !s3State.last.s3) return null;
+		var deps = (s3State.last.s3.abfahrten || []).filter(function (x) { return r === 'hin' ? x.ab === 'Pinneberg' : x.ab !== 'Pinneberg'; });
+		return naechsteFahrt(deps);
 	}
 
 	function fmtClock(iso) {
@@ -723,6 +842,7 @@
 				clear(list);
 				list.appendChild(el('li', {}, [el('p', { class: 'board__empty', text: result ? 'Keine Daten.' : 'Lade …' })]));
 			});
+			renderAntwort();
 			return;
 		}
 
@@ -746,6 +866,7 @@
 				var cls = 'dep' + (d.ausfall ? ' dep--cancelled' : late ? ' dep--late' : '');
 				if (d.teil && !d.teil.plan && !d.ausfall) cls += ' dep--teil';
 				if (d.ersatz_fuer) cls += ' dep--ersatz';
+				cls += linieKlasse(d.bus ? '' : d.linie);
 				if (!d.ausfall && !nextMarked) { cls += ' dep--next'; nextMarked = true; }
 
 				var time = el('div', { class: 'dep__time' }, [fmtClock(d.zeit)]);
@@ -760,7 +881,7 @@
 					if (cdLate) time.appendChild(el('small', { class: 'dep__countdown', text: cdLate }));
 				}
 
-				var line = el('div', { class: 'dep__line' }, [d.linie]);
+				var line = el('div', { class: 'dep__line' }, [linienSchild(d.linie)]);
 				if (d.wagen) line.appendChild(el('small', { text: plural(d.wagen, 'Wagen', 'Wagen') }));
 				else if (d.bus) line.appendChild(el('small', { text: 'SEV' }));
 
@@ -845,6 +966,7 @@
 		});
 		alertState.ausfaelle = ausfaelle;
 		alertState.verspaetet = verspaetet;
+		renderAntwort();
 		updateBadge();
 		notifyNew(collectEvents(result));
 	}
@@ -956,16 +1078,18 @@
 		var nextMarked = false;
 		deps.forEach(function (d) {
 			var late = !d.ausfall && d.delay_min >= 3;
-			var cls = 'dep' + (d.ausfall ? ' dep--cancelled' : late ? ' dep--late' : '');
+			var cls = 'dep dep--s3' + (d.ausfall ? ' dep--cancelled' : late ? ' dep--late' : '');
 			if (!d.ausfall && !nextMarked) { cls += ' dep--next'; nextMarked = true; }
 			var time = el('div', { class: 'dep__time' }, [fmtClock(d.zeit)]);
 			if (d.ausfall) time.appendChild(el('small', { text: 'fällt aus' }));
 			else if (late) time.appendChild(el('small', { text: '+' + d.delay_min + ' → ' + fmtClock(d.ist) }));
 			var cd = d.ausfall ? '' : fmtCountdown(d.ist || d.zeit);
 			if (cd) time.appendChild(el('small', { class: 'dep__countdown', text: cd }));
-			var dest = el('div', { class: 'dep__dest', title: d.ziel }, [el('span', { class: 'dep__ziel', text: d.ziel })]);
+			// Rueckrichtung: "Pinneberg" in jeder Zeile sagt nichts, der Tafeltitel nennt das Ziel
+			var ziel = /^pinneberg$/i.test((d.ziel || '').trim()) ? '' : d.ziel;
+			var dest = el('div', { class: 'dep__dest', title: d.ziel }, [el('span', { class: 'dep__ziel', text: ziel })]);
 			var platform = el('div', { class: 'dep__platform', text: d.gleis ? 'Gl. ' + d.gleis : '' });
-			list.appendChild(el('li', { class: cls }, [el('span', { class: 'dep__dot' }), time, el('div', { class: 'dep__line' }, [d.linie || 'S3']), dest, platform]));
+			list.appendChild(el('li', { class: cls }, [el('span', { class: 'dep__dot' }), time, el('div', { class: 'dep__line' }, [linienSchild(d.linie || 'S3')]), dest, platform]));
 		});
 	}
 
@@ -1024,6 +1148,7 @@
 		if (rueck) renderS3Board(rueck, deps.filter(function (d) { return d.ab !== 'Pinneberg'; }));
 		state.hvv = s3.meldungen || [];
 		renderMeldungen();
+		renderAntwort();
 	}
 
 	function refreshS3() {
@@ -1816,6 +1941,8 @@
 		setInterval(refresh, REFRESH_MS);
 		setInterval(renderFreshness, 60000);
 		setInterval(function () { if (!document.hidden) window.location.reload(); }, RELOAD_MS);
+		document.documentElement.classList.add('js');
+		initRichtung();
 		orderBoards();
 		setInterval(orderBoards, 30000);
 		if (document.getElementById('abfahrten')) {

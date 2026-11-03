@@ -36,6 +36,6 @@
 		{"von":"ADH","bis":"AWST","linien":["RB71"],"zwischen":[[53.88619,9.709],[53.93031,9.74622]]}
 	],
 	"ansichten": {"netz":{"name":"Gesamtnetz","stationen":["AH","AA","AIZ","AWST","AGST"]},"hamburg":{"name":"Hamburg – Elmshorn","stationen":["AH","AA","AEL"]},"itzehoe":{"name":"Elmshorn – Itzehoe","stationen":["AEL","AGST","AIZ"]},"wrist":{"name":"Elmshorn – Wrist","stationen":["AEL","AWST"]}},
-	"linien": {"RB60":{"name":"RB60","farbe":"#eb6834","lauf":"Hamburg-Altona – Elmshorn – Itzehoe"},"RB61":{"name":"RB61","farbe":"#2a78d6","lauf":"Hamburg Hbf – Elmshorn – Itzehoe"},"RB71":{"name":"RB71","farbe":"#1f9d55","lauf":"Hamburg Hbf – Elmshorn – Wrist"}},
+	"linien": {"RB60":{"name":"RB60","farbe":"#5d7a12","lauf":"Hamburg-Altona – Elmshorn – Itzehoe"},"RB61":{"name":"RB61","farbe":"#0b6e8f","lauf":"Hamburg Hbf – Elmshorn – Itzehoe"},"RB71":{"name":"RB71","farbe":"#c4501a","lauf":"Hamburg Hbf – Elmshorn – Wrist"}},
 	"_quelle": "Streckenverlauf aus OpenStreetMap (ODbL, © OpenStreetMap-Mitwirkende), erzeugt mit dev/strecke.js am 2026-10-25"
 }

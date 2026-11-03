@@ -1042,7 +1042,7 @@ function nb_render_s3_abfahrten(array $liste, $ab = 'Pinneberg')
             continue;
         }
         $late = empty($d['ausfall']) && ($d['delay_min'] ?? 0) >= 3;
-        $cls = 'dep' . (!empty($d['ausfall']) ? ' dep--cancelled' : ($late ? ' dep--late' : ''));
+        $cls = 'dep dep--s3' . (!empty($d['ausfall']) ? ' dep--cancelled' : ($late ? ' dep--late' : ''));
         if (empty($d['ausfall']) && !$next) {
             $cls .= ' dep--next';
             $next = true;
@@ -1050,8 +1050,9 @@ function nb_render_s3_abfahrten(array $liste, $ab = 'Pinneberg')
         $zeit = nb_ts($d['zeit'] ?? '');
         $html .= '<li class="' . $cls . '"><span class="dep__dot"></span><div class="dep__time">' . nb_e($zeit ? nb_fmt_uhr($zeit) : '--:--')
             . (!empty($d['ausfall']) ? '<small>fällt aus</small>' : ($late ? '<small>+' . (int) $d['delay_min'] . ' → ' . nb_e(nb_fmt_uhr(nb_ts($d['ist']) ?? $zeit)) . '</small>' : '')) . '</div>'
-            . '<div class="dep__line">' . nb_e($d['linie'] ?? 'S3') . '</div>'
-            . '<div class="dep__dest"><span class="dep__ziel">' . nb_e($d['ziel'] ?? '') . '</span></div>'
+            . '<div class="dep__line"><span class="dep__linie">' . nb_e($d['linie'] ?? 'S3') . '</span></div>'
+            // Rueckrichtung: "Pinneberg" in jeder Zeile sagt nichts, der Tafeltitel nennt das Ziel
+            . '<div class="dep__dest"><span class="dep__ziel">' . nb_e(nb_s3_ziel($d['ziel'] ?? '')) . '</span></div>'
             . '<div class="dep__platform">' . (($d['gleis'] ?? '') !== '' ? 'Gl. ' . nb_e($d['gleis']) : '') . '</div></li>';
     }
     if ($html === '') {
@@ -1059,6 +1060,12 @@ function nb_render_s3_abfahrten(array $liste, $ab = 'Pinneberg')
     }
 
     return $html;
+}
+
+/** Ziel einer S3-Abfahrt fuer die Tafel: leer, wenn sie ohnehin nach Pinneberg faehrt. */
+function nb_s3_ziel($ziel)
+{
+    return strcasecmp(trim((string) $ziel), GF_PINNEBERG) === 0 ? '' : (string) $ziel;
 }
 
 /** Gueltigkeit einer HVV-Meldung als Text: "bis Fr., 17.10., 04:00 Uhr" bzw. "ab …". */

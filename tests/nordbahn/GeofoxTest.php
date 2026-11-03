@@ -278,8 +278,8 @@ function test_render_s3_html()
         ['zeit' => '2026-10-15T10:17:00+02:00', 'ist' => '2026-10-15T10:17:00+02:00', 'linie' => 'S3', 'ziel' => 'Stade', 'ab' => 'Pinneberg', 'delay_min' => 0, 'ausfall' => true, 'gleis' => ''],
         ['zeit' => '2026-10-15T10:11:00+02:00', 'ist' => '2026-10-15T10:11:00+02:00', 'linie' => 'S3', 'ziel' => 'Pinneberg', 'ab' => 'Hamburg Hbf', 'delay_min' => 0, 'ausfall' => false, 'gleis' => '14']];
     $html = nb_render_s3_abfahrten($liste);
-    t_contains('<li class="dep dep--late dep--next"><span class="dep__dot"></span><div class="dep__time">10:07 Uhr<small>+5 → 10:12 Uhr</small></div><div class="dep__line">S3</div><div class="dep__dest"><span class="dep__ziel">Stade</span></div><div class="dep__platform">Gl. 1</div></li>', $html, 'verspaetete Abfahrt mit Gleisspalte');
-    t_contains('<li class="dep dep--cancelled"><span class="dep__dot"></span><div class="dep__time">10:17 Uhr<small>fällt aus</small></div>', $html, 'Ausfall');
+    t_contains('<li class="dep dep--s3 dep--late dep--next"><span class="dep__dot"></span><div class="dep__time">10:07 Uhr<small>+5 → 10:12 Uhr</small></div><div class="dep__line"><span class="dep__linie">S3</span></div><div class="dep__dest"><span class="dep__ziel">Stade</span></div><div class="dep__platform">Gl. 1</div></li>', $html, 'verspaetete Abfahrt mit Gleisspalte');
+    t_contains('<li class="dep dep--s3 dep--cancelled"><span class="dep__dot"></span><div class="dep__time">10:17 Uhr<small>fällt aus</small></div>', $html, 'Ausfall');
     t_eq(false, strpos($html, 'Pinneberg</span>') !== false, 'Hbf-Zeilen nicht auf der Startseite');
     t_contains('Keine S3-Abfahrt in den nächsten 60 Minuten gemeldet.', nb_render_s3_abfahrten([]), 'leer');
 
@@ -287,7 +287,7 @@ function test_render_s3_html()
         ['id' => 'B', 'titel' => 'Bauarbeiten', 'text' => '', 'geplant' => true, 'aktiv' => false, 'von' => '2026-10-17T20:00:00Z', 'bis' => '2026-10-20T02:00:00Z', 'linien' => ['S3'], 'stand' => '']];
     t_contains('<li class="is-heute"><div class="feed__time">Heute, 09:30 Uhr</div><div><p class="feed__kicker feed__kicker--hvv">HVV-Meldung <span class="dep__ab dep__ab--aktiv">aktuell</span></p><p class="feed__title">S3: Signalstörung</p><p class="feed__meta">S3, RB61 · bis 12:00 Uhr<br>Es kommt zu Ausfällen.</p></div></li>', nb_render_hvv_eintrag($m[0], $now), 'aktuelle Meldung');
     $hbf = nb_render_s3_abfahrten($liste, 'Hamburg Hbf');
-    t_contains('<span class="dep__ziel">Pinneberg</span></div><div class="dep__platform">Gl. 14</div>', $hbf, 'Rueckrichtung ab Hbf');
+    t_contains('<span class="dep__ziel"></span></div><div class="dep__platform">Gl. 14</div>', $hbf, 'Rueckrichtung ab Hbf ohne Ziel Pinneberg');
 }
 
 function test_s3_meldungen_echte_antwort_korridor()

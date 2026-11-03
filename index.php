@@ -167,6 +167,8 @@ $jsonLd = [
 		<button type="button" class="freshness" id="freshness" aria-live="polite"></button>
 	</div>
 
+	<section class="antwort" id="antwort" aria-label="Nächster Zug" aria-live="polite" hidden></section>
+
 	<section id="status" class="section" aria-label="Lagekarten">
 		<div class="status-grid">
 			<?= nb_render_status_card('status-alles', ['level' => 'ok', 'title' => 'Alles planmäßig', 'detail' => $kompakt['detail']], !$kompakt['alles']) ?>
@@ -212,6 +214,10 @@ $jsonLd = [
 				<p class="section__sub" id="abfahrten-sub"></p>
 			</div>
 		</div>
+		<div class="richtung" role="group" aria-label="Richtung">
+			<button type="button" data-richtung="hin" aria-pressed="true">Nach Hamburg</button>
+			<button type="button" data-richtung="rueck" aria-pressed="false">Nach Hause</button>
+		</div>
 		<div class="boards">
 			<div class="card board" data-richtung="hin">
 				<div class="board__head">
@@ -243,6 +249,10 @@ $jsonLd = [
 				</label>
 				<p class="section__sub" id="s3-sub"></p>
 			</div>
+		</div>
+		<div class="richtung" role="group" aria-label="Richtung der S3">
+			<button type="button" data-richtung="hin" aria-pressed="true">Nach Hamburg</button>
+			<button type="button" data-richtung="rueck" aria-pressed="false">Nach Hause</button>
 		</div>
 		<div class="boards">
 			<div class="card board" data-richtung="hin">
