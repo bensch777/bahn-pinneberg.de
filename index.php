@@ -212,6 +212,10 @@ $jsonLd = [
 				<p class="section__sub" id="abfahrten-sub"></p>
 			</div>
 		</div>
+		<div class="richtung" role="group" aria-label="Richtung">
+			<button type="button" class="richtung__tab" data-richtung="hin" aria-pressed="true">Nach Hamburg</button>
+			<button type="button" class="richtung__tab" data-richtung="rueck" aria-pressed="false">Nach Hause</button>
+		</div>
 		<div class="boards">
 			<div class="card board" data-richtung="hin">
 				<div class="board__head">
@@ -243,6 +247,10 @@ $jsonLd = [
 				</label>
 				<p class="section__sub" id="s3-sub"></p>
 			</div>
+		</div>
+		<div class="richtung" role="group" aria-label="Richtung der S3">
+			<button type="button" class="richtung__tab" data-richtung="hin" aria-pressed="true">Nach Hamburg</button>
+			<button type="button" class="richtung__tab" data-richtung="rueck" aria-pressed="false">Nach Hause</button>
 		</div>
 		<div class="boards">
 			<div class="card board" data-richtung="hin">

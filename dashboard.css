@@ -575,6 +575,20 @@ a.status:focus-visible { outline: 2px solid var(--series); outline-offset: 2px; 
 .boards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 @media (max-width: 760px) { .boards { grid-template-columns: 1fr; } }
 .boards--rueck-first .board[data-richtung="rueck"] { order: -1; }
+/* Handy: Tabs fuer die Richtung statt zwei Tafeln untereinander. Ohne JavaScript bleiben
+   die Tabs verborgen und beide Tafeln stehen da. Aussehen wie die Tabs der Meldungsseiten. */
+.richtung { display: none; }
+@media (max-width: 760px) {
+	.js .richtung { display: flex; gap: 4px; margin: 0 0 10px; padding: 3px; border-radius: 10px; background: var(--surface-2); }
+	.richtung__tab {
+		flex: 1; padding: 7px 10px; border: 0; border-radius: 8px; background: transparent;
+		font-size: 14px; font-weight: 500; color: var(--ink-2); cursor: pointer;
+	}
+	.richtung__tab:hover { color: var(--ink); }
+	.richtung__tab[aria-pressed="true"] { background: var(--surface); color: var(--ink); font-weight: 600; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12); }
+	.richtung__tab:focus-visible { outline: 2px solid var(--series); outline-offset: 1px; }
+	.js .boards--nur-hin .board[data-richtung="rueck"], .js .boards--nur-rueck .board[data-richtung="hin"] { display: none; }
+}
 .board { padding: 14px 18px 8px; }
 .board__head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-bottom: 6px; }
 .board__title { margin: 0; font-size: 15px; font-weight: 600; }
