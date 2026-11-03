@@ -83,3 +83,15 @@ jobs:
               ./ \"$TARGET\";
             bye
           "
+
+      # Kurzer Blick von aussen: Status, Laenge und Anfang der Antwort
+      - name: Vorschau pruefen
+        run: |
+          for u in https://bahn-pinneberg.de/v2/ https://bahn-pinneberg.de/v2/dashboard.css https://bahn-pinneberg.de/v2/api/s3 https://bahn-pinneberg.de/v2/faq/; do
+            echo "== $u"
+            curl -sS -o body.txt -D head.txt -w 'HTTP %{http_code}, %{size_download} Bytes\n' "$u" || true
+            grep -iE '^(content-type|location|x-robots)' head.txt || true
+            head -c 300 body.txt; echo
+          done
+          test "$(curl -s -o /dev/null -w '%{http_code}' https://bahn-pinneberg.de/v2/)" = 200
+          curl -s https://bahn-pinneberg.de/v2/ | grep -q 'id="abfahrten"'
