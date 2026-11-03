@@ -31,7 +31,7 @@ jobs:
           lftp -c "
             set sftp:auto-confirm yes;
             open -u \"$DEPLOY_USER\",\"$DEPLOY_PASSWORD\" \"sftp://$DEPLOY_HOST\";
-            rm -rf \"$TARGET\"
+            rmdir \"$TARGET\"
           " || true
           echo "== danach"
           lftp -c "
