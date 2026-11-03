@@ -278,7 +278,7 @@ function test_render_s3_html()
         ['zeit' => '2026-10-15T10:17:00+02:00', 'ist' => '2026-10-15T10:17:00+02:00', 'linie' => 'S3', 'ziel' => 'Stade', 'ab' => 'Pinneberg', 'delay_min' => 0, 'ausfall' => true, 'gleis' => ''],
         ['zeit' => '2026-10-15T10:11:00+02:00', 'ist' => '2026-10-15T10:11:00+02:00', 'linie' => 'S3', 'ziel' => 'Pinneberg', 'ab' => 'Hamburg Hbf', 'delay_min' => 0, 'ausfall' => false, 'gleis' => '14']];
     $html = nb_render_s3_abfahrten($liste);
-    t_contains('<li class="dep dep--late dep--next"><span class="dep__dot"></span><div class="dep__time">10:07 Uhr<small>+5 → 10:12 Uhr</small></div><div class="dep__line">S3</div><div class="dep__dest"><span class="dep__ziel">Stade</span></div><div class="dep__platform">Gl. 1</div></li>', $html, 'verspaetete Abfahrt mit Gleisspalte');
+    t_contains('<li class="dep dep--late dep--next"><span class="dep__dot"></span><div class="dep__time">10:07 Uhr<small>+5 → 10:12 Uhr</small></div><div class="dep__line"><span class="linie linie--s3">S3</span></div><div class="dep__dest"><span class="dep__ziel">Stade</span></div><div class="dep__platform">Gl. 1</div></li>', $html, 'verspaetete Abfahrt mit Gleisspalte');
     t_contains('<li class="dep dep--cancelled"><span class="dep__dot"></span><div class="dep__time">10:17 Uhr<small>fällt aus</small></div>', $html, 'Ausfall');
     t_eq(false, strpos($html, 'Pinneberg</span>') !== false, 'Hbf-Zeilen nicht auf der Startseite');
     t_contains('Keine S3-Abfahrt in den nächsten 60 Minuten gemeldet.', nb_render_s3_abfahrten([]), 'leer');

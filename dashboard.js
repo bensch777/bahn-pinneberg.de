@@ -205,6 +205,11 @@
 
 	/* ---------- DOM-Helfer ---------- */
 
+	/** Linienname als farbiger Tag wie auf der Livekarte (RB61 blau, RB71 gruen, RB60 orange, S3 lila). */
+	function linieTag(linie) {
+		var name = String(linie || '');
+		return el('span', { class: 'linie linie--' + name.toLowerCase().replace(/[^a-z0-9]/g, ''), text: name });
+	}
 	function el(tag, attrs, children) {
 		var node = document.createElement(tag);
 		if (attrs) {
@@ -787,7 +792,7 @@
 					if (cdLate) time.appendChild(el('small', { class: 'dep__countdown', text: cdLate }));
 				}
 
-				var line = el('div', { class: 'dep__line' }, [d.linie]);
+				var line = el('div', { class: 'dep__line' }, [linieTag(d.linie)]);
 				if (d.wagen) line.appendChild(el('small', { text: plural(d.wagen, 'Wagen', 'Wagen') }));
 				else if (d.bus) line.appendChild(el('small', { text: 'SEV' }));
 
@@ -992,7 +997,7 @@
 			if (cd) time.appendChild(el('small', { class: 'dep__countdown', text: cd }));
 			var dest = el('div', { class: 'dep__dest', title: d.ziel }, [el('span', { class: 'dep__ziel', text: d.ziel })]);
 			var platform = el('div', { class: 'dep__platform', text: d.gleis ? 'Gl. ' + d.gleis : '' });
-			list.appendChild(el('li', { class: cls }, [el('span', { class: 'dep__dot' }), time, el('div', { class: 'dep__line' }, [d.linie || 'S3']), dest, platform]));
+			list.appendChild(el('li', { class: cls }, [el('span', { class: 'dep__dot' }), time, el('div', { class: 'dep__line' }, [linieTag(d.linie || 'S3')]), dest, platform]));
 		});
 	}
 
@@ -1451,7 +1456,7 @@
 			var varianten = variantenText(z);
 			var li = el('li', { id: 'meine-opt-' + i, role: 'option', class: 'meine__vorschlag' + (i === sucheState.aktiv ? ' is-aktiv' : ''), 'aria-selected': i === sucheState.aktiv ? 'true' : 'false', 'aria-disabled': gemerkt ? 'true' : 'false' }, [
 				el('strong', { text: z.zeit }), ' ',
-				el('span', { class: 'meine__linie', text: z.linie }), ' ',
+				linieTag(z.linie), ' ',
 				el('span', { class: 'meine__strecke', text: streckeText(z, heimatState.id) }),
 				el('small', { text: gemerkt ? 'gemerkt' : tageText(z.tage) }),
 				// Baufahrplan oder Fahrplanwechsel: dieselbe Fahrt unter anderer Zeit und Nummer
@@ -1565,7 +1570,7 @@
 			ul.appendChild(el('li', { class: 'meine__zug' }, [
 				el('div', { class: 'meine__kopf' }, [
 					el('strong', { class: 'meine__zeit', text: z.zeit }), ' ',
-					el('span', { class: 'meine__linie', text: z.linie }), ' ',
+					linieTag(z.linie), ' ',
 					el('span', { class: 'meine__strecke', text: streckeText(z, z.heimat) }),
 					weg
 				]),
