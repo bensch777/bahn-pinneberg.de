@@ -687,11 +687,38 @@
 		return 'in ' + diff + ' Min';
 	}
 
-	/** Vormittags steht die Fahrt in die Stadt oben, nachmittags der Rueckweg; gilt fuer Nordbahn und S3. */
-	function orderBoards() {
+	/**
+	 * Vormittags steht die Fahrt in die Stadt oben, nachmittags der Rueckweg; gilt fuer Nordbahn
+	 * und S3. Auf dem Handy zeigt die Seite nur eine Richtung, die Tabs (.richtung) waehlen sie
+	 * fuer beide Bereiche; die Wahl gilt bis zum naechsten Laden der Seite.
+	 */
+	var richtungState = { wahl: null };
+
+	function aktuelleRichtung() {
+		if (richtungState.wahl) return richtungState.wahl;
 		var hour = parseInt(new Date().toLocaleTimeString('de-DE', { timeZone: TZ, hour: '2-digit', hour12: false }), 10);
+		return hour >= 12 ? 'rueck' : 'hin';
+	}
+
+	function orderBoards() {
+		var r = aktuelleRichtung();
 		Array.prototype.forEach.call(document.querySelectorAll('.boards'), function (boards) {
-			boards.classList.toggle('boards--rueck-first', hour >= 12);
+			boards.classList.toggle('boards--rueck-first', r === 'rueck');
+			boards.classList.toggle('boards--nur-hin', r === 'hin');
+			boards.classList.toggle('boards--nur-rueck', r === 'rueck');
+		});
+		Array.prototype.forEach.call(document.querySelectorAll('.richtung__tab'), function (b) {
+			b.setAttribute('aria-pressed', b.getAttribute('data-richtung') === r ? 'true' : 'false');
+		});
+	}
+
+	function initRichtung() {
+		Array.prototype.forEach.call(document.querySelectorAll('.richtung__tab'), function (b) {
+			b.addEventListener('click', function () {
+				richtungState.wahl = b.getAttribute('data-richtung');
+				orderBoards();
+				track('Richtung', { richtung: richtungState.wahl });
+			});
 		});
 	}
 
@@ -1816,6 +1843,8 @@
 		setInterval(refresh, REFRESH_MS);
 		setInterval(renderFreshness, 60000);
 		setInterval(function () { if (!document.hidden) window.location.reload(); }, RELOAD_MS);
+		document.documentElement.classList.add('js');
+		initRichtung();
 		orderBoards();
 		setInterval(orderBoards, 30000);
 		if (document.getElementById('abfahrten')) {

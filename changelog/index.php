@@ -14,6 +14,9 @@ $root = '../';
 $assetVersion = (int) @filemtime(__DIR__ . '/../dashboard.css');
 
 $changelog = [
+    ['2026-11-03', [
+        ['Tabs für die Richtung auf dem Handy', 'Auf dem Handy stehen „Nächste Züge“ und „S-Bahn S3“ nicht mehr mit beiden Richtungen untereinander. Tabs „Nach Hamburg | Nach Hause“ zeigen eine Richtung, vormittags ist „Nach Hamburg“ gewählt, ab 12 Uhr „Nach Hause“. Ein Tipp schaltet Nordbahn und S3 gemeinsam um. Am Computer bleibt alles nebeneinander.'],
+    ]],
     ['2026-10-30', [
         ['Anleitung für Claude und ChatGPT, Nutzungsbedingungen', 'Neue Seite „In Claude und ChatGPT“ (unten im Footer): wie man den MCP-Server in Claude oder ChatGPT einträgt, Beispielfragen, was die Werkzeuge können und wo die Grenzen sind. Dazu gibt es jetzt Nutzungsbedingungen, und die Datenschutzerklärung beschreibt, welche Daten beim MCP-Server anfallen: nur die Anfrage des Assistenten, nie der Inhalt der Unterhaltung. Nebenbei korrigiert: Die Datenschutzerklärung erwähnte noch den Stern und die Glocke als Menü und sprach von „keinem Formular“, obwohl es den Feedback-Knopf gibt.'],
         ['Bahn-Pinneberg.de in Claude und ChatGPT', 'Die Seite hat jetzt einen MCP-Server unter bahn-pinneberg.de/mcp. Wer ihn in Claude, ChatGPT oder einem anderen Assistenten als Connector einträgt, kann dort einfach fragen: „Gibt es gerade Probleme auf der RB61?“, „Fährt der nächste Zug ab Elmshorn pünktlich?“ oder „Was ist mit der Störung bei Tornesch?“. Die Antwort kommt mit dem Stand von jetzt, nicht aus einem Suchindex von gestern. Ohne Anmeldung, nur lesend. Nebenbei nennt lage.md jetzt Datum und Uhrzeit des Abrufs, und die Abfahrten unter /api/ dürfen von Assistenten abgerufen werden, die sich an robots.txt halten.'],
