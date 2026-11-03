@@ -1,0 +1,41 @@
+name: v2 aufraeumen
+
+# Einmalig: entfernt die Vorschau /v2/ unter der Live-Domain. Zeigt vorher,
+# was noch darin liegt, damit klar ist, warum der Mirror sie nicht loeschen konnte.
+on:
+  push:
+    branches:
+      - v2-aufraeumen
+
+jobs:
+  aufraeumen:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install lftp
+        run: sudo apt-get install -y lftp
+      - name: /v2/ anzeigen und entfernen
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PASSWORD: ${{ secrets.DEPLOY_PASSWORD }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+        run: |
+          case "${DEPLOY_PATH:-}" in ""|"/"|"."|"./"|"~"|"~/") exit 1;; esac
+          TARGET="${DEPLOY_PATH%/}/v2"
+          lftp -c "
+            set sftp:auto-confirm yes;
+            open -u \"$DEPLOY_USER\",\"$DEPLOY_PASSWORD\" \"sftp://$DEPLOY_HOST\";
+            cls -laR \"$TARGET\"
+          " || true
+          echo "== entfernen"
+          lftp -c "
+            set sftp:auto-confirm yes;
+            open -u \"$DEPLOY_USER\",\"$DEPLOY_PASSWORD\" \"sftp://$DEPLOY_HOST\";
+            rm -rf \"$TARGET\"
+          " || true
+          echo "== danach"
+          lftp -c "
+            set sftp:auto-confirm yes;
+            open -u \"$DEPLOY_USER\",\"$DEPLOY_PASSWORD\" \"sftp://$DEPLOY_HOST\";
+            cls -laR \"$TARGET\"
+          " || echo "v2 ist weg"
