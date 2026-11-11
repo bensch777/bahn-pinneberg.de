@@ -724,7 +724,6 @@ a.status:focus-visible { outline: 2px solid var(--series); outline-offset: 2px; 
 .board__empty { margin: 0; padding: 14px 0 10px; color: var(--muted); font-size: 13.5px; }
 .board__quelle { margin: 10px 2px 0; color: var(--muted); font-size: 12.5px; }
 .board__quelle[hidden] { display: none; }
-.board__quelle a { color: inherit; }
 @media (max-width: 420px) {
 	.dep { grid-template-columns: 10px 62px 48px 1fr auto; gap: 0 8px; }
 	.dep__dest { white-space: normal; } /* "ab Dammtor Itzehoe" passt sonst nicht in die Spalte */

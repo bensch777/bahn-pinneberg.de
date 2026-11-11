@@ -893,18 +893,13 @@
 
 	/* ---------- DB Regio ab Elmshorn (api/regio, HVV Geofox) ---------- */
 
-	var REGIO_KEY = 'nordbahn.regio';   // "0" = DB-Regio-Zuege ausgeblendet
 	var regioState = { last: null, heimat: '' };
 
-	function regioAn() {
-		try { return localStorage.getItem(REGIO_KEY) !== '0'; } catch (e) { return true; }
-	}
-
-	/** Gibt es fuer den Heimatbahnhof DB-Regio-Zuege, und sind sie eingeschaltet? */
+	/** Gibt es fuer den Heimatbahnhof DB-Regio-Zuege? */
 	function regioMoeglich() {
 		var section = document.getElementById('abfahrten');
 		var ids = ((section && section.getAttribute('data-regio-bahnhoefe')) || '').split(' ');
-		return !!urls.regio && ids.indexOf(heimatState.id) !== -1 && regioAn();
+		return !!urls.regio && ids.indexOf(heimatState.id) !== -1;
 	}
 
 	/** Zeilen je Richtung fuer die Tafel, oder null, wenn keine dazugehoeren. */
@@ -1885,23 +1880,8 @@
 	}
 
 	/** Einstellungsseite: kein Nachladen der Lage, nur Bahnhof, Meine Zuege, Benachrichtigungen, Daten. */
-	/** Schalter in den Einstellungen: DB-Regio-Zuege in der Tafel (Standard an). */
-	function initRegioSchalter() {
-		var box = document.getElementById('regio-on');
-		if (!box) return;
-		box.checked = regioAn();
-		box.addEventListener('change', function () {
-			try {
-				if (box.checked) localStorage.removeItem(REGIO_KEY);
-				else localStorage.setItem(REGIO_KEY, '0');
-			} catch (e) { /* privater Modus */ }
-			track('DB Regio', { an: box.checked ? 'ja' : 'nein' });
-		});
-	}
-
 	function bootEinstellungen() {
 		initHeimat();
-		initRegioSchalter();
 		initNotify();
 		initMeineZuege();
 		initDaten();

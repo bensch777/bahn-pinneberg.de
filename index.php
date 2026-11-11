@@ -230,7 +230,7 @@ $jsonLd = [
 				<ol class="board__list" aria-live="polite"></ol>
 			</div>
 		</div>
-		<p class="board__quelle" id="abfahrten-regio" hidden>Mit RE6, RE7 und RE70 von DB Regio, Echtzeit vom HVV. <a href="<?= $root ?>einstellungen/#abfahrten-einst">Ausblenden</a></p>
+		<p class="board__quelle" id="abfahrten-regio" hidden>Mit RE6, RE7 und RE70 von DB Regio, Echtzeit vom HVV.</p>
 	</section>
 
 <?php if ($gfAktiv): ?>
