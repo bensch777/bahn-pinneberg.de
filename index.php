@@ -81,7 +81,7 @@ $stoerungSatz = $aktiv > 0
     ? $aktiv . ' aktive Störung' . ($aktiv === 1 ? '' : 'en') . ' auf der Nordbahn-Strecke Hamburg – Elmshorn – Itzehoe/Wrist.'
     : 'Störungen heute auf der Nordbahn-Strecke Hamburg – Elmshorn – Itzehoe/Wrist.';
 $title = 'Bahn-Pinneberg.de – Störungen und Abfahrten RB60/RB61/RB71 ab Pinneberg, Elmshorn, Itzehoe und Wrist';
-$description = $stoerungSatz . ' Dazu die nächsten Züge ab Pinneberg, Prisdorf, Tornesch, Elmshorn, Itzehoe oder Wrist nach Hamburg und zurück sowie die letzten Eilmeldungen zu RB60, RB61 und RB71. Live, alle zwei Minuten aktualisiert.';
+$description = $stoerungSatz . ' Dazu die nächsten Züge ab Pinneberg, Prisdorf, Tornesch, Elmshorn, Itzehoe oder Wrist nach Hamburg und zurück sowie die letzten Eilmeldungen zu RB60, RB61 und RB71. Ab Elmshorn auch RE6, RE7 und RE70 von DB Regio. Live, alle zwei Minuten aktualisiert.';
 $lead = 'Störungen heute, nächste Züge und Eilmeldungen der RB60, RB61 und RB71 zwischen Hamburg, Elmshorn, Itzehoe und Wrist.';
 
 $author = ['@type' => 'Person', 'name' => 'Benjamin Neske', 'url' => 'https://bensch777.de/'];
