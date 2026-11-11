@@ -27,10 +27,11 @@
 			data: (section && section.getAttribute('data-data-endpoint')) || 'api/data',
 			abfahrten: (section && section.getAttribute('data-endpoint')) || 'api/abfahrten',
 			s3: (s3Section && s3Section.getAttribute('data-endpoint')) || 'api/s3',
+			regio: (section && section.getAttribute('data-regio-endpoint')) || '',
 			fahrplan: wurzel + 'api/fahrplan'
 		};
 		try {
-			Object.keys(rel).forEach(function (k) { urls[k] = new URL(rel[k], document.baseURI).href; });
+			Object.keys(rel).forEach(function (k) { urls[k] = rel[k] ? new URL(rel[k], document.baseURI).href : ''; });
 		} catch (e) { urls = rel; }
 	}
 
@@ -759,14 +760,19 @@
 		}
 
 		var ausfaelle = 0, verspaetet = 0;
+		var regio = regioZeilen();
+		var hinweis = document.getElementById('abfahrten-regio');
+		if (hinweis) hinweis.hidden = !regio;
 		Array.prototype.forEach.call(boards, function (b) {
 			var key = b.getAttribute('data-richtung');
 			var list = b.querySelector('.board__list');
 			var deps = (result.richtungen && result.richtungen[key]) || [];
+			// Ausfaelle und Verspaetungen zaehlen nur fuer die Nordbahn (Badge, Lagekarte)
 			deps.slice(0, 6).forEach(function (d) {
 				if (d.ausfall) ausfaelle++;
 				else if (d.verspaetung >= 5) verspaetet++;
 			});
+			if (regio && regio[key] && regio[key].length) deps = mischeRegio(deps, regio[key]);
 			clear(list);
 			if (!deps.length) {
 				list.appendChild(el('li', {}, [el('p', { class: 'board__empty', text: 'Keine Abfahrt in den nächsten zwei Stunden.' })]));
@@ -793,7 +799,8 @@
 				}
 
 				var line = el('div', { class: 'dep__line' }, [linieTag(d.linie)]);
-				if (d.wagen) line.appendChild(el('small', { text: plural(d.wagen, 'Wagen', 'Wagen') }));
+				if (d.quelle === 'hvv') line.appendChild(el('small', { text: 'DB Regio' }));
+				else if (d.wagen) line.appendChild(el('small', { text: plural(d.wagen, 'Wagen', 'Wagen') }));
 				else if (d.bus) line.appendChild(el('small', { text: 'SEV' }));
 
 				var dest = el('div', { class: 'dep__dest', title: d.ziel }, []);
@@ -862,6 +869,7 @@
 				// Gleiswechsel: das heutige Gleis faellt auf, das Plangleis steht klein darunter
 				var platform = el('div', { class: 'dep__platform' + (d.gleis_plan ? ' dep__platform--wechsel' : ''), text: d.gleis ? 'Gl. ' + d.gleis : '' });
 				if (d.gleis_plan) platform.appendChild(el('small', { text: 'statt ' + d.gleis_plan }));
+				if (d.quelle === 'hvv') cls += ' dep--db';
 				var row = el('li', { class: cls }, [
 					el('span', { class: 'dep__dot', 'aria-hidden': 'true' }),
 					time,
@@ -883,6 +891,48 @@
 
 	var departuresState = { last: null };
 
+	/* ---------- DB Regio ab Elmshorn (api/regio, HVV Geofox) ---------- */
+
+	var regioState = { last: null, heimat: '' };
+
+	/** Gibt es fuer den Heimatbahnhof DB-Regio-Zuege? */
+	function regioMoeglich() {
+		var section = document.getElementById('abfahrten');
+		var ids = ((section && section.getAttribute('data-regio-bahnhoefe')) || '').split(' ');
+		return !!urls.regio && ids.indexOf(heimatState.id) !== -1;
+	}
+
+	/** Zeilen je Richtung fuer die Tafel, oder null, wenn keine dazugehoeren. */
+	function regioZeilen() {
+		var r = regioState.last;
+		if (!regioMoeglich() || !r || regioState.heimat !== heimatState.id || !r.richtungen) return null;
+		return r.richtungen;
+	}
+
+	/** Nordbahn und DB Regio nach Abfahrt sortiert; Ausfaelle der Nordbahn bleiben an ihrer Planzeit. */
+	function mischeRegio(nordbahn, db) {
+		var jetzt = Date.now() - 60000;
+		var kommend = db.filter(function (d) { return new Date(d.ist || d.zeit).getTime() >= jetzt; });
+		return nordbahn.concat(kommend).sort(function (a, b) {
+			return new Date(a.ist || a.zeit) - new Date(b.ist || b.zeit);
+		});
+	}
+
+	function refreshRegio() {
+		if (!regioMoeglich() || document.hidden || !window.fetch) return Promise.resolve();
+		var heimat = heimatState.id;
+		return fetch(urls.regio + '?bhf=' + encodeURIComponent(heimat), { cache: 'no-cache', headers: { 'Accept': 'application/json' } })
+			.then(function (res) { return res.json(); })
+			.then(function (result) {
+				if (heimat !== heimatState.id) return;
+				// Ein alter Stand (ok=false) bleibt stehen, solange er Zeilen hat; die Zeiten filtert mischeRegio
+				regioState.last = result && result.richtungen ? result : null;
+				regioState.heimat = heimat;
+				if (departuresState.last) renderDepartures(departuresState.last);
+			})
+			.catch(function () { /* Tafel bleibt Nordbahn */ });
+	}
+
 	/* ---------- Heimatbahnhof ---------- */
 
 	var HEIMAT_KEY = 'nordbahn.heimat';
@@ -902,6 +952,7 @@
 			try { localStorage.setItem(HEIMAT_KEY, heimatState.id); } catch (e) { /* egal */ }
 			track('Bahnhof', { bahnhof: heimatState.name });
 			departuresState.last = null;
+			regioState.last = null;
 			renderDepartures(null);
 			refreshDepartures();
 		});
@@ -920,6 +971,7 @@
 
 	/** Hinter Elmshorn faehrt nur noch ein Ast, davor beide. */
 	function rueckTitel() {
+		if (regioMoeglich()) return 'Hamburg → ' + heimatState.name;
 		return 'Hamburg → ' + (heimatState.ast === 'itzehoe' ? 'Itzehoe' : heimatState.ast === 'wrist' ? 'Wrist' : 'Wrist / Itzehoe');
 	}
 
@@ -928,6 +980,7 @@
 		if (!section || document.hidden || !window.fetch) return Promise.resolve();
 		var heimat = heimatState.id;
 		var url = urls.abfahrten + '?bhf=' + encodeURIComponent(heimat);
+		refreshRegio();
 		return fetch(url, { cache: 'no-cache', headers: { 'Accept': 'application/json' } })
 			.then(function (res) { return res.json(); })
 			.then(function (result) {

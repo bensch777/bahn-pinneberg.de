@@ -1,0 +1,97 @@
+<?php
+/**
+ * Tests fuer die DB-Regio-Zuege ab Elmshorn (gf_regio_* in api/geofox.php):
+ * Linien und Richtung, Gleiswechsel, Filter mit Rueckfall, Cache.
+ */
+
+function t_regio_antworten()
+{
+    return [
+        'departureList:Elmshorn' => t_gf_departures([
+            ['linie' => 'RE7', 'ziel' => 'Hamburg Hbf', 'offset' => 4, 'platform' => 'Gleis 3'],
+            ['linie' => 'RE70', 'ziel' => 'Kiel Hbf', 'offset' => 6],                       // nach Norden: raus
+            ['linie' => 'RE6', 'ziel' => 'Hamburg-Altona', 'offset' => 12, 'delay' => 420],
+            ['linie' => 'RE70', 'ziel' => 'Hamburg Hbf', 'offset' => 34, 'cancelled' => true],
+        ]),
+        'departureList:Hamburg Hbf' => t_gf_departures([
+            ['linie' => 'RE70', 'ziel' => 'Kiel Hbf', 'offset' => 9, 'platform' => 'Gleis 7'],
+            ['linie' => 'RE7', 'ziel' => 'Flensburg', 'offset' => 39],
+        ]),
+        'departureList:Hamburg-Altona' => t_gf_departures([
+            ['linie' => 'RE6', 'ziel' => 'Westerland (Sylt)', 'offset' => 20],
+        ]),
+    ];
+}
+
+function test_regio_richtungen_und_format()
+{
+    $calls = [];
+    $r = gf_regio_build('AEL', t_gf_fetch(t_regio_antworten(), $calls), t_now(), t_gf_zugang());
+    t_eq(true, $r['ok'], 'Stand gebaut');
+    t_eq(['id' => 'AEL', 'name' => 'Elmshorn'], $r['heimat'], 'Heimatbahnhof');
+    $hin = $r['richtungen']['hin'];
+    t_eq(['RE7', 'RE6', 'RE70'], array_column($hin, 'linie'), 'nach Hamburg, Zuege nach Norden raus');
+    t_eq('', $hin[0]['ab'], 'Hinweg ohne Startbahnhof wie die Nordbahn');
+    t_eq('hvv', $hin[0]['quelle'], 'Quelle markiert');
+    t_eq(7, $hin[1]['verspaetung'], 'Verspaetung in Minuten');
+    t_eq('10:19', substr($hin[1]['ist'], 11, 5), 'Istzeit');
+    t_eq(true, $hin[2]['ausfall'], 'Ausfall');
+    $rueck = $r['richtungen']['rueck'];
+    t_eq(['RE70', 'RE6', 'RE7'], array_column($rueck, 'linie'), 'Hbf und Altona nach Zeit gemischt');
+    t_eq(['Hbf', 'Altona', 'Hbf'], array_column($rueck, 'ab'), 'Startbahnhof wie bei der Nordbahn');
+    t_eq('7', $rueck[0]['gleis'], 'Gleis');
+    // Antworten enthalten nur RE: der Linienfilter gilt als angenommen, kein zweiter Aufruf
+    $dl = array_values(array_filter($calls, function ($c) { return $c[0] === 'departureList'; }));
+    t_eq(3, count($dl), 'eine Anfrage je Station');
+    t_eq([['serviceName' => 'RE6'], ['serviceName' => 'RE7'], ['serviceName' => 'RE70']], $dl[0][1]['filter'], 'Filter auf die drei Linien');
+    t_eq(120, $dl[0][1]['maxTimeOffset'], 'zwei Stunden wie die Nordbahn-Tafel');
+}
+
+function test_regio_filter_ignoriert_dann_ungefiltert()
+{
+    // Liefert die GTI trotz Filter fremde Linien, war der Filter wirkungslos und die
+    // Liste womoeglich zu kurz: noch einmal ohne Filter mit grosser Liste
+    $antworten = t_regio_antworten();
+    $antworten['departureList:Hamburg Hbf'] = t_gf_departures([
+        ['linie' => 'U1', 'ziel' => 'Norderstedt Mitte', 'offset' => 1],
+        ['linie' => 'RE8', 'ziel' => 'Lübeck Hbf', 'offset' => 2],
+        ['linie' => 'RE7', 'ziel' => 'Kiel Hbf', 'offset' => 15],
+        ['linie' => 'ICE', 'ziel' => 'Kiel Hbf', 'offset' => 16],
+    ]);
+    $calls = [];
+    $r = gf_regio_build('AEL', t_gf_fetch($antworten, $calls), t_now(), t_gf_zugang());
+    $hbf = array_values(array_filter($calls, function ($c) { return $c[0] === 'departureList' && $c[1]['station']['name'] === 'Hamburg Hbf'; }));
+    t_eq(2, count($hbf), 'Hbf zweimal gefragt');
+    t_eq(false, isset($hbf[1][1]['filter']), 'zweite Anfrage ohne Filter');
+    t_eq(GF_REGIO_MAX_LIST, $hbf[1][1]['maxList'], 'mit grosser Liste');
+    t_eq(['RE7', 'RE6'], array_column($r['richtungen']['rueck'], 'linie'), 'nur RE6, RE7, RE70, kein RE8 oder ICE');
+}
+
+function test_regio_gleiswechsel_und_fehler()
+{
+    $antworten = [
+        'departureList:Elmshorn' => json_encode(['returnCode' => 'OK', 'time' => ['date' => '15.10.2026', 'time' => '10:00'], 'departures' => [
+            ['line' => ['name' => 'RE7', 'direction' => 'Hamburg Hbf'], 'timeOffset' => 5, 'delay' => 0, 'platform' => 'Gleis 3', 'realtimePlatform' => 'Gleis 5'],
+        ]]),
+    ];
+    $r = gf_regio_build('AEL', t_gf_fetch($antworten), t_now(), t_gf_zugang());
+    t_eq('5', $r['richtungen']['hin'][0]['gleis'], 'heutiges Gleis');
+    t_eq('3', $r['richtungen']['hin'][0]['gleis_plan'], 'Plangleis bei Wechsel');
+    t_eq(['hin' => true, 'rueck' => false], $r['quellen'], 'Hamburg nicht erreichbar');
+    t_eq([], $r['richtungen']['rueck'], 'Rueckweg leer');
+
+    t_eq(null, gf_regio_build('AEL', t_gf_fetch([]), t_now(), t_gf_zugang()), 'alles kaputt: null');
+    t_eq(null, gf_regio_build('APD', t_gf_fetch(t_regio_antworten()), t_now(), t_gf_zugang()), 'Prisdorf hat keine DB-Regio-Zuege');
+}
+
+function test_regio_cache()
+{
+    $now = t_now();
+    $r = gf_regio_cached('AEL', t_gf_fetch(t_regio_antworten()), $now, t_gf_zugang());
+    t_eq(true, $r['ok'], 'gebaut');
+    t_eq(true, is_array(nordbahn_read_json(gf_regio_cache_file('AEL'))), 'Cache geschrieben');
+    $r2 = gf_regio_cached('AEL', t_gf_fetch([]), (clone $now)->modify('+10 minutes'), t_gf_zugang());
+    t_eq(false, $r2['ok'], 'Netzfehler: alter Stand mit ok=false');
+    t_eq(3, count($r2['richtungen']['hin']), 'alter Inhalt bleibt');
+    t_eq(gf_regio_leer(), gf_regio_cached('APD', t_gf_fetch(t_regio_antworten()), $now, t_gf_zugang()), 'fremder Bahnhof: leer');
+}

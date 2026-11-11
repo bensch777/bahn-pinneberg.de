@@ -17,6 +17,7 @@ $map = [
     '/api/subscribe' => '/api/subscribe.php',
     '/api/push-key'  => '/api/push-key.php',
     '/api/s3'        => '/api/s3.php',
+    '/api/regio'     => '/api/regio.php',
     '/api/karte'     => '/api/karte.php',
     '/api/feedback'  => '/api/feedback.php',
     '/api/fahrplan'  => '/api/fahrplan.php',

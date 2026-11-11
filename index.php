@@ -197,7 +197,7 @@ $jsonLd = [
 		</div>
 	</section>
 
-	<section id="abfahrten" class="section" aria-labelledby="abfahrten-h" data-root="<?= $root ?>" data-endpoint="<?= $root ?>api/abfahrten" data-data-endpoint="<?= $root ?>api/data" data-heimat-default="<?= $heimat ?>">
+	<section id="abfahrten" class="section" aria-labelledby="abfahrten-h" data-root="<?= $root ?>" data-endpoint="<?= $root ?>api/abfahrten" data-data-endpoint="<?= $root ?>api/data" data-heimat-default="<?= $heimat ?>"<?php if ($gfAktiv): ?> data-regio-endpoint="<?= $root ?>api/regio" data-regio-bahnhoefe="<?= implode(' ', array_keys(GF_REGIO_HEIMAT)) ?>"<?php endif; ?>>
 		<div class="section__head">
 			<h2 id="abfahrten-h" class="section__title">N&auml;chste Z&uuml;ge</h2>
 			<div class="section__tools">
@@ -230,6 +230,7 @@ $jsonLd = [
 				<ol class="board__list" aria-live="polite"></ol>
 			</div>
 		</div>
+		<p class="board__quelle" id="abfahrten-regio" hidden>Mit RE6, RE7 und RE70 von DB Regio, Echtzeit vom HVV.</p>
 	</section>
 
 <?php if ($gfAktiv): ?>
