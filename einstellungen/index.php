@@ -9,6 +9,7 @@
 
 require __DIR__ . '/../api/store.php';
 require_once __DIR__ . '/../api/render.php';
+require_once __DIR__ . '/../api/geofox.php';
 require __DIR__ . '/../api/notify.php';
 require __DIR__ . '/../inc/security.php';
 nb_send_security_headers();
@@ -85,6 +86,18 @@ $description = 'Meine Züge und Benachrichtigungen für Bahn-Pinneberg.de: Push-
 		</div>
 	</section>
 
+<?php if (gf_aktiv()): ?>
+	<section id="abfahrten-einst" class="section" aria-labelledby="abfahrten-einst-h">
+		<div class="card einst">
+			<h2 id="abfahrten-einst-h" class="einst__label">Abfahrten</h2>
+			<label class="einst__zeile einst__zeile--schalter" for="regio-on">
+				<span class="einst__text">DB Regio ab Elmshorn<small class="einst__hinweis">RE6, RE7 und RE70 stehen mit in der Tafel, wenn Elmshorn dein Bahnhof ist. Dort gilt dein HVV-Ticket genauso.</small></span>
+				<span class="schalter"><input type="checkbox" id="regio-on" role="switch" checked><span class="schalter__knopf" aria-hidden="true"></span></span>
+			</label>
+		</div>
+	</section>
+
+<?php endif; ?>
 	<section id="benachrichtigungen" class="section" aria-labelledby="benachrichtigungen-h">
 		<div class="card einst">
 			<h2 id="benachrichtigungen-h" class="einst__label">Benachrichtigungen</h2>

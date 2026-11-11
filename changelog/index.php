@@ -14,6 +14,9 @@ $root = '../';
 $assetVersion = (int) @filemtime(__DIR__ . '/../dashboard.css');
 
 $changelog = [
+    ['2026-11-11', [
+        ['DB Regio ab Elmshorn', 'Wer Elmshorn als Bahnhof gewählt hat, sieht in „Nächste Züge“ jetzt auch die RE6, RE7 und RE70 von DB Regio, gemischt mit den Zügen der Nordbahn und nach Abfahrt sortiert. Sie fahren im HVV-Tarif, das HVV-Ticket und das Deutschlandticket gelten also auch dort. Nach Hamburg stehen die Züge mit ihrem Ziel, zurück mit „ab Hbf“ (RE7, RE70) oder „ab Altona“ (RE6). Echtzeit, Ausfälle und Gleiswechsel kommen vom HVV. Unter Einstellungen lassen sie sich ausblenden. IC und ICE fehlen bewusst, dort gilt der HVV-Tarif nicht.'],
+    ]],
     ['2026-11-03', [
         ['Tabs für die Richtung auf dem Handy', 'Auf dem Handy stehen „Nächste Züge“ und „S-Bahn S3“ nicht mehr mit beiden Richtungen untereinander. Tabs „Nach Hamburg | Nach Hause“ zeigen eine Richtung, vormittags ist „Nach Hamburg“ gewählt, ab 12 Uhr „Nach Hause“. Ein Tipp schaltet Nordbahn und S3 gemeinsam um. Am Computer bleibt alles nebeneinander.'],
     ]],

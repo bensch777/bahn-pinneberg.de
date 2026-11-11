@@ -241,7 +241,7 @@ function test_geofox_diagnose_ohne_zugangsdaten()
     };
     $d = gf_diagnose(t_gf_zugang(), t_now(), $fetchRoh);
     t_eq('https://gti.example/gti/public', $d['url'], 'Adresse');
-    t_eq(['init', 'checkName', 'checkName', 'checkName', 'checkName', 'checkName', 'departureList', 'departureList', 'getAnnouncements', 'getAnnouncements', 'getAnnouncements', 'departureCourse'], $calls, 'alle Methoden, Meldungen in drei Formen, Zuglauf der ersten S3');
+    t_eq(['init', 'checkName', 'checkName', 'checkName', 'checkName', 'checkName', 'departureList', 'departureList', 'departureList', 'departureList', 'getAnnouncements', 'getAnnouncements', 'getAnnouncements', 'departureCourse'], $calls, 'alle Methoden, Meldungen in drei Formen, Zuglauf der ersten S3, RE ab Elmshorn gefiltert und ungefiltert');
     $kurs = $d['aufrufe']['departureCourse erste S3 ab Pinneberg'];
     t_eq(86296, $kurs['anfrage']['serviceId'], 'Zuglauf zur ersten S3');
     t_eq('SBH:S3_SBH_SBAHNS', $kurs['anfrage']['lineKey'], 'Linienschluessel');

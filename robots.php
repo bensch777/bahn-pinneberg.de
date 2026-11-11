@@ -9,4 +9,4 @@
 require __DIR__ . '/api/store.php';
 header('Content-Type: text/plain; charset=utf-8');
 header('Cache-Control: public, max-age=3600');
-echo "# KI-Assistenten: Beschreibung unter /llms.txt, aktuelle Lage als Text unter /lage.md, MCP-Server unter /mcp\nUser-agent: *\nAllow: /\nAllow: /api/data\nAllow: /api/abfahrten\nAllow: /api/s3\nAllow: /api/karte\nDisallow: /api/\nDisallow: /mcp\nDisallow: /impressum/\n\nSitemap: ", nordbahn_site_url(), "/sitemap.xml\n";
+echo "# KI-Assistenten: Beschreibung unter /llms.txt, aktuelle Lage als Text unter /lage.md, MCP-Server unter /mcp\nUser-agent: *\nAllow: /\nAllow: /api/data\nAllow: /api/abfahrten\nAllow: /api/s3\nAllow: /api/regio\nAllow: /api/karte\nDisallow: /api/\nDisallow: /mcp\nDisallow: /impressum/\n\nSitemap: ", nordbahn_site_url(), "/sitemap.xml\n";

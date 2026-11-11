@@ -722,6 +722,9 @@ a.status:focus-visible { outline: 2px solid var(--series); outline-offset: 2px; 
 .installieren__icon { display: inline-block; width: 18px; height: 18px; vertical-align: -3px; color: var(--series); }
 .installieren__icon svg { width: 100%; height: 100%; fill: currentColor; }
 .board__empty { margin: 0; padding: 14px 0 10px; color: var(--muted); font-size: 13.5px; }
+.board__quelle { margin: 10px 2px 0; color: var(--muted); font-size: 12.5px; }
+.board__quelle[hidden] { display: none; }
+.board__quelle a { color: inherit; }
 @media (max-width: 420px) {
 	.dep { grid-template-columns: 10px 62px 48px 1fr auto; gap: 0 8px; }
 	.dep__dest { white-space: normal; } /* "ab Dammtor Itzehoe" passt sonst nicht in die Spalte */
@@ -813,6 +816,8 @@ a.status:focus-visible { outline: 2px solid var(--series); outline-offset: 2px; 
 .zug--rb61 .zug__linie, .linie--rb61 { background: #2a78d6; }
 .zug--rb71 .zug__linie, .linie--rb71 { background: #1f9d55; }
 .linie--s3 { background: #9c2a7f; }
+/* DB Regio (RE6, RE7, RE70 ab Elmshorn): DB-Rot */
+.linie--re6, .linie--re7, .linie--re70 { background: #d40014; }
 .zug--wartet { opacity: 0.8; }
 .zug--ziel { opacity: 0.65; }
 .zug__delay { font-style: normal; font-size: 11px; font-weight: 700; height: 22px; line-height: 22px; padding: 0 5px; border-radius: 6px; background: var(--warning); color: #1a1a19; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35), 0 0 0 1.5px rgba(255, 255, 255, 0.95); }
