@@ -17,7 +17,7 @@ header('Cache-Control: public, max-age=3600');
 header('Access-Control-Allow-Origin: *');
 
 echo "# Bahn-Pinneberg.de\n\n";
-echo "> Statusseite für Pendler auf den Nordbahn-Linien RB61 (Itzehoe – Hamburg Hbf), RB71 (Wrist – Hamburg Hbf) und RB60 (Itzehoe – Hamburg-Altona) zwischen Hamburg, Pinneberg, Elmshorn, Itzehoe und Wrist: aktive Infrastrukturstörungen, die nächsten Züge vom eigenen Bahnhof nach Hamburg und zurück, Eilmeldungen der Nordbahn. Privates Projekt, keine offizielle Seite der Nordbahn (NBE Nordbahn Eisenbahngesellschaft).\n\n";
+echo "> Statusseite für Pendler auf den Nordbahn-Linien RB61 (Itzehoe – Hamburg Hbf), RB71 (Wrist – Hamburg Hbf) und RB60 (Itzehoe – Hamburg-Altona) zwischen Hamburg, Pinneberg, Elmshorn, Itzehoe und Wrist: aktive Infrastrukturstörungen, die nächsten Züge vom eigenen Bahnhof nach Hamburg und zurück (ab Elmshorn auch RE6, RE7 und RE70 von DB Regio, siehe api/regio), Eilmeldungen der Nordbahn. Privates Projekt, keine offizielle Seite der Nordbahn (NBE Nordbahn Eisenbahngesellschaft).\n\n";
 echo "Die Daten werden alle zwei Minuten (Störungen, Eilmeldungen) bzw. jede Minute (Abfahrten) aktualisiert. Zeiten sind Ortszeit Europe/Berlin. Verbindliche Auskünfte gibt nur die Nordbahn.\n\n";
 
 echo "## Aktuelle Lage als Text\n\n";
