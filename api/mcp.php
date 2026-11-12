@@ -229,7 +229,7 @@ function nb_mcp_stoerung_md(array $st, $now)
         $md .= '- Abschnitt: ' . implode(', ', $abschnitte) . "\n";
     }
     if ($st['wirkungen']) {
-        $md .= '- Auswirkung: ' . implode(', ', $st['wirkungen']) . "\n";
+        $md .= '- Auswirkung: ' . implode(', ', array_unique(array_map('nb_wirkung_lesbar', $st['wirkungen']))) . "\n";
     }
     if ($st['einschraenkung'] !== '') {
         $md .= '- Einschränkung laut strecken-info.de: ' . $st['einschraenkung'] . "\n";

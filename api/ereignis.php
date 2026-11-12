@@ -271,6 +271,17 @@ function nb_verlauf_schritte(array $verlauf, $aufgehoben = null)
     return $out;
 }
 
+/**
+ * Lohnt der Verlauf? Nur wenn nach der ersten Meldung noch etwas geaendert wurde
+ * (neuer Text, neues Ende). Sonst sagen Kopf und Zeitraum schon alles.
+ */
+function nb_verlauf_hat_aenderungen(array $schritte)
+{
+    return count(array_filter($schritte, function ($s) {
+        return $s['art'] !== 'neu' && $s['art'] !== 'aufgehoben';
+    })) > 0;
+}
+
 /* ---------- HTML ---------- */
 
 /** Betroffene Zuege (aus nb_zuege_im_zeitraum) als Tabelle mit Status-Pille. */
@@ -308,11 +319,16 @@ function nb_render_zuege_liste(array $info)
  * Verlängert, Verkürzt, Aufgehoben), die Zeit und nur das, was sich geaendert hat: der
  * neue Text, ein verschobenes Ende als "Ende: 22:51 Uhr → morgen 14:51 Uhr", zum Schluss
  * die Dauer. Mehr als NB_VERLAUF_SICHTBAR + 1 Schritte: die aelteren eingeklappt.
+ * $opts: kopf_text = Text, der schon oben auf der Seite steht (wird im Schritt nicht
+ * wiederholt, nur als "Aktueller Text, siehe oben" vermerkt); ohne_dauer = die Dauer steht
+ * schon im Zeitraum, der Schritt Aufgehoben bleibt ohne.
  */
 const NB_VERLAUF_SICHTBAR = 3;
 
-function nb_render_verlauf_schritte(array $schritte, $now = null)
+function nb_render_verlauf_schritte(array $schritte, $now = null, array $opts = [])
 {
+    $kopfText = trim((string) ($opts['kopf_text'] ?? ''));
+    $ohneDauer = !empty($opts['ohne_dauer']);
     if (!$schritte) {
         return '';
     }
@@ -329,6 +345,10 @@ function nb_render_verlauf_schritte(array $schritte, $now = null)
         }
         $etikett = ['neu' => 'Gemeldet', 'text' => 'Update', 'ende' => 'Ende verschoben', 'aufgehoben' => 'Aufgehoben'][$s['art']] ?? 'Update';
         $hinweis = '';
+        $oben = $text !== '' && $kopfText !== '' && trim($text) === $kopfText;
+        if ($oben) {
+            $text = '';
+        }
         if ($s['art'] === 'ende' && $s['ende'] !== '') {
             $neu = nb_ts($s['ende']);
             $alt = nb_ts($vorEnde);
@@ -342,8 +362,11 @@ function nb_render_verlauf_schritte(array $schritte, $now = null)
             }
         } elseif ($s['art'] === 'neu' && $s['ende'] !== '' && nb_ts($s['ende']) !== null) {
             $hinweis = 'Voraussichtlich bis ' . nb_fmt_zeit_rel(nb_ts($s['ende']), $now);
-        } elseif ($s['art'] === 'aufgehoben') {
+        } elseif ($s['art'] === 'aufgehoben' && !$ohneDauer) {
             $hinweis = 'Dauer ' . ($s['dauer'] ?? '');
+        }
+        if ($oben) {
+            $hinweis = trim($hinweis . ($hinweis !== '' ? ' · ' : '') . 'Aktueller Text, siehe oben');
         }
         if ($s['ende'] !== '') {
             $vorEnde = $s['ende'];
