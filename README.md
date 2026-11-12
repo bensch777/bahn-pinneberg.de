@@ -33,7 +33,7 @@ Das Wurzelverzeichnis des Repos ist das Web-Root. Reines PHP ohne Framework, kei
 | `api/store.php`, `api/render.php` | Gemeinsame Funktionen, Konfiguration, Bahnhofsliste |
 | `faq/`, `changelog/` | Eigene Seiten, verlinkt aus dem Footer und dem Handy-Menü |
 | `einstellungen/index.php` | Einstellungen `/einstellungen/` (noindex): Meine Züge mit Bahnhof, Richtung und Suche, Benachrichtigungen (an/aus, Was, Wann, Anleitung für den Home-Bildschirm), gespeicherte Daten mit „Alles löschen“. Erreichbar über die Glocke im Kopf jeder Seite und das Handy-Menü; `dashboard.js` startet dort mit `bootEinstellungen()` ohne Nachladen der Lage |
-| `nav.js`, `nb_render_kopf()` in `api/render.php` | Kopfzeile aller Seiten: Bereiche Start, Meldungen, Live-Karte, Statistik, rechts die Glocke als Link zu den Einstellungen (`tool--an`, wenn Benachrichtigungen an sind); unter 720 px hinter einem Menü-Knopf (`<details>`, klappt auch ohne JavaScript), `nav.js` schließt es bei Klick daneben und mit Escape |
+| `nav.js`, `nb_render_kopf()` in `api/render.php` | Kopfzeile aller Seiten: Bereiche Start, Meldungen, Live-Karte, Statistik, rechts der Hell/Dunkel-Schalter (`#theme-toggle`, Wahl in localStorage `nordbahn.theme`, vor dem Zeichnen gesetzt von `nb_theme_head()` als Inline-Skript mit CSP-Nonce in jedem `<head>`) und die Glocke als Link zu den Einstellungen (`tool--an`, wenn Benachrichtigungen an sind); unter 720 px hinter einem Menü-Knopf (`<details>`, klappt auch ohne JavaScript), `nav.js` schließt es bei Klick daneben und mit Escape |
 | `cache/` | Daten auf dem Server (nicht im Repo, nicht im Deploy) |
 | `tests/` | Tests, siehe unten |
 

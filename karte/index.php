@@ -98,6 +98,7 @@ function nb_karte_liste(array $zuege)
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#f6f6f4" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#121211" media="(prefers-color-scheme: dark)">
+<?= nb_theme_head() ?>
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Bahn-Pinneberg.de">
 <meta property="og:locale" content="de_DE">

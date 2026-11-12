@@ -59,8 +59,10 @@
 	--radius: 12px;
 }
 
+/* Dunkles Schema: folgt dem System, ausser jemand hat ueber den Schalter im Kopf
+   (data-theme an <html>, gesetzt vom Inline-Skript nb_theme_head) Hell oder Dunkel gewaehlt. */
 @media (prefers-color-scheme: dark) {
-	:root {
+	:root:not([data-theme="light"]) {
 		color-scheme: dark;
 		--page: #121211;
 		--surface: #1a1a19;
@@ -87,6 +89,33 @@
 		--warn-text: #f0c25a;
 		--shadow: none;
 	}
+}
+:root[data-theme="dark"] {
+	color-scheme: dark;
+	--page: #121211;
+	--surface: #1a1a19;
+	--surface-2: #242423;
+	--ink: #f0efec;
+	--ink-2: #c3c2b7;
+	--muted: #898781;
+	--line: #2c2c2a;
+	--grid: #2c2c2a;
+	--axis: #383835;
+	--chart-ok: #4a4a46;
+	--ring: rgba(255, 255, 255, 0.1);
+	--series: #3987e5;
+	--series-soft: #1c5cab;
+	--series-2: #d95926;
+	--good: #0ca30c;
+	--good-text: #3fc43f;
+	--warning: #fab219;
+	--critical: #d03b3b;
+	--critical-text: #ef7a7a;
+	--status-good-bg: #15301a;
+	--status-crit-bg: #3a1b1b;
+	--status-warn-bg: #3a3012;
+	--warn-text: #f0c25a;
+	--shadow: none;
 }
 
 * { box-sizing: border-box; }
@@ -160,6 +189,14 @@ button { font: inherit; color: inherit; }
 .tool--toggle[aria-current="page"] { color: var(--ink); background: var(--surface-2); }
 .tool--toggle:disabled { opacity: 0.45; cursor: default; }
 .tool--toggle:disabled:hover { background: transparent; color: var(--ink-2); }
+/* Hell/Dunkel-Schalter: zeigt das Ziel (Mond im hellen, Sonne im dunklen Schema) */
+.theme-toggle .theme-toggle__sonne { display: none; }
+:root[data-theme="dark"] .theme-toggle .theme-toggle__sonne { display: block; }
+:root[data-theme="dark"] .theme-toggle .theme-toggle__mond { display: none; }
+@media (prefers-color-scheme: dark) {
+	:root:not([data-theme="light"]) .theme-toggle .theme-toggle__sonne { display: block; }
+	:root:not([data-theme="light"]) .theme-toggle .theme-toggle__mond { display: none; }
+}
 @media (max-width: 560px) { .tool span:not(.visually-hidden) { display: none; } .tool { padding: 0 7px; } }
 .tool-menu { position: relative; }
 .menu {
@@ -839,14 +876,18 @@ a.status:focus-visible { outline: 2px solid var(--series); outline-offset: 2px; 
 .karte .leaflet-popup-content { margin: 12px 14px; font-size: 13.5px; line-height: 1.45; }
 .karte .leaflet-popup-content-wrapper { border-radius: 10px; box-shadow: var(--shadow); }
 @media (prefers-color-scheme: dark) {
-	.karte .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(0.82) contrast(0.9) saturate(0.55); }
-	.karte .leaflet-popup-content-wrapper, .karte .leaflet-popup-tip { box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5); }
+	:root:not([data-theme="light"]) .karte .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(0.82) contrast(0.9) saturate(0.55); }
+	:root:not([data-theme="light"]) .karte .leaflet-popup-content-wrapper, :root:not([data-theme="light"]) .karte .leaflet-popup-tip { box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5); }
 }
+:root[data-theme="dark"] .karte .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(0.82) contrast(0.9) saturate(0.55); }
+:root[data-theme="dark"] .karte .leaflet-popup-content-wrapper, :root[data-theme="dark"] .karte .leaflet-popup-tip { box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5); }
 /* Halte: Name der grossen Bahnhoefe steht dauerhaft daneben, die anderen beim Zeigen */
 .karte .karte-label { background: transparent; border: 0; box-shadow: none; padding: 0; font-weight: 600; font-size: 12px; color: #1a1a19; text-shadow: 0 0 2px #fff, 0 0 2px #fff, 0 0 4px #fff, 0 0 4px #fff; pointer-events: none; }
 .karte .karte-label::before { display: none; }
 .karte .karte-tip { font-size: 12px; font-weight: 500; padding: 3px 7px; }
-@media (prefers-color-scheme: dark) { .karte .karte-label { color: #f0efec; text-shadow: 0 0 2px #121211, 0 0 2px #121211, 0 0 4px #121211, 0 0 4px #121211; } .karte .karte-tip { background: var(--surface); color: var(--ink); border-color: var(--line); } }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .karte .karte-label { color: #f0efec; text-shadow: 0 0 2px #121211, 0 0 2px #121211, 0 0 4px #121211, 0 0 4px #121211; } :root:not([data-theme="light"]) .karte .karte-tip { background: var(--surface); color: var(--ink); border-color: var(--line); } }
+:root[data-theme="dark"] .karte .karte-label { color: #f0efec; text-shadow: 0 0 2px #121211, 0 0 2px #121211, 0 0 4px #121211, 0 0 4px #121211; }
+:root[data-theme="dark"] .karte .karte-tip { background: var(--surface); color: var(--ink); border-color: var(--line); }
 /* Zugmarker: Nordbahn-Zug (karte/zug.png) mit Linienbadge und Verspaetung daneben */
 .zug-icon { background: transparent; border: 0; display: flex; align-items: center; justify-content: flex-start; }
 .zug { display: inline-flex; align-items: center; gap: 3px; height: 30px; white-space: nowrap; cursor: pointer; }

@@ -15,6 +15,7 @@ $assetVersion = (int) @filemtime(__DIR__ . '/../dashboard.css');
 
 $changelog = [
     ['2026-11-12', [
+        ['Hell oder dunkel nach Wahl', 'Neben der Glocke oben rechts gibt es jetzt einen Schalter für das helle und das dunkle Design. Bisher folgte die Seite immer der Einstellung des Geräts. Die Wahl merkt sich der Browser, sie gilt auf allen Seiten. Wer wieder auf das Design des Geräts zurückschaltet, folgt danach wieder automatisch dem System.'],
         ['S3-Karte schlägt seltener an', 'Bisher stand „S3 beeinträchtigt“ schon da, wenn einer von zwölf Zügen fünf Minuten zu spät war. Bei einer S-Bahn, die alle zehn Minuten fährt, ist das für Pendler kein Problem. Jetzt bleibt die Karte grün („S3 fährt weitgehend planmäßig“, mit den Zahlen darunter), bis gut ein Drittel der Züge betroffen ist. Früher gelb wird sie bei zwei oder mehr Ausfällen oder einer Verspätung ab 15 Minuten. „S3 gestört“ heißt es ab drei Fünfteln betroffener Züge oder bei einer ungeplanten HVV-Meldung zur S3.'],
         ['DB Regio auch in Pinneberg, Glückstadt, Itzehoe und Wrist', 'Die RE von DB Regio stehen jetzt nicht nur in Elmshorn mit in der Tafel, sondern überall, wo sie halten: der RE6 in Glückstadt und Itzehoe, einzelne RE70 in Wrist und, falls ein RE dort hält, in Pinneberg. Auf dem Weg nach Hause erscheinen nur die RE, die am eigenen Bahnhof auch halten. Ein RE70, der in Wrist durchfährt, steht dort also nicht in der Liste.'],
     ]],
@@ -171,6 +172,7 @@ function nb_datum($iso)
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#f6f6f4" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#121211" media="(prefers-color-scheme: dark)">
+<?= nb_theme_head() ?>
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Bahn-Pinneberg.de">
 <meta property="og:locale" content="de_DE">
