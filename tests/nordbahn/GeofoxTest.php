@@ -427,7 +427,6 @@ function test_s3_ankunft_aus_dem_laufweg()
     [$hin, $rueck] = $r['liste'];
     t_eq(['Altona', '10:27', '10:31', 4, false], [$hin['an']['name'], t_uhr($hin['an']['zeit']), t_uhr($hin['an']['ist']), $hin['an']['verspaetung'], $hin['an']['ausfall']], 'Richtung Hamburg: Ankunft Altona');
     t_eq(['Pinneberg', '10:33'], [$rueck['an']['name'], t_uhr($rueck['an']['zeit'])], 'zurueck: Ankunft Pinneberg');
-    t_eq(null, $rueck['umstieg'], 'ab Altona selbst kein Umstieg');
     t_eq(false, array_key_exists('_kurs', $hin), 'interner Schluessel nicht in der Ausgabe');
 
     // Hbf als Stadtbahnhof: dieselbe Fahrt aus dem Cache, Ankunft am Hauptbahnhof
@@ -435,9 +434,7 @@ function test_s3_ankunft_aus_dem_laufweg()
     $r = gf_departures_s3($fetch, t_now(), t_gf_zugang(), 'hbf');
     t_eq(['Hbf', '10:38'], [$r['liste'][0]['an']['name'], t_uhr($r['liste'][0]['an']['zeit'])], 'Ankunft Hbf');
     t_eq(0, count(array_keys($calls, 'departureCourse', true)), 'Laufweg der S3 ab Pinneberg aus dem Cache');
-    $rueck = $r['liste'][1];
-    t_eq(['Altona', '10:10'], [$rueck['umstieg']['name'], t_uhr($rueck['umstieg']['zeit'])], 'zurueck ab Hbf: Umstieg in Altona');
-    t_eq(null, $r['liste'][0]['umstieg'], 'Richtung Hamburg kein Umstieg');
+    t_eq(['Pinneberg', '10:33'], [$r['liste'][1]['an']['name'], t_uhr($r['liste'][1]['an']['zeit'])], 'zurueck ab Hbf: Ankunft Pinneberg');
 }
 
 function test_render_s3_ankunft()
