@@ -27,7 +27,9 @@
  * der Endpunkt zusaetzlich die Zugauskunft (?zug=Nummer): die Ursache und die
  * Halte mit Ausfall-Flag. Daraus entstehen Teilausfaelle ("endet heute in
  * Pinneberg", "beginnt erst in Pinneberg"). Hoechstens zehn Abfragen je
- * Aufbereitung, je Zug fuenf Minuten gecacht.
+ * Aufbereitung, je Zug fuenf Minuten gecacht. Aus derselben Zugauskunft kommt der
+ * Laufweg je Zeile (lauf: Halte ab dem Einstieg mit Plan- und Prognosezeit), den
+ * die Tafel aufklappt; dafuer gibt es keine zusaetzlichen Abfragen.
  *
  * Die Antwort wird je Bahnhof eine Minute lang gecacht, damit viele Browser
  * nicht viele Anfragen an die Nordbahn ausloesen. Ist der Monitor nicht
@@ -246,6 +248,9 @@ function abf_parse_zug($xml)
             // Kommt der Zug dort noch an? Bei einem Endhalt steht die Ankunft als
             // "pünktlich", nur die Abfahrt als "Halt entfällt!": der Zug wendet dort.
             'an_ok'   => ($p = trim(abf_text($halt, 'anprognose'))) !== '' && stripos($p, 'entf') === false,
+            // Prognose in Minuten, fuer den Laufweg in der Tafel
+            'an_min'  => (int) abf_text($halt, 'anprognosemin'),
+            'ab_min'  => (int) abf_text($halt, 'abprognosemin'),
         ];
     }
     $out['ursache'] = $text;
@@ -497,6 +502,7 @@ function abf_add_zuginfo(array &$lists, $fetch, $heimat)
             unset($teil['gleis']);
         }
         $row['teil'] = $teil ?? ($row['teil'] ?? null);
+        $row['lauf'] = abf_lauf($entry['halte'] ?? [], $row, $heimat, $dir);
         unset($row);
     }
 
@@ -508,6 +514,64 @@ function abf_add_zuginfo(array &$lists, $fetch, $heimat)
         }
         nordbahn_write_json(ABF_ZUG_CACHE, $cache);
     }
+}
+
+/** "HH:MM" plus Minuten, wieder als "HH:MM" (ueber Mitternacht hinweg). */
+function abf_uhr_plus($uhr, $min)
+{
+    if (!preg_match('/^(\d{1,2}):(\d{2})/', (string) $uhr, $m)) {
+        return '';
+    }
+    $t = ((int) $m[1] * 60 + (int) $m[2] + (int) $min) % 1440;
+    $t = $t < 0 ? $t + 1440 : $t;
+
+    return sprintf('%02d:%02d', intdiv($t, 60), $t % 60);
+}
+
+/**
+ * Laufweg einer Zeile fuer die Tafel: die Halte ab dem Einstieg (hin: Heimatbahnhof,
+ * rueck: Startbahnhof der Zeile oder der Halt, ab dem der Zug heute erst faehrt) bis
+ * zum Ende. Je Halt name, id, zeit (Plan, HH:MM; am Einstieg die Abfahrt, sonst die
+ * Ankunft), ist (mit Prognose, nur wenn abweichend), verspaetung, gleis, ausfall und
+ * heimat (der Halt des Pendlers). Null, wenn der Einstieg im Laufweg fehlt.
+ */
+function abf_lauf(array $halte, array $row, $heimat, $dir)
+{
+    $start = $dir === 'hin' ? $heimat : (string) ($row['ab_id'] ?? '');
+    if (!empty($row['teil']) && ($row['teil']['art'] ?? '') === 'beginnt' && empty($row['ausfall'])) {
+        $start = (string) ($row['teil']['id'] ?? $start);
+    }
+    $i0 = null;
+    foreach ($halte as $i => $h) {
+        if (($h['id'] ?? '') === $start && $start !== '') {
+            $i0 = $i;
+            break;
+        }
+    }
+    if ($i0 === null) {
+        return null;
+    }
+    $out = [];
+    foreach (array_slice($halte, $i0) as $k => $h) {
+        $ab = $k === 0 || (string) ($h['an'] ?? '') === '';
+        $zeit = (string) ($ab ? ($h['ab'] ?? '') : ($h['an'] ?? ''));
+        if ($zeit === '') {
+            $zeit = (string) ($h['ab'] ?? '');
+        }
+        $min = (int) ($ab ? ($h['ab_min'] ?? 0) : ($h['an_min'] ?? 0));
+        $out[] = [
+            'id'          => (string) ($h['id'] ?? ''),
+            'name'        => (string) ($h['name'] ?? ''),
+            'zeit'        => $zeit,
+            'ist'         => $min !== 0 && $zeit !== '' ? abf_uhr_plus($zeit, $min) : null,
+            'verspaetung' => $min,
+            'gleis'       => (string) ($h['gleis'] ?? ''),
+            'ausfall'     => !empty($h['ausfall']) && empty($h['an_ok']),
+            'heimat'      => ($h['id'] ?? '') === $heimat,
+        ];
+    }
+
+    return count($out) >= 2 ? $out : null;
 }
 
 /**
@@ -888,6 +952,7 @@ function abf_build($fetch = 'abf_fetch', $heimat = NORDBAHN_HEIMAT_DEFAULT, ?Dat
                     'gleis_plan'  => $row['dammtor']['gleis_plan'],
                     'ausfall'     => $row['dammtor']['ausfall'],
                 ] : null,
+                'lauf'        => $row['lauf'] ?? null,
             ];
             if (count($out) >= ABF_PER_DIR) {
                 break;

@@ -451,3 +451,25 @@ function test_kaputtes_xml_gilt_als_nicht_erreichbar()
     t_eq(['28542', '75514', '81874'], t_zuege($r, 'rueck'), 'Altona bleibt, die Hbf-Zuege stehen ab Dammtor');
     t_eq('Dammtor', t_zeile($r, 'rueck', '75514')['ab'], 'ab Dammtor');
 }
+
+// --- Laufweg zum Aufklappen ------------------------------------------------
+
+function test_laufweg_ab_einstieg_mit_prognose()
+{
+    $r = t_build(t_standard([
+        'zug:81871' => t_lauf_81871(['AP' => ['an_min' => 2, 'ab_min' => 2], 'ADF' => ['an_min' => 3, 'ab_min' => 3], 'AH' => ['an_min' => 3, 'gleis' => '5']]),
+        'zug:75514' => t_lauf_75514(['ADF' => ['ausfall' => true]]),
+    ]));
+    $hin = t_zeile($r, 'hin', '81871')['lauf'];
+    t_eq(['Prisdorf', 'Pinneberg', 'Hamburg Dammtor', 'Hamburg Hbf'], array_column($hin, 'name'), 'hin: ab dem Heimatbahnhof');
+    t_eq(['10:18', null, true], [$hin[0]['zeit'], $hin[0]['ist'], $hin[0]['heimat']], 'Einstieg mit Abfahrtszeit');
+    t_eq(['10:21', '10:23', 2], [$hin[1]['zeit'], $hin[1]['ist'], $hin[1]['verspaetung']], 'unterwegs Ankunft mit Prognose');
+    t_eq(['10:41', '10:44', '5'], [$hin[3]['zeit'], $hin[3]['ist'], $hin[3]['gleis']], 'Ankunft am Hbf mit Gleis');
+
+    $rueck = t_zeile($r, 'rueck', '75514')['lauf'];
+    t_eq('Hamburg Hbf', $rueck[0]['name'], 'rueck: ab dem Startbahnhof');
+    t_eq(true, $rueck[1]['ausfall'], 'entfallener Halt am Dammtor');
+    t_eq([false, true], [$rueck[2]['heimat'], $rueck[3]['heimat']], 'Heimatbahnhof markiert');
+    t_eq('Itzehoe', end($rueck)['name'], 'bis zum Ende des Zuges');
+    t_eq(null, t_zeile($r, 'rueck', '28542')['lauf'], 'ohne Zugauskunft kein Laufweg');
+}

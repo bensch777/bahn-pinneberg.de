@@ -231,3 +231,34 @@ function test_regio_entfallener_halt_und_kurzer_cache()
     $r = gf_regio_build('AWST', $fetch, t_now(), t_gf_zugang());
     t_eq(1, count($r['richtungen']['rueck']), 'frischer Laufweg mit Halt');
 }
+
+function test_regio_laufweg_mit_zeiten_fuer_die_tafel()
+{
+    // Elmshorn: alle RE halten, der Laufweg kommt trotzdem fuer das Aufklappen
+    $dep = ['line' => ['name' => 'RE7', 'direction' => 'Kiel Hbf', 'origin' => 'Hamburg Hbf', 'id' => 'L7'], 'timeOffset' => 9, 'delay' => 120, 'serviceId' => 7, 'station' => ['combinedName' => 'Hamburg Hbf'], 'platform' => 'Gleis 7'];
+    $t = function ($hm) { return ['date' => '15.10.2026', 'time' => $hm]; };
+    $kurs = json_encode(['returnCode' => 'OK', 'courseElements' => [
+        ['fromStation' => ['name' => 'Hamburg Hbf'], 'depTime' => $t('10:09'), 'depDelay' => 120, 'fromPlatform' => 'Gleis 7', 'toStation' => ['name' => 'Hamburg Dammtor'], 'arrTime' => $t('10:12'), 'arrDelay' => 120],
+        ['fromStation' => ['name' => 'Hamburg Dammtor'], 'depTime' => $t('10:13'), 'depDelay' => 120, 'toStation' => ['name' => 'Elmshorn'], 'arrTime' => $t('10:31'), 'arrDelay' => 180, 'toPlatform' => 'Gleis 3'],
+        ['fromStation' => ['name' => 'Elmshorn'], 'depTime' => $t('10:32'), 'depDelay' => 180, 'toStation' => ['name' => 'Neumünster'], 'arrTime' => $t('10:55'), 'arrDelay' => 0],
+        ['fromStation' => ['name' => 'Neumünster'], 'depTime' => $t('10:56'), 'depDelay' => 0, 'depCancelled' => true, 'toStation' => ['name' => 'Kiel Hbf'], 'arrTime' => $t('11:20'), 'arrDelay' => 0, 'cancelled' => true],
+    ]]);
+    $liste = function ($deps) { return json_encode(['returnCode' => 'OK', 'time' => ['date' => '15.10.2026', 'time' => '10:00'], 'departures' => $deps]); };
+    $fetch = function ($method, $json) use ($dep, $liste, $kurs) {
+        $body = json_decode($json, true);
+        if ($method === 'departureList') {
+            return $liste($body['station']['name'] === 'Hamburg Hbf' ? [$dep] : []);
+        }
+        if ($method === 'departureCourse') {
+            return $kurs;
+        }
+        return json_encode(['returnCode' => 'OK', 'results' => []]);
+    };
+    $r = gf_regio_build('AEL', $fetch, t_now(), t_gf_zugang());
+    $lauf = $r['richtungen']['rueck'][0]['lauf'];
+    t_eq(['Hamburg Hbf', 'Hamburg Dammtor', 'Elmshorn', 'Neumünster', 'Kiel Hbf'], array_column($lauf, 'name'), 'alle Halte ab Hbf');
+    t_eq(['10:09', '10:11', '7'], [$lauf[0]['zeit'], $lauf[0]['ist'], $lauf[0]['gleis']], 'Abfahrt am Hbf mit Verspaetung und Gleis');
+    t_eq(['10:31', '10:34', 3, '3', true], [$lauf[2]['zeit'], $lauf[2]['ist'], $lauf[2]['verspaetung'], $lauf[2]['gleis'], $lauf[2]['heimat']], 'Ankunft in Elmshorn');
+    t_eq([false, true], [$lauf[3]['ausfall'], $lauf[4]['ausfall']], 'Neumuenster wird noch angefahren, Kiel entfaellt');
+    t_eq(false, array_key_exists('_kurs', $r['richtungen']['rueck'][0]), 'interner Schluessel nicht in der Ausgabe');
+}

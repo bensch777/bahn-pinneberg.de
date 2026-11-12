@@ -440,9 +440,10 @@ function gf_regio_zeile($raw, DateTime $basis, $ab)
 }
 
 /**
- * Halte einer Fahrt (normierte Namen, siehe gf_station_norm) aus departureCourse,
- * aus dem Laufweg-Cache oder frisch. Null, wenn unbekannt. $budget zaehlt die
- * erlaubten Abfragen herunter.
+ * Laufweg einer Fahrt aus departureCourse, aus dem Laufweg-Cache oder frisch:
+ * ['halte' => normierte Namen der bedienten Halte (siehe gf_station_norm),
+ *  'lauf' => alle Halte in Reihenfolge mit Zeiten, siehe gf_regio_lauf_lesen].
+ * Null, wenn unbekannt. $budget zaehlt die erlaubten Abfragen herunter.
  */
 function gf_regio_kurs($fetch, ?array $zugang, array $d, array &$cache, &$budget)
 {
@@ -452,7 +453,7 @@ function gf_regio_kurs($fetch, ?array $zugang, array $d, array &$cache, &$budget
     }
     $key = $k['lineKey'] . '|' . $k['serviceId'] . '|' . substr($d['zeit'], 0, 10);
     if (isset($cache[$key]['halte'])) {
-        return $cache[$key]['halte'];
+        return $cache[$key];
     }
     if ($budget <= 0) {
         return null;
@@ -472,31 +473,122 @@ function gf_regio_kurs($fetch, ?array $zugang, array $d, array &$cache, &$budget
         'segments'  => 'ALL',
         'useRealtime' => true,
     ], $fetch, $zugang);
-    // Ein Halt zaehlt, wenn ihn ein Abschnitt ohne Ausfall-Flag beruehrt: Abfahrt dort
-    // (fromStation, depCancelled) oder Ankunft dort (toStation, arrCancelled); ein
-    // ganz ausgefallener Abschnitt (cancelled) zaehlt fuer keinen der beiden Halte.
-    $gesehen = [];
+    $lauf = gf_regio_lauf_lesen($antwort['courseElements'] ?? []);
+    if (!$lauf) {
+        return null;
+    }
     $halte = [];
-    foreach ($antwort['courseElements'] ?? [] as $e) {
-        foreach (['fromStation' => 'depCancelled', 'toStation' => 'arrCancelled'] as $f => $flag) {
-            $name = $e[$f]['combinedName'] ?? ($e[$f]['name'] ?? '');
+    foreach ($lauf as $h) {
+        if (!$h['ausfall']) {
+            $halte[$h['norm']] = true;
+        }
+    }
+    $cache[$key] = ['halte' => array_keys($halte), 'lauf' => $lauf, 'stand' => time()];
+
+    return $cache[$key];
+}
+
+/**
+ * Halte aus den courseElements in Reihenfolge: je Halt name, norm, zeit (Plan,
+ * ISO; Ankunft, am ersten Halt die Abfahrt), ist (mit Verspaetung), verspaetung
+ * (Minuten), gleis und ausfall. Ein Halt zaehlt als bedient, wenn ihn ein
+ * Abschnitt ohne Ausfall-Flag beruehrt: Abfahrt dort (fromStation, depCancelled
+ * bzw. fromCancelled) oder Ankunft dort (toStation, arrCancelled bzw.
+ * toCancelled); ein ganz ausgefallener Abschnitt (cancelled) zaehlt fuer keinen
+ * der beiden. Annahme laut GTI-Doku: depTime/arrTime als GTITime, depDelay/
+ * arrDelay in Sekunden.
+ */
+function gf_regio_lauf_lesen(array $elemente)
+{
+    $lauf = [];
+    $idx = [];
+    $zeit = function ($t, $delay) {
+        $plan = gf_zeit_lesen($t);
+        if ($plan === null) {
+            return [null, null, 0];
+        }
+        $min = (int) round(((int) $delay) / 60);
+        $ist = (clone $plan)->modify(($min >= 0 ? '+' : '') . $min . ' minutes');
+
+        return [$plan->format('c'), $ist->format('c'), $min];
+    };
+    foreach ($elemente as $e) {
+        if (!is_array($e)) {
+            continue;
+        }
+        $teile = [
+            ['fromStation', ['depCancelled', 'fromCancelled'], 'depTime', 'depDelay', ['fromRealtimePlatform', 'fromPlatform']],
+            ['toStation', ['arrCancelled', 'toCancelled'], 'arrTime', 'arrDelay', ['toRealtimePlatform', 'toPlatform']],
+        ];
+        foreach ($teile as [$f, $flags, $tKey, $dKey, $gKeys]) {
+            $name = nordbahn_text($e[$f]['combinedName'] ?? ($e[$f]['name'] ?? ''), 80);
             if ($name === '') {
                 continue;
             }
             $n = gf_station_norm($name);
-            $gesehen[$n] = true;
-            if (empty($e['cancelled']) && empty($e[$flag])) {
-                $halte[$n] = true;
+            $bedient = empty($e['cancelled']);
+            foreach ($flags as $flag) {
+                $bedient = $bedient && empty($e[$flag]);
             }
+            $gleis = '';
+            foreach ($gKeys as $g) {
+                if (!empty($e[$g])) {
+                    $gleis = preg_replace('/^gleis\s*/i', '', trim(preg_replace('/\s*\(.*?\)\s*/', ' ', nordbahn_text($e[$g], 30))));
+                    break;
+                }
+            }
+            [$plan, $ist, $min] = $zeit($e[$tKey] ?? null, $e[$dKey] ?? 0);
+            if (!isset($idx[$n])) {
+                $idx[$n] = count($lauf);
+                $lauf[] = ['name' => $name, 'norm' => $n, 'zeit' => $plan, 'ist' => $ist, 'verspaetung' => $min, 'gleis' => $gleis, 'ausfall' => !$bedient];
+                continue;
+            }
+            // Zweite Erwaehnung (Ankunft dort, dann Abfahrt): bedient, wenn eine von beiden zaehlt;
+            // die Zeit bleibt die Ankunft, das Gleis kommt notfalls aus der Abfahrt
+            $h = &$lauf[$idx[$n]];
+            $h['ausfall'] = $h['ausfall'] && !$bedient;
+            if ($h['zeit'] === null && $plan !== null) {
+                [$h['zeit'], $h['ist'], $h['verspaetung']] = [$plan, $ist, $min];
+            }
+            if ($h['gleis'] === '') {
+                $h['gleis'] = $gleis;
+            }
+            unset($h);
         }
     }
-    if (!$gesehen) {
-        return null;
-    }
-    $halte = array_keys($halte);
-    $cache[$key] = ['halte' => $halte, 'stand' => time()];
 
-    return $halte;
+    return $lauf;
+}
+
+/**
+ * Laufweg fuer die Tafel ab dem Einstieg ($ab, Name der Station) bis zum Ende,
+ * Format wie abf_lauf (Zeiten als HH:MM, heimat markiert). Null ohne Einstieg.
+ */
+function gf_regio_lauf_tafel(array $lauf, $ab, $heimat)
+{
+    $start = gf_station_norm($ab);
+    $ziel = gf_station_norm($heimat);
+    $out = [];
+    foreach ($lauf as $h) {
+        if (!$out && $h['norm'] !== $start) {
+            continue;
+        }
+        $uhr = function ($iso) {
+            return $iso ? (new DateTime($iso))->setTimezone(new DateTimeZone('Europe/Berlin'))->format('H:i') : '';
+        };
+        $out[] = [
+            'id'          => '',
+            'name'        => $h['name'],
+            'zeit'        => $uhr($h['zeit']),
+            'ist'         => $h['verspaetung'] !== 0 ? $uhr($h['ist']) : null,
+            'verspaetung' => $h['verspaetung'],
+            'gleis'       => $h['gleis'],
+            'ausfall'     => $h['ausfall'],
+            'heimat'      => $h['norm'] === $ziel,
+        ];
+    }
+
+    return count($out) >= 2 ? $out : null;
 }
 
 /** Faehrt die Zeile Richtung Hamburg? */
@@ -637,12 +729,15 @@ function gf_regio_build($heimat, $fetch = null, ?DateTime $now = null, ?array $z
         }));
         usort($rows, $sort);
 
-        return array_map(function ($d) {
-            unset($d['_kurs']);
-
-            return $d;
-        }, array_slice($rows, 0, GF_REGIO_PER_DIR));
+        return array_slice($rows, 0, GF_REGIO_PER_DIR);
     };
+    // Laufwege je Fahrt, geteilt fuer alle Heimatbahnhoefe
+    $kurse = nordbahn_read_json(GF_REGIO_KURS_CACHE);
+    $kurse = is_array($kurse) ? array_filter($kurse, function ($e) {
+        return is_array($e) && time() - (int) ($e['stand'] ?? 0) < GF_REGIO_KURS_TTL;
+    }) : [];
+    $vorher = count($kurse);
+    $budget = GF_REGIO_KURS_MAX;
 
     // Am Heimatbahnhof so weit voraus, dass auch der letzte Hamburger RE im Fenster dort ankommt
     $amOrt = gf_regio_station($fetch, $now, $zugang, $cfg['name'], '', GF_REGIO_FENSTER + $cfg['fahrzeit'][1]);
@@ -664,25 +759,17 @@ function gf_regio_build($heimat, $fetch = null, ?DateTime $now = null, ?array $z
         $rueck = $stadt;
     } elseif ($stadt !== null) {
         // Laufweg je Fahrt; ohne Laufweg der Abgleich ueber die Fahrzeit
-        $kurse = nordbahn_read_json(GF_REGIO_KURS_CACHE);
-        $kurse = is_array($kurse) ? array_filter($kurse, function ($e) {
-            return is_array($e) && time() - (int) ($e['stand'] ?? 0) < GF_REGIO_KURS_TTL;
-        }) : [];
-        $vorher = count($kurse);
-        $budget = GF_REGIO_KURS_MAX;
         $ziel = gf_station_norm($cfg['name']);
         $rueck = [];
         $offen = [];
         foreach ($stadt as $d) {
-            $halte = gf_regio_kurs($fetch, $zugang, $d, $kurse, $budget);
+            $kurs = gf_regio_kurs($fetch, $zugang, $d, $kurse, $budget);
+            $halte = $kurs['halte'] ?? null;
             if ($halte === null) {
                 $offen[] = $d;
             } elseif (in_array($ziel, $halte, true)) {
                 $rueck[] = $d;
             }
-        }
-        if (count($kurse) !== $vorher || $budget < GF_REGIO_KURS_MAX) {
-            nordbahn_write_json(GF_REGIO_KURS_CACHE, $kurse);
         }
         if ($offen && $amOrt !== null) {
             $rueck = array_merge($rueck, gf_regio_halten($offen, $nord, $cfg['fahrzeit']));
@@ -692,13 +779,30 @@ function gf_regio_build($heimat, $fetch = null, ?DateTime $now = null, ?array $z
         return null;
     }
 
+    // Laufweg zum Aufklappen fuer die gezeigten Zeilen; was das Budget nicht mehr
+    // schafft, kommt mit der naechsten Aufbereitung
+    $richtungen = [];
+    foreach (['hin' => $hin, 'rueck' => $rueck] as $dir => $rows) {
+        $richtungen[$dir] = array_map(function ($d) use ($fetch, $zugang, &$kurse, &$budget, $cfg) {
+            $kurs = gf_regio_kurs($fetch, $zugang, $d, $kurse, $budget);
+            $ab = $d['_kurs']['station']['name'] ?? ($d['ab'] !== '' ? array_search($d['ab'], GF_REGIO_STADT, true) : $cfg['name']);
+            $d['lauf'] = isset($kurs['lauf']) ? gf_regio_lauf_tafel($kurs['lauf'], (string) $ab, $cfg['name']) : null;
+            unset($d['_kurs']);
+
+            return $d;
+        }, $kommend($rows ?? []));
+    }
+    if (count($kurse) !== $vorher || $budget < GF_REGIO_KURS_MAX) {
+        nordbahn_write_json(GF_REGIO_KURS_CACHE, $kurse);
+    }
+
     return [
         'ok'         => true,
         'fetched_at' => $now->format('c'),
         'heimat'     => ['id' => $heimat, 'name' => NORDBAHN_BAHNHOEFE[$heimat]['name'] ?? $cfg['name']],
         'linien'     => GF_REGIO_LINIEN,
         'quellen'    => ['hin' => $hin !== null, 'rueck' => $rueck !== null],
-        'richtungen' => ['hin' => $kommend($hin ?? []), 'rueck' => $kommend($rueck ?? [])],
+        'richtungen' => $richtungen,
     ];
 }
 
