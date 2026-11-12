@@ -879,6 +879,7 @@
 				if (d.ersatz_fuer) sr = 'Ersatz für ' + fmtClock(d.ersatz_fuer.zeit) + ' ab ' + d.ersatz_fuer.ab + ': ';
 				if (sr) row.setAttribute('aria-label', sr + fmtClock(d.zeit) + ' ' + d.linie + ' nach ' + d.ziel + (d.ab ? ' ab ' + d.ab : '') + (d.gleis_plan ? ', heute Gleis ' + d.gleis + ' statt ' + d.gleis_plan : ''));
 				list.appendChild(row);
+				laufAnhaengen(list, row, d, key);
 			});
 		});
 		alertState.ausfaelle = ausfaelle;
@@ -888,6 +889,83 @@
 	}
 
 	var departuresState = { last: null };
+
+	/* ---------- Laufweg je Fahrt zum Aufklappen ---------- */
+
+	// Aufgeklappte Fahrten, damit sie die Aktualisierung jede Minute ueberstehen
+	var laufOffen = {};
+
+	function laufKey(d, key) {
+		return key + '|' + (d.zug || d.linie) + '|' + String(d.zeit_plan || d.zeit).slice(0, 16);
+	}
+
+	/**
+	 * Halte, die der Pendler sieht: hin ab dem Heimatbahnhof bis zum Ende; rueck ab
+	 * dem Startbahnhof bis zum Heimatbahnhof, der Rest als "weiter bis".
+	 */
+	function laufHalte(lauf, key) {
+		if (key !== 'rueck') return { halte: lauf, weiter: null };
+		for (var i = 0; i < lauf.length; i++) {
+			if (lauf[i].heimat) {
+				return { halte: lauf.slice(0, i + 1), weiter: i < lauf.length - 1 ? lauf[lauf.length - 1] : null };
+			}
+		}
+		return { halte: lauf, weiter: null };
+	}
+
+	function laufPanel(d, key) {
+		var teil = laufHalte(d.lauf, key);
+		var ol = el('ol', { class: 'lauf__halte' });
+		teil.halte.forEach(function (h, i) {
+			var late = !h.ausfall && h.ist && h.verspaetung >= 3;
+			var cls = 'lauf__halt' + (h.heimat ? ' lauf__halt--heimat' : '') + (h.ausfall ? ' lauf__halt--ausfall' : '') + (i === 0 ? ' lauf__halt--start' : '');
+			var zeit = el('span', { class: 'lauf__zeit' }, [h.zeit || '–']);
+			if (h.ausfall) zeit.appendChild(el('small', { text: 'entfällt' }));
+			else if (h.ist && h.ist !== h.zeit) zeit.appendChild(el('small', { class: late ? 'lauf__spaet' : '', text: h.ist }));
+			ol.appendChild(el('li', { class: cls }, [
+				zeit,
+				el('span', { class: 'lauf__punkt', 'aria-hidden': 'true' }),
+				el('span', { class: 'lauf__name' }, [h.name, h.heimat ? el('small', { text: key === 'hin' ? 'Einstieg' : 'Ausstieg' }) : null]),
+				el('span', { class: 'lauf__gleis', text: h.gleis ? 'Gl. ' + h.gleis : '' })
+			]));
+		});
+		var kinder = [ol];
+		if (teil.weiter) kinder.push(el('p', { class: 'lauf__weiter', text: 'Weiter bis ' + teil.weiter.name + (teil.weiter.zeit ? ', an ' + teil.weiter.zeit : '') }));
+		if (d.quelle === 'hvv') kinder.push(el('p', { class: 'lauf__quelle', text: 'Laufweg laut HVV, Zeiten mit Echtzeit' }));
+		return el('li', { class: 'dep-lauf', id: 'lauf-' + slug(laufKey(d, key)) }, kinder);
+	}
+
+	function laufAnhaengen(list, row, d, key) {
+		if (!d.lauf || d.lauf.length < 2) return;
+		var k = laufKey(d, key);
+		var offen = !!laufOffen[k];
+		var panelId = 'lauf-' + slug(k);
+		row.classList.add('dep--lauf');
+		var knopf = el('button', {
+			type: 'button', class: 'dep__auf', 'aria-expanded': offen ? 'true' : 'false', 'aria-controls': panelId,
+			'aria-label': 'Halte und Ankunftszeiten: ' + fmtClock(d.zeit) + ' ' + d.linie + ' nach ' + d.ziel
+		});
+		row.appendChild(knopf);
+		var panel = null;
+		function setzen(auf) {
+			knopf.setAttribute('aria-expanded', auf ? 'true' : 'false');
+			row.classList.toggle('dep--offen', auf);
+			if (auf && !panel) {
+				panel = laufPanel(d, key);
+				row.parentNode.insertBefore(panel, row.nextSibling);
+			} else if (!auf && panel) {
+				panel.remove();
+				panel = null;
+			}
+		}
+		knopf.addEventListener('click', function () {
+			var auf = knopf.getAttribute('aria-expanded') !== 'true';
+			if (auf) laufOffen[k] = true; else delete laufOffen[k];
+			setzen(auf);
+			if (auf) track('Laufweg', { quelle: d.quelle === 'hvv' ? 'DB Regio' : 'Nordbahn' });
+		});
+		if (offen) setzen(true);
+	}
 
 	/* ---------- DB Regio ab Elmshorn (api/regio, HVV Geofox) ---------- */
 

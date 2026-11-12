@@ -636,6 +636,47 @@ a.status:focus-visible { outline: 2px solid var(--series); outline-offset: 2px; 
 .dep__platform--wechsel { color: var(--series-2); font-weight: 700; }
 .dep__platform small { display: block; font-size: 11px; font-weight: 500; color: var(--muted); text-decoration: line-through; }
 .dep--cancelled .dep__dest, .dep--cancelled .dep__line { opacity: 0.7; }
+
+/* Laufweg je Fahrt: die ganze Zeile ist der Knopf, die Halte stehen darunter */
+.dep--lauf { position: relative; cursor: pointer; }
+.dep__auf { position: absolute; inset: 0 -8px; width: auto; margin: 0; padding: 0; border: 0; border-radius: 8px; background: transparent; cursor: pointer; }
+.dep__auf:focus-visible { outline: 2px solid var(--series); outline-offset: -2px; }
+.dep--lauf:hover .dep__auf { background: color-mix(in srgb, var(--series) 6%, transparent); }
+.dep--lauf .dep__platform::after {
+	content: ''; display: inline-block; width: 6px; height: 6px; margin-left: 8px; vertical-align: 2px;
+	border-right: 1.5px solid var(--muted); border-bottom: 1.5px solid var(--muted); transform: rotate(45deg); transition: transform 0.15s;
+}
+.dep--offen .dep__platform::after { transform: rotate(-135deg); vertical-align: -1px; }
+.dep-lauf { padding: 2px 0 12px; }
+.lauf__halte { list-style: none; margin: 0; padding: 0; }
+.lauf__halt {
+	position: relative; display: grid; grid-template-columns: 112px 14px 1fr auto; gap: 0 10px; align-items: baseline;
+	padding: 3px 0; font-size: 13.5px; font-variant-numeric: tabular-nums;
+}
+.lauf__zeit { padding-left: 20px; font-weight: 600; color: var(--ink-2); white-space: nowrap; }
+.lauf__zeit small { margin-left: 4px; font-size: 11.5px; font-weight: 600; color: var(--muted); }
+.lauf__zeit small.lauf__spaet { color: var(--critical-text); }
+.lauf__punkt { position: relative; align-self: stretch; }
+.lauf__punkt::before { content: ''; position: absolute; left: 4px; top: -3px; bottom: -3px; width: 2px; background: var(--line); }
+.lauf__halt--start .lauf__punkt::before { top: 50%; }
+.lauf__halt:last-child .lauf__punkt::before { bottom: 50%; }
+.lauf__punkt::after {
+	content: ''; position: absolute; left: 1px; top: calc(50% - 4px); width: 8px; height: 8px; border-radius: 50%;
+	background: var(--surface); border: 2px solid var(--series); box-sizing: border-box;
+}
+.lauf__halt--heimat .lauf__punkt::after { background: var(--series); }
+.lauf__halt--heimat .lauf__name, .lauf__halt--heimat .lauf__zeit { color: var(--ink); font-weight: 700; }
+.lauf__name small { margin-left: 6px; font-size: 11px; font-weight: 600; color: var(--series); text-transform: uppercase; letter-spacing: 0.04em; }
+.lauf__gleis { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.lauf__halt--ausfall .lauf__name, .lauf__halt--ausfall .lauf__zeit { color: var(--critical-text); text-decoration: line-through; }
+.lauf__halt--ausfall .lauf__zeit small { text-decoration: none; display: inline; color: var(--critical-text); }
+.lauf__halt--ausfall .lauf__punkt::after { border-color: var(--critical); }
+.lauf__weiter, .lauf__quelle { margin: 4px 0 0 146px; font-size: 12px; color: var(--muted); }
+@media (max-width: 420px) {
+	.lauf__halt { grid-template-columns: 104px 14px 1fr auto; gap: 0 8px; font-size: 13px; }
+	.lauf__zeit { padding-left: 18px; }
+	.lauf__weiter, .lauf__quelle { margin-left: 134px; }
+}
 /* Meine Zuege: Liste, Richtung, Suche mit Vorschlaegen */
 .meine { padding: 14px 18px 16px; }
 .meine__intro { margin: 0 0 10px; font-size: 13.5px; color: var(--ink-2); }
