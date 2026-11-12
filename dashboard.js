@@ -901,16 +901,14 @@
 
 	/**
 	 * Halte, die der Pendler sieht: hin ab dem Heimatbahnhof bis zum Ende; rueck ab
-	 * dem Startbahnhof bis zum Heimatbahnhof, der Rest als "weiter bis".
+	 * dem Startbahnhof bis zum Heimatbahnhof (das Ziel steht schon in der Zeile).
 	 */
 	function laufHalte(lauf, key) {
-		if (key !== 'rueck') return { halte: lauf, weiter: null };
+		if (key !== 'rueck') return { halte: lauf };
 		for (var i = 0; i < lauf.length; i++) {
-			if (lauf[i].heimat) {
-				return { halte: lauf.slice(0, i + 1), weiter: i < lauf.length - 1 ? lauf[lauf.length - 1] : null };
-			}
+			if (lauf[i].heimat) return { halte: lauf.slice(0, i + 1) };
 		}
-		return { halte: lauf, weiter: null };
+		return { halte: lauf };
 	}
 
 	function laufPanel(d, key) {
@@ -929,10 +927,7 @@
 				el('span', { class: 'lauf__gleis', text: h.gleis ? 'Gl. ' + h.gleis : '' })
 			]));
 		});
-		var kinder = [ol];
-		if (teil.weiter) kinder.push(el('p', { class: 'lauf__weiter', text: 'Weiter bis ' + teil.weiter.name + (teil.weiter.zeit ? ', an ' + teil.weiter.zeit : '') }));
-		if (d.quelle === 'hvv') kinder.push(el('p', { class: 'lauf__quelle', text: 'Laufweg laut HVV, Zeiten mit Echtzeit' }));
-		return el('li', { class: 'dep-lauf', id: 'lauf-' + slug(laufKey(d, key)) }, kinder);
+		return el('li', { class: 'dep-lauf', id: 'lauf-' + slug(laufKey(d, key)) }, [ol]);
 	}
 
 	function laufAnhaengen(list, row, d, key) {
