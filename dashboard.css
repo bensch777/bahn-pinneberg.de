@@ -399,9 +399,6 @@ a.status:focus-visible { outline: 2px solid var(--series); outline-offset: 2px; 
 .quelle__text { margin: 0; color: var(--ink-2); font-size: 14.5px; white-space: pre-line; }
 .quelle__fuss { margin: 10px 0 0; font-size: 13px; color: var(--muted); }
 .quelle__fuss a { color: var(--series); }
-.quelle--klapp { padding-top: 12px; padding-bottom: 12px; border-left-color: var(--line); }
-.quelle--klapp summary { margin: 0; cursor: pointer; }
-.quelle--klapp[open] summary { margin-bottom: 8px; }
 
 /* Zeitleiste */
 .zeitleiste { list-style: none; margin: 0; padding: 4px 0 0; }

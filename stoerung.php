@@ -1,7 +1,7 @@
 <?php
 /**
  * Ereignisseite einer Infrastrukturstoerung (/stoerung/<key>/): Pendler-Text,
- * Originalmeldung, Verlauf, betroffene Zuege, Eilmeldungen und weitere Stoerungen
+ * Verlauf, betroffene Zuege, Eilmeldungen und weitere Stoerungen
  * im Zeitraum. Daten aus dem Logbuch und dem Zuglog, kein JavaScript noetig.
  */
 
@@ -57,18 +57,11 @@ if (!$gefunden) {
     $andere = nb_stoerungen_im_zeitraum($data, $st['start'], $st['ende'], $key);
     $schritte = nb_verlauf_schritte($st['verlauf'], $st['aktiv'] ? null : $st['ende']);
     $endeGemeldet = nb_ts($st['ende_gemeldet']);
-    // Jede Angabe nur einmal: Vorspann oben, der Verlauf nur bei echten Aenderungen und
-    // ohne den Text, der schon oben steht; Technisches aus der Originalmeldung eingeklappt.
+    // Jede Angabe nur einmal: Vorspann oben, der Verlauf ohne den Text, der schon oben steht.
     $vorspann = $st['ki_text'] !== '' ? $st['ki_text'] : $st['text'];
-    $verlaufZeigen = nb_verlauf_hat_aenderungen($schritte);
-    $gemeldetBis = '';
-    if (!$verlaufZeigen && !$st['aktiv'] && $endeGemeldet !== null && abs($endeGemeldet - $st['ende']) >= 600) {
-        $gemeldetBis = 'gemeldet war bis ' . nb_fmt_zeit_rel($endeGemeldet, $now);
-    }
     $wirkungen = array_values(array_unique(array_filter(array_map('nb_wirkung_lesbar', $st['wirkungen']))));
-    // Mit Pendler-Text sagt der Vorspann schon, was passiert; die Wirkung gehoert dann zur Quelle
+    // Mit Pendler-Text sagt der Vorspann schon, was passiert; die Wirkung nur ohne ihn
     $wirkungKachel = $st['ki_text'] === '' ? $wirkungen : [];
-    $wirkungQuelle = $st['ki_text'] !== '' ? $wirkungen : [];
     $abschnitte = [];
     foreach ($st['abschnitte'] as $a) {
         $teil = implode(' – ', array_filter([$a['von'] ?? '', $a['bis'] ?? '']));
@@ -136,7 +129,7 @@ if (!$gefunden) {
 <?php if (nb_stoerung_hinweis($st)): ?>
 				<span class="pill pill--teil" title="F&uuml;r Pendler laut Meldung ohne Auswirkung; z&auml;hlt nicht als St&ouml;rung">Ohne sp&uuml;rbare Folgen</span>
 <?php endif; ?>
-				<p class="zeitraum"><time datetime="<?= date('c', $st['start']) ?>"><?= nb_e(nb_zeitraum_satz($st['start'], $st['aktiv'] ? $endeGemeldet : null, $now, $st['aktiv'] ? null : $st['ende'], $st['abgelaufen'])) ?></time><?= $gemeldetBis !== '' ? ' · ' . nb_e($gemeldetBis) : '' ?></p>
+				<p class="zeitraum"><time datetime="<?= date('c', $st['start']) ?>"><?= nb_e(nb_zeitraum_satz($st['start'], $st['aktiv'] ? $endeGemeldet : null, $now, $st['aktiv'] ? null : $st['ende'], $st['abgelaufen'])) ?></time></p>
 <?php if ($st['aktiv']): ?>
 				<?= nb_render_zeitbalken($st['start'], $endeGemeldet, $now, $st['abgelaufen']) ?>
 
@@ -162,7 +155,7 @@ if (!$gefunden) {
 		</aside>
 <?php endif; ?>
 
-<?php if ($verlaufZeigen): ?>
+<?php if ($schritte): ?>
 		<section class="section">
 			<h2 class="section__title">Verlauf</h2>
 			<?= nb_render_verlauf_schritte($schritte, $now, ['kopf_text' => $vorspann, 'ohne_dauer' => true]) ?>
@@ -192,25 +185,7 @@ if (!$gefunden) {
 		</section>
 <?php endif; ?>
 
-		<section class="section">
-		<details class="quelle quelle--klapp">
-			<summary class="quelle__label">Originalmeldung der DB InfraGO</summary>
-			<p class="quelle__titel"><?= nb_e($st['titel_technisch']) ?></p>
-<?php if ($st['text'] !== '' && $st['text'] !== $vorspann): ?>
-			<p class="quelle__text"><?= nb_e($st['text']) ?></p>
-<?php endif; ?>
-<?php if ($wirkungQuelle): ?>
-			<p class="quelle__text">Auswirkung: <?= nb_e(implode(', ', $wirkungQuelle)) ?></p>
-<?php endif; ?>
-			<p class="quelle__fuss"><a href="https://strecken-info.de/#/suche/<?= nb_e(rawurlencode($key)) ?>" rel="noopener nofollow">Meldung bei strecken-info.de &#8599;</a></p>
-		</details>
-		</section>
 
-		<footer class="artikel__fuss">
-			<?= nb_render_teilen($pageUrl, $st['titel']) ?>
-			<?= nb_render_weiter(['Zurück zur Startseite' => $root, 'Alle Störungen' => $root . 'stoerungen/#' . nb_anker($key), 'Statistik' => $root . 'statistik/']) ?>
-			<p class="artikel__hinweis">Titel und Text werden automatisch aus der Meldung der DB InfraGO formuliert. Ma&szlig;geblich ist die Originalmeldung.</p>
-		</footer>
 	</article>
 <?php endif; ?>
 </main>
