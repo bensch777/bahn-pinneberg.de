@@ -34,6 +34,7 @@ $description = 'Meine Züge und Benachrichtigungen für Bahn-Pinneberg.de: Push-
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#f6f6f4" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#121211" media="(prefers-color-scheme: dark)">
+<?= nb_theme_head() ?>
 <link rel="icon" type="image/png" sizes="64x64" href="<?= $root ?>icon-64.png">
 <link rel="apple-touch-icon" href="<?= $root ?>icon-180.png?v=2">
 <link rel="manifest" href="<?= $root ?>manifest.webmanifest">

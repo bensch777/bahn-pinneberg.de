@@ -1523,6 +1523,22 @@ function nb_render_feedback($root)
  * nav.js schliesst es bei Klick daneben und mit Escape.
  * $aktiv: lage, aktuell, news, eilmeldungen, stoerungen, ereignis, karte, statistik, faq, changelog oder impressum.
  */
+/**
+ * Inline-Skript fuer den <head> aller Seiten: setzt eine ueber den Schalter gewaehlte
+ * Farbe (localStorage nordbahn.theme = light|dark) als data-theme an <html>, bevor
+ * die Seite gezeichnet wird, damit nichts im falschen Schema aufblitzt. Ohne Wahl
+ * bleibt es beim Systemschema. Nonce wegen der CSP.
+ */
+function nb_theme_head()
+{
+    $js = "(function(){var t;try{t=localStorage.getItem('nordbahn.theme')}catch(e){}"
+        . "if(t!=='light'&&t!=='dark')return;var d=document.documentElement;d.setAttribute('data-theme',t);"
+        . "var m=document.querySelectorAll('meta[name=\"theme-color\"]');"
+        . "for(var i=0;i<m.length;i++)m[i].setAttribute('content',t==='dark'?'#121211':'#f6f6f4')})();";
+
+    return '<script nonce="' . nb_e(nb_csp_nonce()) . '">' . $js . '</script>';
+}
+
 function nb_render_kopf($root, $aktiv, $tools = '')
 {
     $bereiche = [
@@ -1558,11 +1574,18 @@ function nb_render_kopf($root, $aktiv, $tools = '')
         . '<svg class="tool__icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22a2.5 2.5 0 0 0 2.4-2h-4.8a2.5 2.5 0 0 0 2.4 2Zm7-6.3V11c0-3.3-2-6.1-5-6.8V3.5a2 2 0 1 0-4 0v.7C7 4.9 5 7.7 5 11v4.7L3 17.5V19h18v-1.5l-2-1.8ZM17 16.5H7V11c0-2.8 2.1-5 5-5s5 2.2 5 5v5.5Z"/></svg>'
         . '<span class="visually-hidden" id="notify-label">Benachrichtigungen und Einstellungen</span></a>';
 
+    // Hell/Dunkel: ueberschreibt das Systemschema, nav.js schaltet und merkt sich die Wahl,
+    // nb_theme_head() setzt sie vor dem ersten Zeichnen
+    $schema = '<button type="button" class="tool tool--toggle theme-toggle" id="theme-toggle" title="Hell oder dunkel">'
+        . '<svg class="tool__icon theme-toggle__mond" viewBox="0 0 24 24" aria-hidden="true"><path d="M12.3 22A10 10 0 0 1 9.6 2.3a1 1 0 0 1 1.2 1.3 7.5 7.5 0 0 0 9.6 9.6 1 1 0 0 1 1.3 1.2A10 10 0 0 1 12.3 22Zm-3.6-16.9a8 8 0 1 0 10.2 10.2 9.5 9.5 0 0 1-10.2-10.2Z"/></svg>'
+        . '<svg class="tool__icon theme-toggle__sonne" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 7a5 5 0 1 1 0 10 5 5 0 0 1 0-10Zm0 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6Zm-1-7h2v3h-2V2Zm0 17h2v3h-2v-3ZM2 11h3v2H2v-2Zm17 0h3v2h-3v-2ZM4.2 5.6l1.4-1.4 2.1 2.1-1.4 1.4-2.1-2.1Zm12.1 12.1 1.4-1.4 2.1 2.1-1.4 1.4-2.1-2.1ZM18.4 4.2l1.4 1.4-2.1 2.1-1.4-1.4 2.1-2.1ZM6.3 16.3l1.4 1.4-2.1 2.1-1.4-1.4 2.1-2.1Z"/></svg>'
+        . '<span class="visually-hidden" id="theme-label">Hell oder dunkel</span></button>';
+
     return '<header class="site-head">'
         . '<div class="wrap site-head__row">'
         . '<a class="site-head__brand" href="' . nb_e($root) . '"><img class="site-head__logo" src="' . nb_e($root) . 'icon-64.png" alt="" width="28" height="28">Bahn-Pinneberg.de</a>'
         . '<nav class="site-nav" aria-label="Bereiche">' . $leiste . '</nav>'
-        . '<div class="site-head__tools">' . $tools . $glocke
+        . '<div class="site-head__tools">' . $tools . $schema . $glocke
         . '<details class="nav-menu" id="nav-menu">'
         . '<summary class="tool nav-menu__knopf" title="Men&uuml;">'
         . '<svg class="tool__icon nav-menu__auf" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18v2H3V6Zm0 5h18v2H3v-2Zm0 5h18v2H3v-2Z"/></svg>'
