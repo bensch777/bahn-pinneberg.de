@@ -439,19 +439,12 @@ a.status:focus-visible { outline: 2px solid var(--series); outline-offset: 2px; 
 	.zuege__status small { display: inline; margin-left: 6px; }
 }
 
-/* Teilen und Weiterlesen */
-.artikel__fuss { margin-top: 32px; padding-top: 18px; border-top: 1px solid var(--line); display: grid; gap: 18px; }
-.teilen { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-.teilen__label { font-size: 13px; color: var(--muted); margin-right: 4px; }
-.teilen__link { display: inline-flex; align-items: center; gap: 7px; padding: 7px 13px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); font-size: 13.5px; font-weight: 500; text-decoration: none; color: var(--ink); }
-.teilen__link:hover { border-color: var(--axis); background: var(--surface-2); }
-.teilen__link svg { width: 15px; height: 15px; fill: currentColor; }
+/* Weiterlesen */
 .weiter { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 0; padding: 0; list-style: none; font-size: 14px; }
 .weiter a { color: var(--series); text-decoration: none; }
 .weiter a:hover { text-decoration: underline; }
 .weiter a::after { content: ' \2192'; }
 .page-head .weiter { margin-top: 10px; }
-.artikel__hinweis { margin: 0; font-size: 12.5px; color: var(--muted); }
 .incident__meta div { display: flex; flex-direction: column; }
 
 /* Feed */
