@@ -449,3 +449,12 @@ function test_render_s3_ankunft()
     t_contains('>an 10:33<', nb_render_s3_ankunft($d), 'Ziel nicht doppelt');
     t_eq('', nb_render_s3_ankunft(['ziel' => 'Stade', 'ausfall' => false, 'an' => null]), 'ohne Laufweg nichts');
 }
+
+function test_laufweg_zeiten_als_iso_string()
+{
+    $lauf = gf_regio_lauf_lesen([
+        ['fromStation' => ['name' => 'Jungfernstieg'], 'depTime' => '2026-11-12T16:56:00.000+0100', 'depDelay' => 60, 'toStation' => ['name' => 'Altona'], 'arrTime' => '2026-11-12T17:04:00.000+0100', 'arrDelay' => 180],
+    ]);
+    t_eq(['16:56', '16:57'], [t_uhr($lauf[0]['zeit']), t_uhr($lauf[0]['ist'])], 'Abfahrt aus ISO-String in deutscher Zeit');
+    t_eq(['17:04', '17:07', 3], [t_uhr($lauf[1]['zeit']), t_uhr($lauf[1]['ist']), $lauf[1]['verspaetung']], 'Ankunft mit Verspaetung');
+}
