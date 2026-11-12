@@ -62,6 +62,8 @@ const GF_STADT = [
 const GF_STADT_DEFAULT = 'hbf';
 define('GF_CACHE', NORDBAHN_CACHE_DIR . '/geofox-' . GF_STADT_DEFAULT . '.json');
 define('GF_MELDUNGEN_CACHE', NORDBAHN_CACHE_DIR . '/geofox-meldungen.json');
+const GF_S3_KURS_MAX = 12;       // Laufweg-Abfragen (departureCourse) je Aufbereitung fuer die Ankunftszeit
+define('GF_S3_KURS_CACHE', NORDBAHN_CACHE_DIR . '/geofox-s3-kurse.json');
 define('GF_STATIONEN_CACHE', NORDBAHN_CACHE_DIR . '/geofox-stationen.json');
 
 /** Cache-Datei je Stadtbahnhof; GF_CACHE ist die des Standards. */
@@ -434,6 +436,7 @@ function gf_s3_zeilen(array $antwort, DateTime $now, array $st)
         if ($st['ziel'] !== '' && stripos($d['ziel'], $st['ziel']) === false) {
             continue;
         }
+        $d['_kurs'] = gf_kurs_schluessel($raw);
         $rows[] = $d;
     }
 
@@ -482,7 +485,50 @@ function gf_departures_s3($fetch, DateTime $now, ?array $zugang = null, $stadt =
         return null;
     }
 
-    return ['liste' => $liste, 'quellen' => $quellen];
+    return ['liste' => gf_s3_ankunft($fetch, $zugang, $liste, $stadt), 'quellen' => $quellen];
+}
+
+/**
+ * Ankunft je S3-Zeile, wo sie fuer Pendler zaehlt: Richtung Hamburg am gewaehlten
+ * Stadtbahnhof, zurueck in Pinneberg. Aus dem Laufweg (departureCourse) mit
+ * Echtzeit, geteilt fuer alle Stadtbahnhoefe und je Fahrt GF_REGIO_KURS_TTL
+ * Sekunden gecacht, hoechstens GF_S3_KURS_MAX Abfragen je Aufbereitung. an ist
+ * {name, zeit, ist, verspaetung, ausfall} oder null.
+ */
+function gf_s3_ankunft($fetch, ?array $zugang, array $liste, $stadt)
+{
+    $kurse = nordbahn_read_json(GF_S3_KURS_CACHE);
+    $kurse = is_array($kurse) ? array_filter($kurse, function ($e) {
+        return is_array($e) && time() - (int) ($e['stand'] ?? 0) < GF_REGIO_KURS_TTL;
+    }) : [];
+    $vorher = count($kurse);
+    $budget = GF_S3_KURS_MAX;
+    $st = GF_STADT[$stadt] ?? GF_STADT[GF_STADT_DEFAULT];
+    foreach ($liste as &$d) {
+        $hin = $d['ab'] === GF_PINNEBERG;
+        $ziel = $hin ? $st : ['name' => GF_PINNEBERG, 'kurz' => GF_PINNEBERG];
+        $d['an'] = null;
+        $kurs = !$d['ausfall'] ? gf_regio_kurs($fetch, $zugang, $d, $kurse, $budget) : null;
+        foreach ($kurs['lauf'] ?? [] as $h) {
+            if ($h['norm'] === gf_station_norm($ziel['name']) && $h['zeit'] !== null) {
+                $d['an'] = [
+                    'name'        => $ziel['kurz'],
+                    'zeit'        => $h['zeit'],
+                    'ist'         => $h['ist'],
+                    'verspaetung' => $h['verspaetung'],
+                    'ausfall'     => $h['ausfall'],
+                ];
+                break;
+            }
+        }
+        unset($d['_kurs']);
+    }
+    unset($d);
+    if (count($kurse) !== $vorher || $budget < GF_S3_KURS_MAX) {
+        nordbahn_write_json(GF_S3_KURS_CACHE, $kurse);
+    }
+
+    return $liste;
 }
 
 /* ---------- DB Regio ---------- */
@@ -566,14 +612,20 @@ function gf_regio_zeile($raw, DateTime $basis, $ab)
         'dammtor'     => null,
         'quelle'      => 'hvv',
         // Schluessel fuer departureCourse, wird vor der Ausgabe entfernt
-        '_kurs'       => isset($raw['line']['id'], $raw['serviceId']) ? [
-            'lineKey'   => (string) $raw['line']['id'],
-            'serviceId' => $raw['serviceId'],
-            'direction' => (string) ($raw['line']['direction'] ?? ''),
-            'origin'    => (string) ($raw['line']['origin'] ?? ''),
-            'station'   => is_array($raw['station'] ?? null) ? array_intersect_key($raw['station'], ['id' => 1, 'name' => 1, 'combinedName' => 1]) : null,
-        ] : null,
+        '_kurs'       => gf_kurs_schluessel($raw),
     ];
+}
+
+/** Was departureCourse braucht, um eine Fahrt aus departureList wiederzufinden; null ohne IDs. */
+function gf_kurs_schluessel($raw)
+{
+    return isset($raw['line']['id'], $raw['serviceId']) ? [
+        'lineKey'   => (string) $raw['line']['id'],
+        'serviceId' => $raw['serviceId'],
+        'direction' => (string) ($raw['line']['direction'] ?? ''),
+        'origin'    => (string) ($raw['line']['origin'] ?? ''),
+        'station'   => is_array($raw['station'] ?? null) ? array_intersect_key($raw['station'], ['id' => 1, 'name' => 1, 'combinedName' => 1]) : null,
+    ] : null;
 }
 
 /**

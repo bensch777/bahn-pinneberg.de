@@ -1042,6 +1042,24 @@ function nb_render_linie($linie)
     return '<span class="linie linie--' . nb_e(preg_replace('/[^a-z0-9]/', '', strtolower($linie))) . '">' . nb_e($linie) . '</span>';
 }
 
+/** Ankunft am Ziel des Pendlers ("an Altona 10:27", verspaetet mit Istzeit), leer ohne Laufweg. */
+function nb_render_s3_ankunft(array $d)
+{
+    $an = $d['an'] ?? null;
+    if (!is_array($an) || !empty($d['ausfall']) || ($zeit = nb_ts($an['zeit'] ?? '')) === null) {
+        return '';
+    }
+    if (!empty($an['ausfall'])) {
+        return '<small class="dep__an dep__an--ausfall">Halt ' . nb_e($an['name'] ?? '') . ' entfällt</small>';
+    }
+    $late = (int) ($an['verspaetung'] ?? 0) >= 3 && ($ist = nb_ts($an['ist'] ?? '')) !== null;
+
+    $ort = ($an['name'] ?? '') === ($d['ziel'] ?? '') ? '' : ($an['name'] ?? '') . ' ';
+
+    return '<small class="dep__an">an ' . nb_e($ort) . nb_e((new DateTime('@' . (int) ($late ? $ist : $zeit)))->setTimezone(new DateTimeZone('Europe/Berlin'))->format('H:i'))
+        . ($late ? ' <span class="dep__an-spaet">(+' . (int) $an['verspaetung'] . ')</span>' : '') . '</small>';
+}
+
 /** S3-Abfahrten ab Pinneberg als Zeilen der Abfahrtstafel (wie renderS3 im Script). */
 function nb_render_s3_abfahrten(array $liste, $ab = 'Pinneberg')
 {
@@ -1061,7 +1079,7 @@ function nb_render_s3_abfahrten(array $liste, $ab = 'Pinneberg')
         $html .= '<li class="' . $cls . '"><span class="dep__dot"></span><div class="dep__time">' . nb_e($zeit ? nb_fmt_uhr($zeit) : '--:--')
             . (!empty($d['ausfall']) ? '<small>fällt aus</small>' : ($late ? '<small>+' . (int) $d['delay_min'] . ' → ' . nb_e(nb_fmt_uhr(nb_ts($d['ist']) ?? $zeit)) . '</small>' : '')) . '</div>'
             . '<div class="dep__line">' . nb_render_linie($d['linie'] ?? 'S3') . '</div>'
-            . '<div class="dep__dest"><span class="dep__ziel">' . nb_e($d['ziel'] ?? '') . '</span></div>'
+            . '<div class="dep__dest"><span class="dep__ziel">' . nb_e($d['ziel'] ?? '') . '</span>' . nb_render_s3_ankunft($d) . '</div>'
             . '<div class="dep__platform">' . (($d['gleis'] ?? '') !== '' ? 'Gl. ' . nb_e($d['gleis']) : '') . '</div></li>';
     }
     if ($html === '') {
