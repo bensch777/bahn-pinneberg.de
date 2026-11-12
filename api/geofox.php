@@ -250,7 +250,7 @@ function gf_zaehlen($method, $status, $now = null)
     fclose($lock);
 }
 
-/** Zaehler zusammengefasst: je Tag gesamt, Fehler und je Methode, dazu die letzten Stunden. */
+/** Zaehler zusammengefasst: je Tag gesamt, Fehler, je Methode und die staerkste Stunde; dazu Pause und Wissen ueber den Linienfilter. */
 function gf_zaehler_uebersicht()
 {
     $z = nordbahn_read_json(GF_ZAEHLER_FILE) ?? [];
@@ -275,7 +275,7 @@ function gf_zaehler_uebersicht()
     }
     krsort($tage);
 
-    return ['tage' => $tage, 'pause' => nordbahn_read_json(GF_PAUSE_FILE)];
+    return ['tage' => $tage, 'pause' => nordbahn_read_json(GF_PAUSE_FILE), 'linienfilter' => nordbahn_read_json(GF_REGIO_FILTER_CACHE)];
 }
 
 /** Antworttext bei HTTP 200, sonst null. Waehrend einer Pause ohne Anfrage null. */
