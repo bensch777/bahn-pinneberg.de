@@ -145,6 +145,12 @@ button { font: inherit; color: inherit; }
 .site-head__logo { width: 28px; height: 28px; flex: none; }
 .site-head__tools { display: flex; gap: 4px; align-items: center; margin-left: auto; }
 .site-nav { display: flex; gap: 2px; align-items: center; }
+/* Breit: Bereiche mittig zwischen Marke und Werkzeugen (gleich breite Aussenspalten) */
+@media (min-width: 721px) {
+	.site-head__row { display: grid; grid-template-columns: 1fr auto 1fr; }
+	.site-nav { justify-self: center; }
+	.site-head__tools { justify-self: end; }
+}
 .site-nav__link {
 	padding: 6px 10px; border-radius: 8px; font-size: 14px; font-weight: 500; color: var(--ink-2); text-decoration: none; white-space: nowrap;
 }

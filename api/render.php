@@ -1585,7 +1585,7 @@ function nb_render_kopf($root, $aktiv, $tools = '')
         . '<div class="wrap site-head__row">'
         . '<a class="site-head__brand" href="' . nb_e($root) . '"><img class="site-head__logo" src="' . nb_e($root) . 'icon-64.png" alt="" width="28" height="28">Bahn-Pinneberg.de</a>'
         . '<nav class="site-nav" aria-label="Bereiche">' . $leiste . '</nav>'
-        . '<div class="site-head__tools">' . $tools . $schema . $glocke
+        . '<div class="site-head__tools">' . $tools . $glocke . $schema
         . '<details class="nav-menu" id="nav-menu">'
         . '<summary class="tool nav-menu__knopf" title="Men&uuml;">'
         . '<svg class="tool__icon nav-menu__auf" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18v2H3V6Zm0 5h18v2H3v-2Zm0 5h18v2H3v-2Z"/></svg>'
