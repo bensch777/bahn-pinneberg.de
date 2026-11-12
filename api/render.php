@@ -716,13 +716,14 @@ function nb_statistik_url(array $f, array $extra = [])
     $q = array_merge([
         'ansicht'  => $f['ansicht'] ?? 'zuege',
         'bhf'      => $f['bhf'],
+        'betreiber' => $f['betreiber'] ?? 'nordbahn',
         'richtung' => $f['richtung'],
         'tage'     => $f['tage'],
         'zeit'     => $f['zeit'],
         'werktage' => $f['werktage'] ? '1' : '',
         'sort'     => $f['sort'] ?? 'zeit',
     ], $extra);
-    $vorgabe = ['ansicht' => 'zuege', 'bhf' => NORDBAHN_HEIMAT_DEFAULT, 'richtung' => 'beide', 'tage' => 30, 'zeit' => 'alle', 'werktage' => '', 'sort' => 'zeit'];
+    $vorgabe = ['ansicht' => 'zuege', 'bhf' => NORDBAHN_HEIMAT_DEFAULT, 'betreiber' => 'nordbahn', 'richtung' => 'beide', 'tage' => 30, 'zeit' => 'alle', 'werktage' => '', 'sort' => 'zeit'];
     foreach ($vorgabe as $k => $v) {
         if ((string) $q[$k] === (string) $v) {
             unset($q[$k]);

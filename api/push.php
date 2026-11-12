@@ -109,3 +109,11 @@ if (!defined('NORDBAHN_ABF_LIB')) {
 }
 require_once __DIR__ . '/abfahrten.php';
 abf_cached(NORDBAHN_HEIMAT_DEFAULT);
+
+// DB Regio laufend in Elmshorn beobachten (dort halten alle RE), damit die
+// Statistik nicht nur Zeiten kennt, in denen jemand die Seite offen hat
+require_once __DIR__ . '/geofox.php';
+require_once __DIR__ . '/zuglog.php';
+if (gf_aktiv()) {
+    gf_regio_cached(ZL_DB_LAUFEND);
+}

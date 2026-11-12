@@ -30,6 +30,10 @@ function test_fahrplan_aus_zuglog()
     t_eq([6], $fp['hin'][2]['tage'], 'Samstagszug');
     t_eq(['17:04 Hbf 75514', '17:20 Hbf 81870'], array_map(function ($z) { return $z['zeit'] . ' ' . $z['ab'] . ' ' . $z['zug']; }, $fp['rueck']), 'rueck: Hbf statt Dammtor und Altona');
 
+    $mitRe = $logs;
+    $mitRe['2026-10-16']['APD|hin|RE70 07:30'] = ['zug' => 'RE70 07:30', 'linie' => 'RE70', 'plan' => '07:30', 'dir' => 'hin', 'station' => 'APD', 'quelle' => 'hvv'];
+    t_eq(count($fp['hin']), count(fp_aus_logs($mitRe, 'APD')['hin']), 'DB Regio bleibt aus dem Fahrplan');
+
     $fp = fp_aus_logs($logs, 'AIZ');
     t_eq([], $fp['hin'], 'Itzehoe hin unbekannt');
     t_eq(['75514'], array_column($fp['rueck'], 'zug'), 'Itzehoe: der Zug nach Wrist faellt weg');
