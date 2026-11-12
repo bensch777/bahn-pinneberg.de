@@ -923,7 +923,7 @@
 			ol.appendChild(el('li', { class: cls }, [
 				zeit,
 				el('span', { class: 'lauf__punkt', 'aria-hidden': 'true' }),
-				el('span', { class: 'lauf__name' }, [h.name, h.heimat ? el('small', { text: key === 'hin' ? 'Einstieg' : 'Ausstieg' }) : null]),
+				el('span', { class: 'lauf__name', text: h.name }),
 				el('span', { class: 'lauf__gleis', text: h.gleis ? 'Gl. ' + h.gleis : '' })
 			]));
 		});
