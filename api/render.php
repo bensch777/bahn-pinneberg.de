@@ -250,6 +250,31 @@ function nb_plural($n, $one, $many)
  * Sichtbar bleiben sie unter /aktuell/ und auf ihrer Ereignisseite. */
 
 /**
+ * Wirkung aus strecken-info fuer Pendler lesbar machen. Meist steht dort schon Klartext
+ * ("Verspätungen", "Ausfall"), manchmal aber Betriebskuerzel wie "ggl mit zs 6" (Fahrt
+ * auf dem Gegengleis mit Ersatzsignal Zs 6). Bekannte Kuerzel werden uebersetzt,
+ * sonst nur der erste Buchstabe gross.
+ */
+function nb_wirkung_lesbar($w)
+{
+    $w = trim((string) $w);
+    $k = mb_strtolower($w);
+    $karte = [
+        '/\bggl\b|gegengleis|\bzs ?[68]\b/u' => 'Fahrt auf dem Gegengleis',
+        '/\beingl(\.|eisig)?\b/u'            => 'Nur ein Gleis befahrbar',
+        '/\blangsamfahr|\blfst?\b/u'          => 'Langsamfahrstelle',
+        '/\bsev\b/u'                          => 'Ersatzverkehr mit Bussen',
+    ];
+    foreach ($karte as $muster => $text) {
+        if (preg_match($muster, $k)) {
+            return $text;
+        }
+    }
+
+    return $w === '' ? '' : mb_strtoupper(mb_substr($w, 0, 1)) . mb_substr($w, 1);
+}
+
+/**
  * Hinweis ohne spuerbare Folgen? Massgeblich ist das Urteil der KI aus n8n
  * (ki_folgen = keine; jeder andere Wert heisst Stoerung). Fehlt das Urteil, gilt
  * eine Meldung nur dann als Hinweis, wenn strecken-info fuer den Nahverkehr gar
@@ -556,7 +581,7 @@ function nb_render_incident(array $s, $ausblendbar = false)
         }
     }
     $rows['Abschnitt'] = $abschnitte ? implode(', ', $abschnitte) : implode(', ', $s['betriebsstellen'] ?? []);
-    $rows['Auswirkung'] = implode(', ', $s['wirkungen'] ?? []);
+    $rows['Auswirkung'] = implode(', ', array_unique(array_filter(array_map('nb_wirkung_lesbar', $s['wirkungen'] ?? []))));
     $rows['Einschränkung'] = !empty($s['einschraenkung']) ? mb_strtoupper(mb_substr($s['einschraenkung'], 0, 1)) . mb_substr($s['einschraenkung'], 1) : '';
 
     // Zeitraum als Satz plus Zeitbalken (wie renderIncident im Script). "abgelaufen" heisst:
@@ -1706,7 +1731,7 @@ function nb_lage_md(array $data, $abf, $heimat, $now = null, $gf = null)
             $md .= '- Zeitraum: ' . implode(', ', $zeit) . "\n";
         }
         if (!empty($s['wirkungen'])) {
-            $md .= '- Auswirkung: ' . implode(', ', $s['wirkungen']) . "\n";
+            $md .= '- Auswirkung: ' . implode(', ', array_unique(array_map('nb_wirkung_lesbar', $s['wirkungen']))) . "\n";
         }
         $md .= "\n";
     }

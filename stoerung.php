@@ -57,6 +57,18 @@ if (!$gefunden) {
     $andere = nb_stoerungen_im_zeitraum($data, $st['start'], $st['ende'], $key);
     $schritte = nb_verlauf_schritte($st['verlauf'], $st['aktiv'] ? null : $st['ende']);
     $endeGemeldet = nb_ts($st['ende_gemeldet']);
+    // Jede Angabe nur einmal: Vorspann oben, der Verlauf nur bei echten Aenderungen und
+    // ohne den Text, der schon oben steht; Technisches aus der Originalmeldung eingeklappt.
+    $vorspann = $st['ki_text'] !== '' ? $st['ki_text'] : $st['text'];
+    $verlaufZeigen = nb_verlauf_hat_aenderungen($schritte);
+    $gemeldetBis = '';
+    if (!$verlaufZeigen && !$st['aktiv'] && $endeGemeldet !== null && abs($endeGemeldet - $st['ende']) >= 600) {
+        $gemeldetBis = 'gemeldet war bis ' . nb_fmt_zeit_rel($endeGemeldet, $now);
+    }
+    $wirkungen = array_values(array_unique(array_filter(array_map('nb_wirkung_lesbar', $st['wirkungen']))));
+    // Mit Pendler-Text sagt der Vorspann schon, was passiert; die Wirkung gehoert dann zur Quelle
+    $wirkungKachel = $st['ki_text'] === '' ? $wirkungen : [];
+    $wirkungQuelle = $st['ki_text'] !== '' ? $wirkungen : [];
     $abschnitte = [];
     foreach ($st['abschnitte'] as $a) {
         $teil = implode(' – ', array_filter([$a['von'] ?? '', $a['bis'] ?? '']));
@@ -114,24 +126,17 @@ if (!$gefunden) {
 		<header class="artikel__kopf">
 			<p class="artikel__dachzeile">
 				<span class="artikel__rubrik">Infrastrukturst&ouml;rung</span>
-<?php if ($abschnitte): ?>
-				<span><?= nb_e(implode(', ', $abschnitte)) ?></span>
-<?php elseif ($st['betriebsstellen']): ?>
-				<span><?= nb_e(implode(', ', $st['betriebsstellen'])) ?></span>
-<?php endif; ?>
 			</p>
 			<h1 class="artikel__titel"><?= nb_e($st['titel']) ?></h1>
-<?php if ($st['ki_text'] !== ''): ?>
-			<p class="artikel__vorspann"><?= nb_e($st['ki_text']) ?></p>
-<?php elseif ($st['text'] !== ''): ?>
-			<p class="artikel__vorspann"><?= nb_e($st['text']) ?></p>
+<?php if ($vorspann !== ''): ?>
+			<p class="artikel__vorspann"><?= nb_e($vorspann) ?></p>
 <?php endif; ?>
 			<div class="artikel__status">
 				<span class="pill <?= $st['aktiv'] ? 'pill--aktiv pill--live' : 'pill--aufgehoben' ?>"><?= $st['aktiv'] ? 'Aktiv' : 'Aufgehoben' ?></span>
 <?php if (nb_stoerung_hinweis($st)): ?>
 				<span class="pill pill--teil" title="F&uuml;r Pendler laut Meldung ohne Auswirkung; z&auml;hlt nicht als St&ouml;rung">Ohne sp&uuml;rbare Folgen</span>
 <?php endif; ?>
-				<p class="zeitraum"><time datetime="<?= date('c', $st['start']) ?>"><?= nb_e(nb_zeitraum_satz($st['start'], $st['aktiv'] ? $endeGemeldet : null, $now, $st['aktiv'] ? null : $st['ende'], $st['abgelaufen'])) ?></time></p>
+				<p class="zeitraum"><time datetime="<?= date('c', $st['start']) ?>"><?= nb_e(nb_zeitraum_satz($st['start'], $st['aktiv'] ? $endeGemeldet : null, $now, $st['aktiv'] ? null : $st['ende'], $st['abgelaufen'])) ?></time><?= $gemeldetBis !== '' ? ' · ' . nb_e($gemeldetBis) : '' ?></p>
 <?php if ($st['aktiv']): ?>
 				<?= nb_render_zeitbalken($st['start'], $endeGemeldet, $now, $st['abgelaufen']) ?>
 
@@ -139,7 +144,7 @@ if (!$gefunden) {
 			</div>
 		</header>
 
-<?php if ($abschnitte || $st['betriebsstellen'] || $st['wirkungen'] || $st['einschraenkung'] !== ''): ?>
+<?php if ($abschnitte || $st['betriebsstellen'] || $wirkungKachel || $st['einschraenkung'] !== ''): ?>
 		<aside class="card fakten" aria-label="Fakten zur St&ouml;rung">
 			<dl>
 <?php if ($abschnitte): ?>
@@ -147,35 +152,20 @@ if (!$gefunden) {
 <?php elseif ($st['betriebsstellen']): ?>
 				<div><dt>Betriebsstellen</dt><dd><?= nb_e(implode(', ', $st['betriebsstellen'])) ?></dd></div>
 <?php endif; ?>
-<?php if ($st['wirkungen']): ?>
-				<div><dt>Auswirkung</dt><dd><?= nb_e(implode(', ', $st['wirkungen'])) ?></dd></div>
+<?php if ($wirkungKachel): ?>
+				<div><dt>Auswirkung</dt><dd><?= nb_e(implode(', ', $wirkungKachel)) ?></dd></div>
 <?php endif; ?>
 <?php if ($st['einschraenkung'] !== ''): ?>
 				<div><dt>Einschr&auml;nkung</dt><dd><?= nb_e(mb_strtoupper(mb_substr($st['einschraenkung'], 0, 1)) . mb_substr($st['einschraenkung'], 1)) ?></dd></div>
-<?php endif; ?>
-<?php if ($zuege['gesamt']): ?>
-				<div><dt>Auff&auml;llige Z&uuml;ge</dt><dd><?= (int) $zuege['gesamt'] ?></dd></div>
 <?php endif; ?>
 			</dl>
 		</aside>
 <?php endif; ?>
 
-		<section class="section">
-			<h2 class="section__title">Was gemeldet wurde</h2>
-			<blockquote class="quelle">
-				<p class="quelle__label">Meldung der DB InfraGO auf strecken-info.de</p>
-				<p class="quelle__titel"><?= nb_e($st['titel_technisch']) ?></p>
-<?php if ($st['text'] !== ''): ?>
-				<p class="quelle__text"><?= nb_e($st['text']) ?></p>
-<?php endif; ?>
-				<p class="quelle__fuss"><a href="https://strecken-info.de/#/suche/<?= nb_e(rawurlencode($key)) ?>" rel="noopener nofollow">Meldung bei strecken-info.de &#8599;</a></p>
-			</blockquote>
-		</section>
-
-<?php if ($schritte): ?>
+<?php if ($verlaufZeigen): ?>
 		<section class="section">
 			<h2 class="section__title">Verlauf</h2>
-			<?= nb_render_verlauf_schritte($schritte, $now) ?>
+			<?= nb_render_verlauf_schritte($schritte, $now, ['kopf_text' => $vorspann, 'ohne_dauer' => true]) ?>
 		</section>
 <?php endif; ?>
 
@@ -202,9 +192,23 @@ if (!$gefunden) {
 		</section>
 <?php endif; ?>
 
+		<section class="section">
+		<details class="quelle quelle--klapp">
+			<summary class="quelle__label">Originalmeldung der DB InfraGO</summary>
+			<p class="quelle__titel"><?= nb_e($st['titel_technisch']) ?></p>
+<?php if ($st['text'] !== '' && $st['text'] !== $vorspann): ?>
+			<p class="quelle__text"><?= nb_e($st['text']) ?></p>
+<?php endif; ?>
+<?php if ($wirkungQuelle): ?>
+			<p class="quelle__text">Auswirkung: <?= nb_e(implode(', ', $wirkungQuelle)) ?></p>
+<?php endif; ?>
+			<p class="quelle__fuss"><a href="https://strecken-info.de/#/suche/<?= nb_e(rawurlencode($key)) ?>" rel="noopener nofollow">Meldung bei strecken-info.de &#8599;</a></p>
+		</details>
+		</section>
+
 		<footer class="artikel__fuss">
 			<?= nb_render_teilen($pageUrl, $st['titel']) ?>
-			<?= nb_render_weiter(['Zurück zur Startseite' => $root, 'Alle Störungen' => $root . 'stoerungen/#' . nb_anker($key), 'Statistik' => $root . 'statistik/', 'Meldung bei strecken-info.de' => 'https://strecken-info.de/#/suche/' . rawurlencode($key)]) ?>
+			<?= nb_render_weiter(['Zurück zur Startseite' => $root, 'Alle Störungen' => $root . 'stoerungen/#' . nb_anker($key), 'Statistik' => $root . 'statistik/']) ?>
 			<p class="artikel__hinweis">Titel und Text werden automatisch aus der Meldung der DB InfraGO formuliert. Ma&szlig;geblich ist die Originalmeldung.</p>
 		</footer>
 	</article>

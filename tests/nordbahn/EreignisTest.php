@@ -49,7 +49,23 @@ function test_logbuch_verlauf_schritte()
     $html = nb_render_verlauf_schritte($viele, $jetzt);
     t_contains('<details class="zeitleiste__mehr"><summary>5 frühere Schritte anzeigen</summary><ol class="zeitleiste zeitleiste--alt">', $html, 'aeltere Schritte eingeklappt');
     t_eq(3, substr_count(explode('</details>', $html)[1], '<li '), 'drei Schritte sichtbar');
+
+    // Ereignisseite: Text aus dem Kopf nicht wiederholen, Dauer steht schon im Zeitraum
+    $html = nb_render_verlauf_schritte($mit, $jetzt, ['kopf_text' => 'Reparatur läuft, dauert länger.', 'ohne_dauer' => true]);
+    t_eq(false, strpos($html, 'Reparatur läuft, dauert länger.'), 'Kopftext nicht im Verlauf wiederholt');
+    t_contains('Aktueller Text, siehe oben', $html, 'Schritt verweist auf den Kopf');
+    t_contains('Schwere Störung.', $html, 'aelterer Text bleibt im Verlauf');
+    t_eq(false, strpos($html, 'Dauer '), 'ohne Dauer');
+    t_eq(true, nb_verlauf_hat_aenderungen($mit), 'mit Aenderungen lohnt der Verlauf');
+    t_eq(false, nb_verlauf_hat_aenderungen(nb_verlauf_schritte([$v[0]], strtotime('2026-10-17T05:10:00Z'))), 'nur gemeldet und aufgehoben: kein Verlauf');
     unlink(NORDBAHN_LOG_FILE);
+}
+
+function test_wirkung_lesbar()
+{
+    t_eq('Fahrt auf dem Gegengleis', nb_wirkung_lesbar('ggl mit zs 6'), 'Betriebskuerzel Gegengleis');
+    t_eq('Verspätungen', nb_wirkung_lesbar('Verspätungen'), 'Klartext bleibt');
+    t_eq('Ausfall', nb_wirkung_lesbar('ausfall'), 'erster Buchstabe gross');
 }
 
 function test_stoerung_finden_und_zeitraeume()

@@ -484,6 +484,17 @@
 			(bau ? bauText + ' · ' : '') + betroffen + ' von ' + total + ' Zügen (' + prozent + ' %): ' + parts.join(', '));
 	}
 
+	// Wie nb_wirkung_lesbar: Betriebskuerzel aus strecken-info in Klartext
+	function wirkungLesbar(w) {
+		w = String(w || '').trim();
+		var k = w.toLowerCase();
+		if (/\bggl\b|gegengleis|\bzs ?[68]\b/.test(k)) return 'Fahrt auf dem Gegengleis';
+		if (/\beingl(\.|eisig)?\b/.test(k)) return 'Nur ein Gleis befahrbar';
+		if (/\blangsamfahr|\blfst?\b/.test(k)) return 'Langsamfahrstelle';
+		if (/\bsev\b/.test(k)) return 'Ersatzverkehr mit Bussen';
+		return w ? w.charAt(0).toUpperCase() + w.slice(1) : '';
+	}
+
 	function renderIncident(s) {
 		var meta = el('dl', { class: 'incident__meta' });
 		function row(label, value) {
@@ -500,7 +511,7 @@
 				return [a.von, a.bis].filter(Boolean).join(' – ') + (a.strecke ? ' (Strecke ' + a.strecke + ')' : '');
 			}).filter(Boolean).join(', ');
 			row('Abschnitt', abschnitte || (s.betriebsstellen || []).join(', '));
-			row('Auswirkung', (s.wirkungen || []).join(', '));
+			row('Auswirkung', (s.wirkungen || []).map(wirkungLesbar).filter(function (w, i, a) { return w && a.indexOf(w) === i; }).join(', '));
 			row('Einschränkung', s.einschraenkung ? s.einschraenkung.charAt(0).toUpperCase() + s.einschraenkung.slice(1) : '');
 		}
 		// Zeitraum als Satz plus Zeitbalken (wie nb_render_incident). "abgelaufen": das gemeldete
