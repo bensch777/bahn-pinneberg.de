@@ -65,6 +65,10 @@ function fp_aus_logs(array $logs, $heimat)
             if (!is_array($e) || empty($e['zug']) || empty($e['plan']) || !in_array($e['dir'] ?? '', ['hin', 'rueck'], true)) {
                 continue;
             }
+            // DB-Regio-Zuege haben keine Zugnummer, "Meine Zuege" kennt nur Nordbahn
+            if (($e['quelle'] ?? '') === 'hvv') {
+                continue;
+            }
             $dir = $e['dir'];
             if ($dir === 'hin' && ($e['station'] ?? '') !== $heimat) {
                 continue;

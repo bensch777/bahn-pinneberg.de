@@ -707,7 +707,7 @@ function gf_regio_leer()
     return ['ok' => false, 'fetched_at' => null, 'richtungen' => null];
 }
 
-/** Stand aus dem Cache des Heimatbahnhofs, bei Bedarf erneuert (wie gf_cached). */
+/** Stand aus dem Cache des Heimatbahnhofs, bei Bedarf erneuert (wie gf_cached); neue Staende gehen ins Zuglog. */
 function gf_regio_cached($heimat, $fetch = null, ?DateTime $now = null, ?array $zugang = null)
 {
     $zugang = $zugang ?? gf_zugang();
@@ -716,7 +716,14 @@ function gf_regio_cached($heimat, $fetch = null, ?DateTime $now = null, ?array $
     }
 
     return gf_cache_lauf(gf_regio_cache_file($heimat), gf_regio_cache_file($heimat, 'lock'), $now, function () use ($heimat, $fetch, $now, $zugang) {
-        return gf_regio_build($heimat, $fetch, $now, $zugang);
+        $r = gf_regio_build($heimat, $fetch, $now, $zugang);
+        if ($r !== null) {
+            // Fuer die Statistik ins Zuglog, wie die Nordbahn-Abfahrten
+            require_once __DIR__ . '/zuglog.php';
+            zl_log($r, $heimat, $now ? $now->getTimestamp() : null);
+        }
+
+        return $r;
     }, gf_regio_leer());
 }
 

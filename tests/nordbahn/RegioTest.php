@@ -89,6 +89,9 @@ function test_regio_cache()
 {
     $now = t_now();
     $r = gf_regio_cached('AEL', t_gf_fetch(t_regio_antworten()), $now, t_gf_zugang());
+    $log = nordbahn_read_json(NB_ZUGLOG_DIR . '/' . $now->format('Y-m-d') . '.json');
+    $re = array_filter(is_array($log) ? $log : [], function ($e) { return ($e['quelle'] ?? '') === 'hvv'; });
+    t_eq(true, count($re) > 0, 'neuer Stand landet im Zuglog');
     t_eq(true, $r['ok'], 'gebaut');
     t_eq(true, is_array(nordbahn_read_json(gf_regio_cache_file('AEL'))), 'Cache geschrieben');
     $r2 = gf_regio_cached('AEL', t_gf_fetch([]), (clone $now)->modify('+10 minutes'), t_gf_zugang());

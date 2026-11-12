@@ -87,9 +87,9 @@ function test_zuglog_dateien_und_auswertung()
 
 function test_zuglog_filter()
 {
-    t_eq(['bhf' => 'APD', 'richtung' => 'beide', 'tage' => 30, 'zeit' => 'alle', 'werktage' => false], zl_filter([]), 'Vorgaben');
-    t_eq(['bhf' => 'AEL', 'richtung' => 'hin', 'tage' => 7, 'zeit' => 'morgens', 'werktage' => true], zl_filter(['bhf' => 'ael', 'richtung' => 'hin', 'tage' => '7', 'zeit' => 'morgens', 'werktage' => '1']), 'gueltige Werte');
-    t_eq(['bhf' => 'APD', 'richtung' => 'beide', 'tage' => 30, 'zeit' => 'alle', 'werktage' => false], zl_filter(['bhf' => 'XYZ', 'richtung' => 'quer', 'tage' => '999', 'zeit' => 'nachts', 'werktage' => 'ja']), 'Unsinn faellt auf Vorgaben');
+    t_eq(['bhf' => 'APD', 'betreiber' => 'nordbahn', 'richtung' => 'beide', 'tage' => 30, 'zeit' => 'alle', 'werktage' => false], zl_filter([]), 'Vorgaben');
+    t_eq(['bhf' => 'AEL', 'betreiber' => 'nordbahn', 'richtung' => 'hin', 'tage' => 7, 'zeit' => 'morgens', 'werktage' => true], zl_filter(['bhf' => 'ael', 'richtung' => 'hin', 'tage' => '7', 'zeit' => 'morgens', 'werktage' => '1']), 'gueltige Werte');
+    t_eq(['bhf' => 'APD', 'betreiber' => 'nordbahn', 'richtung' => 'beide', 'tage' => 30, 'zeit' => 'alle', 'werktage' => false], zl_filter(['bhf' => 'XYZ', 'richtung' => 'quer', 'tage' => '999', 'zeit' => 'nachts', 'werktage' => 'ja']), 'Unsinn faellt auf Vorgaben');
 }
 
 function test_zuglog_dashboard()
@@ -122,4 +122,35 @@ function test_zuglog_dashboard()
 
     $d = zl_dashboard_rechnen($logs, zl_filter(['tage' => '7', 'zeit' => 'morgens', 'werktage' => '1']), $now);
     t_eq(2, $d['kennzahlen']['fahrten'], 'morgens an Werktagen: Do und Fr um 7 Uhr, Sonntag nicht');
+}
+
+function test_zuglog_db_regio_getrennt()
+{
+    $now = strtotime('2026-11-12 07:00:00 Europe/Berlin');
+    $re = function ($zeit, array $o = []) {
+        return t_zl_zeile('', $zeit, array_merge(['linie' => 'RE70', 'quelle' => 'hvv'], $o));
+    };
+    // Elmshorn: RE nach Hamburg und ab Hbf zurueck, ohne Zugnummer
+    $r = ['ok' => true, 'richtungen' => [
+        'hin'   => [$re('2026-11-12T07:12:00+01:00', ['verspaetung' => 6]), t_zl_zeile('81871', '2026-11-12T07:20:00+01:00')],
+        'rueck' => [$re('2026-11-12T07:40:00+01:00', ['ab' => 'Hbf', 'ziel' => 'Kiel Hbf', 'ausfall' => true])],
+    ]];
+    $logs = zl_merge([], $r, 'AEL', $now);
+    $tag = $logs['2026-11-12'];
+    t_eq(['RE70 07:12', 'hvv'], [$tag['AEL|hin|RE70 07:12']['zug'], $tag['AEL|hin|RE70 07:12']['quelle']], 'RE unter Linie und Planzeit');
+    t_eq(false, isset($tag['AEL|hin|81871']['quelle']), 'Nordbahn ohne quelle');
+    t_eq(['AEL'], $tag['AH|rueck|RE70 07:40']['bis'], 'Rueckrichtung merkt den Heimatbahnhof');
+
+    // Pinneberg sieht denselben RE ab Hbf: bis waechst, ohne Duplikat
+    $logs2 = zl_merge($logs, ['ok' => true, 'richtungen' => ['hin' => [], 'rueck' => [$re('2026-11-12T07:40:00+01:00', ['ab' => 'Hbf', 'ziel' => 'Kiel Hbf'])]]], 'AP', $now + 60);
+    t_eq(['AEL', 'AP'], $logs2['2026-11-12']['AH|rueck|RE70 07:40']['bis'], 'bis vereinigt');
+
+    $nb = zl_dashboard_rechnen($logs, zl_filter(['bhf' => 'AEL', 'tage' => '7']), $now);
+    t_eq([1, 0], [$nb['kennzahlen']['fahrten'], $nb['kennzahlen']['ausfall']], 'Nordbahn zaehlt keine RE');
+    $db = zl_dashboard_rechnen($logs, zl_filter(['bhf' => 'AEL', 'tage' => '7', 'betreiber' => 'db']), $now);
+    t_eq([2, 1, 1], [$db['kennzahlen']['fahrten'], $db['kennzahlen']['spaet'], $db['kennzahlen']['ausfall']], 'DB Regio getrennt');
+    t_eq(['RE70 07:12'], array_keys($db['hin']), 'Tabelle Hinrichtung');
+    $ap = zl_dashboard_rechnen($logs, zl_filter(['bhf' => 'AP', 'tage' => '7', 'betreiber' => 'db']), $now);
+    t_eq(0, $ap['kennzahlen']['fahrten'], 'RE nur fuer Bahnhoefe aus bis');
+    t_eq('nordbahn', zl_filter(['bhf' => 'APD', 'betreiber' => 'db'])['betreiber'], 'Prisdorf hat keine RE');
 }

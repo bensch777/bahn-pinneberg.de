@@ -111,9 +111,13 @@ function nb_filter_select($name, $label, array $optionen, $wert)
 <?php endif; ?>
 <?php if ($f['ansicht'] === 'zuege'): ?>
 		<?= nb_filter_select('bhf', 'Bahnhof', array_map(function ($b) { return $b['name']; }, NORDBAHN_BAHNHOEFE), $f['bhf']) ?>
+<?php if (in_array($f['bhf'], ZL_DB_BAHNHOEFE, true)): ?>
+		<?= nb_filter_select('betreiber', 'Züge', ['' => ZL_BETREIBER['nordbahn'], 'db' => ZL_BETREIBER['db']], $f['betreiber'] === 'db' ? 'db' : '') ?>
+<?php endif; ?>
 		<?= nb_filter_select('richtung', 'Richtung', ['beide' => 'Beide Richtungen', 'hin' => 'Nach Hamburg', 'rueck' => 'Zurück'], $f['richtung']) ?>
 <?php else: ?>
 		<input type="hidden" name="bhf" value="<?= nb_e($f['bhf']) ?>">
+		<input type="hidden" name="betreiber" value="<?= $f['betreiber'] === 'db' ? 'db' : '' ?>">
 		<input type="hidden" name="richtung" value="<?= nb_e($f['richtung']) ?>">
 <?php endif; ?>
 		<?= nb_filter_select('tage', 'Zeitraum', [7 => '7 Tage', 14 => '14 Tage', 30 => '30 Tage', 60 => '60 Tage'], $f['tage']) ?>
@@ -164,7 +168,7 @@ function nb_filter_select($name, $label, array $optionen, $wert)
 		<div class="card"><?= nb_render_zug_tabelle($dash['rueck'], true, $sortLinks) ?></div>
 	</section>
 <?php endif; ?>
-	<p class="section__note">P&uuml;nktlich hei&szlig;t unter <?= (int) NB_ZUG_SPAET ?> Minuten Versp&auml;tung, ausgefallen schlie&szlig;t Teilausf&auml;lle ein (nur bis oder erst ab einem Unterwegsbahnhof, in der Tabelle als +n). &Oslash; und max. ohne ausgefallene Fahrten. Beobachtet wird, was abgefragt wird: Prisdorf laufend, andere Bahnh&ouml;fe nur, solange jemand die Seite mit diesem Bahnhof offen hat. Graue Zeilen haben weniger als <?= (int) NB_ZUGLOG_MIN_TAGE ?> Tage.</p>
+	<p class="section__note">P&uuml;nktlich hei&szlig;t unter <?= (int) NB_ZUG_SPAET ?> Minuten Versp&auml;tung, ausgefallen schlie&szlig;t Teilausf&auml;lle ein (nur bis oder erst ab einem Unterwegsbahnhof, in der Tabelle als +n). &Oslash; und max. ohne ausgefallene Fahrten. Beobachtet wird, was abgefragt wird: Prisdorf laufend, andere Bahnh&ouml;fe nur, solange jemand die Seite mit diesem Bahnhof offen hat. Graue Zeilen haben weniger als <?= (int) NB_ZUGLOG_MIN_TAGE ?> Tage.<?php if ($f['betreiber'] === 'db'): ?> DB Regio (RE6, RE7, RE70) kommt vom HVV (Geofox) und wird getrennt von der Nordbahn gez&auml;hlt: Elmshorn laufend, andere Bahnh&ouml;fe nur bei offener Seite. Teilausf&auml;lle der RE erkennt die Seite nicht.<?php endif; ?></p>
 <?php else: ?>
 	<section class="section" aria-label="Kennzahlen">
 		<div class="stats">
