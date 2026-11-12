@@ -56,8 +56,6 @@ function test_logbuch_verlauf_schritte()
     t_contains('Aktueller Text, siehe oben', $html, 'Schritt verweist auf den Kopf');
     t_contains('Schwere Störung.', $html, 'aelterer Text bleibt im Verlauf');
     t_eq(false, strpos($html, 'Dauer '), 'ohne Dauer');
-    t_eq(true, nb_verlauf_hat_aenderungen($mit), 'mit Aenderungen lohnt der Verlauf');
-    t_eq(false, nb_verlauf_hat_aenderungen(nb_verlauf_schritte([$v[0]], strtotime('2026-10-17T05:10:00Z'))), 'nur gemeldet und aufgehoben: kein Verlauf');
     unlink(NORDBAHN_LOG_FILE);
 }
 

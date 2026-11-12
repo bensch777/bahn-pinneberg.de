@@ -271,17 +271,6 @@ function nb_verlauf_schritte(array $verlauf, $aufgehoben = null)
     return $out;
 }
 
-/**
- * Lohnt der Verlauf? Nur wenn nach der ersten Meldung noch etwas geaendert wurde
- * (neuer Text, neues Ende). Sonst sagen Kopf und Zeitraum schon alles.
- */
-function nb_verlauf_hat_aenderungen(array $schritte)
-{
-    return count(array_filter($schritte, function ($s) {
-        return $s['art'] !== 'neu' && $s['art'] !== 'aufgehoben';
-    })) > 0;
-}
-
 /* ---------- HTML ---------- */
 
 /** Betroffene Zuege (aus nb_zuege_im_zeitraum) als Tabelle mit Status-Pille. */
@@ -348,6 +337,8 @@ function nb_render_verlauf_schritte(array $schritte, $now = null, array $opts = 
         $oben = $text !== '' && $kopfText !== '' && trim($text) === $kopfText;
         if ($oben) {
             $text = '';
+            // Beim ersten Schritt reicht das Weglassen; spaeter zeigt der Vermerk, dass hier der Text kam
+            $oben = $s['art'] !== 'neu';
         }
         if ($s['art'] === 'ende' && $s['ende'] !== '') {
             $neu = nb_ts($s['ende']);
