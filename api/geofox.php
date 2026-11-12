@@ -493,8 +493,7 @@ function gf_departures_s3($fetch, DateTime $now, ?array $zugang = null, $stadt =
  * Stadtbahnhof, zurueck in Pinneberg. Aus dem Laufweg (departureCourse) mit
  * Echtzeit, geteilt fuer alle Stadtbahnhoefe und je Fahrt GF_REGIO_KURS_TTL
  * Sekunden gecacht, hoechstens GF_S3_KURS_MAX Abfragen je Aufbereitung. an ist
- * {name, zeit, ist, verspaetung, ausfall} oder null; umstieg (gleiches Format) ist
- * die Ankunft in Altona auf dem Rueckweg ab Jungfernstieg, Stadthausbruecke oder Hbf.
+ * {name, zeit, ist, verspaetung, ausfall} oder null.
  */
 function gf_s3_ankunft($fetch, ?array $zugang, array $liste, $stadt)
 {
@@ -510,14 +509,6 @@ function gf_s3_ankunft($fetch, ?array $zugang, array $liste, $stadt)
         $ziel = $hin ? $st : ['name' => GF_PINNEBERG, 'kurz' => GF_PINNEBERG];
         $d['an'] = null;
         $kurs = !$d['ausfall'] ? gf_regio_kurs($fetch, $zugang, $d, $kurse, $budget) : null;
-        // Zurueck ab der Innenstadt haelt die S3 in Altona: Umstieg in die Nordbahn
-        $d['umstieg'] = null;
-        foreach ($hin || $stadt === 'altona' ? [] : ($kurs['lauf'] ?? []) as $h) {
-            if ($h['norm'] === gf_station_norm('Hamburg-Altona') && $h['zeit'] !== null) {
-                $d['umstieg'] = ['name' => 'Altona', 'zeit' => $h['zeit'], 'ist' => $h['ist'], 'verspaetung' => $h['verspaetung'], 'ausfall' => $h['ausfall']];
-                break;
-            }
-        }
         foreach ($kurs['lauf'] ?? [] as $h) {
             if ($h['norm'] === gf_station_norm($ziel['name']) && $h['zeit'] !== null) {
                 $d['an'] = [
