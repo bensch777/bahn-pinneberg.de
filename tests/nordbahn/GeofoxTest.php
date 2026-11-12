@@ -339,3 +339,27 @@ function test_s3_abfahrten_echte_antwort()
     t_eq(1, $rueck[0]['delay_min'], '60 Sekunden Verspaetung');
     t_eq('1', $rueck[0]['gleis'], 'Gleis ohne Zusatz');
 }
+
+function test_geofox_pause_nach_fehlern()
+{
+    t_reset();
+    t_eq(0, gf_pause_dauer(200), 'OK: keine Pause');
+    t_eq(0, gf_pause_dauer(400), 'Fehler in der Anfrage: keine Pause');
+    t_eq(GF_PAUSE_NETZ, gf_pause_dauer(0), 'Timeout');
+    t_eq(GF_PAUSE_NETZ, gf_pause_dauer(503), '5xx');
+    t_eq(GF_PAUSE_LIMIT, gf_pause_dauer(429), '429 ohne Retry-After');
+    t_eq(120, gf_pause_dauer(429, 120), '429 mit Retry-After');
+    t_eq(GF_PAUSE_MAX, gf_pause_dauer(429, 999999), 'Retry-After gedeckelt');
+    t_eq(GF_PAUSE_ZUGANG, gf_pause_dauer(401), 'Zugang abgelehnt');
+
+    t_eq(0, gf_pause_rest(), 'ohne Datei keine Pause');
+    nordbahn_write_json(GF_PAUSE_FILE, ['bis' => time() + 100, 'status' => 429]);
+    t_eq(true, gf_pause_rest() > 90, 'Pause laeuft');
+    $start = microtime(true);
+    // Unerreichbarer Host: ohne Pause wuerde das bis GF_TIMEOUT dauern
+    t_eq(null, gf_fetch('init', '{}', ['user' => 'u', 'password' => 'p', 'url' => 'https://10.255.255.1/gti', 'version' => 59]), 'waehrend der Pause null');
+    t_eq(true, microtime(true) - $start < 1, 'ohne Netzanfrage');
+    nordbahn_write_json(GF_PAUSE_FILE, ['bis' => time() - 1, 'status' => 429]);
+    t_eq(0, gf_pause_rest(), 'abgelaufene Pause');
+    t_reset();
+}
