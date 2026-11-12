@@ -761,8 +761,6 @@
 
 		var ausfaelle = 0, verspaetet = 0;
 		var regio = regioZeilen();
-		var hinweis = document.getElementById('abfahrten-regio');
-		if (hinweis) hinweis.hidden = !regio;
 		Array.prototype.forEach.call(boards, function (b) {
 			var key = b.getAttribute('data-richtung');
 			var list = b.querySelector('.board__list');
