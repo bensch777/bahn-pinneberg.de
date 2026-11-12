@@ -1120,6 +1120,18 @@
 			var cd = d.ausfall ? '' : fmtCountdown(d.ist || d.zeit);
 			if (cd) time.appendChild(el('small', { class: 'dep__countdown', text: cd }));
 			var dest = el('div', { class: 'dep__dest', title: d.ziel }, [el('span', { class: 'dep__ziel', text: d.ziel })]);
+			// Ankunft dort, wo es fuer Pendler zaehlt: am Stadtbahnhof bzw. in Pinneberg (wie nb_render_s3_ankunft)
+			var an = d.an;
+			if (an && !d.ausfall && an.zeit) {
+				if (an.ausfall) dest.appendChild(el('small', { class: 'dep__an dep__an--ausfall', text: 'Halt ' + an.name + ' entfällt' }));
+				else {
+					var anLate = an.verspaetung >= 3 && an.ist;
+					var anOrt = d.ziel === an.name ? '' : an.name + ' '; // "Pinneberg, an 17:02" statt doppelt Pinneberg
+					var anEl = el('small', { class: 'dep__an', text: 'an ' + anOrt + fmtClock(anLate ? an.ist : an.zeit) });
+					if (anLate) { anEl.appendChild(document.createTextNode(' ')); anEl.appendChild(el('span', { class: 'dep__an-spaet', text: '(+' + an.verspaetung + ')' })); }
+					dest.appendChild(anEl);
+				}
+			}
 			var platform = el('div', { class: 'dep__platform', text: d.gleis ? 'Gl. ' + d.gleis : '' });
 			list.appendChild(el('li', { class: cls }, [el('span', { class: 'dep__dot' }), time, el('div', { class: 'dep__line' }, [linieTag(d.linie || 'S3')]), dest, platform]));
 		});

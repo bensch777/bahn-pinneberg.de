@@ -390,3 +390,58 @@ function test_geofox_pause_nach_fehlern()
     t_eq(0, gf_pause_rest(), 'abgelaufene Pause');
     t_reset();
 }
+
+function test_s3_ankunft_aus_dem_laufweg()
+{
+    // Je Richtung eine S3 mit IDs; Ankunft Richtung Hamburg am gewaehlten Stadtbahnhof
+    // (hier Altona), zurueck in Pinneberg, beides mit Echtzeit aus departureCourse
+    $dep = function ($ziel, $origin, $offset, $sid, $delay = 0) {
+        return ['line' => ['name' => 'S3', 'direction' => $ziel, 'origin' => $origin, 'id' => 'SBH:S3'], 'timeOffset' => $offset, 'delay' => $delay, 'serviceId' => $sid, 'platform' => 'Gleis 1'];
+    };
+    $liste = function ($deps) { return json_encode(['returnCode' => 'OK', 'time' => ['date' => '15.10.2026', 'time' => '10:00'], 'departures' => $deps]); };
+    $t = function ($hm) { return ['date' => '15.10.2026', 'time' => $hm]; };
+    $kurse = [
+        1 => json_encode(['returnCode' => 'OK', 'courseElements' => [
+            ['fromStation' => ['name' => 'Pinneberg'], 'depTime' => $t('10:05'), 'depDelay' => 120, 'toStation' => ['name' => 'Elbgaustraße'], 'arrTime' => $t('10:15'), 'arrDelay' => 120],
+            ['fromStation' => ['name' => 'Elbgaustraße'], 'depTime' => $t('10:15'), 'depDelay' => 120, 'toStation' => ['name' => 'Altona'], 'arrTime' => $t('10:27'), 'arrDelay' => 240],
+            ['fromStation' => ['name' => 'Altona'], 'depTime' => $t('10:28'), 'depDelay' => 240, 'toStation' => ['name' => 'Hauptbahnhof'], 'arrTime' => $t('10:38'), 'arrDelay' => 240],
+        ]]),
+        2 => json_encode(['returnCode' => 'OK', 'courseElements' => [
+            ['fromStation' => ['name' => 'Altona'], 'depTime' => $t('10:10'), 'toStation' => ['name' => 'Elbgaustraße'], 'arrTime' => $t('10:22')],
+            ['fromStation' => ['name' => 'Elbgaustraße'], 'depTime' => $t('10:22'), 'toStation' => ['name' => 'Pinneberg'], 'arrTime' => $t('10:33')],
+        ]]),
+    ];
+    $calls = [];
+    $fetch = function ($method, $json) use ($liste, $dep, $kurse, &$calls) {
+        $body = json_decode($json, true);
+        $calls[] = $method;
+        if ($method === 'departureList') {
+            return $body['station']['name'] === 'Pinneberg' ? $liste([$dep('Hauptbahnhof', 'Pinneberg', 5, 1, 120)]) : $liste([$dep('Pinneberg', 'Hauptbahnhof', 10, 2)]);
+        }
+        if ($method === 'departureCourse') {
+            return $kurse[$body['serviceId']] ?? null;
+        }
+        return json_encode(['returnCode' => 'OK', 'results' => []]);
+    };
+    $r = gf_departures_s3($fetch, t_now(), t_gf_zugang(), 'altona');
+    [$hin, $rueck] = $r['liste'];
+    t_eq(['Altona', '10:27', '10:31', 4, false], [$hin['an']['name'], t_uhr($hin['an']['zeit']), t_uhr($hin['an']['ist']), $hin['an']['verspaetung'], $hin['an']['ausfall']], 'Richtung Hamburg: Ankunft Altona');
+    t_eq(['Pinneberg', '10:33'], [$rueck['an']['name'], t_uhr($rueck['an']['zeit'])], 'zurueck: Ankunft Pinneberg');
+    t_eq(false, array_key_exists('_kurs', $hin), 'interner Schluessel nicht in der Ausgabe');
+
+    // Hbf als Stadtbahnhof: dieselbe Fahrt aus dem Cache, Ankunft am Hauptbahnhof
+    $calls = [];
+    $r = gf_departures_s3($fetch, t_now(), t_gf_zugang(), 'hbf');
+    t_eq(['Hbf', '10:38'], [$r['liste'][0]['an']['name'], t_uhr($r['liste'][0]['an']['zeit'])], 'Ankunft Hbf');
+    t_eq(0, count(array_keys($calls, 'departureCourse', true)), 'Laufweg der S3 ab Pinneberg aus dem Cache');
+}
+
+function test_render_s3_ankunft()
+{
+    $d = ['ziel' => 'Stade', 'ausfall' => false, 'an' => ['name' => 'Altona', 'zeit' => '2026-10-15T10:27:00+02:00', 'ist' => '2026-10-15T10:31:00+02:00', 'verspaetung' => 4, 'ausfall' => false]];
+    t_contains('an Altona 10:31', nb_render_s3_ankunft($d), 'Istzeit bei Verspaetung');
+    t_contains('(+4)', nb_render_s3_ankunft($d), 'Verspaetung dahinter');
+    $d = ['ziel' => 'Pinneberg', 'ausfall' => false, 'an' => ['name' => 'Pinneberg', 'zeit' => '2026-10-15T10:33:00+02:00', 'ist' => '2026-10-15T10:33:00+02:00', 'verspaetung' => 0, 'ausfall' => false]];
+    t_contains('>an 10:33<', nb_render_s3_ankunft($d), 'Ziel nicht doppelt');
+    t_eq('', nb_render_s3_ankunft(['ziel' => 'Stade', 'ausfall' => false, 'an' => null]), 'ohne Laufweg nichts');
+}
