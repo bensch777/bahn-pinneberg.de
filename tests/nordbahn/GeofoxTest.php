@@ -113,13 +113,40 @@ function test_s3_status_stufen()
 
     $einer = $ok;
     $einer[0]['ausfall'] = true;
-    t_eq(['level' => 'warn', 'title' => 'S3 beeinträchtigt', 'detail' => '1 von 12 Zügen (8 %): 1 Ausfall'], gf_status($einer, [], $now), 'ein Ausfall');
+    t_eq(['level' => 'ok', 'title' => 'S3 fährt weitgehend planmäßig', 'detail' => '1 von 12 Zügen (8 %): 1 Ausfall'], gf_status($einer, [], $now), 'ein Ausfall faerbt nicht');
+
+    $klein = $ok;
+    $klein[3]['delay_min'] = 5;
+    t_eq(['level' => 'ok', 'title' => 'S3 fährt weitgehend planmäßig', 'detail' => '1 von 12 Zügen (8 %): Verspätungen bis 5 Min'], gf_status($klein, [], $now), 'eine kleine Verspaetung faerbt nicht');
+
+    $viertel = $ok;
+    $viertel[0]['delay_min'] = 6;
+    $viertel[1]['delay_min'] = 7;
+    $viertel[2]['delay_min'] = 8;
+    t_eq('ok', gf_status($viertel, [], $now)['level'], 'ein Viertel leicht verspaetet bleibt gruen');
+
+    $gross = $ok;
+    $gross[0]['delay_min'] = 15;
+    t_eq(['level' => 'warn', 'title' => 'S3 beeinträchtigt', 'detail' => '1 von 12 Zügen (8 %): Verspätungen bis 15 Min'], gf_status($gross, [], $now), 'eine grosse Verspaetung');
+
+    $zwei = $ok;
+    $zwei[0]['ausfall'] = true;
+    $zwei[5]['ausfall'] = true;
+    t_eq(['level' => 'warn', 'title' => 'S3 beeinträchtigt', 'detail' => '2 von 12 Zügen (17 %): 2 Ausfälle'], gf_status($zwei, [], $now), 'zwei Ausfaelle');
+
+    $drittel = $ok;
+    for ($i = 0; $i < 5; $i++) {
+        $drittel[$i]['delay_min'] = 6;
+    }
+    t_eq(['level' => 'warn', 'title' => 'S3 beeinträchtigt', 'detail' => '5 von 12 Zügen (42 %): Verspätungen bis 6 Min'], gf_status($drittel, [], $now), 'mehr als ein Drittel betroffen');
 
     $viele = $ok;
     $viele[0]['ausfall'] = true;
     $viele[1]['ausfall'] = true;
-    $viele[2]['delay_min'] = 7;
-    t_eq(['level' => 'alert', 'title' => 'S3 gestört', 'detail' => '3 von 12 Zügen (25 %): 2 Ausfälle, Verspätungen bis 7 Min'], gf_status($viele, [], $now), 'ein Viertel betroffen');
+    for ($i = 2; $i < 8; $i++) {
+        $viele[$i]['delay_min'] = 7;
+    }
+    t_eq(['level' => 'alert', 'title' => 'S3 gestört', 'detail' => '8 von 12 Zügen (67 %): 2 Ausfälle, Verspätungen bis 7 Min'], gf_status($viele, [], $now), 'zwei Drittel betroffen');
 
     $akut = [['titel' => 'S3: Signalstörung Eidelstedt', 'geplant' => false, 'aktiv' => true, 'linien' => ['S3']]];
     t_eq(['level' => 'alert', 'title' => 'S3 gestört', 'detail' => 'S3: Signalstörung Eidelstedt'], gf_status($ok, $akut, $now), 'ungeplante aktive S3-Meldung');

@@ -42,7 +42,10 @@ const GF_S3_KORRIDOR = [
     'reeperbahn', 'landungsbruecken', 'stadthausbruecke', 'jungfernstieg', 'sternschanze', 'dammtor', 'hauptbahnhof',
 ];
 const GF_DELAY_MIN    = 5;         // ab dieser Verspaetung (Minuten) zaehlt ein Zug als betroffen
-const GF_ALERT_ANTEIL = 0.25;      // ab diesem Anteil "S3 gestoert"
+const GF_WARN_ANTEIL  = 0.35;      // ab diesem Anteil betroffener Zuege "S3 beeintraechtigt"
+const GF_ALERT_ANTEIL = 0.6;       // ab diesem Anteil "S3 gestoert"
+const GF_WARN_AUSFAELLE = 2;       // ab so vielen Ausfaellen mindestens "beeintraechtigt", auch unter GF_WARN_ANTEIL
+const GF_WARN_DELAY   = 15;        // eine Verspaetung ab so vielen Minuten macht mindestens "beeintraechtigt"
 const GF_LINIE        = 'S3';
 const GF_LINIEN       = ['S3', 'RB60', 'RB61', 'RB71'];
 const GF_MELDUNGEN_MAX = 20;
@@ -1288,11 +1291,17 @@ function gf_status(array $abfahrten, array $meldungen, $now)
     if (!$total) {
         return ['level' => 'ok', 'title' => 'S3: keine Abfahrten gemeldet', 'detail' => ''];
     }
-    if ($betroffen / $total >= GF_ALERT_ANTEIL) {
+    $anteil = $betroffen / $total;
+    if ($anteil >= GF_ALERT_ANTEIL) {
         return ['level' => 'alert', 'title' => 'S3 gestört', 'detail' => $zahlen];
     }
-    if ($betroffen) {
+    // Die S3 ist fuer Pendler nur Plan B und faehrt dicht: einzelne kleine Verspaetungen
+    // faerben die Karte nicht, erst ein spuerbarer Anteil, mehrere Ausfaelle oder eine grosse Verspaetung
+    if ($anteil >= GF_WARN_ANTEIL || $ausfaelle >= GF_WARN_AUSFAELLE || $maxDelay >= GF_WARN_DELAY) {
         return ['level' => 'warn', 'title' => 'S3 beeinträchtigt', 'detail' => $zahlen];
+    }
+    if ($betroffen) {
+        return ['level' => 'ok', 'title' => 'S3 fährt weitgehend planmäßig', 'detail' => $zahlen];
     }
 
     return ['level' => 'ok', 'title' => 'S3 fährt planmäßig', 'detail' => ''];
