@@ -307,13 +307,11 @@ function nb_render_zuege_liste(array $info)
  * Verlauf einer Stoerung als Aenderungsliste: je Schritt ein Etikett (Gemeldet, Update,
  * Verlängert, Verkürzt, Aufgehoben), die Zeit und nur das, was sich geaendert hat: der
  * neue Text, ein verschobenes Ende als "Ende: 22:51 Uhr → morgen 14:51 Uhr", zum Schluss
- * die Dauer. Mehr als NB_VERLAUF_SICHTBAR + 1 Schritte: die aelteren eingeklappt.
+ * die Dauer. Immer alle Schritte, nichts eingeklappt.
  * $opts: kopf_text = Text, der schon oben auf der Seite steht (wird im Schritt nicht
  * wiederholt, nur als "Aktueller Text, siehe oben" vermerkt); ohne_dauer = die Dauer steht
  * schon im Zeitraum, der Schritt Aufgehoben bleibt ohne.
  */
-const NB_VERLAUF_SICHTBAR = 3;
-
 function nb_render_verlauf_schritte(array $schritte, $now = null, array $opts = [])
 {
     $kopfText = trim((string) ($opts['kopf_text'] ?? ''));
@@ -368,10 +366,6 @@ function nb_render_verlauf_schritte(array $schritte, $now = null, array $opts = 
             . '</li>';
     }
     $h = '';
-    if (count($items) > NB_VERLAUF_SICHTBAR + 1) {
-        $alt = array_splice($items, 0, count($items) - NB_VERLAUF_SICHTBAR);
-        $h .= '<details class="zeitleiste__mehr"><summary>' . nb_plural(count($alt), 'früherer Schritt', 'frühere Schritte') . ' anzeigen</summary><ol class="zeitleiste zeitleiste--alt">' . implode('', $alt) . '</ol></details>';
-    }
     $h .= '<ol class="zeitleiste">' . implode('', $items);
 
     return $h . '</ol>';

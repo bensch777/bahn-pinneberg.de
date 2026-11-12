@@ -418,13 +418,6 @@ a.status:focus-visible { outline: 2px solid var(--series); outline-offset: 2px; 
 .zeitleiste__text { margin: 0; color: var(--ink-2); font-size: 14.5px; line-height: 1.5; }
 .zeitleiste__hinweis { margin: 2px 0 0; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
 /* Aeltere Schritte eingeklappt, der Strich laeuft durch */
-.zeitleiste__mehr { margin: 0; }
-.zeitleiste__mehr summary { position: relative; padding: 0 0 20px 30px; font-size: 13.5px; color: var(--series); cursor: pointer; list-style: none; }
-.zeitleiste__mehr summary::-webkit-details-marker { display: none; }
-.zeitleiste__mehr summary::before { content: ''; position: absolute; left: 7px; top: 10px; bottom: -6px; width: 2px; background: var(--line); }
-.zeitleiste__mehr summary::after { content: ''; position: absolute; left: 3px; top: 6px; width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--axis); box-sizing: border-box; background: var(--page); }
-.zeitleiste__mehr[open] summary { display: none; }
-.zeitleiste--alt li:last-child::before { display: block; }
 
 /* Betroffene Zuege */
 .zuege { width: 100%; border-collapse: collapse; }
