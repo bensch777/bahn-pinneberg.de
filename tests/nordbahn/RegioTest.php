@@ -190,3 +190,41 @@ function test_regio_laufweg_entscheidet_ueber_den_halt()
     gf_regio_build('AIZ', $fetch, t_now(), t_gf_zugang());
     t_eq(0, count(array_filter($calls, function ($c) { return $c[0] === 'departureCourse'; })), 'Laufwege aus dem Cache');
 }
+
+function test_regio_entfallener_halt_und_kurzer_cache()
+{
+    $dep = ['line' => ['name' => 'RE70', 'direction' => 'Kiel Hbf', 'origin' => 'Hamburg Hbf', 'id' => 'L'], 'timeOffset' => 9, 'delay' => 0, 'serviceId' => 7, 'station' => ['combinedName' => 'Hamburg Hbf'], 'platform' => 'Gleis 7'];
+    $liste = function ($deps) { return json_encode(['returnCode' => 'OK', 'time' => ['date' => '15.10.2026', 'time' => '10:00'], 'departures' => $deps]); };
+    $kurs = json_encode(['returnCode' => 'OK', 'courseElements' => [
+        ['fromStation' => ['name' => 'Hamburg Hbf'], 'toStation' => ['name' => 'Elmshorn']],
+        ['fromStation' => ['name' => 'Elmshorn'], 'toStation' => ['name' => 'Wrist'], 'arrCancelled' => true],
+        ['fromStation' => ['name' => 'Wrist'], 'toStation' => ['name' => 'Neumünster'], 'depCancelled' => true],
+    ]]);
+    $calls = [];
+    $fetch = function ($method, $json) use ($liste, $dep, &$kurs, &$calls) {
+        $body = json_decode($json, true);
+        $calls[] = [$method, $body];
+        if ($method === 'departureList') {
+            return $liste($body['station']['name'] === 'Hamburg Hbf' ? [$dep] : []);
+        }
+        if ($method === 'departureCourse') {
+            return $kurs;
+        }
+        return json_encode(['returnCode' => 'OK', 'results' => [['name' => $body['theName']['name'] ?? '', 'id' => 'Master:1', 'type' => 'STATION']]]);
+    };
+    $r = gf_regio_build('AWST', $fetch, t_now(), t_gf_zugang());
+    t_eq([], $r['richtungen']['rueck'], 'Halt in Wrist entfaellt heute: kein RE auf dem Rueckweg');
+    $dc = array_values(array_filter($calls, function ($c) { return $c[0] === 'departureCourse'; }));
+    t_eq(true, $dc[0][1]['useRealtime'], 'Laufweg mit Echtzeit');
+
+    // Nach Ablauf des Laufweg-Caches neu fragen: der Halt ist wieder da
+    $kurs = json_encode(['returnCode' => 'OK', 'courseElements' => [
+        ['fromStation' => ['name' => 'Elmshorn'], 'toStation' => ['name' => 'Wrist']],
+    ]]);
+    $cache = nordbahn_read_json(GF_REGIO_KURS_CACHE);
+    foreach ($cache as &$e) { $e['stand'] -= GF_REGIO_KURS_TTL + 1; }
+    unset($e);
+    nordbahn_write_json(GF_REGIO_KURS_CACHE, $cache);
+    $r = gf_regio_build('AWST', $fetch, t_now(), t_gf_zugang());
+    t_eq(1, count($r['richtungen']['rueck']), 'frischer Laufweg mit Halt');
+}
