@@ -15,6 +15,7 @@ $assetVersion = (int) @filemtime(__DIR__ . '/../dashboard.css');
 
 $changelog = [
     ['2026-11-12', [
+        ['S3-Karte schlägt seltener an', 'Bisher stand „S3 beeinträchtigt“ schon da, wenn einer von zwölf Zügen fünf Minuten zu spät war. Bei einer S-Bahn, die alle zehn Minuten fährt, ist das für Pendler kein Problem. Jetzt bleibt die Karte grün („S3 fährt weitgehend planmäßig“, mit den Zahlen darunter), bis gut ein Drittel der Züge betroffen ist. Früher gelb wird sie bei zwei oder mehr Ausfällen oder einer Verspätung ab 15 Minuten. „S3 gestört“ heißt es ab drei Fünfteln betroffener Züge oder bei einer ungeplanten HVV-Meldung zur S3.'],
         ['DB Regio auch in Pinneberg, Glückstadt, Itzehoe und Wrist', 'Die RE von DB Regio stehen jetzt nicht nur in Elmshorn mit in der Tafel, sondern überall, wo sie halten: der RE6 in Glückstadt und Itzehoe, einzelne RE70 in Wrist und, falls ein RE dort hält, in Pinneberg. Auf dem Weg nach Hause erscheinen nur die RE, die am eigenen Bahnhof auch halten. Ein RE70, der in Wrist durchfährt, steht dort also nicht in der Liste.'],
     ]],
     ['2026-11-11', [
