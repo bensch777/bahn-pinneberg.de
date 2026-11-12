@@ -797,7 +797,7 @@
 				}
 
 				var line = el('div', { class: 'dep__line' }, [linieTag(d.linie)]);
-				if (d.quelle === 'hvv') line.appendChild(el('small', { text: 'DB Regio' }));
+				if (d.quelle === 'hvv') { /* RE: Linie genuegt, wer faehrt, ist Pendlern egal */ }
 				else if (d.wagen) line.appendChild(el('small', { text: plural(d.wagen, 'Wagen', 'Wagen') }));
 				else if (d.bus) line.appendChild(el('small', { text: 'SEV' }));
 
