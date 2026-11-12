@@ -64,6 +64,15 @@ function test_push_abo_bereinigung()
     t_eq(null, nb_push_clean_subscription(['endpoint' => 'http://unsicher', 'keys' => $gut['keys']]), 'nur https');
     t_eq(null, nb_push_clean_subscription(['endpoint' => $gut['endpoint'], 'keys' => ['p256dh' => 'x', 'auth' => 'y']]), 'kaputte Schluessel');
     t_eq(null, nb_push_clean_subscription('nix'), 'kein Array');
+
+    // Nur bekannte Push-Dienste, damit der Server keine beliebigen Adressen anfragt
+    foreach (['https://updates.push.services.mozilla.com/wpush/v2/abc', 'https://web.push.apple.com/QAbc', 'https://wns2-par02p.notify.windows.com/w/?token=abc'] as $ep) {
+        t_eq(true, nb_push_clean_subscription(['endpoint' => $ep, 'keys' => $gut['keys']]) !== null, 'Dienst erlaubt: ' . $ep);
+    }
+    foreach (['https://push.example/abc', 'https://127.0.0.1/x', 'https://fcm.googleapis.com:8443/fcm/send/abc', 'https://fcm.googleapis.com.boese.de/x', 'https://evilnotify.windows.com.example/x', 'https://u:p@fcm.googleapis.com/x'] as $ep) {
+        t_eq(null, nb_push_clean_subscription(['endpoint' => $ep, 'keys' => $gut['keys']]), 'Dienst abgelehnt: ' . $ep);
+    }
+    t_eq(410, wp_send(['endpoint' => 'https://push.example/alt', 'p256dh' => $gut['keys']['p256dh'], 'auth' => $gut['keys']['auth']], '{}', ['private_pem' => '', 'public' => '', 'subject' => 'mailto:x'])['status'], 'altes Abo bei fremdem Host wird entfernt');
 }
 
 function test_push_pendelzeit()

@@ -22,6 +22,8 @@ require_once __DIR__ . '/webpush.php';
 const NB_PUSH_SUBS_FILE  = NORDBAHN_CACHE_DIR . '/push-subs.json';
 const NB_PUSH_STATE_FILE = NORDBAHN_CACHE_DIR . '/push-state.json';
 const NB_PUSH_MAX_SUBS   = 5000;
+// Hosts der Push-Dienste, an die Abos gehen duerfen (dazu Subdomains, siehe nb_push_dienst_ok)
+const NB_PUSH_DIENSTE    = ['fcm.googleapis.com', 'android.googleapis.com', 'updates.push.services.mozilla.com', 'web.push.apple.com'];
 const NB_PUSH_KI_WARTEN  = 6 * 60;   // Sekunden, die eine Stoerung auf den Pendler-Text wartet
 const NB_PUSH_SEEN_KEEP  = 3 * 86400; // Sekunden, die gemeldete Ereignisse gemerkt bleiben
 const NB_PUSH_ZUG_FENSTER = 90 * 60;  // nur Ausfaelle in den naechsten 90 Minuten melden
@@ -93,7 +95,7 @@ function nb_push_clean_subscription($raw)
     $p256dh = trim((string) ($raw['keys']['p256dh'] ?? ''));
     $auth = trim((string) ($raw['keys']['auth'] ?? ''));
     $u = parse_url($endpoint);
-    if (strlen($endpoint) > 1000 || empty($u['scheme']) || $u['scheme'] !== 'https' || empty($u['host'])) {
+    if (strlen($endpoint) > 1000 || empty($u['scheme']) || $u['scheme'] !== 'https' || empty($u['host']) || !nb_push_dienst_ok($endpoint)) {
         return null;
     }
     if (strlen(wp_b64url_decode($p256dh)) !== 65 || strlen(wp_b64url_decode($auth)) !== 16) {
@@ -101,6 +103,26 @@ function nb_push_clean_subscription($raw)
     }
 
     return ['endpoint' => $endpoint, 'p256dh' => $p256dh, 'auth' => $auth];
+}
+
+/**
+ * Liegt der Endpunkt bei einem bekannten Push-Dienst? Nur dorthin schickt der
+ * Server Nachrichten. Sonst koennte jemand beliebige Adressen als Abo eintragen:
+ * der Server wuerde sie bei jeder Meldung anfragen (auch interne), haengende
+ * Adressen bremsen den Versand an alle, und erfundene Abos fuellen NB_PUSH_MAX_SUBS.
+ * Chrome, Edge (Chromium), Samsung, Opera und Brave nutzen FCM, Firefox Mozilla
+ * Autopush, Safari Apple, das alte Edge WNS.
+ */
+function nb_push_dienst_ok($endpoint)
+{
+    $u = parse_url((string) $endpoint);
+    if (!is_array($u) || ($u['scheme'] ?? '') !== 'https' || empty($u['host']) || isset($u['port']) || isset($u['user']) || isset($u['pass'])) {
+        return false;
+    }
+    $host = strtolower($u['host']);
+
+    return in_array($host, NB_PUSH_DIENSTE, true)
+        || (bool) preg_match('/\.(push\.services\.mozilla\.com|push\.apple\.com|notify\.windows\.com)$/', $host);
 }
 
 function nb_push_sub_id($endpoint)

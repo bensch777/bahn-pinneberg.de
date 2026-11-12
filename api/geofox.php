@@ -123,7 +123,7 @@ function gf_headers($body, array $zugang)
     ];
 }
 
-/** POST an die GTI: ['status' => HTTP-Status (0 ohne Verbindung), 'body' => Antworttext]. */
+/** POST an die GTI: ['status' => HTTP-Status (0 ohne Verbindung), 'body' => Antworttext, 'retry_after' => Sekunden oder null]. */
 function gf_fetch_roh($method, $body, array $zugang)
 {
     $url = $zugang['url'] . '/' . $method;
@@ -137,30 +137,99 @@ function gf_fetch_roh($method, $body, array $zugang)
             CURLOPT_CONNECTTIMEOUT => GF_TIMEOUT,
             CURLOPT_TIMEOUT        => GF_TIMEOUT,
             CURLOPT_USERAGENT      => nordbahn_site_host() . ' Monitor',
+            CURLOPT_HEADERFUNCTION => function ($ch, $zeile) use (&$retryAfter) {
+                if (preg_match('/^Retry-After:\s*(\d+)/i', $zeile, $m)) {
+                    $retryAfter = (int) $m[1];
+                }
+
+                return strlen($zeile);
+            },
         ]);
+        $retryAfter = null;
         $antwort = curl_exec($ch);
         $status = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
         curl_close($ch);
 
-        return ['status' => $status, 'body' => $antwort === false ? '' : (string) $antwort];
+        return ['status' => $status, 'body' => $antwort === false ? '' : (string) $antwort, 'retry_after' => $retryAfter];
     }
     $antwort = @file_get_contents($url, false, stream_context_create([
         'http' => ['method' => 'POST', 'timeout' => GF_TIMEOUT, 'user_agent' => nordbahn_site_host() . ' Monitor', 'header' => implode("\r\n", gf_headers($body, $zugang)) . "\r\n", 'content' => $body, 'ignore_errors' => true],
     ]));
     $status = 0;
+    $retryAfter = null;
     foreach ($http_response_header ?? [] as $h) {
         if (preg_match('#^HTTP/\S+\s+(\d{3})#', $h, $m)) {
             $status = (int) $m[1];
+        } elseif (preg_match('/^Retry-After:\s*(\d+)/i', $h, $m)) {
+            $retryAfter = (int) $m[1];
         }
     }
 
-    return ['status' => $status, 'body' => $antwort === false ? '' : (string) $antwort];
+    return ['status' => $status, 'body' => $antwort === false ? '' : (string) $antwort, 'retry_after' => $retryAfter];
 }
 
-/** Antworttext bei HTTP 200, sonst null. */
+/**
+ * Pause nach Fehlern der GTI, geteilt fuer alle Prozesse: Solange sie laeuft, geht
+ * keine Anfrage raus. Ohne Pause wuerde jeder Seitenaufruf neu bauen und die
+ * Schnittstelle gerade dann am staerksten belasten, wenn sie drosselt (429) oder
+ * den Zugang ablehnt (401/403). Die Diagnose (gf_diagnose) fragt trotzdem.
+ */
+define('GF_PAUSE_FILE', NORDBAHN_CACHE_DIR . '/geofox-pause.json');
+const GF_PAUSE_NETZ   = 60;    // Sekunden nach Timeout, Verbindungsfehler oder 5xx
+const GF_PAUSE_LIMIT  = 300;   // nach 429 ohne Retry-After
+const GF_PAUSE_ZUGANG = 900;   // nach 401/403, meist hilft nur eine neue config.php
+const GF_PAUSE_MAX    = 3600;
+
+/** Laeuft gerade eine Pause? Dann Sekunden bis zum Ende, sonst 0. */
+function gf_pause_rest($now = null)
+{
+    $p = nordbahn_read_json(GF_PAUSE_FILE);
+    $rest = is_array($p) ? (int) ($p['bis'] ?? 0) - ($now ?? time()) : 0;
+
+    return max(0, $rest);
+}
+
+/**
+ * Pausendauer fuer eine Antwort der GTI, 0 wenn alles gut ist. $retryAfter ist der
+ * Header Retry-After in Sekunden (oder null).
+ */
+function gf_pause_dauer($status, $retryAfter = null)
+{
+    $status = (int) $status;
+    if ($status === 429) {
+        $s = $retryAfter !== null && $retryAfter > 0 ? (int) $retryAfter : GF_PAUSE_LIMIT;
+
+        return min($s, GF_PAUSE_MAX);
+    }
+    if ($status === 401 || $status === 403) {
+        return GF_PAUSE_ZUGANG;
+    }
+    if ($status === 0 || $status >= 500) {
+        return GF_PAUSE_NETZ;
+    }
+
+    return 0;
+}
+
+/** Pause beginnen und einmal ins Fehlerlog schreiben. */
+function gf_pause_setzen($status, $sekunden, $method, $now = null)
+{
+    $now = $now ?? time();
+    nordbahn_write_json(GF_PAUSE_FILE, ['bis' => $now + (int) $sekunden, 'status' => (int) $status, 'methode' => (string) $method, 'seit' => gmdate('Y-m-d\TH:i:s\Z', $now)]);
+    error_log(sprintf('Geofox: HTTP %d bei %s, %d s Pause', (int) $status, $method, (int) $sekunden));
+}
+
+/** Antworttext bei HTTP 200, sonst null. Waehrend einer Pause ohne Anfrage null. */
 function gf_fetch($method, $body, array $zugang)
 {
+    if (gf_pause_rest() > 0) {
+        return null;
+    }
     $r = gf_fetch_roh($method, $body, $zugang);
+    $pause = gf_pause_dauer($r['status'], $r['retry_after'] ?? null);
+    if ($pause > 0) {
+        gf_pause_setzen($r['status'], $pause, $method);
+    }
 
     return $r['status'] === 200 && $r['body'] !== '' ? $r['body'] : null;
 }

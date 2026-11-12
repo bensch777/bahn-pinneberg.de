@@ -168,6 +168,10 @@ function wp_send(array $sub, $payload, array $vapid, $ttl = 3600, $urgency = 'hi
     if (empty($u['scheme']) || empty($u['host']) || $u['scheme'] !== 'https') {
         return ['status' => 0, 'error' => 'Endpunkt ungueltig'];
     }
+    if (function_exists('nb_push_dienst_ok') && !nb_push_dienst_ok($sub['endpoint'])) {
+        // Altes Abo bei einem unbekannten Host: 410, damit der Versand es entfernt
+        return ['status' => 410, 'error' => 'Kein bekannter Push-Dienst'];
+    }
     $aud = 'https://' . $u['host'] . (isset($u['port']) ? ':' . $u['port'] : '');
     $jwt = wp_vapid_jwt($aud, $vapid['subject'], $vapid['private_pem'], time() + 12 * 3600);
     if ($jwt === null) {
