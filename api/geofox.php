@@ -735,15 +735,26 @@ function gf_regio_kurse_speichern(array $kurse)
  * Abschnitt ohne Ausfall-Flag beruehrt: Abfahrt dort (fromStation, depCancelled
  * bzw. fromCancelled) oder Ankunft dort (toStation, arrCancelled bzw.
  * toCancelled); ein ganz ausgefallener Abschnitt (cancelled) zaehlt fuer keinen
- * der beiden. Annahme laut GTI-Doku: depTime/arrTime als GTITime, depDelay/
- * arrDelay in Sekunden.
+ * der beiden. depTime/arrTime als ISO-String (oder GTITime), depDelay/arrDelay
+ * in Sekunden.
  */
 function gf_regio_lauf_lesen(array $elemente)
 {
     $lauf = [];
     $idx = [];
     $zeit = function ($t, $delay) {
-        $plan = gf_zeit_lesen($t);
+        // departureCourse liefert die Zeiten als ISO-String ("2026-11-12T16:58:00.000+0100"),
+        // so wie die Anfrage sie verlangt; GTITime {date, time} bleibt als Rueckfall
+        $plan = null;
+        if (is_string($t) && $t !== '') {
+            try {
+                $plan = (new DateTime($t))->setTimezone(new DateTimeZone('Europe/Berlin'));
+            } catch (Exception $e) {
+                $plan = null;
+            }
+        } else {
+            $plan = gf_zeit_lesen($t);
+        }
         if ($plan === null) {
             return [null, null, 0];
         }
