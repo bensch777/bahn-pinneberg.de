@@ -1,7 +1,7 @@
 <?php
 /**
  * Ereignisseite einer Infrastrukturstoerung (/stoerung/<key>/): Pendler-Text,
- * Originalmeldung, Verlauf, betroffene Zuege, Eilmeldungen und weitere Stoerungen
+ * Verlauf, betroffene Zuege, Eilmeldungen und weitere Stoerungen
  * im Zeitraum. Daten aus dem Logbuch und dem Zuglog, kein JavaScript noetig.
  */
 
@@ -57,13 +57,11 @@ if (!$gefunden) {
     $andere = nb_stoerungen_im_zeitraum($data, $st['start'], $st['ende'], $key);
     $schritte = nb_verlauf_schritte($st['verlauf'], $st['aktiv'] ? null : $st['ende']);
     $endeGemeldet = nb_ts($st['ende_gemeldet']);
-    // Jede Angabe nur einmal: Vorspann oben, der Verlauf ohne den Text, der schon oben
-    // steht; Technisches aus der Originalmeldung eingeklappt.
+    // Jede Angabe nur einmal: Vorspann oben, der Verlauf ohne den Text, der schon oben steht.
     $vorspann = $st['ki_text'] !== '' ? $st['ki_text'] : $st['text'];
     $wirkungen = array_values(array_unique(array_filter(array_map('nb_wirkung_lesbar', $st['wirkungen']))));
-    // Mit Pendler-Text sagt der Vorspann schon, was passiert; die Wirkung gehoert dann zur Quelle
+    // Mit Pendler-Text sagt der Vorspann schon, was passiert; die Wirkung nur ohne ihn
     $wirkungKachel = $st['ki_text'] === '' ? $wirkungen : [];
-    $wirkungQuelle = $st['ki_text'] !== '' ? $wirkungen : [];
     $abschnitte = [];
     foreach ($st['abschnitte'] as $a) {
         $teil = implode(' – ', array_filter([$a['von'] ?? '', $a['bis'] ?? '']));
@@ -187,19 +185,6 @@ if (!$gefunden) {
 		</section>
 <?php endif; ?>
 
-		<section class="section">
-		<details class="quelle quelle--klapp">
-			<summary class="quelle__label">Originalmeldung der DB InfraGO</summary>
-			<p class="quelle__titel"><?= nb_e($st['titel_technisch']) ?></p>
-<?php if ($st['text'] !== '' && $st['text'] !== $vorspann): ?>
-			<p class="quelle__text"><?= nb_e($st['text']) ?></p>
-<?php endif; ?>
-<?php if ($wirkungQuelle): ?>
-			<p class="quelle__text">Auswirkung: <?= nb_e(implode(', ', $wirkungQuelle)) ?></p>
-<?php endif; ?>
-			<p class="quelle__fuss"><a href="https://strecken-info.de/#/suche/<?= nb_e(rawurlencode($key)) ?>" rel="noopener nofollow">Meldung bei strecken-info.de &#8599;</a></p>
-		</details>
-		</section>
 
 	</article>
 <?php endif; ?>
