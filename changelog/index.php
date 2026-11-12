@@ -14,6 +14,9 @@ $root = '../';
 $assetVersion = (int) @filemtime(__DIR__ . '/../dashboard.css');
 
 $changelog = [
+    ['2026-11-12', [
+        ['DB Regio auch in Pinneberg, Glückstadt, Itzehoe und Wrist', 'Die RE von DB Regio stehen jetzt nicht nur in Elmshorn mit in der Tafel, sondern überall, wo sie halten: der RE6 in Glückstadt und Itzehoe, einzelne RE70 in Wrist und, falls ein RE dort hält, in Pinneberg. Auf dem Weg nach Hause erscheinen nur die RE, die am eigenen Bahnhof auch halten. Ein RE70, der in Wrist durchfährt, steht dort also nicht in der Liste.'],
+    ]],
     ['2026-11-11', [
         ['DB Regio ab Elmshorn', 'Wer Elmshorn als Bahnhof gewählt hat, sieht in „Nächste Züge“ jetzt auch die RE6, RE7 und RE70 von DB Regio, gemischt mit den Zügen der Nordbahn und nach Abfahrt sortiert. Sie fahren im HVV-Tarif, das HVV-Ticket und das Deutschlandticket gelten also auch dort. Nach Hamburg stehen die Züge mit ihrem Ziel, zurück mit „ab Hbf“ (RE7, RE70) oder „ab Altona“ (RE6). Echtzeit, Ausfälle und Gleiswechsel kommen vom HVV. IC und ICE fehlen bewusst, dort gilt der HVV-Tarif nicht.'],
     ]],

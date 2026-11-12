@@ -353,24 +353,42 @@ function gf_departures_s3($fetch, DateTime $now, ?array $zugang = null, $stadt =
     return ['liste' => $liste, 'quellen' => $quellen];
 }
 
-/* ---------- DB Regio ab Elmshorn ---------- */
+/* ---------- DB Regio ---------- */
 
 /**
- * Regionalzuege von DB Regio fuer Pendler mit Heimatbahnhof Elmshorn: RE6
- * (Westerland – Hamburg-Altona), RE7 und RE70 (Kiel/Flensburg – Hamburg Hbf).
- * Sie fahren im HVV-Tarif, der Stationsmonitor der Nordbahn kennt sie nicht.
- * Hinweg ab Elmshorn nach Hamburg, Rueckweg ab Hbf und Altona nach Norden
- * (alle drei Linien halten in Elmshorn). IC/ICE fehlen bewusst, dort gilt der
- * HVV-Tarif nicht. Die Zeilen haben das Format von api/abfahrten, damit die
- * Startseite sie in die Nordbahn-Tafel mischen kann.
+ * Regionalzuege von DB Regio fuer Pendler an Nordbahn-Bahnhoefen, an denen auch
+ * RE halten: RE6 (Westerland – Itzehoe – Glueckstadt – Elmshorn – Hamburg-Altona),
+ * RE7 und RE70 (Kiel/Flensburg – Neumuenster – Elmshorn – Hamburg Hbf, einzelne
+ * RE70 auch mit Halt in Wrist). Sie fahren im HVV-Tarif, der Stationsmonitor der
+ * Nordbahn kennt sie nicht. IC/ICE fehlen bewusst, dort gilt der HVV-Tarif nicht.
+ *
+ * Hinweg: RE ab dem Heimatbahnhof Richtung Hamburg. Rueckweg: RE ab Hbf und
+ * Altona nach Norden, die am Heimatbahnhof halten. In Elmshorn halten alle; an
+ * den anderen Bahnhoefen halten nur einzelne Fahrten. Ob eine Fahrt dort haelt,
+ * sagt ihr Laufweg (departureCourse), je Fahrt einmal geholt und GF_REGIO_KURS_TTL
+ * lang gecacht. Fehlt der Laufweg, zaehlt ersatzweise, ob derselbe RE (Linie,
+ * Fahrzeit im Fenster 'fahrzeit') am Heimatbahnhof nach Norden abfaehrt. Die Hamburger Tafeln teilen sich alle
+ * Heimatbahnhoefe (ein Cache). Die Zeilen haben das Format von api/abfahrten,
+ * damit die Startseite sie in die Nordbahn-Tafel mischen kann.
  */
 const GF_REGIO_LINIEN   = ['RE6', 'RE7', 'RE70'];
-const GF_REGIO_HEIMAT   = ['AEL' => 'Elmshorn']; // Nordbahn-ID => Name in der GTI
-const GF_REGIO_FENSTER  = 120;   // Minuten, wie die Nordbahn-Tafel
+// Nordbahn-ID => Name in der GTI, ob alle RE halten, Fahrzeit ab Hbf/Altona in Minuten [min, max]
+const GF_REGIO_HEIMAT   = [
+    'AP'   => ['name' => 'Pinneberg',  'alle' => false, 'fahrzeit' => [5, 25]],
+    'AEL'  => ['name' => 'Elmshorn',   'alle' => true,  'fahrzeit' => [10, 45]],
+    'AGST' => ['name' => 'Glückstadt', 'alle' => false, 'fahrzeit' => [25, 55]],
+    'AIZ'  => ['name' => 'Itzehoe',    'alle' => false, 'fahrzeit' => [35, 70]],
+    'AWST' => ['name' => 'Wrist',      'alle' => false, 'fahrzeit' => [30, 60]],
+];
+const GF_REGIO_FENSTER  = 120;   // Minuten ab Hamburg, wie die Nordbahn-Tafel
 const GF_REGIO_PER_DIR  = 6;
 const GF_REGIO_MAX_LIST = 300;   // ungefiltert am Hbf, zwei Stunden mit Bussen und U-Bahn
 const GF_REGIO_STADT    = ['Hamburg Hbf' => 'Hbf', 'Hamburg-Altona' => 'Altona'];
 const GF_REGIO_HAMBURG  = '/hamburg|altona|dammtor/i'; // nicht "hbf": Kiel Hbf
+const GF_REGIO_KURS_TTL = 21600; // Sekunden, die ein Laufweg gilt (Halte aendern sich am Tag nicht)
+const GF_REGIO_KURS_MAX = 12;    // Laufweg-Abfragen je Aufbereitung
+define('GF_REGIO_STADT_CACHE', NORDBAHN_CACHE_DIR . '/geofox-regio-stadt.json');
+define('GF_REGIO_KURS_CACHE', NORDBAHN_CACHE_DIR . '/geofox-regio-kurse.json');
 
 function gf_regio_cache_file($heimat, $endung = 'json')
 {
@@ -410,25 +428,91 @@ function gf_regio_zeile($raw, DateTime $basis, $ab)
         'ersatz_fuer' => null,
         'dammtor'     => null,
         'quelle'      => 'hvv',
+        // Schluessel fuer departureCourse, wird vor der Ausgabe entfernt
+        '_kurs'       => isset($raw['line']['id'], $raw['serviceId']) ? [
+            'lineKey'   => (string) $raw['line']['id'],
+            'serviceId' => $raw['serviceId'],
+            'direction' => (string) ($raw['line']['direction'] ?? ''),
+            'origin'    => (string) ($raw['line']['origin'] ?? ''),
+            'station'   => is_array($raw['station'] ?? null) ? array_intersect_key($raw['station'], ['id' => 1, 'name' => 1, 'combinedName' => 1]) : null,
+        ] : null,
     ];
 }
 
 /**
- * Zeilen einer Station fuer eine Richtung. Erst mit Linienfilter (serviceName);
- * nimmt die GTI den nicht an (Fehler, leer oder auch fremde Linien in der
- * Antwort), noch einmal ungefiltert mit grosser Liste. Null bei Netzfehler.
+ * Halte einer Fahrt (normierte Namen, siehe gf_station_norm) aus departureCourse,
+ * aus dem Laufweg-Cache oder frisch. Null, wenn unbekannt. $budget zaehlt die
+ * erlaubten Abfragen herunter.
  */
-function gf_regio_station($fetch, DateTime $now, ?array $zugang, $station, $ab, $nachHamburg)
+function gf_regio_kurs($fetch, ?array $zugang, array $d, array &$cache, &$budget)
+{
+    $k = $d['_kurs'] ?? null;
+    if (!is_array($k)) {
+        return null;
+    }
+    $key = $k['lineKey'] . '|' . $k['serviceId'] . '|' . substr($d['zeit'], 0, 10);
+    if (isset($cache[$key]['halte'])) {
+        return $cache[$key]['halte'];
+    }
+    if ($budget <= 0) {
+        return null;
+    }
+    $budget--;
+    $station = ['name' => $k['station']['combinedName'] ?? ($k['station']['name'] ?? ''), 'type' => 'STATION'];
+    if (!empty($k['station']['id'])) {
+        $station['id'] = $k['station']['id'];
+    }
+    $antwort = gf_request('departureCourse', [
+        'lineKey'   => $k['lineKey'],
+        'station'   => $station,
+        'time'      => (new DateTime($d['zeit']))->format('Y-m-d\TH:i:s.000O'),
+        'direction' => $k['direction'],
+        'origin'    => $k['origin'],
+        'serviceId' => $k['serviceId'],
+        'segments'  => 'ALL',
+    ], $fetch, $zugang);
+    $halte = [];
+    foreach ($antwort['courseElements'] ?? [] as $e) {
+        foreach (['fromStation', 'toStation'] as $f) {
+            $name = $e[$f]['combinedName'] ?? ($e[$f]['name'] ?? '');
+            if ($name !== '') {
+                $halte[gf_station_norm($name)] = true;
+            }
+        }
+    }
+    if (!$halte) {
+        return null;
+    }
+    $halte = array_keys($halte);
+    $cache[$key] = ['halte' => $halte, 'stand' => time()];
+
+    return $halte;
+}
+
+/** Faehrt die Zeile Richtung Hamburg? */
+function gf_regio_nach_hamburg(array $d)
+{
+    return (bool) preg_match(GF_REGIO_HAMBURG, $d['ziel']);
+}
+
+/**
+ * Alle RE-Zeilen einer Station in den naechsten $fenster Minuten, beide
+ * Richtungen. Erst mit Linienfilter (serviceName); nimmt die GTI den nicht an
+ * (Fehler, leer oder auch fremde Linien in der Antwort), noch einmal ungefiltert
+ * mit grosser Liste. Null bei Netzfehler.
+ */
+function gf_regio_station($fetch, DateTime $now, ?array $zugang, $station, $ab, $fenster)
 {
     $anfrage = [
         'station'       => gf_station($fetch, $station, $now->getTimestamp(), $zugang),
         'time'          => gf_zeit_param($now),
-        'maxList'       => 40,
-        'maxTimeOffset' => GF_REGIO_FENSTER,
+        'maxList'       => 60,
+        'maxTimeOffset' => $fenster,
         'useRealtime'   => true,
         'filter'        => array_map(function ($l) { return ['serviceName' => $l]; }, GF_REGIO_LINIEN),
     ];
-    $lesen = function ($antwort) use ($now, $ab, $nachHamburg, &$fremd) {
+    $fremd = false;
+    $lesen = function ($antwort) use ($now, $ab, &$fremd) {
         $basis = gf_zeit_lesen($antwort['time'] ?? null, $now);
         $rows = [];
         $fremd = false;
@@ -438,15 +522,11 @@ function gf_regio_station($fetch, DateTime $now, ?array $zugang, $station, $ab, 
                 $fremd = true;
                 continue;
             }
-            if ((bool) preg_match(GF_REGIO_HAMBURG, $d['ziel']) !== $nachHamburg) {
-                continue;
-            }
             $rows[] = $d;
         }
 
         return $rows;
     };
-    $fremd = false;
     $antwort = gf_request('departureList', $anfrage, $fetch, $zugang);
     $rows = $antwort !== null ? $lesen($antwort) : [];
     if ($antwort === null || !$rows || $fremd) {
@@ -460,15 +540,82 @@ function gf_regio_station($fetch, DateTime $now, ?array $zugang, $station, $ab, 
 }
 
 /**
+ * RE ab Hbf und Altona nach Norden, geteilt fuer alle Heimatbahnhoefe und
+ * hoechstens GF_TTL Sekunden alt. Null, wenn beide Tafeln fehlen.
+ */
+function gf_regio_stadt($fetch, DateTime $now, ?array $zugang)
+{
+    $cache = nordbahn_read_json(GF_REGIO_STADT_CACHE);
+    if (is_array($cache) && isset($cache['fetched_at']) && is_array($cache['zeilen'] ?? null)
+        && abs($now->getTimestamp() - strtotime($cache['fetched_at'])) < GF_TTL) {
+        return $cache['zeilen'];
+    }
+    $zeilen = null;
+    foreach (GF_REGIO_STADT as $station => $ab) {
+        $rows = gf_regio_station($fetch, $now, $zugang, $station, $ab, GF_REGIO_FENSTER);
+        if ($rows === null) {
+            continue;
+        }
+        foreach ($rows as $d) {
+            if (!gf_regio_nach_hamburg($d)) {
+                $zeilen[] = $d;
+            }
+        }
+        $zeilen = $zeilen ?? [];
+    }
+    if ($zeilen !== null) {
+        nordbahn_write_json(GF_REGIO_STADT_CACHE, ['fetched_at' => $now->format('c'), 'zeilen' => $zeilen]);
+    }
+
+    return $zeilen;
+}
+
+/**
+ * Hamburger Abfahrten, die am Heimatbahnhof halten: je Abfahrt nach Norden am
+ * Heimatbahnhof die juengste Hamburger Abfahrt derselben Linie, deren Planzeit
+ * im Fahrzeitfenster davor liegt. Jede Hamburger Abfahrt zaehlt hoechstens einmal.
+ */
+function gf_regio_halten(array $stadt, array $nord, array $fahrzeit)
+{
+    [$min, $max] = $fahrzeit;
+    usort($nord, function ($a, $b) { return strcmp($a['zeit'], $b['zeit']); });
+    $vergeben = [];
+    $out = [];
+    foreach ($nord as $n) {
+        $t = strtotime($n['zeit']);
+        $best = null;
+        foreach ($stadt as $i => $s) {
+            if (isset($vergeben[$i]) || $s['linie'] !== $n['linie']) {
+                continue;
+            }
+            $diff = ($t - strtotime($s['zeit'])) / 60;
+            if ($diff < $min || $diff > $max) {
+                continue;
+            }
+            if ($best === null || $s['zeit'] > $stadt[$best]['zeit']) {
+                $best = $i;
+            }
+        }
+        if ($best !== null) {
+            $vergeben[$best] = true;
+            $out[] = $stadt[$best];
+        }
+    }
+
+    return $out;
+}
+
+/**
  * Stand fuer einen Heimatbahnhof: ok, fetched_at, heimat {id, name}, linien,
  * quellen {hin, rueck}, richtungen {hin, rueck}. Null, wenn nichts zu holen war
- * oder der Bahnhof keine DB-Regio-Zuege hat.
+ * oder am Bahnhof keine RE halten koennen.
  */
 function gf_regio_build($heimat, $fetch = null, ?DateTime $now = null, ?array $zugang = null)
 {
     if (!isset(GF_REGIO_HEIMAT[$heimat])) {
         return null;
     }
+    $cfg = GF_REGIO_HEIMAT[$heimat];
     $now = $now ?? new DateTime('now', new DateTimeZone('Europe/Berlin'));
     $sort = function ($a, $b) {
         return strcmp($a['ist'] ?: $a['zeit'], $b['ist'] ?: $b['zeit']);
@@ -480,15 +627,55 @@ function gf_regio_build($heimat, $fetch = null, ?DateTime $now = null, ?array $z
         }));
         usort($rows, $sort);
 
-        return array_slice($rows, 0, GF_REGIO_PER_DIR);
+        return array_map(function ($d) {
+            unset($d['_kurs']);
+
+            return $d;
+        }, array_slice($rows, 0, GF_REGIO_PER_DIR));
     };
 
-    $hin = gf_regio_station($fetch, $now, $zugang, GF_REGIO_HEIMAT[$heimat], '', true);
+    // Am Heimatbahnhof so weit voraus, dass auch der letzte Hamburger RE im Fenster dort ankommt
+    $amOrt = gf_regio_station($fetch, $now, $zugang, $cfg['name'], '', GF_REGIO_FENSTER + $cfg['fahrzeit'][1]);
+    $hin = null;
+    $nord = [];
+    if ($amOrt !== null) {
+        $hin = [];
+        foreach ($amOrt as $d) {
+            if (gf_regio_nach_hamburg($d)) {
+                $hin[] = $d;
+            } else {
+                $nord[] = $d;
+            }
+        }
+    }
+    $stadt = gf_regio_stadt($fetch, $now, $zugang);
     $rueck = null;
-    foreach (GF_REGIO_STADT as $station => $ab) {
-        $rows = gf_regio_station($fetch, $now, $zugang, $station, $ab, false);
-        if ($rows !== null) {
-            $rueck = array_merge($rueck ?? [], $rows);
+    if ($stadt !== null && $cfg['alle']) {
+        $rueck = $stadt;
+    } elseif ($stadt !== null) {
+        // Laufweg je Fahrt; ohne Laufweg der Abgleich ueber die Fahrzeit
+        $kurse = nordbahn_read_json(GF_REGIO_KURS_CACHE);
+        $kurse = is_array($kurse) ? array_filter($kurse, function ($e) {
+            return is_array($e) && time() - (int) ($e['stand'] ?? 0) < GF_REGIO_KURS_TTL;
+        }) : [];
+        $vorher = count($kurse);
+        $budget = GF_REGIO_KURS_MAX;
+        $ziel = gf_station_norm($cfg['name']);
+        $rueck = [];
+        $offen = [];
+        foreach ($stadt as $d) {
+            $halte = gf_regio_kurs($fetch, $zugang, $d, $kurse, $budget);
+            if ($halte === null) {
+                $offen[] = $d;
+            } elseif (in_array($ziel, $halte, true)) {
+                $rueck[] = $d;
+            }
+        }
+        if (count($kurse) !== $vorher || $budget < GF_REGIO_KURS_MAX) {
+            nordbahn_write_json(GF_REGIO_KURS_CACHE, $kurse);
+        }
+        if ($offen && $amOrt !== null) {
+            $rueck = array_merge($rueck, gf_regio_halten($offen, $nord, $cfg['fahrzeit']));
         }
     }
     if ($hin === null && $rueck === null) {
@@ -498,7 +685,7 @@ function gf_regio_build($heimat, $fetch = null, ?DateTime $now = null, ?array $z
     return [
         'ok'         => true,
         'fetched_at' => $now->format('c'),
-        'heimat'     => ['id' => $heimat, 'name' => NORDBAHN_BAHNHOEFE[$heimat]['name'] ?? GF_REGIO_HEIMAT[$heimat]],
+        'heimat'     => ['id' => $heimat, 'name' => NORDBAHN_BAHNHOEFE[$heimat]['name'] ?? $cfg['name']],
         'linien'     => GF_REGIO_LINIEN,
         'quellen'    => ['hin' => $hin !== null, 'rueck' => $rueck !== null],
         'richtungen' => ['hin' => $kommend($hin ?? []), 'rueck' => $kommend($rueck ?? [])],

@@ -1,9 +1,9 @@
 <?php
 /**
- * DB-Regio-Zuege fuer Pendler aus Elmshorn als JSON: RE6, RE7 und RE70 ab
- * Elmshorn nach Hamburg und ab Hamburg Hbf/Altona zurueck.
+ * DB-Regio-Zuege als JSON: RE6, RE7 und RE70 ab dem Heimatbahnhof nach Hamburg
+ * und ab Hamburg Hbf/Altona zurueck, soweit sie dort halten.
  *
- * URL: /api/regio?bhf=AEL
+ * URL: /api/regio?bhf=AEL   (AP, AEL, AGST, AIZ, AWST; siehe GF_REGIO_HEIMAT)
  *
  * Quelle ist die HVV-Schnittstelle Geofox GTI (api/geofox.php, gf_regio_*). Die
  * Zeilen haben das Format von api/abfahrten (richtungen.hin/rueck) mit
