@@ -59,16 +59,6 @@ if (!$gefunden) {
     $endeGemeldet = nb_ts($st['ende_gemeldet']);
     // Jede Angabe nur einmal: Vorspann oben, der Verlauf ohne den Text, der schon oben steht.
     $vorspann = $st['ki_text'] !== '' ? $st['ki_text'] : $st['text'];
-    $wirkungen = array_values(array_unique(array_filter(array_map('nb_wirkung_lesbar', $st['wirkungen']))));
-    // Mit Pendler-Text sagt der Vorspann schon, was passiert; die Wirkung nur ohne ihn
-    $wirkungKachel = $st['ki_text'] === '' ? $wirkungen : [];
-    $abschnitte = [];
-    foreach ($st['abschnitte'] as $a) {
-        $teil = implode(' – ', array_filter([$a['von'] ?? '', $a['bis'] ?? '']));
-        if ($teil !== '') {
-            $abschnitte[] = $teil;
-        }
-    }
 }
 ?>
 <!DOCTYPE html>
@@ -136,24 +126,6 @@ if (!$gefunden) {
 <?php endif; ?>
 			</div>
 		</header>
-
-<?php if ($abschnitte || $st['betriebsstellen'] || $wirkungKachel || $st['einschraenkung'] !== ''): ?>
-		<aside class="card fakten" aria-label="Fakten zur St&ouml;rung">
-			<dl>
-<?php if ($abschnitte): ?>
-				<div><dt>Abschnitt</dt><dd><?= nb_e(implode(', ', $abschnitte)) ?></dd></div>
-<?php elseif ($st['betriebsstellen']): ?>
-				<div><dt>Betriebsstellen</dt><dd><?= nb_e(implode(', ', $st['betriebsstellen'])) ?></dd></div>
-<?php endif; ?>
-<?php if ($wirkungKachel): ?>
-				<div><dt>Auswirkung</dt><dd><?= nb_e(implode(', ', $wirkungKachel)) ?></dd></div>
-<?php endif; ?>
-<?php if ($st['einschraenkung'] !== ''): ?>
-				<div><dt>Einschr&auml;nkung</dt><dd><?= nb_e(mb_strtoupper(mb_substr($st['einschraenkung'], 0, 1)) . mb_substr($st['einschraenkung'], 1)) ?></dd></div>
-<?php endif; ?>
-			</dl>
-		</aside>
-<?php endif; ?>
 
 <?php if ($schritte): ?>
 		<section class="section">

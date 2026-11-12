@@ -307,13 +307,11 @@ function nb_render_zuege_liste(array $info)
  * Verlauf einer Stoerung als Aenderungsliste: je Schritt ein Etikett (Gemeldet, Update,
  * Verlängert, Verkürzt, Aufgehoben), die Zeit und nur das, was sich geaendert hat: der
  * neue Text, ein verschobenes Ende als "Ende: 22:51 Uhr → morgen 14:51 Uhr", zum Schluss
- * die Dauer. Mehr als NB_VERLAUF_SICHTBAR + 1 Schritte: die aelteren eingeklappt.
+ * die Dauer. Immer alle Schritte, nichts eingeklappt.
  * $opts: kopf_text = Text, der schon oben auf der Seite steht (wird im Schritt nicht
  * wiederholt, nur als "Aktueller Text, siehe oben" vermerkt); ohne_dauer = die Dauer steht
  * schon im Zeitraum, der Schritt Aufgehoben bleibt ohne.
  */
-const NB_VERLAUF_SICHTBAR = 3;
-
 function nb_render_verlauf_schritte(array $schritte, $now = null, array $opts = [])
 {
     $kopfText = trim((string) ($opts['kopf_text'] ?? ''));
@@ -368,48 +366,8 @@ function nb_render_verlauf_schritte(array $schritte, $now = null, array $opts = 
             . '</li>';
     }
     $h = '';
-    if (count($items) > NB_VERLAUF_SICHTBAR + 1) {
-        $alt = array_splice($items, 0, count($items) - NB_VERLAUF_SICHTBAR);
-        $h .= '<details class="zeitleiste__mehr"><summary>' . nb_plural(count($alt), 'früherer Schritt', 'frühere Schritte') . ' anzeigen</summary><ol class="zeitleiste zeitleiste--alt">' . implode('', $alt) . '</ol></details>';
-    }
     $h .= '<ol class="zeitleiste">' . implode('', $items);
 
     return $h . '</ol>';
 }
 
-/** Teilen-Zeile: WhatsApp, Telegram, X und Mail mit Titel und Seitenadresse. */
-function nb_render_teilen($url, $titel)
-{
-    $text = rawurlencode($titel);
-    $u = rawurlencode($url);
-    $icons = [
-        'whatsapp' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 1.8a8.2 8.2 0 1 1-4.2 15.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 0 1 12 3.8Zm-3 4.4c-.2 0-.5.1-.7.3-.3.3-1 1-1 2.3s1 2.7 1.1 2.9c.2.2 2 3.1 4.9 4.2 2.4.9 2.9.8 3.4.7.5 0 1.7-.7 1.9-1.4.2-.7.2-1.2.2-1.4-.1-.1-.3-.2-.6-.3l-2-1c-.3-.1-.5-.2-.7.2-.2.3-.8 1-.9 1.1-.2.2-.3.2-.6.1-.3-.2-1.2-.5-2.3-1.5-.9-.8-1.5-1.7-1.6-2-.2-.3 0-.5.1-.6l.4-.5.3-.5v-.5l-.9-2.2c-.2-.5-.4-.5-.6-.5H9Z"/></svg>',
-        'telegram' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21.6 3.3 2.9 10.6c-1.1.4-1.1 1.1-.2 1.4l4.7 1.5 1.8 5.6c.2.6.1.9.8.9.5 0 .7-.2 1-.5l2.3-2.3 4.8 3.6c.9.5 1.5.2 1.7-.8l3.2-15c.3-1.3-.5-1.9-1.4-1.7ZM8.4 13.1l9.6-6c.5-.3.9-.1.5.2l-7.9 7.2-.3 3.3-1.9-4.7Z"/></svg>',
-        'x'        => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.2 2.3h3.3l-7.2 8.2 8.5 11.2h-6.6l-5.2-6.8-6 6.8H1.7l7.7-8.8L1.3 2.3H8l4.7 6.2 5.5-6.2Zm-1.2 19.4h1.8L7.1 4.1H5.2l11.8 17.6Z"/></svg>',
-        'mail'     => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Zm1 2.4V17h16V7.4l-8 5.3-8-5.3ZM5.1 7l6.9 4.6L18.9 7H5.1Z"/></svg>',
-    ];
-    $links = [
-        ['WhatsApp', 'https://wa.me/?text=' . rawurlencode($titel . ' ' . $url), $icons['whatsapp']],
-        ['Telegram', 'https://t.me/share/url?url=' . $u . '&text=' . $text, $icons['telegram']],
-        ['X', 'https://x.com/intent/post?text=' . $text . '&url=' . $u, $icons['x']],
-        ['Mail', 'mailto:?subject=' . $text . '&body=' . rawurlencode($titel . "\n" . $url), $icons['mail']],
-    ];
-    $h = '<div class="teilen"><span class="teilen__label">Teilen</span>';
-    foreach ($links as $l) {
-        $h .= '<a class="teilen__link" href="' . nb_e($l[1]) . '"' . ($l[0] !== 'Mail' ? ' rel="noopener" target="_blank"' : '') . '>' . $l[2] . nb_e($l[0]) . '</a>';
-    }
-
-    return $h . '</div>';
-}
-
-/** Weiterlesen-Zeile aus [Text => URL]. */
-function nb_render_weiter(array $links)
-{
-    $h = '<ul class="weiter">';
-    foreach ($links as $text => $url) {
-        $extern = strpos($url, 'http') === 0;
-        $h .= '<li><a href="' . nb_e($url) . '"' . ($extern ? ' rel="noopener nofollow"' : '') . '>' . nb_e($text) . '</a></li>';
-    }
-
-    return $h . '</ul>';
-}

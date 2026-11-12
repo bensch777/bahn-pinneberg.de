@@ -37,7 +37,7 @@ function test_logbuch_verlauf_schritte()
     t_eq(false, strpos($html, 'zeitleiste__mehr'), 'drei Schritte: nichts eingeklappt');
     t_eq(1, substr_count($html, 'Reparatur läuft, dauert länger.'), 'Text nur im Schritt der Aenderung, nicht wiederholt');
 
-    // Aufgehoben: Abschluss mit Dauer; viele Schritte: die aelteren eingeklappt
+    // Aufgehoben: Abschluss mit Dauer; auch viele Schritte alle sichtbar
     $mit = nb_verlauf_schritte($v, strtotime('2026-10-17T05:10:00Z'));
     t_eq('aufgehoben', end($mit)['art'], 'letzter Schritt Aufhebung');
     t_eq('4 Std. 10 Min.', end($mit)['dauer'], 'Dauer seit dem ersten Schritt');
@@ -47,8 +47,8 @@ function test_logbuch_verlauf_schritte()
     t_eq(false, strpos($html, 'zeitleiste__mehr'), 'vier Schritte: nichts eingeklappt');
     $viele = array_merge($mit, $mit);
     $html = nb_render_verlauf_schritte($viele, $jetzt);
-    t_contains('<details class="zeitleiste__mehr"><summary>5 frühere Schritte anzeigen</summary><ol class="zeitleiste zeitleiste--alt">', $html, 'aeltere Schritte eingeklappt');
-    t_eq(3, substr_count(explode('</details>', $html)[1], '<li '), 'drei Schritte sichtbar');
+    t_eq(false, strpos($html, 'zeitleiste__mehr'), 'viele Schritte: nichts eingeklappt');
+    t_eq(8, substr_count($html, '<li '), 'alle acht Schritte sichtbar');
 
     // Ereignisseite: Text aus dem Kopf nicht wiederholen, Dauer steht schon im Zeitraum
     $html = nb_render_verlauf_schritte($mit, $jetzt, ['kopf_text' => 'Reparatur läuft, dauert länger.', 'ohne_dauer' => true]);
