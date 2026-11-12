@@ -29,6 +29,7 @@ function t_reset()
     @unlink(GF_MELDUNGEN_CACHE);
     @unlink(GF_STATIONEN_CACHE);
     @unlink(GF_REGIO_STADT_CACHE);
+    @unlink(GF_REGIO_KURS_CACHE);
     foreach (array_keys(GF_REGIO_HEIMAT) as $bhf) {
         @unlink(gf_regio_cache_file($bhf));
         @unlink(gf_regio_cache_file($bhf, 'lock'));

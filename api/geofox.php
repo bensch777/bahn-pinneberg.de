@@ -364,9 +364,10 @@ function gf_departures_s3($fetch, DateTime $now, ?array $zugang = null, $stadt =
  *
  * Hinweg: RE ab dem Heimatbahnhof Richtung Hamburg. Rueckweg: RE ab Hbf und
  * Altona nach Norden, die am Heimatbahnhof halten. In Elmshorn halten alle; an
- * den anderen Bahnhoefen halten nur einzelne Fahrten, deshalb zaehlt eine
- * Abfahrt in Hamburg nur, wenn derselbe RE (Linie, Fahrzeit im Fenster 'fahrzeit')
- * am Heimatbahnhof nach Norden abfaehrt. Die Hamburger Tafeln teilen sich alle
+ * den anderen Bahnhoefen halten nur einzelne Fahrten. Ob eine Fahrt dort haelt,
+ * sagt ihr Laufweg (departureCourse), je Fahrt einmal geholt und GF_REGIO_KURS_TTL
+ * lang gecacht. Fehlt der Laufweg, zaehlt ersatzweise, ob derselbe RE (Linie,
+ * Fahrzeit im Fenster 'fahrzeit') am Heimatbahnhof nach Norden abfaehrt. Die Hamburger Tafeln teilen sich alle
  * Heimatbahnhoefe (ein Cache). Die Zeilen haben das Format von api/abfahrten,
  * damit die Startseite sie in die Nordbahn-Tafel mischen kann.
  */
@@ -384,7 +385,10 @@ const GF_REGIO_PER_DIR  = 6;
 const GF_REGIO_MAX_LIST = 300;   // ungefiltert am Hbf, zwei Stunden mit Bussen und U-Bahn
 const GF_REGIO_STADT    = ['Hamburg Hbf' => 'Hbf', 'Hamburg-Altona' => 'Altona'];
 const GF_REGIO_HAMBURG  = '/hamburg|altona|dammtor/i'; // nicht "hbf": Kiel Hbf
+const GF_REGIO_KURS_TTL = 21600; // Sekunden, die ein Laufweg gilt (Halte aendern sich am Tag nicht)
+const GF_REGIO_KURS_MAX = 12;    // Laufweg-Abfragen je Aufbereitung
 define('GF_REGIO_STADT_CACHE', NORDBAHN_CACHE_DIR . '/geofox-regio-stadt.json');
+define('GF_REGIO_KURS_CACHE', NORDBAHN_CACHE_DIR . '/geofox-regio-kurse.json');
 
 function gf_regio_cache_file($heimat, $endung = 'json')
 {
@@ -424,7 +428,65 @@ function gf_regio_zeile($raw, DateTime $basis, $ab)
         'ersatz_fuer' => null,
         'dammtor'     => null,
         'quelle'      => 'hvv',
+        // Schluessel fuer departureCourse, wird vor der Ausgabe entfernt
+        '_kurs'       => isset($raw['line']['id'], $raw['serviceId']) ? [
+            'lineKey'   => (string) $raw['line']['id'],
+            'serviceId' => $raw['serviceId'],
+            'direction' => (string) ($raw['line']['direction'] ?? ''),
+            'origin'    => (string) ($raw['line']['origin'] ?? ''),
+            'station'   => is_array($raw['station'] ?? null) ? array_intersect_key($raw['station'], ['id' => 1, 'name' => 1, 'combinedName' => 1]) : null,
+        ] : null,
     ];
+}
+
+/**
+ * Halte einer Fahrt (normierte Namen, siehe gf_station_norm) aus departureCourse,
+ * aus dem Laufweg-Cache oder frisch. Null, wenn unbekannt. $budget zaehlt die
+ * erlaubten Abfragen herunter.
+ */
+function gf_regio_kurs($fetch, ?array $zugang, array $d, array &$cache, &$budget)
+{
+    $k = $d['_kurs'] ?? null;
+    if (!is_array($k)) {
+        return null;
+    }
+    $key = $k['lineKey'] . '|' . $k['serviceId'] . '|' . substr($d['zeit'], 0, 10);
+    if (isset($cache[$key]['halte'])) {
+        return $cache[$key]['halte'];
+    }
+    if ($budget <= 0) {
+        return null;
+    }
+    $budget--;
+    $station = ['name' => $k['station']['combinedName'] ?? ($k['station']['name'] ?? ''), 'type' => 'STATION'];
+    if (!empty($k['station']['id'])) {
+        $station['id'] = $k['station']['id'];
+    }
+    $antwort = gf_request('departureCourse', [
+        'lineKey'   => $k['lineKey'],
+        'station'   => $station,
+        'time'      => (new DateTime($d['zeit']))->format('Y-m-d\TH:i:s.000O'),
+        'direction' => $k['direction'],
+        'origin'    => $k['origin'],
+        'serviceId' => $k['serviceId'],
+        'segments'  => 'ALL',
+    ], $fetch, $zugang);
+    $halte = [];
+    foreach ($antwort['courseElements'] ?? [] as $e) {
+        foreach (['fromStation', 'toStation'] as $f) {
+            $name = $e[$f]['combinedName'] ?? ($e[$f]['name'] ?? '');
+            if ($name !== '') {
+                $halte[gf_station_norm($name)] = true;
+            }
+        }
+    }
+    if (!$halte) {
+        return null;
+    }
+    $halte = array_keys($halte);
+    $cache[$key] = ['halte' => $halte, 'stand' => time()];
+
+    return $halte;
 }
 
 /** Faehrt die Zeile Richtung Hamburg? */
@@ -565,7 +627,11 @@ function gf_regio_build($heimat, $fetch = null, ?DateTime $now = null, ?array $z
         }));
         usort($rows, $sort);
 
-        return array_slice($rows, 0, GF_REGIO_PER_DIR);
+        return array_map(function ($d) {
+            unset($d['_kurs']);
+
+            return $d;
+        }, array_slice($rows, 0, GF_REGIO_PER_DIR));
     };
 
     // Am Heimatbahnhof so weit voraus, dass auch der letzte Hamburger RE im Fenster dort ankommt
@@ -584,8 +650,33 @@ function gf_regio_build($heimat, $fetch = null, ?DateTime $now = null, ?array $z
     }
     $stadt = gf_regio_stadt($fetch, $now, $zugang);
     $rueck = null;
-    if ($stadt !== null && ($cfg['alle'] || $amOrt !== null)) {
-        $rueck = $cfg['alle'] ? $stadt : gf_regio_halten($stadt, $nord, $cfg['fahrzeit']);
+    if ($stadt !== null && $cfg['alle']) {
+        $rueck = $stadt;
+    } elseif ($stadt !== null) {
+        // Laufweg je Fahrt; ohne Laufweg der Abgleich ueber die Fahrzeit
+        $kurse = nordbahn_read_json(GF_REGIO_KURS_CACHE);
+        $kurse = is_array($kurse) ? array_filter($kurse, function ($e) {
+            return is_array($e) && time() - (int) ($e['stand'] ?? 0) < GF_REGIO_KURS_TTL;
+        }) : [];
+        $vorher = count($kurse);
+        $budget = GF_REGIO_KURS_MAX;
+        $ziel = gf_station_norm($cfg['name']);
+        $rueck = [];
+        $offen = [];
+        foreach ($stadt as $d) {
+            $halte = gf_regio_kurs($fetch, $zugang, $d, $kurse, $budget);
+            if ($halte === null) {
+                $offen[] = $d;
+            } elseif (in_array($ziel, $halte, true)) {
+                $rueck[] = $d;
+            }
+        }
+        if (count($kurse) !== $vorher || $budget < GF_REGIO_KURS_MAX) {
+            nordbahn_write_json(GF_REGIO_KURS_CACHE, $kurse);
+        }
+        if ($offen && $amOrt !== null) {
+            $rueck = array_merge($rueck, gf_regio_halten($offen, $nord, $cfg['fahrzeit']));
+        }
     }
     if ($hin === null && $rueck === null) {
         return null;

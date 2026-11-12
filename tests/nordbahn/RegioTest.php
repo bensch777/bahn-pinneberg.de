@@ -140,3 +140,53 @@ function test_regio_nur_haltende_re_auf_dem_rueckweg()
     $pi = gf_regio_build('AP', t_gf_fetch(['departureList:Pinneberg' => t_gf_departures([])] + $antworten), t_now(), t_gf_zugang());
     t_eq([], $pi['richtungen']['rueck'], 'ohne Halt in Pinneberg kein RE auf dem Rueckweg');
 }
+
+function test_regio_laufweg_entscheidet_ueber_den_halt()
+{
+    // Zwei RE70 ab Hbf; laut Laufweg haelt nur der zweite in Wrist. Der Fahrzeit-Abgleich
+    // wuerde hier beide verwerfen (Wrist meldet keine Abfahrt nach Norden), der Laufweg gewinnt.
+    $dep = function ($offset, $sid, $ziel = 'Kiel Hbf') {
+        return ['line' => ['name' => 'RE70', 'direction' => $ziel, 'origin' => 'Hamburg Hbf', 'id' => 'DB-EFZ:RE70_DB-EFZ_Z'], 'timeOffset' => $offset, 'delay' => 0, 'serviceId' => $sid, 'station' => ['combinedName' => 'Hamburg Hbf', 'id' => 'Master:9910950'], 'platform' => 'Gleis 7'];
+    };
+    $antworten = [
+        'Hamburg Hbf'    => ['returnCode' => 'OK', 'time' => ['date' => '15.10.2026', 'time' => '10:00'], 'departures' => [$dep(9, 111), $dep(69, 222)]],
+        'Hamburg-Altona' => ['returnCode' => 'OK', 'time' => ['date' => '15.10.2026', 'time' => '10:00'], 'departures' => []],
+        'Wrist'          => ['returnCode' => 'OK', 'time' => ['date' => '15.10.2026', 'time' => '10:00'], 'departures' => []],
+    ];
+    $kurs = function (array $halte) {
+        $el = [];
+        for ($i = 0; $i < count($halte) - 1; $i++) {
+            $el[] = ['fromStation' => ['name' => $halte[$i]], 'toStation' => ['name' => $halte[$i + 1]]];
+        }
+        return json_encode(['returnCode' => 'OK', 'courseElements' => $el]);
+    };
+    $kurse = [111 => $kurs(['Hamburg Hbf', 'Hamburg Dammtor', 'Elmshorn', 'Neumünster', 'Kiel Hbf']), 222 => $kurs(['Hamburg Hbf', 'Hamburg Dammtor', 'Elmshorn', 'Wrist', 'Neumünster', 'Kiel Hbf'])];
+    $calls = [];
+    $fetch = function ($method, $json) use ($antworten, $kurse, &$calls) {
+        $body = json_decode($json, true);
+        $calls[] = [$method, $body];
+        if ($method === 'departureList') {
+            $a = $antworten[$body['station']['name']] ?? null;
+            return $a === null ? null : json_encode($a);
+        }
+        if ($method === 'departureCourse') {
+            return $kurse[$body['serviceId']] ?? null;
+        }
+        if ($method === 'checkName') {
+            return json_encode(['returnCode' => 'OK', 'results' => [['name' => $body['theName']['name'], 'id' => 'Master:1', 'type' => 'STATION']]]);
+        }
+        return null;
+    };
+    $r = gf_regio_build('AWST', $fetch, t_now(), t_gf_zugang());
+    t_eq(['11:09'], array_map('t_uhr', array_column($r['richtungen']['rueck'], 'zeit')), 'nur der RE70 mit Wrist im Laufweg');
+    t_eq(false, array_key_exists('_kurs', $r['richtungen']['rueck'][0]), 'interner Schluessel nicht in der Ausgabe');
+    $dc = array_values(array_filter($calls, function ($c) { return $c[0] === 'departureCourse'; }));
+    t_eq(2, count($dc), 'je Fahrt ein Laufweg');
+    t_eq('DB-EFZ:RE70_DB-EFZ_Z', $dc[0][1]['lineKey'], 'Linien-ID aus der Abfahrt');
+    t_eq('Master:9910950', $dc[0][1]['station']['id'], 'Station der Abfahrt');
+
+    // Itzehoe danach: Laufwege aus dem Cache, keine neue Abfrage
+    $calls = [];
+    gf_regio_build('AIZ', $fetch, t_now(), t_gf_zugang());
+    t_eq(0, count(array_filter($calls, function ($c) { return $c[0] === 'departureCourse'; })), 'Laufwege aus dem Cache');
+}
