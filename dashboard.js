@@ -809,11 +809,10 @@
 					return /altona/i.test(name) ? ' dep__ab--altona' : /dammtor/i.test(name) ? ' dep__ab--dammtor' : /hbf/i.test(name) ? ' dep__ab--hbf' : '';
 				}
 				if (d.teil && d.teil.art === 'beginnt' && d.teil.plan && !d.ausfall) {
-					// Rueckrichtung, Zug beginnt planmaessig unterwegs (nachts ab Pinneberg): neutral
+					// Rueckrichtung, Zug beginnt planmaessig unterwegs (nachts ab Pinneberg): neutral, der Chip genuegt
 					dest.appendChild(el('span', { class: 'dep__ab dep__ab--plan', text: 'ab ' + d.teil.name }));
 					dest.appendChild(document.createTextNode(' '));
 					dest.appendChild(el('span', { class: 'dep__ziel', text: d.ziel }));
-					dest.appendChild(el('small', { text: 'Beginnt planmäßig in ' + d.teil.name + (/^AP$/.test(d.teil.id) ? ', aus Hamburg mit der S-Bahn' : '') }));
 				} else if (d.teil && d.teil.art === 'beginnt' && !d.ausfall) {
 					// Rueckrichtung, Zug startet erst unterwegs (z. B. Pinneberg): die Zeile ist die Abfahrt dort
 					dest.appendChild(el('span', { class: 'dep__ab dep__ab--teil', text: 'erst ab ' + d.teil.name }));
@@ -830,7 +829,8 @@
 					// Hinrichtung, Zug endet vorzeitig (Stellwerk kaputt) oder planmaessig (nachts
 					// nur bis Pinneberg): nur bis dorthin, planmaessig ohne Warnfarbe
 					dest.appendChild(el('span', { class: 'dep__ab ' + (d.teil.plan ? 'dep__ab--plan' : 'dep__ab--teil'), text: 'nur bis ' + d.teil.name }));
-					dest.appendChild(el('small', { class: d.teil.plan ? '' : 'dep__ersatz', text: (d.teil.plan ? 'Endet planmäßig in ' : 'Endet heute in ') + d.teil.name + (d.teil.zeit ? ' (an ' + d.teil.zeit + ')' : '')
+					// planmaessig genuegt der Chip, nur die Abweichung bekommt einen Hinweis
+					if (!d.teil.plan) dest.appendChild(el('small', { class: 'dep__ersatz', text: 'Endet heute in ' + d.teil.name + (d.teil.zeit ? ' (an ' + d.teil.zeit + ')' : '')
 						+ (/^AP$/.test(d.teil.id) ? ', weiter mit der S-Bahn' : '') }));
 				} else {
 					// Hinrichtung: das Hamburger Ziel als Chip, gleiche Farben wie die Startbahnhoefe
