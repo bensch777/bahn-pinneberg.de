@@ -1057,6 +1057,7 @@
 			.then(function (result) {
 				if (heimat !== heimatState.id) return; // inzwischen umgestellt, Antwort ist veraltet
 				departuresState.last = result;
+				if (s3State.last && s3State.last.ok) renderS3(s3State.last); // Anschluesse in Altona
 				renderDepartures(result);
 			})
 			.catch(function () {
@@ -1103,6 +1104,44 @@
 	}
 
 	/** Eine S3-Tafel fuellen: Zeilen mit passendem Abfahrtsort. */
+	var UMSTIEG_MIN = 5; // Minuten von der S-Bahn im Tunnel zu den Fernbahngleisen in Altona
+
+	/**
+	 * Erster Zug ab Altona aus der Tafel "Hamburg → Heimat" (Nordbahn und RE), der
+	 * nach der Ankunft der S3 in Altona plus Umstiegszeit faehrt. Null ohne Tafel.
+	 */
+	function anschlussAltona(ankunftMs) {
+		var r = departuresState.last && departuresState.last.richtungen && departuresState.last.richtungen.rueck;
+		if (!r) return null;
+		var regio = regioZeilen();
+		var alle = regio && regio.rueck ? mischeRegio(r, regio.rueck) : r;
+		var best = null;
+		alle.forEach(function (z) {
+			if (z.ausfall || z.ab !== 'Altona') return;
+			var ab = new Date(z.ist || z.zeit).getTime();
+			if (ab - ankunftMs < UMSTIEG_MIN * 60000) return;
+			if (!best || ab < new Date(best.ist || best.zeit).getTime()) best = z;
+		});
+		return best;
+	}
+
+	/**
+	 * Umstieg in Altona: der Anschlusszug dort und, wenn sein Laufweg bekannt ist, die
+	 * Ankunft am Heimatbahnhof. {zug, heim: "17:27" oder null}; null ohne Anschluss.
+	 */
+	function s3Umstieg(u) {
+		var late = u.verspaetung >= 3 && u.ist;
+		var z = anschlussAltona(new Date(late ? u.ist : u.zeit).getTime());
+		if (!z) return null;
+		var heim = null;
+		(z.lauf || []).some(function (h) {
+			if (!h.heimat || h.ausfall) return false;
+			heim = h.ist || h.zeit;
+			return true;
+		});
+		return { zug: z, heim: heim };
+	}
+
 	function renderS3Board(list, deps) {
 		clear(list);
 		if (!deps.length) {
@@ -1119,10 +1158,22 @@
 			else if (late) time.appendChild(el('small', { text: '+' + d.delay_min + ' → ' + fmtClock(d.ist) }));
 			var cd = d.ausfall ? '' : fmtCountdown(d.ist || d.zeit);
 			if (cd) time.appendChild(el('small', { class: 'dep__countdown', text: cd }));
-			var dest = el('div', { class: 'dep__dest', title: d.ziel }, [el('span', { class: 'dep__ziel', text: d.ziel })]);
+			// Zurueck ab der Innenstadt mit Anschluss in Altona: die Antwort "an Prisdorf 17:27"
+			// steht vorn, darunter nur der Umstieg; Pinneberg mit der S3 ist dann kein Thema
+			var umstieg = d.umstieg && !d.ausfall && d.umstieg.zeit && !d.umstieg.ausfall ? s3Umstieg(d.umstieg) : null;
+			var dest;
+			if (umstieg) {
+				var z = umstieg.zug, zLate = z.verspaetung >= 3 && z.ist;
+				dest = el('div', { class: 'dep__dest', title: 'über Altona' }, [
+					el('span', { class: 'dep__ziel' + (umstieg.heim ? ' dep__heim' : '') }, [umstieg.heim ? 'an ' + heimatState.name + ' ' + umstieg.heim : 'über Altona']),
+					el('small', { class: 'dep__kette' }, ['Altona → ', linieTag(z.linie), ' ' + fmtClock(zLate ? z.ist : z.zeit), z.gleis ? el('span', { class: 'dep__kette-gleis', text: ', Gl. ' + z.gleis }) : null])
+				]);
+			} else {
+				dest = el('div', { class: 'dep__dest', title: d.ziel }, [el('span', { class: 'dep__ziel', text: d.ziel })]);
+			}
 			// Ankunft dort, wo es fuer Pendler zaehlt: am Stadtbahnhof bzw. in Pinneberg (wie nb_render_s3_ankunft)
 			var an = d.an;
-			if (an && !d.ausfall && an.zeit) {
+			if (an && !d.ausfall && an.zeit && !umstieg) {
 				if (an.ausfall) dest.appendChild(el('small', { class: 'dep__an dep__an--ausfall', text: 'Halt ' + an.name + ' entfällt' }));
 				else {
 					var anLate = an.verspaetung >= 3 && an.ist;

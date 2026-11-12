@@ -640,6 +640,10 @@ a.status:focus-visible { outline: 2px solid var(--series); outline-offset: 2px; 
 /* S3: Ankunft am Ziel des Pendlers unter dem Fahrtziel */
 .dep__dest .dep__an { color: var(--ink-2); font-weight: 500; }
 .dep__an-spaet { color: var(--critical-text); font-weight: 600; }
+.dep__dest .dep__kette { margin-top: 2px; color: var(--ink-2); font-weight: 500; white-space: nowrap; }
+@media (max-width: 420px) { .dep__kette-gleis { display: none; } } /* auf dem Handy passt sonst die Zeile nicht */
+.dep__kette .linie { min-width: 0; font-size: 10.5px; padding: 1px 5px; vertical-align: 1px; }
+.dep__dest .dep__heim { font-weight: 700; }
 .dep__dest .dep__an--ausfall { color: var(--critical-text); font-weight: 600; }
 
 /* Laufweg je Fahrt: die ganze Zeile ist der Knopf, die Halte stehen darunter */
