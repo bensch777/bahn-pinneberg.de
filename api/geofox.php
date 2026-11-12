@@ -219,6 +219,65 @@ function gf_pause_setzen($status, $sekunden, $method, $now = null)
     error_log(sprintf('Geofox: HTTP %d bei %s, %d s Pause', (int) $status, $method, (int) $sekunden));
 }
 
+/**
+ * Zaehlt jede echte Anfrage an die GTI je Stunde und Methode, dazu Fehler (alles
+ * ausser HTTP 200), in cache/geofox-zaehler.json fuer die letzten GF_ZAEHLER_TAGE
+ * Tage. So laesst sich das Volumen mit dem Limit des Zugangs vergleichen; die
+ * Diagnose (api/s3?roh=) zeigt die Zahlen.
+ */
+define('GF_ZAEHLER_FILE', NORDBAHN_CACHE_DIR . '/geofox-zaehler.json');
+const GF_ZAEHLER_TAGE = 8;
+
+function gf_zaehlen($method, $status, $now = null)
+{
+    $dt = new DateTime('@' . ($now ?? time()));
+    $dt->setTimezone(new DateTimeZone('Europe/Berlin'));
+    $tag = $dt->format('Y-m-d');
+    $stunde = $dt->format('H');
+    $lock = @fopen(GF_ZAEHLER_FILE . '.lock', 'c');
+    if ($lock === false || !flock($lock, LOCK_EX)) {
+        return;
+    }
+    $z = nordbahn_read_json(GF_ZAEHLER_FILE) ?? [];
+    $z[$tag][$stunde][$method] = ($z[$tag][$stunde][$method] ?? 0) + 1;
+    if ((int) $status !== 200) {
+        $z[$tag][$stunde]['fehler'] = ($z[$tag][$stunde]['fehler'] ?? 0) + 1;
+    }
+    ksort($z);
+    $z = array_slice($z, -GF_ZAEHLER_TAGE, null, true);
+    nordbahn_write_json(GF_ZAEHLER_FILE, $z);
+    flock($lock, LOCK_UN);
+    fclose($lock);
+}
+
+/** Zaehler zusammengefasst: je Tag gesamt, Fehler und je Methode, dazu die letzten Stunden. */
+function gf_zaehler_uebersicht()
+{
+    $z = nordbahn_read_json(GF_ZAEHLER_FILE) ?? [];
+    $tage = [];
+    foreach ($z as $tag => $stunden) {
+        $summe = ['gesamt' => 0, 'fehler' => 0, 'methoden' => [], 'max_stunde' => 0];
+        foreach ($stunden as $werte) {
+            $n = 0;
+            foreach ($werte as $m => $c) {
+                if ($m === 'fehler') {
+                    $summe['fehler'] += $c;
+                    continue;
+                }
+                $summe['methoden'][$m] = ($summe['methoden'][$m] ?? 0) + $c;
+                $n += $c;
+            }
+            $summe['gesamt'] += $n;
+            $summe['max_stunde'] = max($summe['max_stunde'], $n);
+        }
+        arsort($summe['methoden']);
+        $tage[$tag] = $summe;
+    }
+    krsort($tage);
+
+    return ['tage' => $tage, 'pause' => nordbahn_read_json(GF_PAUSE_FILE)];
+}
+
 /** Antworttext bei HTTP 200, sonst null. Waehrend einer Pause ohne Anfrage null. */
 function gf_fetch($method, $body, array $zugang)
 {
@@ -226,6 +285,7 @@ function gf_fetch($method, $body, array $zugang)
         return null;
     }
     $r = gf_fetch_roh($method, $body, $zugang);
+    gf_zaehlen($method, $r['status']);
     $pause = gf_pause_dauer($r['status'], $r['retry_after'] ?? null);
     if ($pause > 0) {
         gf_pause_setzen($r['status'], $pause, $method);
@@ -455,9 +515,14 @@ const GF_REGIO_MAX_LIST = 300;   // ungefiltert am Hbf, zwei Stunden mit Bussen 
 const GF_REGIO_STADT    = ['Hamburg Hbf' => 'Hbf', 'Hamburg-Altona' => 'Altona'];
 const GF_REGIO_HAMBURG  = '/hamburg|altona|dammtor/i'; // nicht "hbf": Kiel Hbf
 const GF_REGIO_KURS_TTL = 600;   // Sekunden, die ein Laufweg gilt; kurz, weil bei Stoerungen Halte entfallen koennen
+const GF_REGIO_KURS_TTL_FERN = 1800; // hoechstens so lange fuer Fahrten, die noch weit weg sind
+const GF_REGIO_KURS_NAH = 2700;  // ab 45 Minuten vor der Abfahrt gilt wieder GF_REGIO_KURS_TTL
+const GF_REGIO_TTL      = 90;    // so lange gilt ein DB-Regio-Stand als frisch (RE fahren seltener als die S3)
+const GF_REGIO_FILTER_TTL = 86400; // so lange gilt das Wissen, ob der Linienfilter an einer Station greift
 const GF_REGIO_KURS_MAX = 12;    // Laufweg-Abfragen je Aufbereitung
 define('GF_REGIO_STADT_CACHE', NORDBAHN_CACHE_DIR . '/geofox-regio-stadt.json');
 define('GF_REGIO_KURS_CACHE', NORDBAHN_CACHE_DIR . '/geofox-regio-kurse.json');
+define('GF_REGIO_FILTER_CACHE', NORDBAHN_CACHE_DIR . '/geofox-regio-filter.json');
 
 function gf_regio_cache_file($heimat, $endung = 'json')
 {
@@ -552,9 +617,51 @@ function gf_regio_kurs($fetch, ?array $zugang, array $d, array &$cache, &$budget
             $halte[$h['norm']] = true;
         }
     }
-    $cache[$key] = ['halte' => array_keys($halte), 'lauf' => $lauf, 'stand' => time()];
+    $cache[$key] = ['halte' => array_keys($halte), 'lauf' => $lauf, 'stand' => time(), 'ttl' => gf_regio_kurs_ttl($d['zeit'])];
 
     return $cache[$key];
+}
+
+/**
+ * Wie lange ein frisch geholter Laufweg gilt: GF_REGIO_KURS_TTL fuer Fahrten in den
+ * naechsten 45 Minuten, fuer spaetere bis GF_REGIO_KURS_TTL_FERN, aber immer so, dass
+ * er spaetestens 45 Minuten vor der Abfahrt neu kommt (entfallene Halte).
+ */
+function gf_regio_kurs_ttl($zeit, $now = null)
+{
+    $bis = (int) strtotime((string) $zeit) - ($now ?? time()) - GF_REGIO_KURS_NAH;
+
+    return max(GF_REGIO_KURS_TTL, min(GF_REGIO_KURS_TTL_FERN, $bis));
+}
+
+/** Gilt ein Eintrag im Laufweg-Cache noch? */
+function gf_regio_kurs_gilt($e, $now = null)
+{
+    return is_array($e) && ($now ?? time()) - (int) ($e['stand'] ?? 0) < (int) ($e['ttl'] ?? GF_REGIO_KURS_TTL);
+}
+
+/**
+ * Laufweg-Cache schreiben, mit dem Stand auf der Platte zusammengefuehrt: Mehrere
+ * Heimatbahnhoefe bauen gleichzeitig (je eigene Sperre) und wuerden sich sonst
+ * gegenseitig Eintraege ueberschreiben. Je Fahrt gewinnt der juengere Stand.
+ */
+function gf_regio_kurse_speichern(array $kurse)
+{
+    $lock = @fopen(GF_REGIO_KURS_CACHE . '.lock', 'c');
+    if ($lock !== false) {
+        flock($lock, LOCK_EX);
+    }
+    $platte = nordbahn_read_json(GF_REGIO_KURS_CACHE);
+    foreach (is_array($platte) ? $platte : [] as $key => $e) {
+        if (gf_regio_kurs_gilt($e) && (!isset($kurse[$key]) || (int) ($e['stand'] ?? 0) > (int) ($kurse[$key]['stand'] ?? 0))) {
+            $kurse[$key] = $e;
+        }
+    }
+    nordbahn_write_json(GF_REGIO_KURS_CACHE, array_filter($kurse, 'gf_regio_kurs_gilt'));
+    if ($lock !== false) {
+        flock($lock, LOCK_UN);
+        fclose($lock);
+    }
 }
 
 /**
@@ -671,6 +778,11 @@ function gf_regio_nach_hamburg(array $d)
  * Richtungen. Erst mit Linienfilter (serviceName); nimmt die GTI den nicht an
  * (Fehler, leer oder auch fremde Linien in der Antwort), noch einmal ungefiltert
  * mit grosser Liste. Null bei Netzfehler.
+ *
+ * Ob der Filter an der Station greift, merkt sich GF_REGIO_FILTER_CACHE einen Tag
+ * lang (gf_regio_filter_wissen): Greift er, ist eine leere Antwort einfach leer
+ * (nachts), und die grosse ungefilterte Liste entfaellt. Greift er nicht, geht
+ * die Anfrage gleich ungefiltert raus.
  */
 function gf_regio_station($fetch, DateTime $now, ?array $zugang, $station, $ab, $fenster)
 {
@@ -698,16 +810,60 @@ function gf_regio_station($fetch, DateTime $now, ?array $zugang, $station, $ab, 
 
         return $rows;
     };
-    $antwort = gf_request('departureList', $anfrage, $fetch, $zugang);
-    $rows = $antwort !== null ? $lesen($antwort) : [];
-    if ($antwort === null || !$rows || $fremd) {
+    $ungefiltert = function () use (&$anfrage, $fetch, $zugang, $lesen) {
         unset($anfrage['filter']);
         $anfrage['maxList'] = GF_REGIO_MAX_LIST;
         $antwort = gf_request('departureList', $anfrage, $fetch, $zugang);
-        $rows = $antwort !== null ? $lesen($antwort) : [];
+
+        return $antwort !== null ? $lesen($antwort) : null;
+    };
+    $wissen = gf_regio_filter_wissen($station, $now->getTimestamp());
+    if ($wissen === false) {
+        return $ungefiltert();
+    }
+    $antwort = gf_request('departureList', $anfrage, $fetch, $zugang);
+    if ($antwort === null && $wissen === true) {
+        return null; // Netzfehler, der Filter selbst ist bekannt gut
+    }
+    $rows = $antwort !== null ? $lesen($antwort) : [];
+    if ($antwort !== null && !$fremd && ($rows || $wissen === true)) {
+        if ($rows) {
+            gf_regio_filter_merken($station, true, $now->getTimestamp());
+        }
+
+        return $rows;
+    }
+    $gefiltertLeer = $antwort !== null && !$rows && !$fremd;
+    $rows = $ungefiltert();
+    // Fremde Linien trotz Filter, oder gefiltert leer und ungefiltert mit RE: der Filter greift nicht
+    if ($rows !== null && ($fremd || ($gefiltertLeer && $rows))) {
+        gf_regio_filter_merken($station, false, $now->getTimestamp());
     }
 
-    return $antwort !== null ? $rows : null;
+    return $rows;
+}
+
+/** Greift der Linienfilter an der Station? true, false oder null (unbekannt oder veraltet). */
+function gf_regio_filter_wissen($station, $now)
+{
+    $c = nordbahn_read_json(GF_REGIO_FILTER_CACHE);
+    $e = is_array($c) ? ($c[$station] ?? null) : null;
+    if (!is_array($e) || !isset($e['ok']) || $now - (int) ($e['stand'] ?? 0) >= GF_REGIO_FILTER_TTL) {
+        return null;
+    }
+
+    return (bool) $e['ok'];
+}
+
+function gf_regio_filter_merken($station, $ok, $now)
+{
+    $c = nordbahn_read_json(GF_REGIO_FILTER_CACHE);
+    $c = is_array($c) ? $c : [];
+    if (isset($c[$station]['ok']) && $c[$station]['ok'] === $ok && $now - (int) ($c[$station]['stand'] ?? 0) < GF_REGIO_FILTER_TTL / 2) {
+        return; // schon bekannt, nicht bei jedem Aufbau schreiben
+    }
+    $c[$station] = ['ok' => (bool) $ok, 'stand' => (int) $now];
+    nordbahn_write_json(GF_REGIO_FILTER_CACHE, $c);
 }
 
 /**
@@ -718,7 +874,7 @@ function gf_regio_stadt($fetch, DateTime $now, ?array $zugang)
 {
     $cache = nordbahn_read_json(GF_REGIO_STADT_CACHE);
     if (is_array($cache) && isset($cache['fetched_at']) && is_array($cache['zeilen'] ?? null)
-        && abs($now->getTimestamp() - strtotime($cache['fetched_at'])) < GF_TTL) {
+        && abs($now->getTimestamp() - strtotime($cache['fetched_at'])) < GF_REGIO_TTL) {
         return $cache['zeilen'];
     }
     $zeilen = null;
@@ -802,9 +958,7 @@ function gf_regio_build($heimat, $fetch = null, ?DateTime $now = null, ?array $z
     };
     // Laufwege je Fahrt, geteilt fuer alle Heimatbahnhoefe
     $kurse = nordbahn_read_json(GF_REGIO_KURS_CACHE);
-    $kurse = is_array($kurse) ? array_filter($kurse, function ($e) {
-        return is_array($e) && time() - (int) ($e['stand'] ?? 0) < GF_REGIO_KURS_TTL;
-    }) : [];
+    $kurse = is_array($kurse) ? array_filter($kurse, 'gf_regio_kurs_gilt') : [];
     $vorher = count($kurse);
     $budget = GF_REGIO_KURS_MAX;
 
@@ -862,7 +1016,7 @@ function gf_regio_build($heimat, $fetch = null, ?DateTime $now = null, ?array $z
         }, $kommend($rows ?? []));
     }
     if (count($kurse) !== $vorher || $budget < GF_REGIO_KURS_MAX) {
-        nordbahn_write_json(GF_REGIO_KURS_CACHE, $kurse);
+        gf_regio_kurse_speichern($kurse);
     }
 
     return [
@@ -897,7 +1051,7 @@ function gf_regio_cached($heimat, $fetch = null, ?DateTime $now = null, ?array $
         }
 
         return $r;
-    }, gf_regio_leer());
+    }, gf_regio_leer(), GF_REGIO_TTL);
 }
 
 /* ---------- Meldungen ---------- */
@@ -1213,11 +1367,11 @@ function gf_cached($fetch = null, ?DateTime $now = null, ?array $zugang = null, 
  * Prozess neu und die anderen liefern den alten Stand. Scheitert der Aufbau,
  * bleibt der alte Inhalt mit ok=false, ohne Cache kommt $leer.
  */
-function gf_cache_lauf($cacheFile, $lockFile, ?DateTime $now, callable $build, array $leer)
+function gf_cache_lauf($cacheFile, $lockFile, ?DateTime $now, callable $build, array $leer, $ttl = GF_TTL)
 {
     $jetzt = $now ? $now->getTimestamp() : time();
     $cached = nordbahn_read_json($cacheFile);
-    if (is_array($cached) && isset($cached['fetched_at']) && $jetzt - strtotime($cached['fetched_at']) < GF_TTL) {
+    if (is_array($cached) && isset($cached['fetched_at']) && $jetzt - strtotime($cached['fetched_at']) < $ttl) {
         return $cached;
     }
     if (!is_dir(NORDBAHN_CACHE_DIR)) {
@@ -1312,6 +1466,9 @@ function gf_diagnose(array $zugang, ?DateTime $now = null, $fetchRoh = null)
             'antwort' => is_array($dekodiert) ? $dekodiert : nordbahn_text($r['body'] ?? '', 4000),
         ];
     }
+
+    // Anfragen der Seite je Tag (ohne diese Diagnose), um sie mit dem Limit zu vergleichen
+    $out['anfragen'] = gf_zaehler_uebersicht();
 
     return $out;
 }

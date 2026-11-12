@@ -8,8 +8,9 @@
  * Quelle ist die HVV-Schnittstelle Geofox GTI (api/geofox.php, gf_regio_*). Die
  * Zeilen haben das Format von api/abfahrten (richtungen.hin/rueck) mit
  * quelle=hvv, die Startseite mischt sie in die Nordbahn-Tafel. Ohne Zugang in
- * config.php kommt ok=false und richtungen=null. Ein Stand bis GF_STALE_TTL
- * Sekunden Alter wird sofort geliefert und danach im Hintergrund erneuert.
+ * config.php kommt ok=false und richtungen=null. Ein Stand gilt GF_REGIO_TTL
+ * Sekunden als frisch; bis GF_STALE_TTL Sekunden Alter wird er sofort geliefert
+ * und danach im Hintergrund erneuert.
  */
 
 require_once __DIR__ . '/store.php';
@@ -31,7 +32,7 @@ if (!gf_aktiv()) {
     exit;
 }
 $cached = nordbahn_read_json(gf_regio_cache_file($heimat));
-if (nordbahn_sofort_liefern($cached, GF_TTL, GF_STALE_TTL)) {
+if (nordbahn_sofort_liefern($cached, GF_REGIO_TTL, GF_STALE_TTL)) {
     nordbahn_antworten(json_encode($cached, $flags));
     gf_regio_cached($heimat);
     exit;

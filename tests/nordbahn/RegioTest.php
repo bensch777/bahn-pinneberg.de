@@ -262,3 +262,69 @@ function test_regio_laufweg_mit_zeiten_fuer_die_tafel()
     t_eq([false, true], [$lauf[3]['ausfall'], $lauf[4]['ausfall']], 'Neumuenster wird noch angefahren, Kiel entfaellt');
     t_eq(false, array_key_exists('_kurs', $r['richtungen']['rueck'][0]), 'interner Schluessel nicht in der Ausgabe');
 }
+
+function test_regio_filter_wird_gemerkt()
+{
+    $leer = t_gf_departures([]);
+    $antworten = t_regio_antworten();
+    $calls = [];
+    gf_regio_build('AEL', t_gf_fetch($antworten, $calls), t_now(), t_gf_zugang());
+    t_eq(true, gf_regio_filter_wissen('Hamburg Hbf', t_now()->getTimestamp()), 'nur RE trotz Filter: Filter greift');
+
+    // Nachts leer: mit bekanntem Filter keine grosse ungefilterte Liste mehr
+    $antworten['departureList:Hamburg Hbf'] = $leer;
+    $calls = [];
+    @unlink(GF_REGIO_STADT_CACHE);
+    gf_regio_build('AEL', t_gf_fetch($antworten, $calls), t_now(), t_gf_zugang());
+    $hbf = array_values(array_filter($calls, function ($c) { return $c[0] === 'departureList' && $c[1]['station']['name'] === 'Hamburg Hbf'; }));
+    t_eq(1, count($hbf), 'leere Antwort ist leer, kein zweiter Aufruf');
+
+    // Fremde Linien: Filter greift nicht, danach gleich ungefiltert
+    $antworten['departureList:Hamburg Hbf'] = t_gf_departures([
+        ['linie' => 'U1', 'ziel' => 'Norderstedt Mitte', 'offset' => 1],
+        ['linie' => 'RE7', 'ziel' => 'Kiel Hbf', 'offset' => 15],
+    ]);
+    @unlink(GF_REGIO_STADT_CACHE);
+    gf_regio_build('AEL', t_gf_fetch($antworten), t_now(), t_gf_zugang());
+    t_eq(false, gf_regio_filter_wissen('Hamburg Hbf', t_now()->getTimestamp()), 'fremde Linien: Filter greift nicht');
+    $calls = [];
+    @unlink(GF_REGIO_STADT_CACHE);
+    gf_regio_build('AEL', t_gf_fetch($antworten, $calls), t_now(), t_gf_zugang());
+    $hbf = array_values(array_filter($calls, function ($c) { return $c[0] === 'departureList' && $c[1]['station']['name'] === 'Hamburg Hbf'; }));
+    t_eq(1, count($hbf), 'nur noch eine Anfrage');
+    t_eq(false, isset($hbf[0][1]['filter']), 'gleich ohne Filter');
+    t_eq(null, gf_regio_filter_wissen('Hamburg Hbf', t_now()->getTimestamp() + GF_REGIO_FILTER_TTL), 'nach einem Tag wieder unbekannt');
+}
+
+function test_regio_laufweg_ttl_und_zusammenfuehren()
+{
+    $now = time();
+    t_eq(GF_REGIO_KURS_TTL, gf_regio_kurs_ttl(date('c', $now + 20 * 60), $now), 'Fahrt bald: kurzer Cache');
+    t_eq(GF_REGIO_KURS_TTL_FERN, gf_regio_kurs_ttl(date('c', $now + 120 * 60), $now), 'Fahrt in zwei Stunden: langer Cache');
+    t_eq(15 * 60, gf_regio_kurs_ttl(date('c', $now + 60 * 60), $now), 'spaetestens 45 Minuten vor der Abfahrt neu');
+
+    // Zwei Aufbauten gleichzeitig: keiner ueberschreibt die Eintraege des anderen
+    nordbahn_write_json(GF_REGIO_KURS_CACHE, ['a' => ['halte' => [], 'stand' => $now, 'ttl' => 600], 'alt' => ['halte' => [], 'stand' => $now - 700]]);
+    gf_regio_kurse_speichern(['b' => ['halte' => [], 'stand' => $now, 'ttl' => 600]]);
+    $keys = array_keys(nordbahn_read_json(GF_REGIO_KURS_CACHE));
+    sort($keys);
+    t_eq(['a', 'b'], $keys, 'beide neuen Eintraege, abgelaufene raus');
+}
+
+function test_geofox_zaehler()
+{
+    $ts = t_now()->getTimestamp();
+    gf_zaehlen('departureList', 200, $ts);
+    gf_zaehlen('departureList', 200, $ts);
+    gf_zaehlen('departureCourse', 429, $ts + 3600);
+    $u = gf_zaehler_uebersicht();
+    $tag = $u['tage']['2026-10-15'];
+    t_eq(3, $tag['gesamt'], 'alle Anfragen');
+    t_eq(1, $tag['fehler'], 'Fehler gezaehlt');
+    t_eq(['departureList' => 2, 'departureCourse' => 1], $tag['methoden'], 'je Methode');
+    t_eq(2, $tag['max_stunde'], 'staerkste Stunde');
+    for ($i = 1; $i <= 10; $i++) {
+        gf_zaehlen('init', 200, $ts + $i * 86400);
+    }
+    t_eq(GF_ZAEHLER_TAGE, count(gf_zaehler_uebersicht()['tage']), 'nur die letzten Tage');
+}
