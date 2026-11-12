@@ -642,13 +642,13 @@ a.status:focus-visible { outline: 2px solid var(--series); outline-offset: 2px; 
 .dep__auf { position: absolute; inset: 0 -8px; width: auto; margin: 0; padding: 0; border: 0; border-radius: 8px; background: transparent; cursor: pointer; }
 .dep__auf:focus-visible { outline: 2px solid var(--series); outline-offset: -2px; }
 .dep--lauf:hover .dep__auf { background: color-mix(in srgb, var(--series) 6%, transparent); }
-/* Pfeil rechts neben der ersten Zeile, auch wenn darunter "statt 6" steht */
-.dep--lauf .dep__platform { position: relative; padding-right: 16px; }
-.dep--lauf .dep__platform::after {
-	content: ''; position: absolute; right: 1px; top: 0.35em; width: 6px; height: 6px;
+/* Pfeil immer oben rechts in der Zeile, unabhaengig von Gleis und Gleiswechsel */
+.dep--lauf { padding-right: 18px; }
+.dep--lauf::after {
+	content: ''; position: absolute; right: 2px; top: 17px; width: 6px; height: 6px; pointer-events: none;
 	border-right: 1.5px solid var(--muted); border-bottom: 1.5px solid var(--muted); transform: rotate(45deg); transition: transform 0.15s;
 }
-.dep--offen .dep__platform::after { transform: rotate(-135deg); top: 0.6em; }
+.dep--offen::after { transform: rotate(-135deg); top: 20px; }
 .dep-lauf { padding: 2px 0 12px; }
 .lauf__halte { list-style: none; margin: 0; padding: 0; }
 .lauf__halt {
@@ -668,7 +668,6 @@ a.status:focus-visible { outline: 2px solid var(--series); outline-offset: 2px; 
 }
 .lauf__halt--heimat .lauf__punkt::after { background: var(--series); }
 .lauf__halt--heimat .lauf__name, .lauf__halt--heimat .lauf__zeit { color: var(--ink); font-weight: 700; }
-.lauf__name small { margin-left: 6px; font-size: 11px; font-weight: 600; color: var(--series); text-transform: uppercase; letter-spacing: 0.04em; }
 .lauf__gleis { font-size: 12px; color: var(--muted); white-space: nowrap; }
 .lauf__halt--ausfall .lauf__name, .lauf__halt--ausfall .lauf__zeit { color: var(--critical-text); text-decoration: line-through; }
 .lauf__halt--ausfall .lauf__zeit small { text-decoration: none; display: inline; color: var(--critical-text); }
