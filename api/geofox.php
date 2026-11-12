@@ -365,8 +365,8 @@ function gf_departures_s3($fetch, DateTime $now, ?array $zugang = null, $stadt =
  * Hinweg: RE ab dem Heimatbahnhof Richtung Hamburg. Rueckweg: RE ab Hbf und
  * Altona nach Norden, die am Heimatbahnhof halten. In Elmshorn halten alle; an
  * den anderen Bahnhoefen halten nur einzelne Fahrten. Ob eine Fahrt dort haelt,
- * sagt ihr Laufweg (departureCourse), je Fahrt einmal geholt und GF_REGIO_KURS_TTL
- * lang gecacht. Fehlt der Laufweg, zaehlt ersatzweise, ob derselbe RE (Linie,
+ * sagt ihr Laufweg (departureCourse) mit Echtzeit, je Fahrt hoechstens alle
+ * GF_REGIO_KURS_TTL Sekunden geholt. Als entfallen markierte Halte zaehlen nicht. Fehlt der Laufweg, zaehlt ersatzweise, ob derselbe RE (Linie,
  * Fahrzeit im Fenster 'fahrzeit') am Heimatbahnhof nach Norden abfaehrt. Die Hamburger Tafeln teilen sich alle
  * Heimatbahnhoefe (ein Cache). Die Zeilen haben das Format von api/abfahrten,
  * damit die Startseite sie in die Nordbahn-Tafel mischen kann.
@@ -385,7 +385,7 @@ const GF_REGIO_PER_DIR  = 6;
 const GF_REGIO_MAX_LIST = 300;   // ungefiltert am Hbf, zwei Stunden mit Bussen und U-Bahn
 const GF_REGIO_STADT    = ['Hamburg Hbf' => 'Hbf', 'Hamburg-Altona' => 'Altona'];
 const GF_REGIO_HAMBURG  = '/hamburg|altona|dammtor/i'; // nicht "hbf": Kiel Hbf
-const GF_REGIO_KURS_TTL = 21600; // Sekunden, die ein Laufweg gilt (Halte aendern sich am Tag nicht)
+const GF_REGIO_KURS_TTL = 600;   // Sekunden, die ein Laufweg gilt; kurz, weil bei Stoerungen Halte entfallen koennen
 const GF_REGIO_KURS_MAX = 12;    // Laufweg-Abfragen je Aufbereitung
 define('GF_REGIO_STADT_CACHE', NORDBAHN_CACHE_DIR . '/geofox-regio-stadt.json');
 define('GF_REGIO_KURS_CACHE', NORDBAHN_CACHE_DIR . '/geofox-regio-kurse.json');
@@ -470,17 +470,27 @@ function gf_regio_kurs($fetch, ?array $zugang, array $d, array &$cache, &$budget
         'origin'    => $k['origin'],
         'serviceId' => $k['serviceId'],
         'segments'  => 'ALL',
+        'useRealtime' => true,
     ], $fetch, $zugang);
+    // Ein Halt zaehlt, wenn ihn ein Abschnitt ohne Ausfall-Flag beruehrt: Abfahrt dort
+    // (fromStation, depCancelled) oder Ankunft dort (toStation, arrCancelled); ein
+    // ganz ausgefallener Abschnitt (cancelled) zaehlt fuer keinen der beiden Halte.
+    $gesehen = [];
     $halte = [];
     foreach ($antwort['courseElements'] ?? [] as $e) {
-        foreach (['fromStation', 'toStation'] as $f) {
+        foreach (['fromStation' => 'depCancelled', 'toStation' => 'arrCancelled'] as $f => $flag) {
             $name = $e[$f]['combinedName'] ?? ($e[$f]['name'] ?? '');
-            if ($name !== '') {
-                $halte[gf_station_norm($name)] = true;
+            if ($name === '') {
+                continue;
+            }
+            $n = gf_station_norm($name);
+            $gesehen[$n] = true;
+            if (empty($e['cancelled']) && empty($e[$flag])) {
+                $halte[$n] = true;
             }
         }
     }
-    if (!$halte) {
+    if (!$gesehen) {
         return null;
     }
     $halte = array_keys($halte);
