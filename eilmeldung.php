@@ -1,8 +1,8 @@
 <?php
 /**
  * Ereignisseite einer Eilmeldung der Nordbahn (/eilmeldung/<id>/): Pendler-Titel
- * und -Text, Nordbahn-Titel, Stand, Link zur Nordbahn (solange sie dort steht),
- * Stoerungen und auffaellige Zuege zur selben Zeit.
+ * und -Text, Status, Link zur Nordbahn (solange sie dort steht), Verlauf und was
+ * zur selben Zeit sonst gemeldet war. Gleicher Aufbau wie stoerung.php.
  */
 
 require __DIR__ . '/api/store.php';
@@ -31,7 +31,8 @@ if (!$gefunden) {
     $ogBild = 'info';
     $jsonLd = null;
 } else {
-    $ts = $em['stand'] ?? $em['ts'];
+    $v = nb_eilmeldung_verlauf($data, $em, $now);
+    $ts = $v['start'];
     $titel = $em['title'] !== '' ? $em['title'] : $em['id'];
     $title = $titel . ' – Eilmeldung der Nordbahn vom ' . date('d.m.Y', $ts) . ' – Bahn-Pinneberg.de';
     $ogTitle = $titel;
@@ -45,13 +46,19 @@ if (!$gefunden) {
         'headline' => $titel,
         'description' => $description,
         'datePublished' => date('c', $ts),
+        'dateModified' => date('c', $v['schritte'][count($v['schritte']) - 1]['ts']),
         'inLanguage' => 'de',
         'mainEntityOfPage' => $pageUrl,
         'author' => ['@type' => 'Organization', 'name' => 'Bahn-Pinneberg.de', 'url' => SITE_URL . '/'],
         'publisher' => ['@type' => 'Organization', 'name' => 'Bahn-Pinneberg.de', 'url' => SITE_URL . '/'],
     ];
-    $stoerungen = nb_stoerungen_im_zeitraum($data, $ts - 3600, $ts + 3 * 3600);
-    $zuege = nb_zuege_im_zeitraum($ts - 1800, $ts + 4 * 3600, 0, 20);
+    $bis = $v['ende'] ?? $ts + 3 * 3600;
+    $gleichzeitig = nb_gleichzeitig(
+        nb_stoerungen_im_zeitraum($data, $ts - 3600, $bis),
+        array_values(array_filter(nb_eilmeldungen_im_zeitraum(nb_items($data), $ts, $bis), function ($it) use ($id) {
+            return $it['id'] !== $id;
+        }))
+    );
 }
 ?>
 <!DOCTYPE html>
@@ -107,46 +114,34 @@ if (!$gefunden) {
 			<h1 class="artikel__titel"><?= nb_e($titel) ?></h1>
 <?php if ($em['text'] !== ''): ?>
 			<p class="artikel__vorspann"><?= nb_e($em['text']) ?></p>
-<?php else: ?>
-			<p class="artikel__vorspann artikel__vorspann--leer">Zu dieser Meldung liegt noch keine lesbare Fassung vor. Was die Nordbahn gemeldet hat, steht unten.</p>
 <?php endif; ?>
-			<p class="artikel__meta">
-				<span>Stand <time datetime="<?= date('c', $ts) ?>"><?= nb_e(nb_fmt_tag_lang($ts, $now)) ?>, <?= nb_e(nb_fmt_uhr($ts)) ?></time></span>
+			<div class="artikel__status">
+<?php if ($v['status'] === 'aktiv'): ?>
+				<span class="pill pill--aktiv pill--live">Aktiv</span>
+<?php elseif ($v['status'] === 'aufgehoben'): ?>
+				<span class="pill pill--aufgehoben">Aufgehoben</span>
+<?php else: ?>
+				<span class="pill pill--alt">Nicht mehr akut</span>
+<?php endif; ?>
+				<p class="zeitraum"><time datetime="<?= date('c', $ts) ?>"><?= nb_e($v['status'] === 'alt' ? 'Gemeldet ' . nb_fmt_zeit_rel($ts, $now) : nb_zeitraum_satz($ts, null, $now, $v['ende'])) ?></time></p>
+			</div>
 <?php if ($em['link']): ?>
-				<span>Quelle <a href="<?= nb_e($em['link']) ?>" rel="noopener nofollow">nordbahn.de</a></span>
-<?php else: ?>
-				<span>Quelle nordbahn.de</span>
+			<p class="artikel__quelle">Ganze Meldung mit allen Z&uuml;gen auf <a href="<?= nb_e($em['link']) ?>" rel="noopener nofollow">nordbahn.de &#8599;</a></p>
 <?php endif; ?>
-			</p>
 		</header>
 
 		<section class="section">
-			<h2 class="section__title">Was die Nordbahn gemeldet hat</h2>
-			<blockquote class="quelle quelle--eil">
-				<p class="quelle__label">Eilmeldung auf nordbahn.de</p>
-				<p class="quelle__titel"><?= nb_e($em['original'] !== '' ? $em['original'] : $titel) ?></p>
-<?php if ($em['link']): ?>
-				<p class="quelle__fuss"><a href="<?= nb_e($em['link']) ?>" rel="noopener nofollow">Originalmeldung lesen &#8599;</a></p>
-<?php else: ?>
-				<p class="quelle__fuss">Die Nordbahn f&uuml;hrt diese Meldung inzwischen nicht mehr auf ihrer Seite.</p>
-<?php endif; ?>
-			</blockquote>
+			<h2 class="section__title">Verlauf</h2>
+			<?= nb_render_verlauf_schritte($v['schritte'], $now, ['kopf_text' => $em['text'], 'ohne_dauer' => true]) ?>
 		</section>
 
-<?php if ($stoerungen): ?>
+<?php if ($gleichzeitig): ?>
 		<section class="section">
-			<h2 class="section__title">Infrastrukturst&ouml;rungen zu dieser Zeit</h2>
-			<ol class="feed card"><?= nb_render_verlauf($stoerungen, 10, 0, $now) ?></ol>
+			<h2 class="section__title">Zur selben Zeit</h2>
+			<ol class="feed card"><?php foreach ($gleichzeitig as $g) { echo nb_render_wichtig_eintrag($g, $now); } ?></ol>
 		</section>
 <?php endif; ?>
 
-<?php if ($zuege['gesamt']): ?>
-		<section class="section">
-			<h2 class="section__title">Auff&auml;llige Z&uuml;ge rund um die Meldung</h2>
-			<div class="card zuege-wrap"><?= nb_render_zuege_liste($zuege) ?></div>
-			<p class="section__note">Beobachtet an den Bahnh&ouml;fen, die in dieser Zeit abgefragt wurden. Ohne Beobachtung fehlt ein Zug hier, auch wenn er betroffen war.</p>
-		</section>
-<?php endif; ?>
 
 	</article>
 <?php endif; ?>

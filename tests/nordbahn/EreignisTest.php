@@ -1,5 +1,5 @@
 <?php
-/** Ereignisseiten: Verlauf im Logbuch, Finden, betroffene Zuege, Zeitraeume. */
+/** Ereignisseiten: Verlauf im Logbuch, Finden, Eilmeldungs-Logbuch, Zeitraeume. */
 
 function test_logbuch_verlauf_schritte()
 {
@@ -113,31 +113,73 @@ function test_slug()
     t_eq(true, strlen(nb_slug(str_repeat('wort ', 30))) <= 60, 'hoechstens 60 Zeichen');
 }
 
-function test_betroffene_zuege_im_zeitraum()
+function test_eilmeldung_logbuch_und_verlauf()
 {
-    if (!is_dir(NB_ZUGLOG_DIR)) {
-        mkdir(NB_ZUGLOG_DIR, 0775, true);
-    }
-    $e = function ($zug, $plan, array $o = []) {
-        return $o + ['zug' => $zug, 'linie' => 'RB61', 'ziel' => 'Hamburg Hbf', 'ab' => '', 'station' => 'APD', 'dir' => 'hin', 'plan' => $plan, 'versp' => 0, 'max' => 0, 'ausfall' => false, 'teil' => '', 'gleis' => false, 'n' => 3, 't' => 0];
+    @unlink(NORDBAHN_EIL_LOG_FILE);
+    $live = function ($title, $stand) {
+        return [['id' => 'em-7', 'title' => $title, 'stand' => $stand, 'link' => 'https://www.nordbahn.de/x/em-7']];
     };
-    nordbahn_write_json(NB_ZUGLOG_DIR . '/2026-10-17.json', [
-        'APD|hin|1' => $e('1', '07:42', ['ausfall' => true]),
-        'APD|hin|2' => $e('2', '08:12', ['versp' => 9, 'max' => 14]),
-        'APD|hin|3' => $e('3', '08:40'),                                   // unauffaellig
-        'APD|hin|4' => $e('4', '11:00', ['ausfall' => true]),              // ausserhalb
-        'AH|rueck|5' => $e('5', '08:05', ['station' => 'AH', 'dir' => 'rueck', 'ziel' => 'Itzehoe', 'ab' => 'Hbf', 'teil' => 'beginnt']),
-    ]);
-    $start = strtotime('2026-10-17 07:30:00 Europe/Berlin');
-    $ende = strtotime('2026-10-17 09:00:00 Europe/Berlin');
-    $z = nb_zuege_im_zeitraum($start, $ende);
-    t_eq(['1', '5', '2'], array_column($z['zuege'], 'zug'), 'nach Zeit sortiert, unauffaellige und spaetere fehlen');
-    t_eq([3, 1, 1, 1], [$z['gesamt'], $z['ausfaelle'], $z['teil'], $z['spaet']], 'Zaehler');
-    t_eq('Hamburg Hbf', $z['zuege'][1]['ab'], 'Hamburger Bahnhof als Klarname');
-    $html = nb_render_zuege_liste($z);
-    t_contains('<span class="zuege__zug">RB61</span> <span class="zuege__weg">ab Prisdorf nach Hamburg Hbf</span></td><td class="zuege__status"><span class="pill pill--ausfall">Ausgefallen</span>', $html, 'Ausfall');
-    t_contains('<span class="pill pill--spaet">+9 min</span><small>zeitweise +14</small>', $html, 'Verspaetung mit Spitze');
-    t_contains('Erst unterwegs gestartet', $html, 'Teilausfall');
-    t_contains('Keine auffälligen Züge', nb_render_zuege_liste(nb_zuege_im_zeitraum($start + 10 * 86400, $ende + 10 * 86400)), 'leer');
-    unlink(NB_ZUGLOG_DIR . '/2026-10-17.json');
+    nordbahn_update_eil_log($live('Weichenstörung in Pinneberg', '2026-10-17T05:15:00Z'), '2026-10-17T05:17:00Z');
+    nordbahn_update_eil_log($live('Weichenstörung in Pinneberg', '2026-10-17T05:15:00Z'), '2026-10-17T05:19:00Z'); // nichts neu
+    nordbahn_update_eil_log($live('Weichenstörung in Pinneberg behoben, noch Verspätungen', '2026-10-17T06:40:00Z'), '2026-10-17T06:41:00Z');
+    $log = nordbahn_read_json(NORDBAHN_EIL_LOG_FILE);
+    t_eq(2, count($log['em-7']['verlauf']), 'zwei Staende: neu und geaenderter Titel');
+    t_eq(['2026-10-17T05:17:00Z', '2026-10-17T06:41:00Z', false], [$log['em-7']['first_live'], $log['em-7']['last_live'], isset($log['em-7']['weg'])], 'erst- und zuletzt gesehen, nicht aufgehoben');
+
+    $data = function ($liveListe) {
+        return [
+            'received_at' => '2026-10-17T07:00:00Z', 'quellen' => ['nordbahn_ok' => true],
+            'eilmeldungen' => [['id' => 'em-7', 'title' => 'Weichenstörung in Pinneberg', 'seen_at' => '2026-10-17T05:30:00Z', 'ki_titel' => 'RB61 hält nicht in Pinneberg', 'ki_text' => 'Weiche gestört.']],
+            'eilmeldungen_live' => $liveListe,
+            'eilmeldungen_log' => nordbahn_read_json(NORDBAHN_EIL_LOG_FILE),
+        ];
+    };
+    $jetzt = strtotime('2026-10-17T07:00:00Z');
+    $d = $data($live('Weichenstörung in Pinneberg behoben, noch Verspätungen', '2026-10-17T06:40:00Z'));
+    $v = nb_eilmeldung_verlauf($d, nb_eilmeldung_finden($d, 'em-7'), $jetzt);
+    t_eq(['aktiv', strtotime('2026-10-17T05:15:00Z'), null], [$v['status'], $v['start'], $v['ende']], 'aktiv, Beginn ist der erste Stand der Nordbahn');
+    t_eq(['neu', 'text'], array_column($v['schritte'], 'art'), 'Gemeldet und Update');
+    t_eq([strtotime('2026-10-17T06:40:00Z'), 'Nordbahn: „Weichenstörung in Pinneberg behoben, noch Verspätungen“'], [$v['schritte'][1]['ts'], $v['schritte'][1]['text']], 'Update mit Stand-Zeit und neuem Titel der Nordbahn');
+    $html = nb_render_verlauf_schritte($v['schritte'], $jetzt, ['kopf_text' => 'Weiche gestört.', 'ohne_dauer' => true]);
+    t_eq(false, strpos($html, 'Weiche gestört.'), 'Pendler-Text steht im Kopf, nicht noch im Verlauf');
+    t_contains('<span class="zeitleiste__etikett">Update</span>', $html, 'Etikett Update');
+
+    // Die Nordbahn nimmt die Meldung von der Seite: aufgehoben zum letzten Push, in dem sie stand
+    nordbahn_update_eil_log([], '2026-10-17T07:11:00Z');
+    nordbahn_update_eil_log([], '2026-10-17T07:13:00Z');
+    $log = nordbahn_read_json(NORDBAHN_EIL_LOG_FILE);
+    t_eq('2026-10-17T06:41:00Z', $log['em-7']['weg'], 'weg bleibt beim ersten Fehlen stehen');
+    $d = $data([]);
+    $v = nb_eilmeldung_verlauf($d, nb_eilmeldung_finden($d, 'em-7'), $jetzt + 3600);
+    t_eq(['aufgehoben', strtotime('2026-10-17T06:41:00Z')], [$v['status'], $v['ende']], 'aufgehoben mit Zeit');
+    t_eq(['neu', 'text', 'aufgehoben'], array_column($v['schritte'], 'art'), 'Verlauf endet mit Aufgehoben');
+
+    // Steht sie wieder da, ist die Aufhebung zurueckgenommen
+    nordbahn_update_eil_log($live('Weichenstörung in Pinneberg behoben, noch Verspätungen', '2026-10-17T06:40:00Z'), '2026-10-17T07:15:00Z');
+    t_eq(false, isset(nordbahn_read_json(NORDBAHN_EIL_LOG_FILE)['em-7']['weg']), 'wieder live: nicht aufgehoben');
+
+    // Meldung aus der Zeit vor dem Logbuch: nur Gemeldet, kein erfundenes Ende
+    $d = $data([]);
+    $d['eilmeldungen_log'] = [];
+    $v = nb_eilmeldung_verlauf($d, nb_eilmeldung_finden($d, 'em-7'), $jetzt + 86400);
+    t_eq(['alt', null, ['neu']], [$v['status'], $v['ende'], array_column($v['schritte'], 'art')], 'ohne Logbuch: nicht mehr akut, nur Gemeldet');
+    @unlink(NORDBAHN_EIL_LOG_FILE);
+}
+
+function test_gleichzeitig_eine_liste()
+{
+    $st = [
+        ['key' => 'A', 'titel' => 'Störung A', 'text' => 'x', 'start' => 300, 'ende' => 900, 'aktiv' => false],
+        ['key' => 'B', 'titel' => 'Störung B', 'text' => 'x', 'start' => 100, 'ende' => 900, 'aktiv' => false],
+    ];
+    $eil = [
+        ['id' => 'em-1', 'title' => 'Eil 1', 'text' => 'y', 'ts' => 200, 'stand' => null],
+        ['id' => 'em-2', 'title' => 'Eil 2', 'text' => 'y', 'ts' => 50, 'stand' => null],
+    ];
+    $g = nb_gleichzeitig($st, $eil);
+    t_eq(['Störung B', 'Eil 1', 'Störung A'], array_column($g, 'titel'), 'hoechstens drei, Stoerungen zuerst behalten, nach Zeit sortiert');
+    t_eq(['', '', ''], array_column($g, 'text'), 'ohne Text');
+    $html = nb_render_wichtig_eintrag($g[1], 1000);
+    t_contains('feed__kicker--eilmeldung', $html, 'Rubrik Eilmeldung');
+    t_eq([], nb_gleichzeitig([], []), 'leer');
 }

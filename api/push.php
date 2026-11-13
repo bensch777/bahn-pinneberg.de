@@ -10,7 +10,8 @@
  * config.example.php). Ohne passenden Token wird nichts angenommen.
  *
  * Das Paket wird bereinigt, als cache/data.json abgelegt und die
- * aktiven Stoerungen wandern ins Logbuch cache/stoerungen-log.json.
+ * aktiven Stoerungen wandern ins Logbuch cache/stoerungen-log.json, die
+ * Eilmeldungen der Nordbahn-Seite ins Logbuch cache/eilmeldungen-log.json.
  * cache/ ist weder im Repo noch im Deploy, die Daten ueberleben also einen
  * Deploy, landen aber nie in Git.
  */
@@ -73,6 +74,10 @@ if (!nordbahn_write_json(NORDBAHN_DATA_FILE, $payload)) {
 }
 
 $logSize = nordbahn_update_log($payload['stoerungen'], $now);
+// Nur mit lesbarer Nordbahn-Seite: Eine leere Liste nach einem Fehler ist keine Aufhebung
+if ($payload['quellen']['nordbahn_ok']) {
+    nordbahn_update_eil_log($payload['eilmeldungen_live'], $now);
+}
 
 // Antwort an n8n sofort, der Push-Versand laeuft danach weiter
 $antwort = json_encode([
