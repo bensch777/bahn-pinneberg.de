@@ -778,6 +778,50 @@
 		return dt.toLocaleTimeString('de-DE', { timeZone: TZ, hour: '2-digit', minute: '2-digit' });
 	}
 
+	/**
+	 * Ankunft einer Zeile dort, wo sie fuer den Pendler zaehlt (wie nb_ankunft): Richtung Hamburg
+	 * am letzten Halt, den der Zug heute bedient, auf dem Rueckweg am Heimatbahnhof. Aus dem
+	 * Laufweg der Zeile; null ohne Laufweg, bei einem Ausfall oder wenn der Halt fehlt.
+	 */
+	function ankunft(d, key) {
+		var lauf = d.lauf;
+		if (!lauf || lauf.length < 2 || d.ausfall) return null;
+		var h = null, i;
+		if (key === 'rueck') {
+			for (i = 1; i < lauf.length; i++) { if (lauf[i].heimat) { h = lauf[i]; break; } }
+		} else {
+			for (i = lauf.length - 1; i >= 1; i--) { if (!lauf[i].ausfall) { h = lauf[i]; break; } }
+		}
+		if (!h || !h.zeit) return null;
+		return { name: h.name || '', zeit: h.zeit, ist: h.ist || null, verspaetung: h.verspaetung || 0, ausfall: !!h.ausfall };
+	}
+
+	/**
+	 * Die Ankunft als kleine Zeile unter dem Ziel: "an 10:41" Richtung Hamburg (das Ziel steht im
+	 * Chip daneben), "an Prisdorf 17:31" auf dem Rueckweg, verspaetet mit Prognose und "(+14)".
+	 * Haelt der Zug heute nicht am Heimatbahnhof, steht das statt der Zeit da. Null, wenn es
+	 * nichts zu sagen gibt oder die Zeile die Ankunft schon nennt (endet heute vorzeitig).
+	 */
+	function ankunftZeile(d, key) {
+		var an = ankunft(d, key);
+		if (!an) return null;
+		if (key !== 'rueck' && d.teil && d.teil.art === 'endet' && !d.teil.plan) return null;
+		if (an.ausfall) return el('small', { class: 'dep__an dep__an--ausfall', text: 'Halt ' + an.name + ' entfällt' });
+		var spaet = an.verspaetung >= 3 && an.ist;
+		// Der Ort steht nur dabei, wenn er nicht schon in der Zeile steht: auf dem Rueckweg der
+		// Heimatbahnhof (ausser der Zug endet dort), Richtung Hamburg nur, wenn der Zug woanders
+		// ankommt als sein Ziel sagt
+		var nennen = key === 'rueck' ? an.name !== d.ziel : hamburgKurz(an.name) !== hamburgKurz(d.ziel) && !(d.teil && d.teil.art === 'endet');
+		var ort = nennen && an.name ? hamburgKurz(an.name) + ' ' : '';
+		var zeile = el('small', { class: 'dep__an', text: 'an ' + ort + (spaet ? an.ist : an.zeit) });
+		if (spaet) {
+			// geschuetztes Leerzeichen: "(+14)" bricht auf dem Handy nicht allein in die naechste Zeile um
+			zeile.appendChild(document.createTextNode('\u00a0'));
+			zeile.appendChild(el('span', { class: 'dep__an-spaet', text: '(+' + an.verspaetung + ')' }));
+		}
+		return zeile;
+	}
+
 	function renderDepartures(result) {
 		var section = document.getElementById('abfahrten');
 		if (!section) return;
@@ -882,6 +926,9 @@
 					if (zielKurz) dest.appendChild(el('span', { class: 'dep__ab' + bahnhofClass(zielKurz), text: 'nach ' + zielKurz }));
 					else dest.appendChild(el('span', { class: 'dep__ziel', text: d.ziel }));
 				}
+				// Ankunft in Hamburg bzw. zu Hause, direkt unter dem Ziel und vor allen Hinweisen
+				var anZeile = ankunftZeile(d, key);
+				if (anZeile) dest.insertBefore(anZeile, dest.querySelector('small'));
 				if (d.teil && d.teil.art === 'beginnt' && d.ausfall) {
 					// Startzeit unterwegs unbekannt: die Zeile bleibt ein Ausfall mit Hinweis
 					dest.appendChild(el('small', { class: 'dep__ersatz', text: 'Fährt erst ab ' + d.teil.name }));

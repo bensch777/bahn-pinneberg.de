@@ -77,7 +77,7 @@ function nb_mcp_werkzeuge()
         [
             'name'        => 'abfahrten',
             'title'       => 'Nächste Züge',
-            'description' => 'Die nächsten Züge der Nordbahn ab dem Heimatbahnhof nach Hamburg (Hbf, Dammtor, Altona) und von Hamburg zurück zum Heimatbahnhof, mit Prognose, Verspätung, Gleis, Ausfall, Teilausfall („nur bis Pinneberg“) und Ersatzabfahrt. Live aus dem Stationsmonitor der Nordbahn, höchstens eine Minute alt.',
+            'description' => 'Die nächsten Züge der Nordbahn ab dem Heimatbahnhof nach Hamburg (Hbf, Dammtor, Altona) und von Hamburg zurück zum Heimatbahnhof, mit Prognose, Verspätung, Gleis, Ankunft (in Hamburg bzw. am Heimatbahnhof), Ausfall, Teilausfall („nur bis Pinneberg“) und Ersatzabfahrt. Live aus dem Stationsmonitor der Nordbahn, höchstens eine Minute alt.',
             'inputSchema' => ['type' => 'object', 'properties' => [
                 'bahnhof'  => nb_mcp_bahnhof_schema(),
                 'richtung' => ['type' => 'string', 'enum' => ['hamburg', 'zurueck', 'beide'], 'description' => 'hamburg: ab Heimatbahnhof nach Hamburg; zurueck: ab Hamburg zum Heimatbahnhof; beide (Vorgabe).'],

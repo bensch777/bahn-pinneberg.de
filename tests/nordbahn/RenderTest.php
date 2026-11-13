@@ -519,6 +519,62 @@ function test_lage_markdown()
     t_contains('Keine Eilmeldung in den letzten 24 Stunden.', $leer, 'ohne Eilmeldung');
 }
 
+/* ---------- Ankunft je Zug aus dem Laufweg ---------- */
+
+function test_ankunft_aus_dem_laufweg()
+{
+    $halt = function ($name, $zeit, array $o = []) {
+        return $o + ['id' => '', 'name' => $name, 'zeit' => $zeit, 'ist' => null, 'verspaetung' => 0, 'gleis' => '', 'ausfall' => false, 'heimat' => false];
+    };
+    // Richtung Hamburg: der letzte Halt, den der Zug bedient
+    $hin = ['ab' => null, 'ausfall' => false, 'lauf' => [
+        $halt('Prisdorf', '10:18', ['heimat' => true]), $halt('Pinneberg', '10:21'), $halt('Hamburg Dammtor', '10:37'), $halt('Hamburg Hbf', '10:41'),
+    ]];
+    t_eq(['name' => 'Hamburg Hbf', 'zeit' => '10:41', 'ist' => null, 'verspaetung' => 0, 'ausfall' => false], nb_ankunft($hin), 'hin: Ankunft am Hbf');
+    $spaet = $hin;
+    $spaet['lauf'][3] = $halt('Hamburg Hbf', '10:41', ['ist' => '10:55', 'verspaetung' => 14]);
+    t_eq(['name' => 'Hamburg Hbf', 'zeit' => '10:41', 'ist' => '10:55', 'verspaetung' => 14, 'ausfall' => false], nb_ankunft($spaet), 'hin: mit Prognose');
+    $kurz = $hin;
+    $kurz['lauf'][2]['ausfall'] = true;
+    $kurz['lauf'][3]['ausfall'] = true;
+    t_eq('Pinneberg', nb_ankunft($kurz)['name'], 'hin: endet der Zug frueher, zaehlt der letzte bediente Halt');
+    t_eq(null, nb_ankunft(['ausfall' => true] + $hin), 'Ausfall: keine Ankunft');
+    t_eq(null, nb_ankunft(['ab' => null, 'lauf' => null]), 'ohne Laufweg');
+    t_eq(null, nb_ankunft(['ab' => null, 'lauf' => [$halt('Prisdorf', '10:18', ['heimat' => true])]]), 'ein Halt ist kein Laufweg');
+
+    // Rueckweg: der Heimatbahnhof, nicht das Ende der Fahrt
+    $rueck = ['ab' => 'Hbf', 'ausfall' => false, 'lauf' => [
+        $halt('Hamburg Hbf', '10:56'), $halt('Hamburg Dammtor', '10:59'), $halt('Pinneberg', '11:15'), $halt('Prisdorf', '11:19', ['heimat' => true, 'ist' => '11:23', 'verspaetung' => 4]), $halt('Itzehoe', '11:53'),
+    ]];
+    t_eq(['name' => 'Prisdorf', 'zeit' => '11:19', 'ist' => '11:23', 'verspaetung' => 4, 'ausfall' => false], nb_ankunft($rueck), 'rueck: Ankunft am Heimatbahnhof');
+    $durch = $rueck;
+    $durch['lauf'][3]['ausfall'] = true;
+    t_eq(true, nb_ankunft($durch)['ausfall'], 'rueck: Halt am Heimatbahnhof entfaellt');
+    $ohne = $rueck;
+    $ohne['lauf'][3]['heimat'] = false;
+    t_eq(null, nb_ankunft($ohne), 'rueck: Heimatbahnhof nicht im Laufweg');
+
+    // lage.md und das MCP-Werkzeug abfahrten nennen die Ankunft
+    $zeile = ['zug' => '1', 'zeit' => '2026-10-16T10:18:00+02:00', 'verspaetung' => 0, 'linie' => 'RB71', 'ziel' => 'Hamburg Hbf', 'gleis' => '2', 'hinweis' => ''];
+    t_eq('- 10:18 Uhr: RB71 nach Hamburg Hbf. Gleis 2. an Hamburg Hbf 10:41 Uhr.', nb_md_zug($zeile + $hin), 'Ankunft in der Markdown-Zeile');
+    t_eq('- 10:18 Uhr (+14 min): RB71 nach Hamburg Hbf. Gleis 2. an Hamburg Hbf 10:55 Uhr (+14 min).', nb_md_zug(['verspaetung' => 14] + $zeile + $spaet), 'verspaetete Ankunft');
+    $heim = ['zug' => '3', 'zeit' => '2026-10-16T10:56:00+02:00', 'verspaetung' => 0, 'linie' => 'RB61', 'ziel' => 'Itzehoe', 'gleis' => '13', 'hinweis' => ''];
+    t_eq('- 10:56 Uhr ab Hbf: RB61 nach Itzehoe. Gleis 13. an Prisdorf 11:23 Uhr (+4 min).', nb_md_zug($heim + $rueck), 'Rueckweg: Ankunft zu Hause');
+    t_eq('- 10:56 Uhr ab Hbf: RB61 nach Itzehoe. Gleis 13. hält heute nicht in Prisdorf.', nb_md_zug($heim + $durch), 'Halt entfaellt');
+}
+
+/** Die Zeilen aus abf_build tragen den Laufweg, aus dem die Ankunft kommt. */
+function test_ankunft_aus_der_abfahrtstafel()
+{
+    $r = t_build(t_standard(['zug:81871' => t_lauf_81871(), 'zug:75514' => t_lauf_75514(['AP' => ['an_min' => 6, 'ab_min' => 6]])]));
+    t_eq(['name' => 'Hamburg Hbf', 'zeit' => '10:41', 'ist' => null, 'verspaetung' => 0, 'ausfall' => false], nb_ankunft(t_zeile($r, 'hin', '81871')), 'hin aus der Zugauskunft');
+    t_eq('Prisdorf', nb_ankunft(t_zeile($r, 'rueck', '75514'))['name'], 'rueck: der Heimatbahnhof');
+    t_eq('11:19', nb_ankunft(t_zeile($r, 'rueck', '75514'))['zeit'], 'rueck: Planankunft zu Hause');
+    t_reset(); // die Zugauskunft von eben liegt sonst noch fuenf Minuten im Cache
+    $kurz = t_build(t_standard(['zug:81871' => t_lauf_81871(['ADF' => ['ausfall' => true], 'AH' => ['ausfall' => true]])]));
+    t_eq('Pinneberg', nb_ankunft(t_zeile($kurz, 'hin', '81871'))['name'], 'nur bis Pinneberg: Ankunft dort');
+}
+
 /* ---------- Statistik ---------- */
 
 function test_statistik_kennzahlen()

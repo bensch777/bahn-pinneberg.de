@@ -1684,6 +1684,52 @@ function nb_md_uhr($iso)
     return $ts === null ? '' : nb_fmt_uhr($ts);
 }
 
+/**
+ * Ankunft einer Abfahrtszeile dort, wo sie fuer den Pendler zaehlt (wie ankunft im
+ * Script): Richtung Hamburg am letzten Halt, den der Zug heute bedient, auf dem
+ * Rueckweg am Heimatbahnhof. Kommt aus dem Laufweg der Zeile (lauf, siehe abf_lauf
+ * und gf_regio_lauf_tafel), kostet also keine Abfrage. Die Richtung ergibt sich aus
+ * der Zeile: nur der Rueckweg nennt einen Startbahnhof (ab).
+ *
+ * @return array|null name, zeit (Plan, HH:MM), ist (mit Prognose, sonst null),
+ *                    verspaetung (Minuten), ausfall (der Zug haelt heute nicht am
+ *                    Heimatbahnhof); null ohne Laufweg, bei einem Ausfall oder ohne Halt
+ */
+function nb_ankunft(array $d)
+{
+    $lauf = $d['lauf'] ?? null;
+    if (!is_array($lauf) || count($lauf) < 2 || !empty($d['ausfall'])) {
+        return null;
+    }
+    $halt = null;
+    if (!empty($d['ab'])) {
+        foreach (array_slice($lauf, 1) as $h) {
+            if (!empty($h['heimat'])) {
+                $halt = $h;
+                break;
+            }
+        }
+    } else {
+        foreach (array_reverse(array_slice($lauf, 1)) as $h) {
+            if (empty($h['ausfall'])) {
+                $halt = $h;
+                break;
+            }
+        }
+    }
+    if ($halt === null || (string) ($halt['zeit'] ?? '') === '') {
+        return null;
+    }
+
+    return [
+        'name'        => (string) ($halt['name'] ?? ''),
+        'zeit'        => (string) $halt['zeit'],
+        'ist'         => !empty($halt['ist']) ? (string) $halt['ist'] : null,
+        'verspaetung' => (int) ($halt['verspaetung'] ?? 0),
+        'ausfall'     => !empty($halt['ausfall']),
+    ];
+}
+
 /** Eine Abfahrtszeile als Markdown-Listenpunkt. */
 function nb_md_zug(array $d)
 {
@@ -1710,6 +1756,14 @@ function nb_md_zug(array $d)
             } else {
                 $teile[] = ($d['teil']['art'] === 'beginnt' ? 'erst ab ' : 'nur bis ') . $d['teil']['name'] . (!empty($d['teil']['plan']) ? ' (planmäßig)' : '');
             }
+        }
+        // Ankunft in Hamburg bzw. am Heimatbahnhof, aus dem Laufweg
+        $an = nb_ankunft($d);
+        if ($an !== null && $an['ausfall']) {
+            $teile[] = 'hält heute nicht in ' . $an['name'];
+        } elseif ($an !== null) {
+            $spaet = $an['verspaetung'] >= 3 && $an['ist'] !== null;
+            $teile[] = 'an ' . $an['name'] . ' ' . ($spaet ? $an['ist'] : $an['zeit']) . ' Uhr' . ($spaet ? ' (+' . $an['verspaetung'] . ' min)' : '');
         }
     }
     if (!empty($d['hinweis'])) {
