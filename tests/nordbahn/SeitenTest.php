@@ -47,7 +47,10 @@ function test_alle_seiten_rendern_ohne_fehler()
     $aktuell = t_seite_rendern('aktuell/index.php');
     t_contains('<a class="tabs__tab" href="../aktuell/" aria-current="page">Aktiv</a>', $aktuell, 'aktuell rendert mit aktivem Tab');
     t_contains('Gerade ist nichts los', $aktuell, 'aktuell ohne Daten: ruhige Lage');
-    t_contains('href="./aktuell/"', $start, 'Lagekarten der Startseite verlinken auf /aktuell/');
+    // Lagekarten sind reine Anzeige; zu /aktuell/ fuehrt die Navigation (Meldungen, Reiter "Aktiv")
+    t_eq(false, strpos($start, 'href="./aktuell/"'), 'Lagekarten der Startseite sind keine Links');
+    t_eq(0, preg_match('/<a\b[^>]*\bclass="card status\b/', $start), 'keine Lagekarte als Link');
+    t_contains('<div class="card status status--', $start, 'Lagekarten als div');
     // Zuege zuerst: Lagekarten, dann die Abfahrten, erst darunter Stoerungskarten und Meldungen
     $pos = array_map(function ($teil) use ($start) { return strpos($start, $teil); }, ['id="status"', 'id="abfahrten"', 'id="meldungen"', 'id="incidents"', 'id="meldungen-inhalt"']);
     $sortiert = $pos;

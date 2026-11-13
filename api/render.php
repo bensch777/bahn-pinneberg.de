@@ -646,19 +646,21 @@ function nb_overall_level(array $cards)
     return 'info';
 }
 
-/** Eine Lagekarte; mit $href ein Link (Infrastruktur und Eilmeldungen fuehren zu /aktuell/). */
-function nb_render_status_card($id, array $st, $versteckt = false, $href = '')
+/**
+ * Eine Lagekarte. Reine Anzeige, kein Link: die Einzelheiten stehen auf der Startseite
+ * unter den Zuegen ("Aktuelle Meldungen"), alles Aktive unter Meldungen, Reiter "Aktiv".
+ */
+function nb_render_status_card($id, array $st, $versteckt = false)
 {
     $icons = ['ok' => '✓', 'warn' => '!', 'alert' => '!', 'unknown' => '?'];
-    $tag = $href !== '' ? 'a' : 'div';
-    $html = '<' . $tag . ' class="card status status--' . nb_e($st['level']) . '" id="' . nb_e($id) . '"' . ($href !== '' ? ' href="' . nb_e($href) . '"' : '') . ' data-ssr' . ($versteckt ? ' hidden' : '') . '>';
+    $html = '<div class="card status status--' . nb_e($st['level']) . '" id="' . nb_e($id) . '" data-ssr' . ($versteckt ? ' hidden' : '') . '>';
     $html .= '<div class="status__icon" aria-hidden="true">' . ($icons[$st['level']] ?? '?') . '</div>';
     // h2: die Lagekarten stehen direkt unter der h1, die Abschnitte darunter sind ebenfalls h2
     $html .= '<h2 class="status__title">' . nb_e($st['title']);
     if ($st['detail'] !== '') {
         $html .= '<small>' . nb_e($st['detail']) . '</small>';
     }
-    $html .= '</h2></' . $tag . '>';
+    $html .= '</h2></div>';
 
     return $html;
 }

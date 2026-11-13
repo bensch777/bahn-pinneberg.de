@@ -104,41 +104,40 @@ function test_s3_abfahrten_zeit_richtung_und_fenster()
 
 function test_s3_status_stufen()
 {
-    $now = t_now()->getTimestamp();
     $ok = [];
     for ($i = 0; $i < 12; $i++) {
         $ok[] = ['ausfall' => false, 'delay_min' => 0];
     }
-    t_eq(['level' => 'ok', 'title' => 'S3 fährt planmäßig', 'detail' => ''], gf_status($ok, [], $now), 'alles puenktlich');
+    t_eq(['level' => 'ok', 'title' => 'S3 fährt planmäßig', 'detail' => ''], gf_status($ok), 'alles puenktlich');
 
     $einer = $ok;
     $einer[0]['ausfall'] = true;
-    t_eq(['level' => 'ok', 'title' => 'S3 fährt weitgehend planmäßig', 'detail' => '1 von 12 Zügen (8 %): 1 Ausfall'], gf_status($einer, [], $now), 'ein Ausfall faerbt nicht');
+    t_eq(['level' => 'ok', 'title' => 'S3 fährt weitgehend planmäßig', 'detail' => '1 von 12 Zügen (8 %): 1 Ausfall'], gf_status($einer), 'ein Ausfall faerbt nicht');
 
     $klein = $ok;
     $klein[3]['delay_min'] = 5;
-    t_eq(['level' => 'ok', 'title' => 'S3 fährt weitgehend planmäßig', 'detail' => '1 von 12 Zügen (8 %): Verspätungen bis 5 Min'], gf_status($klein, [], $now), 'eine kleine Verspaetung faerbt nicht');
+    t_eq(['level' => 'ok', 'title' => 'S3 fährt weitgehend planmäßig', 'detail' => '1 von 12 Zügen (8 %): Verspätungen bis 5 Min'], gf_status($klein), 'eine kleine Verspaetung faerbt nicht');
 
     $viertel = $ok;
     $viertel[0]['delay_min'] = 6;
     $viertel[1]['delay_min'] = 7;
     $viertel[2]['delay_min'] = 8;
-    t_eq('ok', gf_status($viertel, [], $now)['level'], 'ein Viertel leicht verspaetet bleibt gruen');
+    t_eq('ok', gf_status($viertel)['level'], 'ein Viertel leicht verspaetet bleibt gruen');
 
     $gross = $ok;
     $gross[0]['delay_min'] = 15;
-    t_eq(['level' => 'warn', 'title' => 'S3 beeinträchtigt', 'detail' => '1 von 12 Zügen (8 %): Verspätungen bis 15 Min'], gf_status($gross, [], $now), 'eine grosse Verspaetung');
+    t_eq(['level' => 'warn', 'title' => 'S3 beeinträchtigt', 'detail' => '1 von 12 Zügen (8 %): Verspätungen bis 15 Min'], gf_status($gross), 'eine grosse Verspaetung');
 
     $zwei = $ok;
     $zwei[0]['ausfall'] = true;
     $zwei[5]['ausfall'] = true;
-    t_eq(['level' => 'warn', 'title' => 'S3 beeinträchtigt', 'detail' => '2 von 12 Zügen (17 %): 2 Ausfälle'], gf_status($zwei, [], $now), 'zwei Ausfaelle');
+    t_eq(['level' => 'warn', 'title' => 'S3 beeinträchtigt', 'detail' => '2 von 12 Zügen (17 %): 2 Ausfälle'], gf_status($zwei), 'zwei Ausfaelle');
 
     $drittel = $ok;
     for ($i = 0; $i < 5; $i++) {
         $drittel[$i]['delay_min'] = 6;
     }
-    t_eq(['level' => 'warn', 'title' => 'S3 beeinträchtigt', 'detail' => '5 von 12 Zügen (42 %): Verspätungen bis 6 Min'], gf_status($drittel, [], $now), 'mehr als ein Drittel betroffen');
+    t_eq(['level' => 'warn', 'title' => 'S3 beeinträchtigt', 'detail' => '5 von 12 Zügen (42 %): Verspätungen bis 6 Min'], gf_status($drittel), 'mehr als ein Drittel betroffen');
 
     $viele = $ok;
     $viele[0]['ausfall'] = true;
@@ -146,17 +145,9 @@ function test_s3_status_stufen()
     for ($i = 2; $i < 8; $i++) {
         $viele[$i]['delay_min'] = 7;
     }
-    t_eq(['level' => 'alert', 'title' => 'S3 gestört', 'detail' => '8 von 12 Zügen (67 %): 2 Ausfälle, Verspätungen bis 7 Min'], gf_status($viele, [], $now), 'zwei Drittel betroffen');
+    t_eq(['level' => 'alert', 'title' => 'S3 gestört', 'detail' => '8 von 12 Zügen (67 %): 2 Ausfälle, Verspätungen bis 7 Min'], gf_status($viele), 'zwei Drittel betroffen');
 
-    $akut = [['titel' => 'S3: Signalstörung Eidelstedt', 'geplant' => false, 'aktiv' => true, 'linien' => ['S3']]];
-    t_eq(['level' => 'alert', 'title' => 'S3 gestört', 'detail' => 'S3: Signalstörung Eidelstedt'], gf_status($ok, $akut, $now), 'ungeplante aktive S3-Meldung');
-    $geplant = [['titel' => 'Bauarbeiten', 'geplant' => true, 'aktiv' => true, 'linien' => ['S3']]];
-    t_eq(['level' => 'ok', 'title' => 'S3 fährt planmäßig', 'detail' => ''], gf_status($ok, $geplant, $now), 'geplante Meldung faerbt nicht und steht nicht in der Karte');
-    $rb = [['titel' => 'RB61: Weichenstörung', 'geplant' => false, 'aktiv' => true, 'linien' => ['RB61', 'RB71']]];
-    t_eq(['level' => 'ok', 'title' => 'S3 fährt planmäßig', 'detail' => ''], gf_status($ok, $rb, $now), 'ungeplante Nordbahn-Meldung beruehrt die S3-Karte nicht');
-    $alt = [['titel' => 'Vorbei', 'geplant' => false, 'aktiv' => false]];
-    t_eq('ok', gf_status($ok, $alt, $now)['level'], 'abgelaufene Meldung zaehlt nicht');
-    t_eq(['level' => 'ok', 'title' => 'S3: keine Abfahrten gemeldet', 'detail' => ''], gf_status([], [], $now), 'nachts ohne Abfahrten');
+    t_eq(['level' => 'ok', 'title' => 'S3: keine Abfahrten gemeldet', 'detail' => ''], gf_status([]), 'nachts ohne Abfahrten');
 }
 
 function test_s3_meldung_normalisierung()
@@ -167,12 +158,14 @@ function test_s3_meldung_normalisierung()
         ['id' => 'U', 'summary' => 'S3: Signalstörung', 'planned' => false, 'begin' => '2026-10-15T09:30:00.000+02:00', 'end' => '2026-10-15T12:00:00.000+02:00', 'lines' => ['S3', 'RB 61']],
         ['id' => 'F', 'summary' => 'S1: Nur S1', 'planned' => false, 'lines' => ['S1']],
         ['id' => 'P', 'summary' => 'Ersatzverkehr laeuft', 'planned' => true, 'begin' => '2026-10-15T05:00:00.000+02:00', 'end' => '2026-10-15T23:00:00.000+02:00', 'lines' => ['RB71']],
-        ['id' => 'A', 'summary' => 'Alt', 'planned' => false, 'begin' => '2026-10-14T05:00:00.000+02:00', 'end' => '2026-10-14T08:00:00.000+02:00'],
+        ['id' => 'A', 'summary' => 'S3: Alt', 'planned' => false, 'begin' => '2026-10-14T05:00:00.000+02:00', 'end' => '2026-10-14T08:00:00.000+02:00'],
+        ['id' => 'S', 'summary' => 'Derzeit Verspätungen und Ausfälle auf der S1.', 'planned' => false, 'begin' => '2026-10-15T09:40:00.000+02:00', 'end' => '2026-10-15T13:00:00.000+02:00', 'lines' => ['S1', 'S3']],
+        ['id' => 'T', 'summary' => 'Signalstörung in Altona', 'planned' => false, 'begin' => '2026-10-15T09:45:00.000+02:00', 'end' => '2026-10-15T13:00:00.000+02:00'],
         ['id' => 'L', 'summary' => 'Pinneberg: Aufzug zu Gleis 1 defekt', 'planned' => false, 'begin' => '2026-10-15T05:00:00.000+02:00', 'end' => '2026-10-16T08:00:00.000+02:00', 'lines' => ['S3']],
         ['id' => 'O', 'summary' => 'Ohne Linie', 'planned' => false, 'lines' => []],
     ])]);
     $m = gf_announcements($fetch, $now, GF_LINIEN, t_gf_zugang());
-    t_eq(['U', 'P', 'B', 'A'], array_column($m, 'id'), 'fremde Linie, Aufzug und ohne Linie raus; aktive ungeplante, aktive geplante, dann nach Beginn absteigend');
+    t_eq(['U', 'P', 'B', 'A'], array_column($m, 'id'), 'fremde Linie, Aufzug, ohne Linie und S3 ohne Nennung im Titel raus; aktive ungeplante, aktive geplante, dann nach Beginn absteigend');
     $bodies = [];
     gf_announcements(t_gf_fetch(['getAnnouncements' => t_gf_announcements([])], $bodies), $now, GF_LINIEN, t_gf_zugang());
     t_eq('2026-10-15T09:00:00.000+0200', $bodies[0][1]['timeRange']['begin'], 'Zeitraum im Format der GTI');
@@ -198,7 +191,7 @@ function test_s3_meldung_normalisierung()
             return '{"returnCode":"ERROR_TEXT","errorText":"timeRange"}';
         }
 
-        return t_gf_announcements([['id' => 'X', 'summary' => 'Geht', 'lines' => ['S3']]]);
+        return t_gf_announcements([['id' => 'X', 'summary' => 'S3 geht', 'lines' => ['S3']]]);
     };
     $m = gf_announcements($stur, $now, GF_LINIEN, t_gf_zugang());
     t_eq(['X'], array_column($m, 'id'), 'zweite Anfrageform liefert');
@@ -330,7 +323,6 @@ function test_s3_meldungen_echte_antwort_korridor()
     t_eq('2026-10-11T22:00:00Z', $m[0]['von'], 'Beginn aus validities mit +0200');
     t_eq(true, strpos($m[0]['link'], 'https://www.nordbahn.de/') === 0, 'Link zur Meldung');
     t_eq(false, $m[1]['aktiv'], 'Altona-Sperrung noch nicht gueltig');
-    t_eq('ok', gf_status([['ausfall' => false, 'delay_min' => 0]], $m, $now->getTimestamp())['level'], 'geplante Meldungen faerben nicht');
 }
 
 function test_s3_station_norm_und_korridor()
@@ -340,13 +332,60 @@ function test_s3_station_norm_und_korridor()
     t_eq('elbgaustrasse', gf_station_norm('Elbgaustraße'), 'Umlaut und ß');
     t_eq('jungfernstieg', gf_station_norm('Jungfernstieg'), 'Jungfernstieg');
     t_eq('stadthausbruecke', gf_station_norm('Stadthausbrücke'), 'Stadthausbruecke');
-    $raw = ['locations' => [
+    $raw = ['summary' => 'S3/S5: Bauarbeiten', 'locations' => [
         ['line' => ['name' => 'S3'], 'begin' => ['name' => 'Stade'], 'end' => ['name' => 'Pinneberg']],
         ['line' => ['name' => 'S5'], 'begin' => ['name' => 'Elbgaustraße'], 'end' => ['name' => 'Elbgaustraße']],
     ]];
     t_eq(['S3', 'S5'], gf_meldung_linien($raw), 'S3 ueber die ganze Linie zaehlt');
     $raw['locations'][0]['end']['name'] = 'Neugraben';
     t_eq(['S5'], gf_meldung_linien($raw), 'S3 nur suedlich der Elbe zaehlt nicht');
+}
+
+function test_s3_meldung_zaehlt_nur_mit_s3_im_titel()
+{
+    // Der HVV haengt Meldungen an alle Linien des Abschnitts: eine S1-Meldung traegt dann auch die S3
+    $tunnel = function ($linie) {
+        return ['line' => ['name' => $linie], 'begin' => ['name' => 'Hamburg-Altona'], 'end' => ['name' => 'Hamburg Hbf']];
+    };
+    $orte = [$tunnel('S1'), $tunnel('S3')];
+    t_eq(['S1'], gf_meldung_linien(['summary' => 'Derzeit Verspätungen und Ausfälle auf der S1.', 'locations' => $orte]), 'S1-Meldung an der S3: die S3 zaehlt nicht');
+    t_eq(['S1', 'S3'], gf_meldung_linien(['summary' => 'Derzeit Verspätungen und Ausfälle auf der S1 und S3.', 'locations' => $orte]), 'Titel nennt beide Linien');
+    foreach (['S3: Signalstörung', 'S 3: Signalstörung', 'S2/S3/S5: Weichenstörung', 'Verspätungen auf der S3.', '<b>S3</b>: Verspätungen', 'Linien S1,S3 betroffen', 'S&nbsp;3 verspätet'] as $titel) {
+        t_eq(['S3'], gf_meldung_linien(['summary' => $titel, 'locations' => [$tunnel('S3')]]), 'S3 im Titel: ' . $titel);
+    }
+    foreach (['S31: Ausfälle', 'S1: Ausfälle', 'Signalstörung in Altona', 'RS3 fährt nicht', 'Gleis 3 gesperrt', ''] as $titel) {
+        t_eq([], gf_meldung_linien(['summary' => $titel, 'locations' => [$tunnel('S3')]]), 'keine S3 im Titel: ' . $titel);
+    }
+    t_eq([], gf_meldung_linien(['locations' => [$tunnel('S3')]]), 'ohne Titel zaehlt die S3 nicht');
+    t_eq([], gf_meldung_linien(['summary' => ['S3'], 'locations' => [$tunnel('S3')]]), 'Titel ist kein Text');
+    // Ohne locations aus lines[]: gleiche Regel, Schreibweise "S 3" eingeschlossen
+    t_eq(['S1', 'RB61'], gf_meldung_linien(['summary' => 'S1 gestört', 'lines' => [['name' => 'S1'], ['name' => 'S 3'], 'RB 61']]), 'lines[]: S3 ohne Nennung raus, andere Linien bleiben');
+    t_eq(['S1', 'S3', 'RB61'], gf_meldung_linien(['summary' => 'S1 und S3 gestört', 'lines' => [['name' => 'S1'], ['name' => 'S 3'], 'RB 61']]), 'lines[]: S3 mit Nennung bleibt');
+    // RB60, RB61 und RB71: der Titel nennt die Linie fast nie, dort gilt die Zuordnung des HVV
+    $rb = ['line' => ['name' => 'RB61'], 'begin' => ['name' => 'Itzehoe'], 'end' => ['name' => 'Hamburg Hbf']];
+    t_eq(['RB61'], gf_meldung_linien(['summary' => '12.10-25.10. Fahrplanänderungen und Ersatzverkehr', 'locations' => [$rb, $tunnel('S3')]]), 'Nordbahn-Meldung ohne Linie im Titel bleibt, die S3 daran nicht');
+
+    // In der Liste: die S1-Meldung faellt ganz weg, eine Meldung mit S3 im Titel bleibt
+    $fetch = t_gf_fetch(['getAnnouncements' => t_gf_announcements([
+        ['id' => 'S1', 'summary' => 'Derzeit Verspätungen und Ausfälle auf der S1.', 'planned' => false, 'lines' => ['S1', 'S3']],
+        ['id' => 'S3', 'summary' => 'Derzeit Verspätungen und Ausfälle auf der S3.', 'planned' => false, 'lines' => ['S1', 'S3']],
+    ])]);
+    $m = gf_announcements($fetch, t_now(), GF_LINIEN, t_gf_zugang());
+    t_eq(['S3'], array_column($m, 'id'), 'nur die Meldung, deren Titel die S3 nennt');
+    t_eq(['S1', 'S3'], $m[0]['linien'], 'Linien der verbliebenen Meldung');
+}
+
+function test_s3_karte_richtet_sich_nur_nach_abfahrten()
+{
+    // Aktive ungeplante HVV-Meldung zur S3, aber alle Zuege puenktlich: Karte bleibt gruen
+    $meldung = [['id' => 'U', 'summary' => 'S3: Signalstörung Eidelstedt', 'planned' => false, 'begin' => '2026-10-15T09:30:00.000+02:00', 'end' => '2026-10-15T12:00:00.000+02:00']];
+    $puenktlich = ['departureList:Pinneberg' => t_gf_departures([['offset' => 4], ['offset' => 14]]), 'departureList:Hamburg Hbf' => t_gf_departures([['ziel' => 'Pinneberg', 'offset' => 9]]), 'getAnnouncements' => t_gf_announcements($meldung)];
+    $r = gf_build(t_gf_fetch($puenktlich), t_now(), t_gf_zugang());
+    t_eq(['level' => 'ok', 'title' => 'S3 fährt planmäßig', 'detail' => ''], array_intersect_key($r['s3'], ['level' => 1, 'title' => 1, 'detail' => 1]), 'Meldung faerbt die Karte nicht');
+    t_eq(['U'], array_column($r['s3']['meldungen'], 'id'), 'die Meldung steht weiter in der Liste');
+    t_eq(true, $r['s3']['meldungen'][0]['aktiv'] && !$r['s3']['meldungen'][0]['geplant'], 'aktiv und ungeplant');
+    $liste = nb_aktuelle_meldungen(['stoerungen' => [], 'eilmeldungen_live' => [], 'eilmeldungen' => [], 'stoerungen_verlauf' => []], $r['s3']['meldungen'], t_now()->getTimestamp());
+    t_eq(['hvv'], array_column($liste, 'art'), 'und unter Aktuelle Meldungen');
 }
 
 function test_s3_abfahrten_echte_antwort()
