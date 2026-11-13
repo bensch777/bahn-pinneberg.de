@@ -89,7 +89,7 @@ $jsonLd = [
 
 <?php if ($ruhig): ?>
 	<section class="section">
-		<ol class="feed card"><li><p class="feed__empty">Gerade ist nichts los: keine Infrastrukturst&ouml;rung, kein Baufahrplan, keine aktuelle Eilmeldung<?= $gfAktiv ? ', keine HVV-Meldung' : '' ?>.</p></li></ol>
+		<ol class="feed card"><li><p class="feed__empty">Gerade ist nichts los: keine Infrastrukturst&ouml;rung, <?= $ausblick ? '' : 'kein Baufahrplan, ' ?>keine aktuelle Eilmeldung<?= $gfAktiv ? ', keine HVV-Meldung' : '' ?>.<?= $ausblick ? ' Was die Nordbahn an Fahrplan&auml;nderungen plant, steht unten.' : '' ?></p></li></ol>
 	</section>
 <?php endif; ?>
 
@@ -136,7 +136,7 @@ $jsonLd = [
 <?php if ($ausblick): ?>
 	<section class="section">
 		<h2 class="section__title">Geplante Fahrplan&auml;nderungen</h2>
-		<div class="card meldungen"><?= nb_render_ausblick($ausblick, $now) ?></div>
+		<div class="card meldungen"><?= nb_render_ausblick($ausblick) ?></div>
 	</section>
 <?php endif; ?>
 

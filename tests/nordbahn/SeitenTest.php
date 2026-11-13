@@ -56,6 +56,7 @@ function test_alle_seiten_rendern_ohne_fehler()
     t_contains('<section id="meldungen" class="section" aria-labelledby="meldungen-h" hidden>', $start, 'ohne Stoerung und Meldung bleibt der Bereich weg');
     t_eq(12, substr_count($start, 'dep--skelett'), 'Platzhalterzeilen in beiden Nordbahn-Tafeln');
     t_contains("d.className+=' js'", $start, 'Klasse js schon im Head, vor dem ersten Zeichnen');
+    t_contains("if(!d.hasAttribute('data-app'))", $start, 'ohne Start von dashboard.js faellt die Klasse wieder weg');
     t_assert((bool) preg_match('/class="boards boards--(nur-hin|rueck-first boards--nur-rueck)"/', $start), 'Richtung der Tafeln vom Server gesetzt');
     t_contains('<p class="visually-hidden" id="ansage" role="status" aria-live="polite"></p>', $start, 'Statuszeile fuer Ansagen');
     t_assert(!preg_match('/class="board__list"[^>]*aria-live/', $start), 'Tafeln sind keine Live-Regionen');

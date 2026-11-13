@@ -12,7 +12,8 @@
  * (Eilmeldungen, gerade aufgehobene Stoerungen, HVV). Die Zuege stehen bewusst
  * vor den Einzelheiten, damit sie auch an einem Stoerungstag ohne Scrollen
  * sichtbar sind. Darunter der Ausblick auf geplante Fahrplanaenderungen
- * (Sonderfahrplaene der Nordbahn, die gelten oder bald beginnen) und die S3.
+ * (Sonderfahrplaene der Nordbahn zu den eigenen Linien, im Wortlaut der Nordbahn)
+ * und die S3.
  * Der Rueckblick steht auf news/, eilmeldungen/ und stoerungen/.
  *
  * Das Repo-Wurzelverzeichnis ist das Web-Root; alle Links sind relativ,
@@ -71,7 +72,7 @@ if ($gfAktiv) {
 }
 $kompakt = nb_status_kompakt($cards);
 $meldungen = nb_aktuelle_meldungen($data, $gfAktiv ? ($gf['s3']['meldungen'] ?? []) : null);
-// Sonderfahrplaene, die gelten oder bald beginnen (ohne den Baufahrplan, den die Lagekarte nennt)
+// Sonderfahrplaene, die die Nordbahn gerade oder bald fuehrt (ohne den Baufahrplan, den die Lagekarte nennt)
 $ausblick = nb_ausblick($data);
 // Richtung, die vorn steht, schon hier: so sortiert das Script beim Start nichts um
 $richtung = nb_richtung_jetzt();
@@ -255,7 +256,7 @@ $jsonLd = [
 			<h2 id="ausblick-h" class="section__title">Geplante Fahrplan&auml;nderungen</h2>
 		</div>
 		<div class="card meldungen">
-			<?= nb_render_ausblick($ausblick, null, true) ?>
+			<?= nb_render_ausblick($ausblick, true) ?>
 
 		</div>
 	</section>

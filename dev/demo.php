@@ -344,9 +344,9 @@ function demo_data($szenario, $now)
     $historie = [];
     $log = [];
     $eilLog = [];
-    $eilmeldung = function ($id, $titel, $ts, $kiTitel, $kiText, $weg = null) use (&$historie, &$eilLog, &$live) {
+    $eilmeldung = function ($id, $titel, $ts, $kiTitel, $kiText, $weg = null) use (&$historie, &$eilLog, &$live, $now) {
         $historie[] = ['id' => $id, 'title' => $titel, 'seen_at' => demo_iso($ts), 'ki_titel' => $kiTitel, 'ki_text' => $kiText];
-        $eilLog[$id] = ['first_live' => demo_iso($ts), 'last_live' => demo_iso($weg ?? time()), 'verlauf' => [['t' => demo_iso($ts), 'title' => $titel, 'stand' => demo_iso($ts)]]];
+        $eilLog[$id] = ['first_live' => demo_iso($ts), 'last_live' => demo_iso($weg ?? $now), 'verlauf' => [['t' => demo_iso($ts), 'title' => $titel, 'stand' => demo_iso($ts)]]];
         if ($weg !== null) {
             $eilLog[$id]['weg'] = demo_iso($weg);
         } else {
@@ -395,10 +395,12 @@ function demo_data($szenario, $now)
         $eilmeldung('em-880201', 'Störung an einem Signal in Tornesch', $now - 38 * 60, 'Signalstörung in Tornesch: RB61 und RB71 verspätet, einzelne Ausfälle', 'Bis voraussichtlich ' . $uhr($ende) . ' Uhr. Einige Züge wenden in Pinneberg, von dort weiter mit der S3.');
     }
 
-    // Sonderfahrplaene wie auf nordbahn.de: ein Dauerhinweis, einer ab uebermorgen, im Szenario bau einer, der gerade gilt
+    // Sonderfahrplaene wie auf nordbahn.de: ein Dauerhinweis, einer ab uebermorgen (die Nordbahn
+    // zeigt ihn schon seit drei Tagen, von ist also frueher als der Zeitraum im Titel), einer in
+    // drei Wochen, im Szenario bau einer, der gerade gilt
     $sonder = [
         ['id' => 'sev-932', 'title' => 'Gleis 13/14 im Hamburger Hauptbahnhof bis ' . $tag($now + 40 * 86400, 'd.m.Y') . ' nicht barrierefrei zu erreichen', 'von' => $tag($now - 60 * 86400), 'bis' => $tag($now + 40 * 86400), 'link' => 'https://www.nordbahn.de/reiseplanung/eilmeldungen-sonderfahrplaene/sev-932/'],
-        ['id' => 'sev-1031', 'title' => $tag($now + 2 * 86400, 'd.m.') . ' - ' . $tag($now + 4 * 86400, 'd.m.') . ': Ersatzverkehr mit Bussen zwischen Elmshorn und Itzehoe (RB 61), Züge der RB 71 fahren planmäßig', 'von' => $tag($now + 2 * 86400), 'bis' => $tag($now + 4 * 86400), 'link' => 'https://www.nordbahn.de/reiseplanung/eilmeldungen-sonderfahrplaene/sev-1031/'],
+        ['id' => 'sev-1031', 'title' => $tag($now + 2 * 86400, 'd.m.') . ' - ' . $tag($now + 4 * 86400, 'd.m.') . ': Ersatzverkehr mit Bussen zwischen Elmshorn und Itzehoe (RB 61), Züge der RB 71 fahren planmäßig', 'von' => $tag($now - 3 * 86400), 'bis' => $tag($now + 4 * 86400), 'link' => 'https://www.nordbahn.de/reiseplanung/eilmeldungen-sonderfahrplaene/sev-1031/'],
         ['id' => 'sev-1040', 'title' => $tag($now + 20 * 86400, 'd.m.') . ' - ' . $tag($now + 22 * 86400, 'd.m.') . ': Nächtliche Bauarbeiten, letzte Züge der RB 61 und RB 71 enden in Pinneberg', 'von' => $tag($now + 20 * 86400), 'bis' => $tag($now + 22 * 86400), 'link' => 'https://www.nordbahn.de/reiseplanung/eilmeldungen-sonderfahrplaene/sev-1040/'],
     ];
     if ($szenario === 'bau') {
@@ -568,5 +570,8 @@ if (PHP_SAPI === 'cli' && isset($argv[0]) && realpath($argv[0]) === __FILE__) {
         fwrite(STDERR, 'Unbekanntes Szenario. Möglich: ' . implode(', ', DEMO_SZENARIEN) . "\n");
         exit(1);
     }
-    demo_seed($szenario);
+    // NORDBAHN_DEMO_JETZT ("2026-10-15 10:00:00", deutsche Zeit) haelt die Uhr an: die Tests
+    // rechnen so mit einer festen Zeit und haengen nicht an Mitternacht oder Zeitumstellung
+    $jetzt = getenv('NORDBAHN_DEMO_JETZT');
+    demo_seed($szenario, is_string($jetzt) && $jetzt !== '' ? new DateTime($jetzt, new DateTimeZone('Europe/Berlin')) : null);
 }

@@ -776,7 +776,7 @@ a.status:focus-visible { outline: 2px solid var(--series); outline-offset: 2px; 
 @media (max-width: 365px) {
 	.board[data-richtung="rueck"] .dep--skelett { min-height: 92px; }
 }
-html:not(.js) .dep--skelett { display: none; }
+html:not(.js) .dep--skelett, html:not(.js) .board__lade { display: none; }
 .dep--skelett .dep__dot { align-self: center; margin-top: 0; background: var(--surface-2); }
 .skelett { display: block; height: 13px; border-radius: 5px; background: var(--surface-2); }
 .dep--skelett .dep__time .skelett { width: 52px; height: 20px; }

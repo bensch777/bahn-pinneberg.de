@@ -375,7 +375,8 @@
 			var kurz = stoerungKurzzeit(list[0], now);
 			wer = stoerungTitel(list[0]) + (kurz ? ' · ' + kurz : '');
 		} else if (list.length) {
-			wer = list.map(stoerungTitel).join(' · ');
+			// hoechstens zwei Titel (wie nb_status_infra), ab der dritten "2 weitere"
+			wer = list.slice(0, 2).map(stoerungTitel).join(' · ') + (list.length > 2 ? ' · ' + plural(list.length - 2, 'weitere', 'weitere') : '');
 		}
 		if (!hasData) setStatus('status-infra', 'unknown', 'Noch keine Daten');
 		else if (list.length === 0 && (ok || hinweise)) setStatus('status-infra', 'ok', 'Keine Infrastrukturstörung', hinweise ? plural(hinweise, 'Hinweis ohne Folgen', 'Hinweise ohne Folgen') : '');
@@ -828,7 +829,7 @@
 				el('div', { class: 'dep__platform' }, [el('span', { class: 'skelett' })])
 			]));
 		}
-		list.appendChild(el('li', { class: 'visually-hidden', text: 'Lade Abfahrten …' }));
+		list.appendChild(el('li', { class: 'visually-hidden board__lade', text: 'Lade Abfahrten …' }));
 	}
 
 	/**
@@ -1976,13 +1977,19 @@
 
 	/**
 	 * Ansage fuer Screenreader in der versteckten Statuszeile (#ansage, aria-live): nur was
-	 * neu ist, hoechstens drei Ereignisse je Stand. Die Tafeln selbst sind keine Live-Regionen
-	 * mehr: sie werden jede halbe Minute neu aufgebaut und wuerden sonst komplett vorgelesen.
+	 * neu ist, hoechstens drei Ereignisse je Stand, und nur eine Minute lang. Die Tafeln selbst
+	 * sind keine Live-Regionen mehr: sie werden jede halbe Minute neu aufgebaut und wuerden
+	 * sonst komplett vorgelesen.
 	 */
+	var ansageTimer = null;
+
 	function ansagen(events) {
 		var box = document.getElementById('ansage');
 		if (!box || !events.length) return;
 		box.textContent = events.slice(0, 3).map(function (ev) { return ev.ansage || ev.title; }).join('. ') + '.';
+		// Nach einer Minute leeren: wer spaeter durch die Seite geht, soll keine alte Ansage vorfinden
+		clearTimeout(ansageTimer);
+		ansageTimer = setTimeout(function () { box.textContent = ''; }, 60000);
 	}
 
 	/**
@@ -2146,6 +2153,10 @@
 	}
 
 	function boot() {
+		// Start melden: ohne diese Marke nimmt das Inline-Skript im Head (nb_theme_head) die
+		// Klasse js nach zehn Sekunden wieder weg, damit die Seite auch ohne dieses Script lesbar ist
+		document.documentElement.setAttribute('data-app', '1');
+		document.documentElement.classList.add('js');
 		resolveUrls();
 		if (document.body.getAttribute('data-seite') === 'einstellungen') { bootEinstellungen(); return; }
 		var raw = document.getElementById('nordbahn-data');
