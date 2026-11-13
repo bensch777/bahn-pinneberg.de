@@ -29,11 +29,6 @@ $jsonFlags = JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JS
 
 $strecke = ka_strecke();
 $linien = is_array($strecke['linien'] ?? null) ? $strecke['linien'] : [];
-// Fester Text unter der Liste mit allen Halten, auch wenn gerade kein Zug faehrt
-$halteNamen = ['Hamburg Hbf', 'Hamburg Dammtor', 'Hamburg-Altona'];
-foreach (NORDBAHN_BAHNHOEFE as $bhf) {
-    $halteNamen[] = $bhf['name'];
-}
 // Nur lesen: die Seite fragt den Monitor nicht selbst, das macht api/karte auf Anfrage des Scripts
 $stand = nordbahn_read_json(KA_CACHE);
 $zuege = is_array($stand) && is_array($stand['zuege'] ?? null) ? $stand['zuege'] : [];
@@ -147,13 +142,8 @@ function nb_karte_liste(array $zuege)
 			</ul>
 		</div>
 		<div class="card" id="karte-liste"><?= nb_karte_liste($zuege) ?></div>
-		<p class="section__note">Positionen berechnet aus Fahrplan und Prognose der Nordbahn, nicht geortet; Z&uuml;ge erscheinen bis 20 Minuten vor der Abfahrt. Kartendaten &copy; <a href="https://www.openstreetmap.org/copyright" rel="noopener">OpenStreetMap</a>-Mitwirkende.</p>
 	</section>
 
-	<section class="section" aria-labelledby="ueber-h">
-		<h2 class="section__title" id="ueber-h">Welche Z&uuml;ge die Karte zeigt</h2>
-		<p class="section__note section__note--text">Alle Z&uuml;ge der Nordbahn auf den Linien RB61 Hamburg Hbf &ndash; Itzehoe, RB71 Hamburg Hbf &ndash; Wrist und RB60 Hamburg-Altona &ndash; Itzehoe, mit den Halten <?= nb_e(implode(', ', $halteNamen)) ?>. Je Zug stehen Lage, Versp&auml;tung, n&auml;chster Halt und Gleis dabei, die Karte aktualisiert sich jede Minute. St&ouml;rungen, Eilmeldungen und die n&auml;chsten Abfahrten am eigenen Bahnhof zeigt die <a href="<?= $root ?>">Startseite</a>, die P&uuml;nktlichkeit je Zug die <a href="<?= $root ?>statistik/">Statistik</a>.</p>
-	</section>
 </main>
 
 <?php $current = 'karte'; require __DIR__ . '/../inc/footer.php'; ?>
