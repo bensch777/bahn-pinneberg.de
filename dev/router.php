@@ -6,9 +6,37 @@
  *
  * Ohne config.php laeuft die Seite mit leeren Daten; api/abfahrten fragt den
  * Stationsmonitor live ab.
+ *
+ * Demo-Modus, ganz ohne Netz und mit erfundenen Daten (siehe dev/demo.php):
+ *
+ *   NORDBAHN_DEMO=stoerung php -S 127.0.0.1:8080 dev/router.php
+ *
+ * Der Router legt dann Cache und Konfiguration auf die Demo um und fuellt den
+ * Demo-Cache vor jeder Seite und jedem API-Aufruf neu. /?demo=ruhig, leicht,
+ * stoerung oder bau wechselt das Szenario.
  */
 $root = dirname(__DIR__);
 $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+
+$demo = getenv('NORDBAHN_DEMO');
+if ($demo !== false && $demo !== '') {
+    define('NORDBAHN_DEMO_NUR_HELFER', true);
+    require __DIR__ . '/demo.php';
+    define('NORDBAHN_CACHE_DIR', demo_cache_dir());
+    define('NORDBAHN_CONFIG_FILE', __DIR__ . '/demo-config.php');
+    if (isset($_GET['demo'])) {
+        demo_szenario_setzen((string) $_GET['demo']);
+    }
+    $szenario = demo_szenario($demo);
+    // Nur fuer PHP-Seiten und Endpunkte, nicht fuer Bilder, Styles und Scripts; in einem
+    // eigenen Prozess, weil die Demo die API-Dateien laedt, die gleich als Endpunkt dran sind
+    if (!preg_match('/\.(css|js|png|ico|woff2|json|webp|webmanifest|txt)$/', $path) && !demo_frisch($szenario)) {
+        exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(__DIR__ . '/demo.php') . ' ' . escapeshellarg($szenario) . ' 2>&1', $ausgabe, $status);
+        if ($status !== 0) {
+            error_log('Demo-Daten: ' . implode("\n", $ausgabe));
+        }
+    }
+}
 $map = [
     '/api/data'      => '/api/data.php',
     '/api/push'      => '/api/push.php',

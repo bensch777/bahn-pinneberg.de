@@ -67,6 +67,14 @@ php -S 127.0.0.1:8080 dev/router.php
 
 Der Router bildet die Rewrites der `.htaccess` nach. Ohne `config.php` läuft die Seite mit leeren Daten; die Abfahrten kommen live vom Stationsmonitor.
 
+Ganz ohne Netz und mit erfundenen, aber realistischen Daten läuft der Demo-Modus:
+
+```
+NORDBAHN_DEMO=stoerung php -S 127.0.0.1:8080 dev/router.php
+```
+
+`dev/demo.php` füllt dann vor jedem Aufruf einen eigenen Cache im Temp-Verzeichnis (der echte `cache/` und `config.php` bleiben unberührt), alle Zeiten relativ zu jetzt: Störungen, Eilmeldungen und Sonderfahrpläne wie aus n8n, die Tafeln aller zwölf Bahnhöfe, S3 und HVV-Meldungen, DB Regio in Elmshorn, Live-Karte und ein Zuglog der letzten 14 Tage für Statistik und „Meine Züge“. Szenarien: `ruhig`, `leicht` (einzelne Verspätungen, eine gerade aufgehobene Störung), `stoerung` (Signalstörung mit Ausfall, Gleiswechsel, Zug nur bis Pinneberg, Ersatz ab Altona, Eilmeldung und HVV-Meldung) und `bau` (Baufahrplan ab/bis Altona). Im Browser wechselt `/?demo=ruhig` usw. das Szenario. So lässt sich eine Störungslage ansehen, ohne auf die nächste echte zu warten. Die Tafeln entstehen mit den Bausteinen der Tests und laufen durch dieselbe Aufbereitung wie echte Antworten.
+
 Die Abfahrtslogik lässt sich auch gegen gespeicherte XML-Dateien prüfen:
 
 ```

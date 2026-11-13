@@ -51,7 +51,11 @@ const NORDBAHN_BAHNHOEFE = [
 ];
 const NORDBAHN_HEIMAT_DEFAULT = 'APD';
 
-/** Liest config.php aus dem Web-Root. Fehlt sie, bleibt die Liste leer. */
+/**
+ * Liest config.php aus dem Web-Root. Fehlt sie, bleibt die Liste leer. Der
+ * Demo-Modus (dev/router.php) definiert NORDBAHN_CONFIG_FILE vorher auf seine eigene
+ * Konfiguration, so wie die Tests NORDBAHN_CACHE_DIR.
+ */
 function nordbahn_config()
 {
     static $config = null;
@@ -59,7 +63,7 @@ function nordbahn_config()
         return $config;
     }
 
-    $file = __DIR__ . '/../config.php';
+    $file = defined('NORDBAHN_CONFIG_FILE') ? NORDBAHN_CONFIG_FILE : __DIR__ . '/../config.php';
     $config = is_readable($file) ? require $file : [];
 
     return is_array($config) ? $config : [];
