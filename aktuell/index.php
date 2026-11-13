@@ -28,7 +28,6 @@ $bau = nb_baufahrplan($data, $now);
 $gfAktiv = gf_aktiv();
 $gf = $gfAktiv ? nb_read_geofox() : null;
 $meldungen = nb_aktuelle_meldungen($data, $gfAktiv ? ($gf['s3']['meldungen'] ?? []) : null, $now);
-$stand = !empty($data['received_at']) ? nb_ts($data['received_at']) : null;
 $ruhig = !$stoerungen && !$hinweise && !$bau && !$meldungen;
 
 $pageUrl = SITE_URL . '/aktuell/';
@@ -122,7 +121,6 @@ $jsonLd = [
 
 <?php endforeach; ?>
 		</ul>
-		<p class="section__note">Laut strecken-info.de noch aktiv, f&uuml;r Pendler laut Meldung ohne Auswirkung. Sie z&auml;hlen nicht als St&ouml;rung, stehen nicht auf der Startseite und l&ouml;sen keine Benachrichtigung aus.</p>
 	</section>
 <?php endif; ?>
 
@@ -132,8 +130,6 @@ $jsonLd = [
 		<div class="card meldungen"><?= nb_render_aktuelle_meldungen($meldungen, $now, false) ?></div>
 	</section>
 <?php endif; ?>
-
-	<p class="section__note"><?= $stand ? 'Stand ' . nb_e(nb_fmt_wann($stand, $now)) . '. ' : '' ?>Hier stehen immer alle Meldungen. Auf der Startseite l&auml;sst sich jede einzelne wegklicken, das gilt nur dort und nur im eigenen Browser.</p>
 
 </main>
 

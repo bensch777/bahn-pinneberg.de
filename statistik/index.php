@@ -169,7 +169,7 @@ function nb_filter_select($name, $label, array $optionen, $wert)
 		<div class="card"><?= nb_render_zug_tabelle($dash['rueck'], true, $sortLinks) ?></div>
 	</section>
 <?php endif; ?>
-	<p class="section__note">P&uuml;nktlich hei&szlig;t unter <?= (int) NB_ZUG_SPAET ?> Minuten Versp&auml;tung, ausgefallen schlie&szlig;t Teilausf&auml;lle ein (nur bis oder erst ab einem Unterwegsbahnhof, in der Tabelle als +n). &Oslash; und max. ohne ausgefallene Fahrten. Beobachtet wird, was abgefragt wird: Prisdorf laufend, andere Bahnh&ouml;fe nur, solange jemand die Seite mit diesem Bahnhof offen hat. Graue Zeilen haben weniger als <?= (int) NB_ZUGLOG_MIN_TAGE ?> Tage.<?php if ($f['betreiber'] === 'db'): ?> DB Regio (RE6, RE7, RE70) kommt vom HVV (Geofox) und wird getrennt von der Nordbahn gez&auml;hlt: Elmshorn laufend, andere Bahnh&ouml;fe nur bei offener Seite. Teilausf&auml;lle der RE erkennt die Seite nicht.<?php endif; ?></p>
+	<p class="section__note">P&uuml;nktlich hei&szlig;t unter <?= (int) NB_ZUG_SPAET ?> Minuten Versp&auml;tung. Graue Zeilen haben weniger als <?= (int) NB_ZUGLOG_MIN_TAGE ?> Tage.</p>
 <?php else: ?>
 	<section class="section" aria-label="Kennzahlen">
 		<div class="stats">
@@ -217,7 +217,6 @@ function nb_filter_select($name, $label, array $optionen, $wert)
 			<p class="feed__empty">Keine St&ouml;rung im Zeitraum.</p>
 <?php endif; ?>
 		</div>
-		<p class="section__note">Quelle: strecken-info.de der DB InfraGO, Abschnitt Hamburg &ndash; Itzehoe / Wrist. Die Dauer ist die Zeit, in der die Meldung aktiv war. Eilmeldungen der Nordbahn und Hinweise ohne sp&uuml;rbare Folgen z&auml;hlen hier nicht mit. Alle St&ouml;rungen einzeln stehen unter <a href="<?= $root ?>stoerungen/">St&ouml;rungen</a>.</p>
 	</section>
 <?php endif; ?>
 </main>
