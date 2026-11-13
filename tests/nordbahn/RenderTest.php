@@ -149,7 +149,7 @@ function test_stoerung_hinweis_ohne_folgen()
     $data = ['received_at' => T_NOW, 'quellen' => ['strecken_info_ok' => true], 'stoerungen' => [$hinweis]];
     t_eq(['level' => 'ok', 'title' => 'Keine Infrastrukturstörung', 'detail' => '1 Hinweis ohne Folgen'], nb_status_infra($data), 'nur Hinweise: gruen mit Zeile');
     $data['stoerungen'] = [$hinweis, $stoerung];
-    t_eq(['level' => 'warn', 'title' => '1 leichte Infrastrukturstörung', 'detail' => ''], nb_status_infra($data), 'Hinweis zaehlt nicht mit');
+    t_eq(['level' => 'warn', 'title' => '1 leichte Infrastrukturstörung', 'detail' => 'Weichenstörung · seit 07:00 Uhr'], nb_status_infra($data, $jetzt), 'Hinweis zaehlt nicht mit, die Karte nennt die Stoerung');
     $data['quellen']['strecken_info_ok'] = false;
     $data['stoerungen'] = [$hinweis];
     t_eq('ok', nb_status_infra($data)['level'], 'Hinweis vorhanden heisst Quelle hat geantwortet');
@@ -439,6 +439,33 @@ function test_meldungen_tabs_und_kopf()
     t_contains('href="../">Start</a>', $kopf, 'Link zur Startseite');
 }
 
+/* ---------- Lagekarte Infrastruktur nennt die Stoerung ---------- */
+
+function test_status_infra_nennt_die_stoerung()
+{
+    $jetzt = nb_ts(T_NOW); // 15.10.2026, 10:00 Uhr
+    $st = ['key' => 'A', 'titel' => 'Störung an Signalanlagen', 'ki_titel' => 'Signalstörung bei Tornesch', 'einschraenkung' => 'mittel', 'wirkungen' => ['Verspätungen'], 'ki_folgen' => 'verspaetungen',
+        'beginn' => '2026-10-15T06:30:00Z', 'ende' => '2026-10-15T09:30:00Z'];
+    $data = ['received_at' => T_NOW, 'quellen' => ['strecken_info_ok' => true], 'stoerungen' => [$st]];
+    t_eq(['level' => 'alert', 'title' => '1 Infrastrukturstörung', 'detail' => 'Signalstörung bei Tornesch · voraussichtlich bis 11:30 Uhr'], nb_status_infra($data, $jetzt), 'eine Stoerung: Pendler-Titel und gemeldetes Ende');
+
+    t_eq('voraussichtlich bis morgen 11:30 Uhr', nb_stoerung_kurzzeit(['ende' => '2026-10-16T09:30:00Z'] + $st, $jetzt), 'Ende morgen');
+    t_eq('länger als gemeldet', nb_stoerung_kurzzeit(['ende' => '2026-10-15T07:30:00Z'] + $st, $jetzt), 'gemeldetes Ende vorbei');
+    t_eq('länger als gemeldet', nb_stoerung_kurzzeit(['abgelaufen' => true] + $st, $jetzt), 'Flag von strecken-info, Ende noch vorn');
+    t_eq('seit 08:30 Uhr', nb_stoerung_kurzzeit(['ende' => ''] + $st, $jetzt), 'ohne Ende der Beginn');
+    t_eq('seit gestern 08:30 Uhr', nb_stoerung_kurzzeit(['beginn' => '2026-10-14T06:30:00Z', 'ende' => ''] + $st, $jetzt), 'Beginn gestern');
+    t_eq('seit 08:30 Uhr', nb_stoerung_kurzzeit(['ende' => '2026-10-15T06:00:00Z'] + $st, $jetzt), 'Ende vor dem Beginn zaehlt nicht');
+    t_eq('', nb_stoerung_kurzzeit(['key' => 'X'], $jetzt), 'ohne Zeiten leer');
+    t_eq('Störung an Signalanlagen', nb_stoerung_titel(['ki_titel' => '', 'titel' => ' Störung an Signalanlagen ']), 'ohne Pendler-Titel der Originaltitel');
+    t_eq('Störung', nb_stoerung_titel([]), 'ohne Titel ein Platzhalter');
+
+    $zweite = ['key' => 'B', 'titel' => 'Weichenstörung – Elmshorn', 'ki_titel' => '', 'einschraenkung' => 'leicht', 'wirkungen' => ['Verspätungen'], 'ki_folgen' => 'verspaetungen', 'beginn' => '2026-10-15T07:00:00Z'];
+    $data['stoerungen'] = [$st, $zweite];
+    t_eq(['level' => 'alert', 'title' => '2 Infrastrukturstörungen', 'detail' => 'Signalstörung bei Tornesch · Weichenstörung – Elmshorn'], nb_status_infra($data, $jetzt), 'mehrere: nur die Titel');
+    $data['stoerungen'] = [];
+    t_eq(['level' => 'ok', 'title' => 'Keine Infrastrukturstörung', 'detail' => ''], nb_status_infra($data, $jetzt), 'ohne Stoerung unveraendert');
+}
+
 /** Alle section__title-Texte eines HTML-Schnipsels. */
 function t_titles($html)
 {
@@ -471,7 +498,7 @@ function test_lage_markdown()
     ]];
     $md = nb_lage_md($data, $abf, 'APD', $now);
     t_contains("# Bahn-Pinneberg.de: aktuelle Lage", $md, 'Titel');
-    t_contains('- Infrastruktur: 1 Infrastrukturstörung', $md, 'Statuszeile');
+    t_contains('- Infrastruktur: 1 Infrastrukturstörung (Verspätungen bei Eidelstedt · länger als gemeldet)', $md, 'Statuszeile nennt die Stoerung');
     t_contains("### Verspätungen bei Eidelstedt\n\nSignalstörung, Züge fahren auf dem Gegengleis.", $md, 'Pendler-Titel und -Text');
     t_contains('gemeldetes Ende heute, 09:00 Uhr überschritten, dauert an', $md, 'abgelaufen');
     t_contains('- 08:12 Uhr (+3 min): RB61 nach Hamburg Hbf. Gleis 2 statt 1. nur bis Pinneberg.', $md, 'Abfahrt mit Verspätung, Gleiswechsel, Teilausfall');

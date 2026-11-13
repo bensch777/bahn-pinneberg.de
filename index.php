@@ -4,11 +4,14 @@
  * und RB71 zwischen Hamburg, Elmshorn, Itzehoe und Wrist, gedacht fuer
  * Pendler entlang der Strecke.
  *
- * Auf einen Blick: aktive Stoerungen laut strecken-info.de, die naechsten
- * Abfahrten vom eigenen Bahnhof in die Stadt und ab Hamburg zurueck (der
- * Bahnhof ist waehlbar und bleibt im Browser gespeichert), und darueber in
- * einem Bereich die aktuellen Meldungen (Eilmeldungen, gerade aufgehobene
- * Stoerungen, HVV). Der Rueckblick steht auf news/, eilmeldungen/ und stoerungen/.
+ * Auf einen Blick, in dieser Reihenfolge: die Lagekarten (was ist los, in je
+ * zwei Zeilen), direkt darunter die naechsten Abfahrten vom eigenen Bahnhof in
+ * die Stadt und ab Hamburg zurueck (der Bahnhof ist waehlbar und bleibt im
+ * Browser gespeichert), dann in einem Bereich die Einzelheiten: laufende
+ * Stoerungen laut strecken-info.de als Karten und die aktuellen Meldungen
+ * (Eilmeldungen, gerade aufgehobene Stoerungen, HVV). Die Zuege stehen bewusst
+ * vor den Einzelheiten, damit sie auch an einem Stoerungstag ohne Scrollen
+ * sichtbar sind. Der Rueckblick steht auf news/, eilmeldungen/ und stoerungen/.
  *
  * Das Repo-Wurzelverzeichnis ist das Web-Root; alle Links sind relativ,
  * damit die Seite auch unter einem anderen Hostnamen laeuft. Die FAQ liegt
@@ -179,23 +182,6 @@ $jsonLd = [
 <?php endif; ?>
 		</div>
 		<p class="status-rest" id="status-rest"<?= $kompakt['rest'] === '' ? ' hidden' : '' ?>><?= nb_e($kompakt['rest']) ?></p>
-		<ul class="incidents" id="incidents"<?= $aktiv ? '' : ' hidden' ?>>
-<?php foreach ($stoerungenTeile['stoerungen'] as $st): ?>
-			<?= nb_render_incident($st, true) ?>
-
-<?php endforeach; ?>
-		</ul>
-	</section>
-
-	<section id="meldungen" class="section" aria-labelledby="meldungen-h"<?= $gfAktiv ? ' data-hvv' : '' ?><?= $meldungen ? '' : ' hidden' ?>>
-		<div class="section__head">
-			<h2 id="meldungen-h" class="section__title">Aktuelle Meldungen</h2>
-			<a class="section__more" href="<?= $root ?>news/">Verlauf</a>
-		</div>
-		<div class="card meldungen" id="meldungen-inhalt">
-			<?= nb_render_aktuelle_meldungen($meldungen) ?>
-
-		</div>
 	</section>
 
 	<section id="abfahrten" class="section" aria-labelledby="abfahrten-h" data-root="<?= $root ?>" data-endpoint="<?= $root ?>api/abfahrten" data-data-endpoint="<?= $root ?>api/data" data-heimat-default="<?= $heimat ?>"<?php if ($gfAktiv): ?> data-regio-endpoint="<?= $root ?>api/regio" data-regio-bahnhoefe="<?= implode(' ', array_keys(GF_REGIO_HEIMAT)) ?>"<?php endif; ?>>
@@ -230,6 +216,23 @@ $jsonLd = [
 				</div>
 				<ol class="board__list" aria-live="polite"></ol>
 			</div>
+		</div>
+	</section>
+
+	<section id="meldungen" class="section" aria-labelledby="meldungen-h"<?= $gfAktiv ? ' data-hvv' : '' ?><?= $aktiv || $meldungen ? '' : ' hidden' ?>>
+		<div class="section__head">
+			<h2 id="meldungen-h" class="section__title">Aktuelle Meldungen</h2>
+			<a class="section__more" href="<?= $root ?>news/">Verlauf</a>
+		</div>
+		<ul class="incidents" id="incidents"<?= $aktiv ? '' : ' hidden' ?>>
+<?php foreach ($stoerungenTeile['stoerungen'] as $st): ?>
+			<?= nb_render_incident($st, true) ?>
+
+<?php endforeach; ?>
+		</ul>
+		<div class="card meldungen" id="meldungen-inhalt"<?= $meldungen ? '' : ' hidden' ?>>
+			<?= nb_render_aktuelle_meldungen($meldungen) ?>
+
 		</div>
 	</section>
 

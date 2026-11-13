@@ -305,8 +305,46 @@ function nb_stoerungen_teilen(array $liste)
     return $out;
 }
 
-/** Karte 1: Infrastruktur laut strecken-info.de; Hinweise ohne Folgen zaehlen nicht, die gruene Karte nennt sie klein. */
-function nb_status_infra(array $data)
+/**
+ * Kurzangabe zum Zeitraum einer laufenden Stoerung fuer die Lagekarte (wie
+ * stoerungKurzzeit im Script): mit gemeldetem Ende "voraussichtlich bis 15:28 Uhr",
+ * ist es ueberschritten "länger als gemeldet", ohne Ende "seit 13:28 Uhr". Leer
+ * ohne Beginn und Ende.
+ */
+function nb_stoerung_kurzzeit(array $s, $now = null)
+{
+    $now = $now ?? time();
+    $start = nb_ts($s['beginn'] ?? '');
+    $ende = nb_ts($s['ende'] ?? '');
+    if ($ende !== null && $start !== null && $ende <= $start) {
+        $ende = null; // Ende vor dem Beginn ist keine Angabe (wie nb_zeitraum_satz)
+    }
+    if (!empty($s['abgelaufen']) || ($ende !== null && $now > $ende)) {
+        return 'länger als gemeldet';
+    }
+    if ($ende !== null) {
+        return 'voraussichtlich bis ' . nb_fmt_zeit_rel($ende, $now);
+    }
+
+    return $start !== null ? 'seit ' . nb_fmt_zeit_rel($start, $now) : '';
+}
+
+/** Titel einer Stoerung fuer die Anzeige: Pendler-Titel der KI, sonst der Originaltitel. */
+function nb_stoerung_titel(array $s)
+{
+    $titel = trim((string) (($s['ki_titel'] ?? '') !== '' ? $s['ki_titel'] : ($s['titel'] ?? '')));
+
+    return $titel !== '' ? $titel : 'Störung';
+}
+
+/**
+ * Karte 1: Infrastruktur laut strecken-info.de; Hinweise ohne Folgen zaehlen nicht, die
+ * gruene Karte nennt sie klein. Laeuft etwas, nennt die zweite Zeile die Stoerung beim
+ * Namen: eine einzelne mit Zeitangabe (nb_stoerung_kurzzeit), mehrere nur mit Titel.
+ * Die Stoerungskarten mit dem ganzen Text stehen auf der Startseite erst unter den
+ * Abfahrten, die Lagekarte muss also allein sagen, worum es geht.
+ */
+function nb_status_infra(array $data, $now = null)
 {
     $hasData = !empty($data['received_at']);
     $teile = nb_stoerungen_teilen($hasData ? ($data['stoerungen'] ?? []) : []);
@@ -328,11 +366,17 @@ function nb_status_infra(array $data)
             ? ['level' => 'ok', 'title' => 'Keine Infrastrukturstörung', 'detail' => $hinweise ? nb_plural($hinweise, 'Hinweis ohne Folgen', 'Hinweise ohne Folgen') : '']
             : ['level' => 'unknown', 'title' => 'Infrastrukturstörungen unbekannt', 'detail' => ''];
     }
+    if (count($list) === 1) {
+        $zeit = nb_stoerung_kurzzeit($list[0], $now);
+        $detail = nb_stoerung_titel($list[0]) . ($zeit !== '' ? ' · ' . $zeit : '');
+    } else {
+        $detail = implode(' · ', array_map('nb_stoerung_titel', $list));
+    }
     if ($schwer === 0) {
-        return ['level' => 'warn', 'title' => nb_plural(count($list), 'leichte Infrastrukturstörung', 'leichte Infrastrukturstörungen'), 'detail' => ''];
+        return ['level' => 'warn', 'title' => nb_plural(count($list), 'leichte Infrastrukturstörung', 'leichte Infrastrukturstörungen'), 'detail' => $detail];
     }
 
-    return ['level' => 'alert', 'title' => nb_plural(count($list), 'Infrastrukturstörung', 'Infrastrukturstörungen'), 'detail' => ''];
+    return ['level' => 'alert', 'title' => nb_plural(count($list), 'Infrastrukturstörung', 'Infrastrukturstörungen'), 'detail' => $detail];
 }
 
 /**
@@ -603,7 +647,7 @@ function nb_render_incident(array $s, $ausblendbar = false)
     }
 
     $weg = $ausblendbar && !empty($s['key']);
-    $html = '<li class="card incident"' . ($weg ? ' data-weg-id="' . nb_e('st:' . $s['key']) . '"' : '') . '><h4 class="incident__title">' . nb_e($titel) . '</h4>';
+    $html = '<li class="card incident"' . ($weg ? ' data-weg-id="' . nb_e('st:' . $s['key']) . '"' : '') . '><h3 class="incident__title">' . nb_e($titel) . '</h3>';
     $link = !empty($s['key']) && function_exists('nb_link') ? nb_link('stoerung', $s['key'], $titel) : '';
     if ($text !== '') {
         $html .= '<p class="incident__text">' . nb_e($text) . '</p>';
@@ -1694,7 +1738,7 @@ function nb_lage_md(array $data, $abf, $heimat, $now = null, $gf = null)
     $md .= 'Abgerufen am ' . (new DateTime('@' . (int) $now))->setTimezone(new DateTimeZone('Europe/Berlin'))->format('d.m.Y \u\m H:i') . " Uhr (Ortszeit Hamburg). Alle Zeiten Ortszeit; „heute“ und „gestern“ beziehen sich auf diesen Abruf.\n\n";
 
     $md .= "## Lage auf einen Blick\n\n";
-    $infra = nb_status_infra($data);
+    $infra = nb_status_infra($data, $now);
     $eil = nb_status_eil($data, $items);
     $betrieb = nb_status_betrieb($abf, nb_baufahrplan($data, $now));
     if ($betrieb['level'] === 'unknown') {

@@ -240,24 +240,6 @@ button.freshness:focus-visible { outline: 2px solid var(--series); outline-offse
 /* Abschnitte */
 .section { margin: 28px 0 0; }
 
-/* Handy: Kopf und Lagekarten kompakt, damit die Zuege ohne Scrollen sichtbar sind.
-   Der Vorspann bleibt im HTML (Suchmaschinen), die Kopfzeile nennt den Namen ohnehin. */
-@media (max-width: 560px) {
-	.page-head { padding: 14px 0 0; gap: 4px 16px; align-items: center; }
-	.page-head h1 { font-size: 19px; margin: 0; }
-	.page-head__lead { display: none; }
-	.freshness { font-size: 12px; }
-	.section { margin: 16px 0 0; }
-	.status-grid { gap: 6px; }
-	.status { padding: 8px 12px; gap: 10px; border-radius: 10px; }
-	.status__icon { width: 22px; height: 22px; font-size: 13px; }
-	.status__title { font-size: 14.5px; }
-	.status__title small { font-size: 12px; margin-top: 1px; }
-	.status-rest { margin-top: 6px; font-size: 12.5px; }
-	.incidents { margin-top: 8px; gap: 8px; }
-	.incident { padding: 12px 14px; }
-	.section__head { margin-bottom: 8px; }
-}
 .section__head { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; flex-wrap: wrap; margin-bottom: 12px; }
 .section__title { font-size: 17px; font-weight: 600; margin: 0 0 12px; letter-spacing: -0.01em; }
 .section__head .section__title { margin: 0; }
@@ -327,6 +309,9 @@ a.status:focus-visible { outline: 2px solid var(--series); outline-offset: 2px; 
 .status-rest::before { content: '\2713'; color: var(--good); font-weight: 700; margin-right: 6px; }
 
 .incidents { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 12px; }
+.incidents[hidden] { display: none; }
+/* Startseite: Stoerungskarten und Meldungsliste teilen sich den Bereich "Aktuelle Meldungen" unter den Abfahrten */
+.incidents:not([hidden]) + .meldungen { margin-top: 12px; }
 .incident { padding: 16px 18px; }
 .incident__title { margin: 0 0 4px; font-size: 16px; font-weight: 600; }
 .incident__text { margin: 0 0 10px; color: var(--ink-2); }
@@ -344,6 +329,27 @@ a.status:focus-visible { outline: 2px solid var(--series); outline-offset: 2px; 
 .incident__link a { color: var(--series); text-decoration: none; }
 .incident__link a::after { content: ' \2192'; }
 .incident__link a:hover { text-decoration: underline; }
+/* Handy: Kopf und Lagekarten kompakt, damit die Zuege ohne Scrollen sichtbar sind.
+   Der Vorspann bleibt im HTML (Suchmaschinen), die Kopfzeile nennt den Namen ohnehin.
+   Der Block muss hinter den Grundregeln fuer Lagekarten, Stoerungskarten und
+   Abschnittskopf stehen: bei gleicher Spezifitaet gewinnt die spaetere Regel. */
+@media (max-width: 560px) {
+	.page-head { padding: 14px 0 0; gap: 4px 16px; align-items: center; }
+	.page-head h1 { font-size: 19px; margin: 0; }
+	.page-head__lead { display: none; }
+	.freshness { font-size: 12px; }
+	.section { margin: 16px 0 0; }
+	.status-grid { gap: 6px; }
+	.status { padding: 8px 12px; gap: 10px; border-radius: 10px; }
+	.status__icon { width: 22px; height: 22px; font-size: 13px; }
+	.status__title { font-size: 14.5px; }
+	.status__title small { font-size: 12px; margin-top: 1px; }
+	.status-rest { margin-top: 6px; font-size: 12.5px; }
+	.incidents { margin-top: 8px; gap: 8px; }
+	.incidents:not([hidden]) + .meldungen { margin-top: 8px; }
+	.incident { padding: 12px 14px; }
+	.section__head { margin-bottom: 8px; }
+}
 /* Ereignisseite: Artikel in schmaler Lesespalte */
 .artikel { max-width: 760px; margin: 0 auto; padding: 36px 0 8px; }
 .artikel__kopf { margin: 0 0 22px; }

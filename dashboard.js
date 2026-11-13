@@ -366,15 +366,24 @@
 		// Karte 1: Infrastruktur laut strecken-info.de. Stuft strecken-info alle
 		// Stoerungen als "leicht" ein, bleibt die Karte orange; ab "mittel" wird sie rot.
 		// Hinweise ohne Folgen zaehlen nicht, die gruene Karte nennt sie klein.
+		// Laeuft etwas, nennt die zweite Zeile die Stoerung beim Namen (wie nb_status_infra): die
+		// Stoerungskarten mit dem ganzen Text stehen erst unter den Abfahrten.
 		var schwer = list.filter(function (st) { return !/^leicht/i.test(st.einschraenkung || ''); }).length;
+		var now = Date.now();
+		var wer = '';
+		if (list.length === 1) {
+			var kurz = stoerungKurzzeit(list[0], now);
+			wer = stoerungTitel(list[0]) + (kurz ? ' · ' + kurz : '');
+		} else if (list.length) {
+			wer = list.map(stoerungTitel).join(' · ');
+		}
 		if (!hasData) setStatus('status-infra', 'unknown', 'Noch keine Daten');
 		else if (list.length === 0 && (ok || hinweise)) setStatus('status-infra', 'ok', 'Keine Infrastrukturstörung', hinweise ? plural(hinweise, 'Hinweis ohne Folgen', 'Hinweise ohne Folgen') : '');
 		else if (list.length === 0) setStatus('status-infra', 'unknown', 'Infrastrukturstörungen unbekannt');
-		else if (schwer === 0) setStatus('status-infra', 'warn', plural(list.length, 'leichte Infrastrukturstörung', 'leichte Infrastrukturstörungen'));
-		else setStatus('status-infra', 'alert', plural(list.length, 'Infrastrukturstörung', 'Infrastrukturstörungen'));
+		else if (schwer === 0) setStatus('status-infra', 'warn', plural(list.length, 'leichte Infrastrukturstörung', 'leichte Infrastrukturstörungen'), wer);
+		else setStatus('status-infra', 'alert', plural(list.length, 'Infrastrukturstörung', 'Infrastrukturstörungen'), wer);
 
 		// Karte 2: Eilmeldungen der Nordbahn, akut siehe eilAkut
-		var now = Date.now();
 		var last = state.items.length ? state.items[state.items.length - 1] : null;
 		var akut = state.items.filter(function (it) { return eilAkut(it, now); }).pop();
 		if (!hasData) {
@@ -398,13 +407,32 @@
 			return { id: 'st:' + st.key, title: 'Infrastrukturstörung', body: t + (b ? ': ' + b : '') };
 		}));
 
+		// Die Karten stehen im Bereich "Aktuelle Meldungen" unter den Abfahrten; ob Liste und
+		// Bereich sichtbar sind, entscheidet wegAnwenden fuer Karten und Meldungen zusammen
 		var ul = document.getElementById('incidents');
 		if (ul) {
 			clear(ul);
-			ul.hidden = list.length === 0;
 			list.forEach(function (s) { ul.appendChild(renderIncident(s)); });
 			wegAnwenden();
 		}
+	}
+
+	/** Titel einer Stoerung fuer die Anzeige (wie nb_stoerung_titel): Pendler-Titel der KI, sonst der Originaltitel. */
+	function stoerungTitel(st) {
+		return String(st.ki_titel || st.titel || '').trim() || 'Störung';
+	}
+
+	/**
+	 * Kurzangabe zum Zeitraum einer laufenden Stoerung fuer die Lagekarte (wie nb_stoerung_kurzzeit):
+	 * "voraussichtlich bis 15:28 Uhr", nach dem gemeldeten Ende "länger als gemeldet", ohne Ende
+	 * "seit 13:28 Uhr".
+	 */
+	function stoerungKurzzeit(st, now) {
+		var start = Date.parse(st.beginn || ''), ende = Date.parse(st.ende || '');
+		if (!isNaN(ende) && !isNaN(start) && ende <= start) ende = NaN;
+		if (st.abgelaufen || (!isNaN(ende) && now > ende)) return 'länger als gemeldet';
+		if (!isNaN(ende)) return 'voraussichtlich bis ' + fmtZeitRel(ende);
+		return isNaN(start) ? '' : 'seit ' + fmtZeitRel(start);
 	}
 
 	/**
@@ -523,7 +551,7 @@
 		ende = isNaN(ende) ? null : ende;
 
 		return el('li', s.key ? { class: 'card incident', 'data-weg-id': 'st:' + s.key } : { class: 'card incident' }, [
-			el('h4', { class: 'incident__title', text: titel }),
+			el('h3', { class: 'incident__title', text: titel }),
 			text ? el('p', { class: 'incident__text', text: text }) : null,
 			el('p', { class: 'zeitraum', text: fmtZeitraum(start, ende, now, !!s.abgelaufen) }),
 			zeitbalken(start, ende, now, !!s.abgelaufen),
@@ -648,16 +676,21 @@
 	/**
 	 * Wendet die Auswahl auf Stoerungskarten und "Aktuelle Meldungen" an, egal ob sie vom
 	 * Server oder vom Script kommen: weggeklickte Eintraege werden versteckt, die Knoepfe
-	 * sichtbar. Bleibt in einer Liste nichts uebrig, verschwindet sie wie bei ruhiger Lage.
+	 * sichtbar. Beide stehen im selben Bereich unter den Abfahrten; bleibt in einer Liste
+	 * nichts uebrig, verschwindet sie, ohne Karte und ohne Meldung der ganze Bereich wie
+	 * bei ruhiger Lage.
 	 */
 	function wegAnwenden() {
 		var weg = wegLesen();
 		Array.prototype.forEach.call(document.querySelectorAll('.feed__weg, .incident__weg'), function (b) { b.hidden = false; });
 		var ul = document.getElementById('incidents');
-		if (ul) ul.hidden = !wegZaehlen(ul.querySelectorAll(':scope > li'), weg);
+		var karten = ul ? wegZaehlen(ul.querySelectorAll(':scope > li'), weg) : 0;
+		if (ul) ul.hidden = !karten;
 		var section = document.getElementById('meldungen');
 		var box = document.getElementById('meldungen-inhalt');
-		if (section && box) section.hidden = !wegZaehlen(box.querySelectorAll('#meldungen-feed > li'), weg);
+		var meldungen = box ? wegZaehlen(box.querySelectorAll('#meldungen-feed > li'), weg) : 0;
+		if (box) box.hidden = !meldungen;
+		if (section) section.hidden = !(karten + meldungen);
 	}
 
 	/** Klick auf ×: blendet die Meldung des Eintrags aus. */
@@ -673,7 +706,7 @@
 		});
 	}
 
-	/** Bereich "Aktuelle Meldungen" (wie nb_render_aktuelle_meldungen); ohne Meldung ausgeblendet. */
+	/** Liste im Bereich "Aktuelle Meldungen" (wie nb_render_aktuelle_meldungen), unter den Stoerungskarten. */
 	function renderMeldungen() {
 		var section = document.getElementById('meldungen');
 		var box = document.getElementById('meldungen-inhalt');
@@ -683,12 +716,12 @@
 		var now = Date.now();
 		var liste = aktuelleMeldungen(now);
 		clear(box);
-		// Ohne aktuelle Meldung bleibt der Bereich ganz weg
-		section.hidden = !liste.length;
-		if (!liste.length) return;
-		var ol = el('ol', { class: 'feed', id: 'meldungen-feed' });
-		liste.forEach(function (it) { ol.appendChild(it.art === 'hvv' ? hvvEintrag(it.meldung, now) : meldungEintrag(it)); });
-		box.appendChild(ol);
+		if (liste.length) {
+			var ol = el('ol', { class: 'feed', id: 'meldungen-feed' });
+			liste.forEach(function (it) { ol.appendChild(it.art === 'hvv' ? hvvEintrag(it.meldung, now) : meldungEintrag(it)); });
+			box.appendChild(ol);
+		}
+		// Ohne Meldung und ohne Stoerungskarte bleibt der Bereich ganz weg
 		wegAnwenden();
 	}
 
