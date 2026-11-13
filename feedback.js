@@ -1,8 +1,8 @@
 /*
- * Feedback-Dialog (Knopf unten links auf jeder Seite, Markup in nb_render_feedback):
- * oeffnet den <dialog>, schickt das Formular per fetch an api/feedback und zeigt
- * die Antwort an. Ohne Script bleibt der Knopf versteckt, der Dialog liesse sich
- * sonst nicht oeffnen.
+ * Feedback-Dialog (Eintrag "Feedback geben" im Footer, Markup in nb_render_feedback_link
+ * und nb_render_feedback): oeffnet den <dialog>, schickt das Formular per fetch an
+ * api/feedback und zeigt die Antwort an. Ohne Script bleibt der Eintrag versteckt, der
+ * Dialog liesse sich sonst nicht oeffnen.
  */
 (function () {
 	'use strict';
@@ -44,7 +44,8 @@
 		else dialog.removeAttribute('open');
 	}
 
-	knopf.hidden = false;
+	var eintrag = knopf.closest ? knopf.closest('li') : knopf.parentNode;
+	if (eintrag) eintrag.hidden = false;
 	knopf.addEventListener('click', oeffnen);
 	if (schliessen) schliessen.addEventListener('click', zu);
 	// Klick auf den Hintergrund schliesst; innerhalb des Dialogs liegt das Ziel im Inhalt

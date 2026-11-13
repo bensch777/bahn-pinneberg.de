@@ -103,7 +103,7 @@ function nordbahn_plausible_js()
 
 /**
  * Discord-Webhook fuer das Feedback-Formular (NORDBAHN_FEEDBACK_WEBHOOK in config.php),
- * leer wenn nicht eingerichtet; dann zeigt keine Seite den Feedback-Knopf.
+ * leer wenn nicht eingerichtet; dann zeigt kein Footer den Feedback-Eintrag.
  */
 function nordbahn_feedback_webhook()
 {

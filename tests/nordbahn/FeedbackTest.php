@@ -81,13 +81,14 @@ function test_feedback_nachricht_und_markup()
     t_eq(['Browser'], array_column(nb_feedback_nachricht(['kontakt' => '', 'seite' => ''] + $d, 'https://x', $now)['embeds'][0]['fields'], 'name'), 'ohne Seite und Kontakt nur Browser');
     t_eq('Fehler gemeldet', nb_feedback_nachricht(['art' => 'fehler'] + $d, 'https://x', $now)['embeds'][0]['title'], 'Fehler');
 
+    t_contains('<li class="site-foot__feedback" hidden><button type="button" class="site-foot__knopf" id="feedback-open" aria-haspopup="dialog" aria-controls="feedback-dialog">Feedback geben</button></li>', nb_render_feedback_link(), 'Footer-Eintrag bis zum Script versteckt');
     $html = nb_render_feedback('../');
-    t_contains('<button type="button" class="feedback" id="feedback-open" aria-haspopup="dialog" aria-controls="feedback-dialog" hidden>', $html, 'Knopf bis zum Script versteckt');
+    t_eq(false, strpos($html, 'feedback-open'), 'kein schwebender Knopf mehr');
     t_contains('<dialog class="feedback-dialog" id="feedback-dialog" aria-labelledby="feedback-titel">', $html, 'Dialog');
     t_contains('<form class="feedback-form" id="feedback-form" method="post" action="../api/feedback" novalidate>', $html, 'Formular zum Endpunkt');
     t_contains('name="website" tabindex="-1"', $html, 'Honeypot');
     t_contains('<option value="sonst" selected>Sonstiges</option>', $html, 'Sonstiges vorausgewaehlt');
     t_contains('<script src="../feedback.js?v=', $html, 'Script dabei');
     t_eq('', nordbahn_feedback_webhook(), 'ohne config.php kein Webhook');
-    t_eq(false, strpos(t_seite_rendern('faq/index.php'), 'feedback-open'), 'ohne Webhook kein Knopf im Footer');
+    t_eq(false, strpos(t_seite_rendern('faq/index.php'), 'feedback-open'), 'ohne Webhook kein Feedback-Eintrag im Footer');
 }

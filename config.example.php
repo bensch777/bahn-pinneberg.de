@@ -42,9 +42,9 @@ return [
     'NORDBAHN_GEOFOX_URL'      => '',
     'NORDBAHN_GEOFOX_VERSION'  => '',
 
-    // Discord-Webhook fuer das Feedback-Formular (Knopf unten links auf jeder
-    // Seite, api/feedback.php). In Discord: Kanal, Integrationen, Webhook anlegen
-    // und die Adresse hier eintragen. Leer: kein Feedback-Knopf.
+    // Discord-Webhook fuer das Feedback-Formular (Eintrag "Feedback geben" im Footer
+    // jeder Seite, api/feedback.php). In Discord: Kanal, Integrationen, Webhook anlegen
+    // und die Adresse hier eintragen. Leer: kein Feedback-Eintrag.
     'NORDBAHN_FEEDBACK_WEBHOOK' => '',
 
     // Token fuer den Domain-Nachweis im ChatGPT-App-Verzeichnis (platform.openai.com,
