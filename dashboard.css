@@ -37,7 +37,7 @@
 	--surface-2: #f1f1ee;
 	--ink: #0b0b0b;
 	--ink-2: #52514e;
-	--muted: #898781;
+	--muted: #706e68;           /* Nebentext: mindestens 4,5:1 auf Seite, Karte und surface-2 (WCAG AA), vorher #898781 mit 3,3:1 */
 	--line: #e1e0d9;
 	--grid: #e8e7e1;
 	--axis: #c3c2b7;
@@ -772,6 +772,10 @@ a.status:focus-visible { outline: 2px solid var(--series); outline-offset: 2px; 
 	.dep--skelett { min-height: 57px; }
 	.board[data-richtung="rueck"] .dep--skelett { min-height: 75px; }
 }
+/* bei 360 px bricht die Zeile zum Dammtor um */
+@media (max-width: 365px) {
+	.board[data-richtung="rueck"] .dep--skelett { min-height: 92px; }
+}
 html:not(.js) .dep--skelett { display: none; }
 .dep--skelett .dep__dot { align-self: center; margin-top: 0; background: var(--surface-2); }
 .skelett { display: block; height: 13px; border-radius: 5px; background: var(--surface-2); }
@@ -793,6 +797,20 @@ html:not(.js) .dep--skelett { display: none; }
 	.dep__time { font-size: 18px; }
 	.dep__dot { margin-top: 7px; }
 	.dep__dest { font-size: 14px; }
+}
+/* Schmale Handys (360 bis 375 px, die meisten Android-Geraete): Karte und Zeile ruecken
+   seitlich zusammen, die Zielspalte gewinnt rund 18 px. Damit passen "an Prisdorf 15:40"
+   und der Halt am Dammtor in je eine Zeile, statt die Zeile in die Hoehe zu treiben.
+   Die Zeitspalte bleibt breit genug fuer "+22 → 16:39". */
+@media (max-width: 380px) {
+	.board { padding: 12px 14px 6px; }
+	.dep { grid-template-columns: 10px 64px 48px 1fr auto; gap: 0 6px; }
+	.dep--next::before { left: -14px; }
+	.dep--lauf { padding-right: 14px; }
+	.dep--lauf::after { right: 0; }
+	/* Lange Woerter in Hinweisen ("Signalstörung") umbrechen statt abschneiden, Ursachen mit Trennstrich */
+	.dep__dest small { overflow-wrap: anywhere; }
+	.dep__dest small:not([class]) { -webkit-hyphens: auto; hyphens: auto; }
 }
 
 /* Statistik: Filterleiste, Legende und Verlauf je Tag */

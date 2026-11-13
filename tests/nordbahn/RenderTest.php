@@ -500,7 +500,7 @@ function test_meldungen_tabs_und_kopf()
 
     $karte = nb_render_status_card('status-infra', ['level' => 'warn', 'title' => '2 leichte Infrastrukturstörungen', 'detail' => ''], false, './aktuell/');
     t_contains('<a class="card status status--warn" id="status-infra" href="./aktuell/" data-ssr>', $karte, 'Lagekarte als Link');
-    t_contains('</h3></a>', $karte, 'Link sauber geschlossen');
+    t_contains('</h2></a>', $karte, 'Link sauber geschlossen');
     t_contains('<div class="card status status--ok" id="status-betrieb" data-ssr hidden>', nb_render_status_card('status-betrieb', ['level' => 'ok', 'title' => 'ok', 'detail' => ''], true), 'Lagekarte ohne Link bleibt ein div');
     t_contains('<a class="nav-menu__link nav-menu__link--klein" href="../faq/">', $kopf, 'FAQ im Handy-Menue');
     t_contains('href="../">Start</a>', $kopf, 'Link zur Startseite');

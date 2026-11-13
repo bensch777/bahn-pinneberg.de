@@ -673,11 +673,12 @@ function nb_render_status_card($id, array $st, $versteckt = false, $href = '')
     $tag = $href !== '' ? 'a' : 'div';
     $html = '<' . $tag . ' class="card status status--' . nb_e($st['level']) . '" id="' . nb_e($id) . '"' . ($href !== '' ? ' href="' . nb_e($href) . '"' : '') . ' data-ssr' . ($versteckt ? ' hidden' : '') . '>';
     $html .= '<div class="status__icon" aria-hidden="true">' . ($icons[$st['level']] ?? '?') . '</div>';
-    $html .= '<h3 class="status__title">' . nb_e($st['title']);
+    // h2: die Lagekarten stehen direkt unter der h1, die Abschnitte darunter sind ebenfalls h2
+    $html .= '<h2 class="status__title">' . nb_e($st['title']);
     if ($st['detail'] !== '') {
         $html .= '<small>' . nb_e($st['detail']) . '</small>';
     }
-    $html .= '</h3></' . $tag . '>';
+    $html .= '</h2></' . $tag . '>';
 
     return $html;
 }

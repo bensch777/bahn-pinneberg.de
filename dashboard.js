@@ -293,7 +293,7 @@
 		box.className = 'card status status--' + level;
 		clear(box);
 		box.appendChild(el('div', { class: 'status__icon', 'aria-hidden': 'true', text: icons[level] || '?' }));
-		var h = el('h3', { class: 'status__title', text: title });
+		var h = el('h2', { class: 'status__title', text: title });
 		if (detail) h.appendChild(el('small', { text: detail }));
 		box.appendChild(h);
 		renderKompakt();
@@ -1002,7 +1002,7 @@
 					else {
 						var dtLate = dt.verspaetung >= 3;
 						dest.appendChild(el('small', { class: 'dep__dammtor', text: 'Dammtor ' + fmtClock(dtLate && dt.ist ? dt.ist : dt.zeit) + (dtLate ? ' (+' + dt.verspaetung + ')' : '')
-							+ (dt.gleis ? ', Gl. ' + dt.gleis + (dt.gleis_plan ? ' (statt ' + dt.gleis_plan + ')' : '') : '') }));
+							+ (dt.gleis ? ', Gl.\u00a0' + dt.gleis + (dt.gleis_plan ? ' (statt ' + dt.gleis_plan + ')' : '') : '') }));
 					}
 				}
 				if (d.hinweis) dest.appendChild(el('small', { text: d.hinweis }));
@@ -1011,7 +1011,7 @@
 					var e = d.ersatz;
 					var eLate = e.verspaetung >= 3;
 					dest.appendChild(el('small', { class: 'dep__ersatz', text: 'Fährt stattdessen ab ' + e.ab + ' um ' + fmtClock(e.zeit)
-						+ (eLate ? ' (+' + e.verspaetung + ')' : '') + (e.gleis ? ', Gl. ' + e.gleis + (e.gleis_plan ? ' (statt ' + e.gleis_plan + ')' : '') : '') }));
+						+ (eLate ? ' (+' + e.verspaetung + ')' : '') + (e.gleis ? ', Gl.\u00a0' + e.gleis + (e.gleis_plan ? ' (statt ' + e.gleis_plan + ')' : '') : '') }));
 				}
 
 				// Gleiswechsel: das heutige Gleis faellt auf, das Plangleis steht klein darunter
