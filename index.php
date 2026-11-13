@@ -11,7 +11,9 @@
  * Stoerungen laut strecken-info.de als Karten und die aktuellen Meldungen
  * (Eilmeldungen, gerade aufgehobene Stoerungen, HVV). Die Zuege stehen bewusst
  * vor den Einzelheiten, damit sie auch an einem Stoerungstag ohne Scrollen
- * sichtbar sind. Der Rueckblick steht auf news/, eilmeldungen/ und stoerungen/.
+ * sichtbar sind. Darunter der Ausblick auf geplante Fahrplanaenderungen
+ * (Sonderfahrplaene der Nordbahn, die gelten oder bald beginnen) und die S3.
+ * Der Rueckblick steht auf news/, eilmeldungen/ und stoerungen/.
  *
  * Das Repo-Wurzelverzeichnis ist das Web-Root; alle Links sind relativ,
  * damit die Seite auch unter einem anderen Hostnamen laeuft. Die FAQ liegt
@@ -69,6 +71,8 @@ if ($gfAktiv) {
 }
 $kompakt = nb_status_kompakt($cards);
 $meldungen = nb_aktuelle_meldungen($data, $gfAktiv ? ($gf['s3']['meldungen'] ?? []) : null);
+// Sonderfahrplaene, die gelten oder bald beginnen (ohne den Baufahrplan, den die Lagekarte nennt)
+$ausblick = nb_ausblick($data);
 // Fuer das Vorschaubild hebt die S3 die Lage hoechstens auf "warn": die Nordbahn bleibt das Thema
 $ogCards = $cards;
 if (($ogCards['s3']['level'] ?? '') === 'alert') {
@@ -236,6 +240,18 @@ $jsonLd = [
 		</div>
 	</section>
 
+<?php if ($ausblick): ?>
+	<section id="ausblick" class="section" aria-labelledby="ausblick-h">
+		<div class="section__head">
+			<h2 id="ausblick-h" class="section__title">Geplante Fahrplan&auml;nderungen</h2>
+		</div>
+		<div class="card meldungen">
+			<?= nb_render_ausblick($ausblick, null, true) ?>
+
+		</div>
+	</section>
+
+<?php endif; ?>
 <?php if ($gfAktiv): ?>
 	<section id="s3" class="section" aria-labelledby="s3-h" data-endpoint="<?= $root ?>api/s3" data-stadt-default="<?= GF_STADT_DEFAULT ?>">
 		<div class="section__head">

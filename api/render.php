@@ -468,6 +468,118 @@ function nb_baufahrplan_text(array $bau)
     return ($bis ? 'Bis ' . $bis->format('d.m.') . ': ' : '') . $text;
 }
 
+/* ---------- Ausblick: geplante Fahrplanaenderungen ----------
+ * Die Sonderfahrplaene der Nordbahn (Bauarbeiten, Ersatzverkehr) tragen einen
+ * Zeitraum. Was die eigenen Linien betrifft und gerade gilt oder in den naechsten
+ * NB_AUSBLICK_TAGE Tagen beginnt, steht auf der Startseite und unter /aktuell/ als
+ * kurze Liste, damit Pendler es vorher wissen und nicht erst am Bahnsteig. */
+
+const NB_AUSBLICK_TAGE = 14;   // so weit voraus beginnt ein Sonderfahrplan, um schon genannt zu werden
+const NB_AUSBLICK_MAX  = 4;    // hoechstens so viele Eintraege
+
+/**
+ * Sonderfahrplaene zu RB60, RB61 und RB71, die heute gelten oder bald beginnen:
+ * erst die laufenden (fruehestes Ende zuerst), dann die kommenden (fruehester Beginn
+ * zuerst). Der Sonderfahrplan, nach dem die Zuege gerade ab/bis Altona fahren
+ * (nb_baufahrplan), fehlt hier: den nennt schon die Lagekarte der Nordbahn.
+ * Eintraege ohne Liniennennung bleiben draussen, etwa Hinweise zu Aufzuegen oder
+ * zu anderen Linien der Nordbahn.
+ *
+ * @return array Liste aus id, text (Titel ohne Zeitraum vorn), von, bis (Y-m-d), laeuft, link
+ */
+function nb_ausblick(array $data, $now = null)
+{
+    $now = $now ?? time();
+    $tz = new DateTimeZone('Europe/Berlin');
+    $heute = (new DateTime('@' . $now))->setTimezone($tz)->format('Y-m-d');
+    $grenze = (new DateTime('@' . $now))->setTimezone($tz)->modify('+' . NB_AUSBLICK_TAGE . ' days')->format('Y-m-d');
+    $bau = nb_baufahrplan($data, $now);
+    $out = [];
+    foreach ($data['sonderfahrplaene'] ?? [] as $s) {
+        $von = (string) ($s['von'] ?? '');
+        $bis = (string) ($s['bis'] ?? '');
+        $titel = trim((string) ($s['title'] ?? ''));
+        if ($titel === '' || $von === '' || $bis === '' || $bis < $von || $bis < $heute || $von > $grenze) {
+            continue;
+        }
+        if (!preg_match('/\bRB\s?(60|61|71)\b/i', $titel) || ($bau !== null && ($bau['id'] ?? '') === ($s['id'] ?? null))) {
+            continue;
+        }
+        $text = trim(preg_replace('/^[^:]*\d{1,2}\.\d{1,2}\.(\d{2,4})?\s*:\s*/u', '', $titel));
+        $out[] = ['id' => (string) ($s['id'] ?? ''), 'text' => $text !== '' ? $text : $titel, 'von' => $von, 'bis' => $bis, 'laeuft' => $von <= $heute, 'link' => (string) ($s['link'] ?? '')];
+    }
+    usort($out, function ($a, $b) {
+        // laufende vor kommenden; laufende nach Ende, kommende nach Beginn
+        return [(int) !$a['laeuft'], $a['laeuft'] ? $a['bis'] : $a['von'], $a['id']] <=> [(int) !$b['laeuft'], $b['laeuft'] ? $b['bis'] : $b['von'], $b['id']];
+    });
+
+    return array_slice($out, 0, NB_AUSBLICK_MAX);
+}
+
+/** "Sa., 21.11." aus einem Datum Y-m-d; heute und morgen als Wort. */
+function nb_fmt_datum_kurz($ymd, $now = null)
+{
+    $tz = new DateTimeZone('Europe/Berlin');
+    $heute = (new DateTime('@' . ($now ?? time())))->setTimezone($tz);
+    if ($ymd === $heute->format('Y-m-d')) {
+        return 'heute';
+    }
+    if ($ymd === (clone $heute)->modify('+1 day')->format('Y-m-d')) {
+        return 'morgen';
+    }
+    $d = DateTime::createFromFormat('!Y-m-d', (string) $ymd, $tz);
+    if (!$d) {
+        return (string) $ymd;
+    }
+
+    return ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'][(int) $d->format('N') - 1] . '., ' . $d->format('d.m.');
+}
+
+/**
+ * Wann ein Eintrag des Ausblicks gilt, als Hauptzeile und kleine zweite Zeile:
+ *   laeuft         ["Bis So., 22.11.", ""], am letzten Tag ["Nur noch heute", ""]
+ *   kommt          ["Ab Sa., 21.11.", "bis Mo., 23.11."], an einem Tag ["Sa., 21.11.", ""]
+ */
+function nb_ausblick_wann(array $it, $now = null)
+{
+    $von = nb_fmt_datum_kurz($it['von'], $now);
+    $bis = nb_fmt_datum_kurz($it['bis'], $now);
+    if ($it['laeuft']) {
+        return [$bis === 'heute' ? 'Nur noch heute' : 'Bis ' . $bis, ''];
+    }
+    if ($it['von'] === $it['bis']) {
+        return [mb_strtoupper(mb_substr($von, 0, 1)) . mb_substr($von, 1), ''];
+    }
+
+    return ['Ab ' . $von, 'bis ' . $bis];
+}
+
+/**
+ * Der Ausblick als Liste im Stil der Meldungen. $ausblendbar: mit Knopf zum
+ * Wegklicken (Startseite, Kennung sf:<id>), siehe nb_weg_knopf(). Leer ohne Eintrag.
+ * Die Liste rendert nur der Server: Sonderfahrplaene aendern sich selten, die
+ * Startseite laedt ohnehin jede Stunde neu.
+ */
+function nb_render_ausblick(array $items, $now = null, $ausblendbar = false)
+{
+    if (!$items) {
+        return '';
+    }
+    $html = '<ol class="feed" id="ausblick-feed">';
+    foreach ($items as $it) {
+        [$wann, $zusatz] = nb_ausblick_wann($it, $now);
+        $weg = $ausblendbar && $it['id'] !== '';
+        $titel = $it['link'] !== '' ? '<a href="' . nb_e($it['link']) . '" rel="noopener nofollow">' . nb_e($it['text']) . '</a>' : nb_e($it['text']);
+        $html .= '<li class="is-heute"' . ($weg ? ' data-weg-id="' . nb_e('sf:' . $it['id']) . '"' : '') . '>'
+            . '<div class="feed__time">' . nb_e($wann) . ($zusatz !== '' ? '<span>' . nb_e($zusatz) . '</span>' : '') . '</div><div>'
+            . '<p class="feed__kicker feed__kicker--plan">' . ($it['laeuft'] ? 'Sonderfahrplan <span class="dep__ab dep__ab--aktiv">gilt gerade</span>' : 'Sonderfahrplan') . '</p>'
+            . '<p class="feed__title">' . $titel . '</p></div>'
+            . ($weg ? nb_weg_knopf('feed__weg', 'Sonderfahrplan') : '') . '</li>';
+    }
+
+    return $html . '</ol>';
+}
+
 /**
  * Karte 3: Fahrplanlage nach dem Anteil betroffener Zuege (wie renderBetrieb im Script).
  * Mit $bau (nb_baufahrplan) sind Fahrten ueber Altona planmaessig: die Karte ist dann
@@ -1866,6 +1978,15 @@ function nb_lage_md(array $data, $abf, $heimat, $now = null, $gf = null)
         $md .= '- ' . $titel . ' (' . nb_ereignis_url('stoerung', $s['key'], $titel) . ")\n";
     }
     if (isset($hinweisKopf)) {
+        $md .= "\n";
+    }
+    $ausblick = nb_ausblick($data, $now);
+    if ($ausblick) {
+        $md .= "## Geplante Fahrplanänderungen\n\nSonderfahrpläne der Nordbahn zu RB60, RB61 und RB71, die gerade gelten oder in den nächsten " . NB_AUSBLICK_TAGE . " Tagen beginnen.\n\n";
+        foreach ($ausblick as $it) {
+            [$wann, $zusatz] = nb_ausblick_wann($it, $now);
+            $md .= '- ' . $wann . ($zusatz !== '' ? ' ' . $zusatz : '') . ': ' . $it['text'] . ($it['link'] !== '' ? ' (' . $it['link'] . ')' : '') . "\n";
+        }
         $md .= "\n";
     }
     $md .= "## Letzte Eilmeldungen der Nordbahn\n\n";

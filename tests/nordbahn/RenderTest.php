@@ -115,6 +115,54 @@ function test_payload_sonderfahrplaene_bereinigt()
     t_eq([], nordbahn_clean_payload(['eilmeldungen' => []])['sonderfahrplaene'], 'altes Paket ohne Feld');
 }
 
+/* ---------- Ausblick: geplante Fahrplanaenderungen ---------- */
+
+function test_ausblick_laufende_und_kommende_sonderfahrplaene()
+{
+    $ts = function ($s) { return (new DateTime($s, new DateTimeZone('Europe/Berlin')))->getTimestamp(); };
+    $now = $ts('2026-10-20 08:00'); // Dienstag
+    $data = ['sonderfahrplaene' => [
+        t_bau(), // 26.10. bis 02.11., Altona
+        t_bau(['id' => 'sev-932', 'title' => 'Gleis 13/14 im Hamburger Hauptbahnhof vom 08.06. bis 30.11.2026 nicht barrierefrei zu erreichen', 'von' => '2026-05-28', 'bis' => '2026-12-31']),
+        t_bau(['id' => 'sev-1030', 'title' => '19.10. - 21.10.: Ersatzverkehr mit Bussen zwischen Elmshorn und Itzehoe (RB 61)', 'von' => '2026-10-19', 'bis' => '2026-10-21', 'link' => '']),
+        t_bau(['id' => 'sev-1031', 'title' => 'Nachts: letzte Züge der RB71 enden in Pinneberg', 'von' => '2026-10-21', 'bis' => '2026-10-21']),
+        t_bau(['id' => 'sev-1032', 'title' => '10.10. - 18.10.: Bauarbeiten RB 61', 'von' => '2026-10-10', 'bis' => '2026-10-18']),
+        t_bau(['id' => 'sev-1033', 'title' => '20.11. - 22.11.: Bauarbeiten RB 61', 'von' => '2026-11-20', 'bis' => '2026-11-22']),
+        t_bau(['id' => 'sev-1034', 'title' => '22.10. - 23.10.: Ersatzverkehr RB 82 zwischen Bad Oldesloe und Neumünster', 'von' => '2026-10-22', 'bis' => '2026-10-23']),
+    ]];
+    $liste = nb_ausblick($data, $now);
+    t_eq(['sev-1030', 'sev-1031', 'sev-1025'], array_column($liste, 'id'), 'laufende zuerst, dann kommende nach Beginn; ohne Linie, vorbei, zu weit weg und fremde Linie fehlen');
+    t_eq([true, false, false], array_column($liste, 'laeuft'), 'laeuft');
+    t_eq('Ersatzverkehr mit Bussen zwischen Elmshorn und Itzehoe (RB 61)', $liste[0]['text'], 'Titel ohne Zeitraum vorn');
+    t_eq('Nachts: letzte Züge der RB71 enden in Pinneberg', $liste[1]['text'], 'Titel ohne Datum bleibt, wie er ist');
+
+    t_eq(['Bis morgen', ''], nb_ausblick_wann($liste[0], $now), 'laeuft bis morgen');
+    t_eq(['Morgen', ''], nb_ausblick_wann($liste[1], $now), 'ein einzelner Tag');
+    t_eq(['Ab Mo., 26.10.', 'bis Mo., 02.11.'], nb_ausblick_wann($liste[2], $now), 'kommt, mehrere Tage');
+    t_eq(['Nur noch heute', ''], nb_ausblick_wann($liste[0], $ts('2026-10-21 08:00')), 'letzter Tag');
+    t_eq(['Ab morgen', 'bis Mo., 02.11.'], nb_ausblick_wann($liste[2], $ts('2026-10-25 08:00')), 'beginnt morgen');
+
+    // Gilt der Altona-Baufahrplan, nennt ihn die Lagekarte; im Ausblick steht er dann nicht noch einmal
+    t_eq([], array_column(nb_ausblick(['sonderfahrplaene' => [t_bau()]], $ts('2026-10-27 08:00')), 'id'), 'aktiver Baufahrplan fehlt im Ausblick');
+    t_eq(['sev-1026'], array_column(nb_ausblick(['sonderfahrplaene' => [t_bau(), t_bau(['id' => 'sev-1026', 'title' => 'Ersatzverkehr RB 61 zwischen Elmshorn und Itzehoe'])]], $ts('2026-10-27 08:00')), 'id'), 'andere laufende bleiben');
+    t_eq([], nb_ausblick([], $now), 'ohne Sonderfahrplaene');
+    t_eq([], nb_ausblick(['sonderfahrplaene' => [t_bau(['von' => '2026-10-28', 'bis' => '2026-10-26'])]], $now), 'Ende vor Beginn zaehlt nicht');
+
+    $html = nb_render_ausblick($liste, $now, true);
+    t_contains('<ol class="feed" id="ausblick-feed">', $html, 'Liste');
+    t_contains('<li class="is-heute" data-weg-id="sf:sev-1030"><div class="feed__time">Bis morgen</div>', $html, 'laufender Eintrag mit Kennung zum Wegklicken');
+    t_contains('Sonderfahrplan <span class="dep__ab dep__ab--aktiv">gilt gerade</span>', $html, 'laufend markiert');
+    t_contains('<div class="feed__time">Ab Mo., 26.10.<span>bis Mo., 02.11.</span></div>', $html, 'Zeitraum in zwei Zeilen');
+    t_contains('<a href="https://www.nordbahn.de/reiseplanung/eilmeldungen-sonderfahrplaene/sev-1025/" rel="noopener nofollow">Alle Züge der Linien RB 61 und RB 71 fahren ab/bis Hamburg-Altona; Ersatzverkehr mit Bussen zwischen Elmshorn und Itzehoe</a>', $html, 'Link zur Nordbahn');
+    t_contains('<p class="feed__title">Ersatzverkehr mit Bussen zwischen Elmshorn und Itzehoe (RB 61)</p>', $html, 'ohne Link nur Text');
+    t_eq(false, strpos(nb_render_ausblick($liste, $now), 'data-weg-id'), 'auf /aktuell/ ohne Knopf');
+    t_eq('', nb_render_ausblick([], $now), 'leer');
+
+    $md = nb_lage_md(['received_at' => null, 'stoerungen' => [], 'eilmeldungen' => [], 'eilmeldungen_live' => [], 'stoerungen_verlauf' => []] + $data, null, 'APD', $now);
+    t_contains("## Geplante Fahrplanänderungen", $md, 'Abschnitt in lage.md');
+    t_contains('- Ab Mo., 26.10. bis Mo., 02.11.: Alle Züge der Linien RB 61 und RB 71 fahren ab/bis Hamburg-Altona; Ersatzverkehr mit Bussen zwischen Elmshorn und Itzehoe (https://www.nordbahn.de/reiseplanung/eilmeldungen-sonderfahrplaene/sev-1025/)', $md, 'Eintrag mit Zeitraum und Link');
+}
+
 /* ---------- Letzte Stoerungen (Verlauf) ---------- */
 
 function t_verlauf_data()

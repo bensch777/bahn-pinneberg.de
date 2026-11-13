@@ -635,8 +635,9 @@
 	/* ---------- Meldungen wegklicken ---------- */
 
 	/*
-	 * Jede Meldung auf der Startseite (Stoerungskarten, "Aktuelle Meldungen") traegt eine
-	 * Kennung in data-weg-id: eil:<id>, st:<key> oder hvv:<id>. Wer sie wegklickt, sieht sie
+	 * Jede Meldung auf der Startseite (Stoerungskarten, "Aktuelle Meldungen", geplante
+	 * Fahrplanaenderungen) traegt eine Kennung in data-weg-id: eil:<id>, st:<key>, hvv:<id>
+	 * oder sf:<id>. Wer sie wegklickt, sieht sie
 	 * in diesem Browser sieben Tage lang nicht mehr; die Kennungen liegen in localStorage.
 	 * Die Lagekarten oben zeigen weiter die ganze Lage und fuehren zu /aktuell/, wo immer
 	 * alles steht.
@@ -691,6 +692,9 @@
 		var meldungen = box ? wegZaehlen(box.querySelectorAll('#meldungen-feed > li'), weg) : 0;
 		if (box) box.hidden = !meldungen;
 		if (section) section.hidden = !(karten + meldungen);
+		// Ausblick auf geplante Fahrplanaenderungen (nur vom Server gerendert, Kennung sf:<id>)
+		var ausblick = document.getElementById('ausblick');
+		if (ausblick) ausblick.hidden = !wegZaehlen(ausblick.querySelectorAll('#ausblick-feed > li'), weg);
 	}
 
 	/** Klick auf ×: blendet die Meldung des Eintrags aus. */
