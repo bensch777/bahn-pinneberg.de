@@ -26,10 +26,12 @@
  * Auf der Kommandozeile: php dev/demo.php [szenario]
  */
 
-/** Verzeichnis des Demo-Caches; der Router setzt NORDBAHN_CACHE_DIR darauf. */
+/** Verzeichnis des Demo-Caches; der Router setzt NORDBAHN_CACHE_DIR darauf. NORDBAHN_DEMO_DIR legt es um (Tests). */
 function demo_cache_dir()
 {
-    return rtrim(sys_get_temp_dir(), '/\\') . '/nordbahn-demo';
+    $dir = getenv('NORDBAHN_DEMO_DIR');
+
+    return is_string($dir) && $dir !== '' ? rtrim($dir, '/\\') : rtrim(sys_get_temp_dir(), '/\\') . '/nordbahn-demo';
 }
 
 const DEMO_SZENARIEN = ['ruhig', 'leicht', 'stoerung', 'bau'];

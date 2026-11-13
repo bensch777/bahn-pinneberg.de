@@ -1174,6 +1174,8 @@
 			track('Bahnhof', { bahnhof: heimatState.name });
 			departuresState.last = null;
 			regioState.last = null;
+			// Der erste Stand am neuen Bahnhof ist keine Neuigkeit: Ausfaelle dort nicht ansagen oder melden
+			notifyPrimed.zug = false;
 			renderDepartures(null);
 			refreshDepartures();
 		});
