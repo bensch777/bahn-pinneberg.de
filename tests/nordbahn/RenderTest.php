@@ -115,6 +115,25 @@ function test_payload_sonderfahrplaene_bereinigt()
     t_eq([], nordbahn_clean_payload(['eilmeldungen' => []])['sonderfahrplaene'], 'altes Paket ohne Feld');
 }
 
+/* ---------- Ruhiger Seitenaufbau: Platzhalter und Richtung vom Server ---------- */
+
+function test_platzhalter_und_richtung_vom_server()
+{
+    $html = nb_render_board_skelett();
+    t_eq(6, substr_count($html, '<li class="dep dep--skelett" aria-hidden="true">'), 'sechs Platzhalterzeilen, fuer Screenreader versteckt');
+    t_contains('<li class="visually-hidden">Lade Abfahrten …</li>', $html, 'Text fuer Screenreader');
+    t_assert(strpos($html, 'dep--skelett') < strpos($html, 'visually-hidden'), 'Platzhalter zuerst: die erste Zeile beginnt ohne Trennlinie');
+    t_eq(2, substr_count(nb_render_board_skelett(2), 'dep--skelett'), 'Anzahl waehlbar');
+
+    $ts = function ($s) { return (new DateTime($s, new DateTimeZone('Europe/Berlin')))->getTimestamp(); };
+    t_eq('hin', nb_richtung_jetzt($ts('2026-10-15 07:10')), 'morgens in die Stadt');
+    t_eq('hin', nb_richtung_jetzt($ts('2026-10-15 11:59')), 'bis kurz vor zwoelf');
+    t_eq('rueck', nb_richtung_jetzt($ts('2026-10-15 12:00')), 'ab zwoelf zurueck');
+    t_eq('hin', nb_richtung_jetzt($ts('2026-10-16 00:30')), 'nach Mitternacht wieder in die Stadt');
+    t_eq('boards boards--nur-hin', nb_boards_klasse('hin'), 'Klassen wie orderBoards im Script');
+    t_eq('boards boards--rueck-first boards--nur-rueck', nb_boards_klasse('rueck'), 'Rueckweg vorn');
+}
+
 /* ---------- Ausblick: geplante Fahrplanaenderungen ---------- */
 
 function test_ausblick_laufende_und_kommende_sonderfahrplaene()

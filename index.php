@@ -73,6 +73,11 @@ $kompakt = nb_status_kompakt($cards);
 $meldungen = nb_aktuelle_meldungen($data, $gfAktiv ? ($gf['s3']['meldungen'] ?? []) : null);
 // Sonderfahrplaene, die gelten oder bald beginnen (ohne den Baufahrplan, den die Lagekarte nennt)
 $ausblick = nb_ausblick($data);
+// Richtung, die vorn steht, schon hier: so sortiert das Script beim Start nichts um
+$richtung = nb_richtung_jetzt();
+$tab = function ($r, $label) use ($richtung) {
+    return '<button type="button" class="richtung__tab" data-richtung="' . $r . '" aria-pressed="' . ($r === $richtung ? 'true' : 'false') . '">' . $label . '</button>';
+};
 // Fuer das Vorschaubild hebt die S3 die Lage hoechstens auf "warn": die Nordbahn bleibt das Thema
 $ogCards = $cards;
 if (($ogCards['s3']['level'] ?? '') === 'alert') {
@@ -172,8 +177,10 @@ $jsonLd = [
 			<h1>Aktuelle Lage</h1>
 			<p class="page-head__lead"><?= nb_e($lead) ?></p>
 		</div>
-		<button type="button" class="freshness" id="freshness" aria-live="polite"></button>
+		<button type="button" class="freshness" id="freshness"></button>
 	</div>
+	<?php /* Ansagen fuer Screenreader: nur was neu ist (Stoerung, Zugausfall), siehe ansagen() im Script */ ?>
+	<p class="visually-hidden" id="ansage" role="status" aria-live="polite"></p>
 
 	<section id="status" class="section" aria-label="Lagekarten">
 		<div class="status-grid">
@@ -204,21 +211,23 @@ $jsonLd = [
 			</div>
 		</div>
 		<div class="richtung" role="group" aria-label="Richtung">
-			<button type="button" class="richtung__tab" data-richtung="hin" aria-pressed="true">Nach Hamburg</button>
-			<button type="button" class="richtung__tab" data-richtung="rueck" aria-pressed="false">Nach Hause</button>
+			<?= $tab('hin', 'Nach Hamburg') ?>
+
+			<?= $tab('rueck', 'Nach Hause') ?>
+
 		</div>
-		<div class="boards">
+		<div class="<?= nb_boards_klasse($richtung) ?>">
 			<div class="card board" data-richtung="hin">
 				<div class="board__head">
 					<h3 class="board__title" id="board-title-hin"><?= nb_e($bahnhof['name']) ?> &rarr; Hamburg</h3>
 				</div>
-				<ol class="board__list" aria-live="polite"></ol>
+				<ol class="board__list" aria-labelledby="board-title-hin"><?= nb_render_board_skelett() ?></ol>
 			</div>
 			<div class="card board" data-richtung="rueck">
 				<div class="board__head">
 					<h3 class="board__title" id="board-title-rueck"><?= nb_e($rueckTitel) ?></h3>
 				</div>
-				<ol class="board__list" aria-live="polite"></ol>
+				<ol class="board__list" aria-labelledby="board-title-rueck"><?= nb_render_board_skelett() ?></ol>
 			</div>
 		</div>
 	</section>
@@ -269,21 +278,23 @@ $jsonLd = [
 			</div>
 		</div>
 		<div class="richtung" role="group" aria-label="Richtung der S3">
-			<button type="button" class="richtung__tab" data-richtung="hin" aria-pressed="true">Nach Hamburg</button>
-			<button type="button" class="richtung__tab" data-richtung="rueck" aria-pressed="false">Nach Hause</button>
+			<?= $tab('hin', 'Nach Hamburg') ?>
+
+			<?= $tab('rueck', 'Nach Hause') ?>
+
 		</div>
-		<div class="boards">
+		<div class="<?= nb_boards_klasse($richtung) ?>">
 			<div class="card board" data-richtung="hin">
 				<div class="board__head">
 					<h3 class="board__title" id="s3-title-hin">Pinneberg &rarr; <?= nb_e(GF_STADT[GF_STADT_DEFAULT]['kurz']) ?></h3>
 				</div>
-				<ol class="board__list" id="s3-board-hin" aria-live="polite"><?= nb_render_s3_abfahrten($gf['s3']['abfahrten'] ?? [], GF_PINNEBERG) ?></ol>
+				<ol class="board__list" id="s3-board-hin" aria-labelledby="s3-title-hin"><?= nb_render_s3_abfahrten($gf['s3']['abfahrten'] ?? [], GF_PINNEBERG) ?></ol>
 			</div>
 			<div class="card board" data-richtung="rueck">
 				<div class="board__head">
 					<h3 class="board__title" id="s3-title-rueck"><?= nb_e(GF_STADT[GF_STADT_DEFAULT]['kurz']) ?> &rarr; Pinneberg</h3>
 				</div>
-				<ol class="board__list" id="s3-board-rueck" aria-live="polite"><?= nb_render_s3_abfahrten($gf['s3']['abfahrten'] ?? [], GF_STADT[GF_STADT_DEFAULT]['name']) ?></ol>
+				<ol class="board__list" id="s3-board-rueck" aria-labelledby="s3-title-rueck"><?= nb_render_s3_abfahrten($gf['s3']['abfahrten'] ?? [], GF_STADT[GF_STADT_DEFAULT]['name']) ?></ol>
 			</div>
 		</div>
 	</section>

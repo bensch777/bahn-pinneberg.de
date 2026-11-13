@@ -404,8 +404,8 @@
 		notifyNew(list.map(function (st) {
 			var t = st.ki_titel || st.titel || 'Störung';
 			var b = st.ki_text || st.text || '';
-			return { id: 'st:' + st.key, title: 'Infrastrukturstörung', body: t + (b ? ': ' + b : '') };
-		}));
+			return { id: 'st:' + st.key, title: 'Infrastrukturstörung', body: t + (b ? ': ' + b : ''), ansage: 'Neue Infrastrukturstörung: ' + t };
+		}), 'st');
 
 		// Die Karten stehen im Bereich "Aktuelle Meldungen" unter den Abfahrten; ob Liste und
 		// Bereich sichtbar sind, entscheidet wegAnwenden fuer Karten und Meldungen zusammen
@@ -744,14 +744,41 @@
 	/**
 	 * Vormittags steht die Fahrt in die Stadt oben, nachmittags der Rueckweg; gilt fuer Nordbahn
 	 * und S3. Auf dem Handy zeigt die Seite nur eine Richtung, die Tabs (.richtung) waehlen sie
-	 * fuer beide Bereiche; die Wahl gilt bis zum naechsten Laden der Seite.
+	 * fuer beide Bereiche. Der Server setzt Klassen und Tabs schon nach der Tageszeit
+	 * (nb_richtung_jetzt), das Script aendert nur noch etwas, wenn eine Wahl gemerkt ist.
 	 */
 	var richtungState = { wahl: null };
+	var RICHTUNG_KEY = 'nordbahn.richtung';      // { r: 'hin'|'rueck', t: Zeitpunkt der Wahl in ms }
+	var RICHTUNG_MAX_MS = 4 * 3600 * 1000;        // so lange gilt eine Wahl gegen die Tageszeit
 
-	function aktuelleRichtung() {
-		if (richtungState.wahl) return richtungState.wahl;
+	/** Richtung nach der Tageszeit: vormittags in die Stadt, ab 12 Uhr zurueck (wie nb_richtung_jetzt). */
+	function richtungNachUhrzeit() {
 		var hour = parseInt(new Date().toLocaleTimeString('de-DE', { timeZone: TZ, hour: '2-digit', hour12: false }), 10);
 		return hour >= 12 ? 'rueck' : 'hin';
+	}
+
+	function aktuelleRichtung() {
+		return richtungState.wahl || richtungNachUhrzeit();
+	}
+
+	/**
+	 * Eine Wahl gegen die Tageszeit (Spaetschicht: nachmittags in die Stadt) ueberlebt das
+	 * stuendliche Neuladen und die Rueckkehr in die App: sie liegt vier Stunden lang in
+	 * sessionStorage. Wer zurueck auf die Richtung der Tageszeit tippt, loescht sie wieder.
+	 */
+	function richtungMerken(r) {
+		try {
+			if (r === richtungNachUhrzeit()) window.sessionStorage.removeItem(RICHTUNG_KEY);
+			else window.sessionStorage.setItem(RICHTUNG_KEY, JSON.stringify({ r: r, t: Date.now() }));
+		} catch (e) { /* privater Modus: die Wahl gilt dann bis zum Neuladen */ }
+	}
+
+	function richtungLesen() {
+		try {
+			var w = JSON.parse(window.sessionStorage.getItem(RICHTUNG_KEY) || 'null');
+			if (w && (w.r === 'hin' || w.r === 'rueck') && Date.now() - w.t < RICHTUNG_MAX_MS) return w.r;
+		} catch (e) { /* egal */ }
+		return null;
 	}
 
 	function orderBoards() {
@@ -767,9 +794,11 @@
 	}
 
 	function initRichtung() {
+		richtungState.wahl = richtungLesen();
 		Array.prototype.forEach.call(document.querySelectorAll('.richtung__tab'), function (b) {
 			b.addEventListener('click', function () {
 				richtungState.wahl = b.getAttribute('data-richtung');
+				richtungMerken(richtungState.wahl);
 				orderBoards();
 				track('Richtung', { richtung: richtungState.wahl });
 			});
@@ -780,6 +809,26 @@
 		var dt = new Date(iso);
 		if (isNaN(dt)) return '--:--';
 		return dt.toLocaleTimeString('de-DE', { timeZone: TZ, hour: '2-digit', minute: '2-digit' });
+	}
+
+	/**
+	 * Platzhalterzeilen, solange die Abfahrten laden (wie nb_render_board_skelett): die Tafel
+	 * hat von Anfang an etwa ihre spaetere Hoehe, die Seite springt nicht. Stehen schon
+	 * Platzhalter da (vom Server), bleiben sie stehen.
+	 */
+	function skelettZeilen(list) {
+		if (list.querySelector('.dep--skelett')) return;
+		clear(list);
+		for (var i = 0; i < 6; i++) {
+			list.appendChild(el('li', { class: 'dep dep--skelett', 'aria-hidden': 'true' }, [
+				el('span', { class: 'dep__dot' }),
+				el('div', { class: 'dep__time' }, [el('span', { class: 'skelett' })]),
+				el('div', { class: 'dep__line' }, [el('span', { class: 'skelett' })]),
+				el('div', { class: 'dep__dest' }, [el('span', { class: 'skelett' })]),
+				el('div', { class: 'dep__platform' }, [el('span', { class: 'skelett' })])
+			]));
+		}
+		list.appendChild(el('li', { class: 'visually-hidden', text: 'Lade Abfahrten …' }));
 	}
 
 	/**
@@ -835,7 +884,7 @@
 
 		// Den Stand zeigt die Kopfzeile fuer die ganze Seite; hier steht nur, wenn etwas fehlt
 		if (sub) {
-			if (!result) sub.textContent = 'Lade …';
+			if (!result) sub.textContent = '';
 			else if (!ok && result.fetched_at) sub.textContent = 'Keine aktuellen Daten, letzter Stand ' + fmtClock(result.fetched_at) + ' Uhr';
 			else if (!ok) sub.textContent = 'Keine aktuellen Daten';
 			else sub.textContent = '';
@@ -845,14 +894,17 @@
 		if (!result || (!ok && !result.richtungen)) {
 			Array.prototype.forEach.call(boards, function (b) {
 				var list = b.querySelector('.board__list');
+				if (!result) { skelettZeilen(list); return; }
 				clear(list);
-				list.appendChild(el('li', {}, [el('p', { class: 'board__empty', text: result ? 'Keine Daten.' : 'Lade …' })]));
+				list.appendChild(el('li', {}, [el('p', { class: 'board__empty', text: 'Keine Daten.' })]));
 			});
 			return;
 		}
 
 		var ausfaelle = 0, verspaetet = 0;
 		var regio = regioZeilen();
+		// Gemerkte Zuege dieses Bahnhofs (Einstellungen, "Meine Zuege"), einmal je Aufbau gelesen
+		var meine = meineZuege().filter(function (z) { return z.heimat === heimatState.id; });
 		Array.prototype.forEach.call(boards, function (b) {
 			var key = b.getAttribute('data-richtung');
 			var list = b.querySelector('.board__list');
@@ -892,6 +944,9 @@
 				if (d.quelle === 'hvv') { /* RE: Linie genuegt, wer faehrt, ist Pendlern egal */ }
 				else if (d.wagen) line.appendChild(el('small', { text: plural(d.wagen, 'Wagen', 'Wagen') }));
 				else if (d.bus) line.appendChild(el('small', { text: 'SEV' }));
+				// Gemerkter Zug: in der Tafel wiederzufinden, ohne die Zeiten abzusuchen
+				var mein = !!d.zug && meine.some(function (z) { return z.richtung === key && nummernVon(z).indexOf(d.zug) >= 0; });
+				if (mein) { cls += ' dep--mein'; line.appendChild(el('small', { class: 'dep__mein', text: 'Mein Zug' })); }
 
 				var dest = el('div', { class: 'dep__dest', title: d.ziel }, []);
 				// Schienenersatzverkehr: der Bus faellt als Chip auf, nicht nur im Hinweistext
@@ -980,7 +1035,7 @@
 		alertState.ausfaelle = ausfaelle;
 		alertState.verspaetet = verspaetet;
 		updateBadge();
-		notifyNew(collectEvents(result));
+		notifyNew(collectEvents(result), 'zug');
 	}
 
 	var departuresState = { last: null };
@@ -1879,6 +1934,7 @@
 				events.push({
 					mein: istMeiner(d, key),
 					id: 'zug:' + heimatState.id + ':' + (d.zug || d.linie + d.zeit),
+					ansage: 'Zugausfall: ' + d.linie + ' um ' + fmtClock(d.zeit) + ' Uhr ' + (d.ab ? 'ab ' + d.ab + ' ' : '') + 'nach ' + d.ziel + ' fällt aus',
 					title: 'Zugausfall ' + d.linie + ' um ' + fmtClock(d.zeit) + ' Uhr',
 					body: richtung + (d.ab ? ' ab ' + d.ab : '') + (d.hinweis ? '. ' + d.hinweis : '')
 						+ (d.ersatz ? '. Fährt stattdessen ab ' + d.ersatz.ab + ' um ' + fmtClock(d.ersatz.zeit) + ' Uhr' : '')
@@ -1888,15 +1944,23 @@
 		return events;
 	}
 
-	var notifyPrimed = false;
+	// Je Art (Stoerungen, Zugausfaelle) einmal: was beim ersten Stand schon da ist, wird nicht gemeldet
+	var notifyPrimed = {};
 
-	/** Meldet nur, was seit dem letzten Mal neu ist; beim ersten Laden wird nichts gemeldet. */
-	function notifyNew(events) {
+	/**
+	 * Meldet nur, was seit dem letzten Mal neu ist; beim ersten Laden wird nichts gemeldet.
+	 * $art trennt die beiden Quellen (st: Stoerungen aus dem Lagebild, zug: Ausfaelle aus den
+	 * Abfahrten), damit der erste Stand der einen nicht als Neuigkeit der anderen gilt.
+	 * Neues geht immer als Ansage an Screenreader, als Systembenachrichtigung nur, wenn
+	 * eingeschaltet und nicht ohnehin per Web Push unterwegs.
+	 */
+	function notifyNew(events, art) {
 		var list = loadSeen();
 		var fresh = events.filter(function (ev) { return !list[ev.id]; });
 		fresh.forEach(function (ev) { list[ev.id] = Date.now(); });
 		if (fresh.length) storage('set', SEEN_KEY, JSON.stringify(list));
-		if (!notifyPrimed) { notifyPrimed = true; return; }
+		if (!notifyPrimed[art]) { notifyPrimed[art] = true; return; }
+		ansagen(fresh);
 		if (!notifyEnabled() || pushActive()) return;
 		// Meine Zuege melden sich immer, alles andere nur ohne "nur meine Zuege" und zur gewaehlten Zeit
 		var allesErlaubt = !notifyNur() && notifyAllowedNow();
@@ -1906,6 +1970,17 @@
 				n.onclick = function () { window.focus(); n.close(); };
 			} catch (e) { /* Benachrichtigung nicht moeglich */ }
 		});
+	}
+
+	/**
+	 * Ansage fuer Screenreader in der versteckten Statuszeile (#ansage, aria-live): nur was
+	 * neu ist, hoechstens drei Ereignisse je Stand. Die Tafeln selbst sind keine Live-Regionen
+	 * mehr: sie werden jede halbe Minute neu aufgebaut und wuerden sonst komplett vorgelesen.
+	 */
+	function ansagen(events) {
+		var box = document.getElementById('ansage');
+		if (!box || !events.length) return;
+		box.textContent = events.slice(0, 3).map(function (ev) { return ev.ansage || ev.title; }).join('. ') + '.';
 	}
 
 	/**
@@ -2016,6 +2091,8 @@
 			pushUnsubscribe().then(function () {
 				try {
 					Object.keys(window.localStorage).forEach(function (k) { if (k.indexOf('nordbahn.') === 0) window.localStorage.removeItem(k); });
+					// auch die gemerkte Richtung der Abfahrtstafel (sessionStorage)
+					Object.keys(window.sessionStorage).forEach(function (k) { if (k.indexOf('nordbahn.') === 0) window.sessionStorage.removeItem(k); });
 				} catch (e) { /* privater Modus */ }
 				window.location.reload();
 			});

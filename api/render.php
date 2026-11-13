@@ -1223,6 +1223,39 @@ function nb_render_linie($linie)
     return '<span class="linie linie--' . nb_e(preg_replace('/[^a-z0-9]/', '', strtolower($linie))) . '">' . nb_e($linie) . '</span>';
 }
 
+/**
+ * Platzhalterzeilen fuer eine Abfahrtstafel, solange die Abfahrten noch laden (wie
+ * skelettZeilen im Script). Die Nordbahn-Tafel haengt am Bahnhof, den nur der Browser
+ * kennt, der Server kann sie also nicht fuellen; mit Platzhaltern in der Hoehe echter
+ * Zeilen steht die Seite trotzdem von Anfang an ruhig. Ohne JavaScript bleiben sie
+ * unsichtbar (dashboard.css), Screenreader hoeren nur "Lade Abfahrten".
+ */
+function nb_render_board_skelett($zeilen = 6)
+{
+    $zeile = '<li class="dep dep--skelett" aria-hidden="true"><span class="dep__dot"></span>'
+        . '<div class="dep__time"><span class="skelett"></span></div><div class="dep__line"><span class="skelett"></span></div>'
+        . '<div class="dep__dest"><span class="skelett"></span></div><div class="dep__platform"><span class="skelett"></span></div></li>';
+
+    // Der Text fuer Screenreader steht hinten, damit die erste Platzhalterzeile wie jede erste Zeile ohne Linie beginnt
+    return str_repeat($zeile, max(1, (int) $zeilen)) . '<li class="visually-hidden">Lade Abfahrten …</li>';
+}
+
+/**
+ * Welche Richtung steht vorn? Vormittags die Fahrt in die Stadt, ab 12 Uhr deutscher
+ * Zeit der Rueckweg (wie aktuelleRichtung im Script). Der Server setzt Klassen und
+ * Tabs schon so, damit beim Start des Scripts nichts umsortiert wird.
+ */
+function nb_richtung_jetzt($now = null)
+{
+    return (int) (new DateTime('@' . ($now ?? time())))->setTimezone(new DateTimeZone('Europe/Berlin'))->format('G') >= 12 ? 'rueck' : 'hin';
+}
+
+/** Klassen einer Tafelgruppe fuer die Richtung (wie orderBoards im Script). */
+function nb_boards_klasse($richtung)
+{
+    return 'boards' . ($richtung === 'rueck' ? ' boards--rueck-first boards--nur-rueck' : ' boards--nur-hin');
+}
+
 /** Ankunft am Ziel des Pendlers ("an Altona 10:27", verspaetet mit Istzeit), leer ohne Laufweg. */
 function nb_render_s3_ankunft(array $d)
 {
@@ -1715,11 +1748,15 @@ function nb_render_feedback($root)
  * Farbe (localStorage nordbahn.theme = light|dark) als data-theme an <html>, bevor
  * die Seite gezeichnet wird, damit nichts im falschen Schema aufblitzt. Ohne Wahl
  * bleibt es beim Systemschema. Nonce wegen der CSP.
+ *
+ * Dasselbe Skript setzt die Klasse "js" an <html>: Was nur mit JavaScript Sinn hat
+ * (Richtungs-Tabs und Platzhalterzeilen der Abfahrtstafel), steht damit schon beim
+ * ersten Zeichnen an seinem Platz und springt nicht erst beim Start von dashboard.js.
  */
 function nb_theme_head()
 {
-    $js = "(function(){var t;try{t=localStorage.getItem('nordbahn.theme')}catch(e){}"
-        . "if(t!=='light'&&t!=='dark')return;var d=document.documentElement;d.setAttribute('data-theme',t);"
+    $js = "(function(){var d=document.documentElement;d.className+=' js';var t;try{t=localStorage.getItem('nordbahn.theme')}catch(e){}"
+        . "if(t!=='light'&&t!=='dark')return;d.setAttribute('data-theme',t);"
         . "var m=document.querySelectorAll('meta[name=\"theme-color\"]');"
         . "for(var i=0;i<m.length;i++)m[i].setAttribute('content',t==='dark'?'#121211':'#f6f6f4')})();";
 
