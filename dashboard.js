@@ -640,8 +640,8 @@
 	 * Fahrplanaenderungen) traegt eine Kennung in data-weg-id: eil:<id>, st:<key>, hvv:<id>
 	 * oder sf:<id>. Wer sie wegklickt, sieht sie
 	 * in diesem Browser sieben Tage lang nicht mehr; die Kennungen liegen in localStorage.
-	 * Die Lagekarten oben zeigen weiter die ganze Lage und fuehren zu /aktuell/, wo immer
-	 * alles steht.
+	 * Die Lagekarten oben zeigen weiter die ganze Lage; unter /aktuell/ (Meldungen,
+	 * Reiter "Aktiv") steht immer alles, auch das Weggeklickte.
 	 */
 	var WEG_KEY = 'nordbahn.meldungen.weg';   // { "<kennung>": <Zeitpunkt des Wegklickens in ms> }
 	var WEG_MAX_MS = 7 * 24 * 3600 * 1000;     // so lange bleibt ein Eintrag gemerkt

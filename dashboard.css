@@ -297,10 +297,6 @@ button.freshness:focus-visible { outline: 2px solid var(--series); outline-offse
 .status__title { margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em; line-height: 1.2; min-width: 0; }
 /* Gruene Karten neben einer Stoerung: eine Zeile statt eigener Karten */
 .status[hidden], .status-rest[hidden] { display: none; }
-/* Lagekarten Infrastruktur und Eilmeldungen sind Links auf /aktuell/ */
-a.status { color: inherit; text-decoration: none; }
-a.status:hover .status__title { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; }
-a.status:focus-visible { outline: 2px solid var(--series); outline-offset: 2px; }
 /* Die Lage auf /aktuell/: Karte zum Baufahrplan */
 .aktuell__bau { padding: 14px 18px; }
 .aktuell__bau p { margin: 0; }

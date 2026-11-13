@@ -5,8 +5,8 @@
  * Baufahrplan, darunter die aktuellen Meldungen wie auf der Startseite
  * (nb_aktuelle_meldungen: akute Eilmeldungen laut nb_eil_akut, gerade
  * aufgehobene Stoerungen, gueltige HVV-Meldungen) und der Ausblick auf geplante
- * Fahrplanaenderungen (nb_ausblick). Ziel der Lagekarten
- * "Infrastruktur" und "Eilmeldungen". Rein server-seitig.
+ * Fahrplanaenderungen (nb_ausblick). Erreichbar ueber "Meldungen" in der
+ * Navigation, Reiter "Aktiv". Rein server-seitig.
  */
 
 require __DIR__ . '/../api/store.php';

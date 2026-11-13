@@ -450,7 +450,7 @@ function demo_s3($szenario, DateTime $now, $stadt = GF_STADT_DEFAULT)
     return [
         'ok' => true, 'fetched_at' => $now->format('c'), 'stadt' => ['id' => $stadt] + $st,
         'quellen' => ['hin' => true, 'rueck' => true, 'meldungen' => true],
-        's3' => gf_status($liste, $meldungen, $ts) + ['abfahrten' => $liste, 'meldungen' => $meldungen],
+        's3' => gf_status($liste) + ['abfahrten' => $liste, 'meldungen' => $meldungen],
     ];
 }
 

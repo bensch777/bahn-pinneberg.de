@@ -33,6 +33,11 @@ const GF_MAX_LIST     = 150;       // Zeilen je ungefilterter departureList-Anfr
 const GF_S3_SERVICE_ID = 'SBH:S3_SBH_SBAHNS'; // Linien-ID der S3 in der GTI (aus echten Antworten), fuer den Filter
 // Meldungen, die Pendler auf der Strecke nicht brauchen: Aufzuege, Rolltreppen, Barrierefreiheit
 const GF_MELDUNG_AUSSCHLUSS = '/aufzug|aufzüge|fahrstuhl|rolltreppe|\\blift\\b|barrierefrei|fahrtreppe|elevator|escalator|erreichbarkeit der station/iu';
+// Der HVV haengt Meldungen oft an alle Linien, die im betroffenen Abschnitt halten: eine
+// Meldung "Verspaetungen und Ausfaelle auf der S1" traegt dann auch die S3. Darum zaehlt
+// die S3 an einer Meldung nur, wenn der Titel sie nennt ("S3", "S 3", "S3/S5"; nicht "S31").
+// Bei RB60, RB61 und RB71 nennt der Titel die Linie fast nie, dort gilt die Zuordnung.
+const GF_S3_IM_TITEL = '/\bS\s?3\b/u';
 // S3-Stationen zwischen Pinneberg und der Innenstadt. Eine S3-Meldung zaehlt nur, wenn
 // ihr Abschnitt hier beginnt oder endet; Meldungen zu Stade, Buxtehude oder Neugraben
 // betreffen Pendler aus Pinneberg nicht. RB60, RB61 und RB71 zaehlen immer.
@@ -1149,8 +1154,9 @@ function gf_station_norm($name)
 
 /**
  * Linien einer Meldung, die Pendler auf unserer Strecke betreffen: aus locations[]
- * (Linie mit Abschnitt von/bis) oder, ohne locations, aus lines[]. Eine S3-Angabe
- * zaehlt nur, wenn der Abschnitt im Korridor Pinneberg - Innenstadt beginnt oder endet.
+ * (Linie mit Abschnitt von/bis) oder, ohne locations, aus lines[]. Die S3 zaehlt nur,
+ * wenn der Titel sie nennt (GF_S3_IM_TITEL) und, bei locations, der Abschnitt im
+ * Korridor Pinneberg - Innenstadt beginnt oder endet.
  */
 function gf_meldung_linien(array $raw)
 {
@@ -1161,6 +1167,7 @@ function gf_meldung_linien(array $raw)
             $out[] = $name;
         }
     };
+    $s3ImTitel = preg_match(GF_S3_IM_TITEL, gf_strip_html(nordbahn_text($raw['summary'] ?? ''))) === 1;
     $locations = is_array($raw['locations'] ?? null) ? $raw['locations'] : [];
     foreach ($locations as $loc) {
         if (!is_array($loc) || !is_array($loc['line'] ?? null)) {
@@ -1170,7 +1177,7 @@ function gf_meldung_linien(array $raw)
         if (strcasecmp($linie, GF_LINIE) === 0) {
             $von = gf_station_norm($loc['begin']['name'] ?? '');
             $bis = gf_station_norm($loc['end']['name'] ?? '');
-            if (!in_array($von, GF_S3_KORRIDOR, true) && !in_array($bis, GF_S3_KORRIDOR, true)) {
+            if (!$s3ImTitel || (!in_array($von, GF_S3_KORRIDOR, true) && !in_array($bis, GF_S3_KORRIDOR, true))) {
                 continue;
             }
         }
@@ -1178,7 +1185,11 @@ function gf_meldung_linien(array $raw)
     }
     if (!$locations) {
         foreach ($raw['lines'] ?? [] as $l) {
-            $add(is_array($l) ? ($l['name'] ?? '') : $l);
+            $linie = is_array($l) ? ($l['name'] ?? '') : $l;
+            if (!is_scalar($linie) || (!$s3ImTitel && strcasecmp(str_replace(' ', '', (string) $linie), GF_LINIE) === 0)) {
+                continue;
+            }
+            $add($linie);
         }
     }
 
@@ -1313,8 +1324,12 @@ function gf_announcements($fetch, DateTime $now, array $linien = GF_LINIEN, ?arr
 
 /* ---------- Status ---------- */
 
-/** Lagekarte fuer die S3: level, title, detail. Nur ungeplante S3-Meldungen zaehlen, geplante und RB-Meldungen nicht. */
-function gf_status(array $abfahrten, array $meldungen, $now)
+/**
+ * Lagekarte fuer die S3: level, title, detail. Sie richtet sich allein nach den gemessenen
+ * Abfahrten. HVV-Meldungen faerben sie nicht: ihre Zuordnung zur S3 stimmt zu oft nicht
+ * (siehe GF_S3_IM_TITEL), und was die Zuege wirklich trifft, steht in den Abfahrten.
+ */
+function gf_status(array $abfahrten)
 {
     $total = count($abfahrten);
     $ausfaelle = 0;
@@ -1329,14 +1344,6 @@ function gf_status(array $abfahrten, array $meldungen, $now)
         }
     }
     $betroffen = $ausfaelle + $verspaetet;
-    // Nur ungeplante, jetzt gueltige Meldungen zur S3 selbst; Meldungen zu RB60/RB61/RB71
-    // gehoeren zur Nordbahn und stehen nur in der Liste "Letzte HVV-Meldungen"
-    $akut = [];
-    foreach ($meldungen as $m) {
-        if (!empty($m['aktiv']) && empty($m['geplant']) && in_array(GF_LINIE, $m['linien'] ?? [GF_LINIE], true)) {
-            $akut[] = $m;
-        }
-    }
     $zahlen = '';
     if ($betroffen) {
         $parts = [];
@@ -1347,9 +1354,6 @@ function gf_status(array $abfahrten, array $meldungen, $now)
             $parts[] = 'Verspätungen bis ' . $maxDelay . ' Min';
         }
         $zahlen = $betroffen . ' von ' . $total . ' Zügen (' . (int) round(100 * $betroffen / max(1, $total)) . ' %): ' . implode(', ', $parts);
-    }
-    if ($akut) {
-        return ['level' => 'alert', 'title' => 'S3 gestört', 'detail' => $akut[0]['titel'] . ($zahlen !== '' ? ' · ' . $zahlen : '')];
     }
     if (!$total) {
         return ['level' => 'ok', 'title' => 'S3: keine Abfahrten gemeldet', 'detail' => ''];
@@ -1405,7 +1409,7 @@ function gf_build($fetch = null, ?DateTime $now = null, ?array $zugang = null, $
         return null;
     }
     $meldungen = gf_announcements_cached($fetch, $now, $zugang);
-    $status = gf_status($abf['liste'], $meldungen ?? [], $now->getTimestamp());
+    $status = gf_status($abf['liste']);
 
     return [
         'ok'         => true,
