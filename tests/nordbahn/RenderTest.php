@@ -115,6 +115,79 @@ function test_payload_sonderfahrplaene_bereinigt()
     t_eq([], nordbahn_clean_payload(['eilmeldungen' => []])['sonderfahrplaene'], 'altes Paket ohne Feld');
 }
 
+/* ---------- Ruhiger Seitenaufbau: Platzhalter und Richtung vom Server ---------- */
+
+function test_platzhalter_und_richtung_vom_server()
+{
+    $html = nb_render_board_skelett();
+    t_eq(6, substr_count($html, '<li class="dep dep--skelett" aria-hidden="true">'), 'sechs Platzhalterzeilen, fuer Screenreader versteckt');
+    t_contains('<li class="visually-hidden board__lade">Lade Abfahrten …</li>', $html, 'Text fuer Screenreader, ohne JavaScript ausgeblendet');
+    t_assert(strpos($html, 'dep--skelett') < strpos($html, 'visually-hidden'), 'Platzhalter zuerst: die erste Zeile beginnt ohne Trennlinie');
+    t_eq(2, substr_count(nb_render_board_skelett(2), 'dep--skelett'), 'Anzahl waehlbar');
+
+    $ts = function ($s) { return (new DateTime($s, new DateTimeZone('Europe/Berlin')))->getTimestamp(); };
+    t_eq('hin', nb_richtung_jetzt($ts('2026-10-15 07:10')), 'morgens in die Stadt');
+    t_eq('hin', nb_richtung_jetzt($ts('2026-10-15 11:59')), 'bis kurz vor zwoelf');
+    t_eq('rueck', nb_richtung_jetzt($ts('2026-10-15 12:00')), 'ab zwoelf zurueck');
+    t_eq('hin', nb_richtung_jetzt($ts('2026-10-16 00:30')), 'nach Mitternacht wieder in die Stadt');
+    t_eq('boards boards--nur-hin', nb_boards_klasse('hin'), 'Klassen wie orderBoards im Script');
+    t_eq('boards boards--rueck-first boards--nur-rueck', nb_boards_klasse('rueck'), 'Rueckweg vorn');
+}
+
+/* ---------- Ausblick: geplante Fahrplanaenderungen ---------- */
+
+function test_ausblick_sonderfahrplaene_im_wortlaut_der_nordbahn()
+{
+    $ts = function ($s) { return (new DateTime($s, new DateTimeZone('Europe/Berlin')))->getTimestamp(); };
+    $now = $ts('2026-10-20 08:00'); // Dienstag
+    $data = ['sonderfahrplaene' => [
+        t_bau(), // Fenster 26.10. bis 02.11., Altona
+        t_bau(['id' => 'sev-932', 'title' => 'Gleis 13/14 im Hamburger Hauptbahnhof vom 08.06. bis 30.11.2026 nicht barrierefrei zu erreichen', 'von' => '2026-05-28', 'bis' => '2026-12-31']),
+        // Fenster der Nordbahn (ab 12.10.) ist weiter als der Zeitraum im Titel (ab 24.10.)
+        t_bau(['id' => 'sev-1030', 'title' => '24.10. - 25.10.: Ersatzverkehr mit Bussen zwischen Elmshorn und Itzehoe (RB 61)', 'von' => '2026-10-12', 'bis' => '2026-10-25', 'link' => '']),
+        t_bau(['id' => 'sev-1031', 'title' => 'Nachts: letzte Züge der RB71 enden in Pinneberg', 'von' => '2026-10-21', 'bis' => '2026-10-21']),
+        t_bau(['id' => 'sev-1032', 'title' => '10.10. - 18.10.: Bauarbeiten RB 61', 'von' => '2026-10-10', 'bis' => '2026-10-18']),
+        t_bau(['id' => 'sev-1033', 'title' => '20.11. - 22.11.: Bauarbeiten RB 61', 'von' => '2026-11-20', 'bis' => '2026-11-22']),
+        t_bau(['id' => 'sev-1034', 'title' => '22.10. - 23.10.: Ersatzverkehr RB 82 zwischen Bad Oldesloe und Neumünster', 'von' => '2026-10-22', 'bis' => '2026-10-23']),
+        t_bau(['id' => 'sev-1035', 'title' => '31.10.2026: RB 60 fährt nicht', 'von' => '2026-10-31', 'bis' => '2026-10-31']),
+        t_bau(['id' => 'sev-1036', 'title' => 'Hinweis: am 30.10. hält die RB 61 nicht in Krempe', 'von' => '2026-10-30', 'bis' => '2026-10-30']),
+    ]];
+    $liste = nb_ausblick($data, $now);
+    t_eq(['sev-1030', 'sev-1031', 'sev-1025', 'sev-1036', 'sev-1035'], array_column($liste, 'id'), 'nach Beginn des Fensters; ohne Linie, vorbei, zu weit weg und fremde Linie fehlen');
+    t_eq('24.10. – 25.10.', $liste[0]['zeitraum'], 'Zeitraum aus dem Titel, nicht aus dem Fenster der Nordbahn');
+    t_eq('Ersatzverkehr mit Bussen zwischen Elmshorn und Itzehoe (RB 61)', $liste[0]['text'], 'Text ohne den vorangestellten Zeitraum');
+    t_eq(['', 'Nachts: letzte Züge der RB71 enden in Pinneberg'], [$liste[1]['zeitraum'], $liste[1]['text']], 'Titel ohne Datum vorn bleibt ganz');
+    t_eq(['', 'Hinweis: am 30.10. hält die RB 61 nicht in Krempe'], [$liste[3]['zeitraum'], $liste[3]['text']], 'Datum mitten im Titel wird nicht herausgeschnitten');
+    t_eq(['31.10.2026', 'RB 60 fährt nicht'], [$liste[4]['zeitraum'], $liste[4]['text']], 'einzelner Tag mit Jahr');
+    t_assert(!isset($liste[0]['laeuft']), 'keine eigene Aussage, ob etwas gerade gilt');
+
+    // Gilt der Altona-Baufahrplan, nennt ihn die Lagekarte; im Ausblick steht er dann nicht noch einmal
+    t_eq([], array_column(nb_ausblick(['sonderfahrplaene' => [t_bau()]], $ts('2026-10-27 08:00')), 'id'), 'aktiver Baufahrplan fehlt im Ausblick');
+    t_eq(['sev-1026'], array_column(nb_ausblick(['sonderfahrplaene' => [t_bau(), t_bau(['id' => 'sev-1026', 'title' => 'Ersatzverkehr RB 61 zwischen Elmshorn und Itzehoe'])]], $ts('2026-10-27 08:00')), 'id'), 'andere bleiben');
+    t_eq([], nb_ausblick([], $now), 'ohne Sonderfahrplaene');
+    t_eq([], nb_ausblick(['sonderfahrplaene' => [t_bau(['von' => '2026-10-28', 'bis' => '2026-10-26'])]], $now), 'Ende vor Beginn zaehlt nicht');
+    $viele = [];
+    for ($i = 1; $i <= 9; $i++) {
+        $viele[] = t_bau(['id' => 'sev-20' . $i, 'title' => 'Bauarbeiten RB 61, Teil ' . $i, 'von' => '2026-10-2' . $i, 'bis' => '2026-10-30']);
+    }
+    t_eq(NB_AUSBLICK_MAX, count(nb_ausblick(['sonderfahrplaene' => $viele], $now)), 'Obergrenze');
+
+    $html = nb_render_ausblick($liste, true);
+    t_contains('<ol class="feed" id="ausblick-feed">', $html, 'Liste');
+    t_contains('<li class="is-heute" data-weg-id="sf:sev-1030"><div class="feed__time">24.10. – 25.10.</div>', $html, 'Zeitraum der Nordbahn und Kennung zum Wegklicken');
+    t_contains('<li class="is-heute" data-weg-id="sf:sev-1031"><div class="feed__time"></div>', $html, 'ohne Zeitraum im Titel bleibt die Spalte leer');
+    t_eq(false, strpos($html, 'gilt gerade'), 'keine Behauptung "gilt gerade"');
+    t_contains('<a href="https://www.nordbahn.de/reiseplanung/eilmeldungen-sonderfahrplaene/sev-1025/" rel="noopener nofollow">Alle Züge der Linien RB 61 und RB 71 fahren ab/bis Hamburg-Altona; Ersatzverkehr mit Bussen zwischen Elmshorn und Itzehoe</a>', $html, 'Link zur Nordbahn');
+    t_contains('<p class="feed__title">Ersatzverkehr mit Bussen zwischen Elmshorn und Itzehoe (RB 61)</p>', $html, 'ohne Link nur Text');
+    t_eq(false, strpos(nb_render_ausblick($liste), 'data-weg-id'), 'auf /aktuell/ ohne Knopf');
+    t_eq('', nb_render_ausblick([]), 'leer');
+
+    $md = nb_lage_md(['received_at' => null, 'stoerungen' => [], 'eilmeldungen' => [], 'eilmeldungen_live' => [], 'stoerungen_verlauf' => []] + $data, null, 'APD', $now);
+    t_contains("## Geplante Fahrplanänderungen", $md, 'Abschnitt in lage.md');
+    t_contains('- 26.10. – 02.11.: Alle Züge der Linien RB 61 und RB 71 fahren ab/bis Hamburg-Altona; Ersatzverkehr mit Bussen zwischen Elmshorn und Itzehoe (https://www.nordbahn.de/reiseplanung/eilmeldungen-sonderfahrplaene/sev-1025/)', $md, 'Eintrag mit Zeitraum der Nordbahn und Link');
+    t_contains("- Nachts: letzte Züge der RB71 enden in Pinneberg (", $md, 'Eintrag ohne Zeitraum');
+}
+
 /* ---------- Letzte Stoerungen (Verlauf) ---------- */
 
 function t_verlauf_data()
@@ -149,7 +222,7 @@ function test_stoerung_hinweis_ohne_folgen()
     $data = ['received_at' => T_NOW, 'quellen' => ['strecken_info_ok' => true], 'stoerungen' => [$hinweis]];
     t_eq(['level' => 'ok', 'title' => 'Keine Infrastrukturstörung', 'detail' => '1 Hinweis ohne Folgen'], nb_status_infra($data), 'nur Hinweise: gruen mit Zeile');
     $data['stoerungen'] = [$hinweis, $stoerung];
-    t_eq(['level' => 'warn', 'title' => '1 leichte Infrastrukturstörung', 'detail' => ''], nb_status_infra($data), 'Hinweis zaehlt nicht mit');
+    t_eq(['level' => 'warn', 'title' => '1 leichte Infrastrukturstörung', 'detail' => 'Weichenstörung · seit 07:00 Uhr'], nb_status_infra($data, $jetzt), 'Hinweis zaehlt nicht mit, die Karte nennt die Stoerung');
     $data['quellen']['strecken_info_ok'] = false;
     $data['stoerungen'] = [$hinweis];
     t_eq('ok', nb_status_infra($data)['level'], 'Hinweis vorhanden heisst Quelle hat geantwortet');
@@ -433,10 +506,41 @@ function test_meldungen_tabs_und_kopf()
 
     $karte = nb_render_status_card('status-infra', ['level' => 'warn', 'title' => '2 leichte Infrastrukturstörungen', 'detail' => ''], false, './aktuell/');
     t_contains('<a class="card status status--warn" id="status-infra" href="./aktuell/" data-ssr>', $karte, 'Lagekarte als Link');
-    t_contains('</h3></a>', $karte, 'Link sauber geschlossen');
+    t_contains('</h2></a>', $karte, 'Link sauber geschlossen');
     t_contains('<div class="card status status--ok" id="status-betrieb" data-ssr hidden>', nb_render_status_card('status-betrieb', ['level' => 'ok', 'title' => 'ok', 'detail' => ''], true), 'Lagekarte ohne Link bleibt ein div');
     t_contains('<a class="nav-menu__link nav-menu__link--klein" href="../faq/">', $kopf, 'FAQ im Handy-Menue');
     t_contains('href="../">Start</a>', $kopf, 'Link zur Startseite');
+}
+
+/* ---------- Lagekarte Infrastruktur nennt die Stoerung ---------- */
+
+function test_status_infra_nennt_die_stoerung()
+{
+    $jetzt = nb_ts(T_NOW); // 15.10.2026, 10:00 Uhr
+    $st = ['key' => 'A', 'titel' => 'Störung an Signalanlagen', 'ki_titel' => 'Signalstörung bei Tornesch', 'einschraenkung' => 'mittel', 'wirkungen' => ['Verspätungen'], 'ki_folgen' => 'verspaetungen',
+        'beginn' => '2026-10-15T06:30:00Z', 'ende' => '2026-10-15T09:30:00Z'];
+    $data = ['received_at' => T_NOW, 'quellen' => ['strecken_info_ok' => true], 'stoerungen' => [$st]];
+    t_eq(['level' => 'alert', 'title' => '1 Infrastrukturstörung', 'detail' => 'Signalstörung bei Tornesch · voraussichtlich bis 11:30 Uhr'], nb_status_infra($data, $jetzt), 'eine Stoerung: Pendler-Titel und gemeldetes Ende');
+
+    t_eq('voraussichtlich bis morgen 11:30 Uhr', nb_stoerung_kurzzeit(['ende' => '2026-10-16T09:30:00Z'] + $st, $jetzt), 'Ende morgen');
+    t_eq('länger als gemeldet', nb_stoerung_kurzzeit(['ende' => '2026-10-15T07:30:00Z'] + $st, $jetzt), 'gemeldetes Ende vorbei');
+    t_eq('länger als gemeldet', nb_stoerung_kurzzeit(['abgelaufen' => true] + $st, $jetzt), 'Flag von strecken-info, Ende noch vorn');
+    t_eq('seit 08:30 Uhr', nb_stoerung_kurzzeit(['ende' => ''] + $st, $jetzt), 'ohne Ende der Beginn');
+    t_eq('seit gestern 08:30 Uhr', nb_stoerung_kurzzeit(['beginn' => '2026-10-14T06:30:00Z', 'ende' => ''] + $st, $jetzt), 'Beginn gestern');
+    t_eq('seit 08:30 Uhr', nb_stoerung_kurzzeit(['ende' => '2026-10-15T06:00:00Z'] + $st, $jetzt), 'Ende vor dem Beginn zaehlt nicht');
+    t_eq('', nb_stoerung_kurzzeit(['key' => 'X'], $jetzt), 'ohne Zeiten leer');
+    t_eq('Störung an Signalanlagen', nb_stoerung_titel(['ki_titel' => '', 'titel' => ' Störung an Signalanlagen ']), 'ohne Pendler-Titel der Originaltitel');
+    t_eq('Störung', nb_stoerung_titel([]), 'ohne Titel ein Platzhalter');
+
+    $zweite = ['key' => 'B', 'titel' => 'Weichenstörung – Elmshorn', 'ki_titel' => '', 'einschraenkung' => 'leicht', 'wirkungen' => ['Verspätungen'], 'ki_folgen' => 'verspaetungen', 'beginn' => '2026-10-15T07:00:00Z'];
+    $data['stoerungen'] = [$st, $zweite];
+    t_eq(['level' => 'alert', 'title' => '2 Infrastrukturstörungen', 'detail' => 'Signalstörung bei Tornesch · Weichenstörung – Elmshorn'], nb_status_infra($data, $jetzt), 'mehrere: nur die Titel');
+    $data['stoerungen'] = [$st, $zweite, ['key' => 'C', 'titel' => 'Dritte'] + $zweite, ['key' => 'D', 'titel' => 'Vierte'] + $zweite];
+    t_eq('Signalstörung bei Tornesch · Weichenstörung – Elmshorn · 2 weitere', nb_status_infra($data, $jetzt)['detail'], 'ab der dritten nur noch die Zahl, damit die Karte kurz bleibt');
+    $data['stoerungen'] = [$st, $zweite, ['key' => 'C', 'titel' => 'Dritte'] + $zweite];
+    t_eq('Signalstörung bei Tornesch · Weichenstörung – Elmshorn · 1 weitere', nb_status_infra($data, $jetzt)['detail'], 'eine weitere');
+    $data['stoerungen'] = [];
+    t_eq(['level' => 'ok', 'title' => 'Keine Infrastrukturstörung', 'detail' => ''], nb_status_infra($data, $jetzt), 'ohne Stoerung unveraendert');
 }
 
 /** Alle section__title-Texte eines HTML-Schnipsels. */
@@ -471,7 +575,7 @@ function test_lage_markdown()
     ]];
     $md = nb_lage_md($data, $abf, 'APD', $now);
     t_contains("# Bahn-Pinneberg.de: aktuelle Lage", $md, 'Titel');
-    t_contains('- Infrastruktur: 1 Infrastrukturstörung', $md, 'Statuszeile');
+    t_contains('- Infrastruktur: 1 Infrastrukturstörung (Verspätungen bei Eidelstedt · länger als gemeldet)', $md, 'Statuszeile nennt die Stoerung');
     t_contains("### Verspätungen bei Eidelstedt\n\nSignalstörung, Züge fahren auf dem Gegengleis.", $md, 'Pendler-Titel und -Text');
     t_contains('gemeldetes Ende heute, 09:00 Uhr überschritten, dauert an', $md, 'abgelaufen');
     t_contains('- 08:12 Uhr (+3 min): RB61 nach Hamburg Hbf. Gleis 2 statt 1. nur bis Pinneberg.', $md, 'Abfahrt mit Verspätung, Gleiswechsel, Teilausfall');
@@ -490,6 +594,62 @@ function test_lage_markdown()
     t_contains('Keine aktuellen Abfahrtsdaten.', $leer, 'ohne Abfahrten');
     t_contains('Keine aktive Störung laut strecken-info.de.', $leer, 'ohne Stoerung');
     t_contains('Keine Eilmeldung in den letzten 24 Stunden.', $leer, 'ohne Eilmeldung');
+}
+
+/* ---------- Ankunft je Zug aus dem Laufweg ---------- */
+
+function test_ankunft_aus_dem_laufweg()
+{
+    $halt = function ($name, $zeit, array $o = []) {
+        return $o + ['id' => '', 'name' => $name, 'zeit' => $zeit, 'ist' => null, 'verspaetung' => 0, 'gleis' => '', 'ausfall' => false, 'heimat' => false];
+    };
+    // Richtung Hamburg: der letzte Halt, den der Zug bedient
+    $hin = ['ab' => null, 'ausfall' => false, 'lauf' => [
+        $halt('Prisdorf', '10:18', ['heimat' => true]), $halt('Pinneberg', '10:21'), $halt('Hamburg Dammtor', '10:37'), $halt('Hamburg Hbf', '10:41'),
+    ]];
+    t_eq(['name' => 'Hamburg Hbf', 'zeit' => '10:41', 'ist' => null, 'verspaetung' => 0, 'ausfall' => false], nb_ankunft($hin), 'hin: Ankunft am Hbf');
+    $spaet = $hin;
+    $spaet['lauf'][3] = $halt('Hamburg Hbf', '10:41', ['ist' => '10:55', 'verspaetung' => 14]);
+    t_eq(['name' => 'Hamburg Hbf', 'zeit' => '10:41', 'ist' => '10:55', 'verspaetung' => 14, 'ausfall' => false], nb_ankunft($spaet), 'hin: mit Prognose');
+    $kurz = $hin;
+    $kurz['lauf'][2]['ausfall'] = true;
+    $kurz['lauf'][3]['ausfall'] = true;
+    t_eq('Pinneberg', nb_ankunft($kurz)['name'], 'hin: endet der Zug frueher, zaehlt der letzte bediente Halt');
+    t_eq(null, nb_ankunft(['ausfall' => true] + $hin), 'Ausfall: keine Ankunft');
+    t_eq(null, nb_ankunft(['ab' => null, 'lauf' => null]), 'ohne Laufweg');
+    t_eq(null, nb_ankunft(['ab' => null, 'lauf' => [$halt('Prisdorf', '10:18', ['heimat' => true])]]), 'ein Halt ist kein Laufweg');
+
+    // Rueckweg: der Heimatbahnhof, nicht das Ende der Fahrt
+    $rueck = ['ab' => 'Hbf', 'ausfall' => false, 'lauf' => [
+        $halt('Hamburg Hbf', '10:56'), $halt('Hamburg Dammtor', '10:59'), $halt('Pinneberg', '11:15'), $halt('Prisdorf', '11:19', ['heimat' => true, 'ist' => '11:23', 'verspaetung' => 4]), $halt('Itzehoe', '11:53'),
+    ]];
+    t_eq(['name' => 'Prisdorf', 'zeit' => '11:19', 'ist' => '11:23', 'verspaetung' => 4, 'ausfall' => false], nb_ankunft($rueck), 'rueck: Ankunft am Heimatbahnhof');
+    $durch = $rueck;
+    $durch['lauf'][3]['ausfall'] = true;
+    t_eq(true, nb_ankunft($durch)['ausfall'], 'rueck: Halt am Heimatbahnhof entfaellt');
+    $ohne = $rueck;
+    $ohne['lauf'][3]['heimat'] = false;
+    t_eq(null, nb_ankunft($ohne), 'rueck: Heimatbahnhof nicht im Laufweg');
+
+    // lage.md und das MCP-Werkzeug abfahrten nennen die Ankunft
+    $zeile = ['zug' => '1', 'zeit' => '2026-10-16T10:18:00+02:00', 'verspaetung' => 0, 'linie' => 'RB71', 'ziel' => 'Hamburg Hbf', 'gleis' => '2', 'hinweis' => ''];
+    t_eq('- 10:18 Uhr: RB71 nach Hamburg Hbf. Gleis 2. an Hamburg Hbf 10:41 Uhr.', nb_md_zug($zeile + $hin), 'Ankunft in der Markdown-Zeile');
+    t_eq('- 10:18 Uhr (+14 min): RB71 nach Hamburg Hbf. Gleis 2. an Hamburg Hbf 10:55 Uhr (+14 min).', nb_md_zug(['verspaetung' => 14] + $zeile + $spaet), 'verspaetete Ankunft');
+    $heim = ['zug' => '3', 'zeit' => '2026-10-16T10:56:00+02:00', 'verspaetung' => 0, 'linie' => 'RB61', 'ziel' => 'Itzehoe', 'gleis' => '13', 'hinweis' => ''];
+    t_eq('- 10:56 Uhr ab Hbf: RB61 nach Itzehoe. Gleis 13. an Prisdorf 11:23 Uhr (+4 min).', nb_md_zug($heim + $rueck), 'Rueckweg: Ankunft zu Hause');
+    t_eq('- 10:56 Uhr ab Hbf: RB61 nach Itzehoe. Gleis 13. hält heute nicht in Prisdorf.', nb_md_zug($heim + $durch), 'Halt entfaellt');
+}
+
+/** Die Zeilen aus abf_build tragen den Laufweg, aus dem die Ankunft kommt. */
+function test_ankunft_aus_der_abfahrtstafel()
+{
+    $r = t_build(t_standard(['zug:81871' => t_lauf_81871(), 'zug:75514' => t_lauf_75514(['AP' => ['an_min' => 6, 'ab_min' => 6]])]));
+    t_eq(['name' => 'Hamburg Hbf', 'zeit' => '10:41', 'ist' => null, 'verspaetung' => 0, 'ausfall' => false], nb_ankunft(t_zeile($r, 'hin', '81871')), 'hin aus der Zugauskunft');
+    t_eq('Prisdorf', nb_ankunft(t_zeile($r, 'rueck', '75514'))['name'], 'rueck: der Heimatbahnhof');
+    t_eq('11:19', nb_ankunft(t_zeile($r, 'rueck', '75514'))['zeit'], 'rueck: Planankunft zu Hause');
+    t_reset(); // die Zugauskunft von eben liegt sonst noch fuenf Minuten im Cache
+    $kurz = t_build(t_standard(['zug:81871' => t_lauf_81871(['ADF' => ['ausfall' => true], 'AH' => ['ausfall' => true]])]));
+    t_eq('Pinneberg', nb_ankunft(t_zeile($kurz, 'hin', '81871'))['name'], 'nur bis Pinneberg: Ankunft dort');
 }
 
 /* ---------- Statistik ---------- */

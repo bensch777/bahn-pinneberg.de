@@ -293,7 +293,7 @@
 		box.className = 'card status status--' + level;
 		clear(box);
 		box.appendChild(el('div', { class: 'status__icon', 'aria-hidden': 'true', text: icons[level] || '?' }));
-		var h = el('h3', { class: 'status__title', text: title });
+		var h = el('h2', { class: 'status__title', text: title });
 		if (detail) h.appendChild(el('small', { text: detail }));
 		box.appendChild(h);
 		renderKompakt();
@@ -366,15 +366,25 @@
 		// Karte 1: Infrastruktur laut strecken-info.de. Stuft strecken-info alle
 		// Stoerungen als "leicht" ein, bleibt die Karte orange; ab "mittel" wird sie rot.
 		// Hinweise ohne Folgen zaehlen nicht, die gruene Karte nennt sie klein.
+		// Laeuft etwas, nennt die zweite Zeile die Stoerung beim Namen (wie nb_status_infra): die
+		// Stoerungskarten mit dem ganzen Text stehen erst unter den Abfahrten.
 		var schwer = list.filter(function (st) { return !/^leicht/i.test(st.einschraenkung || ''); }).length;
+		var now = Date.now();
+		var wer = '';
+		if (list.length === 1) {
+			var kurz = stoerungKurzzeit(list[0], now);
+			wer = stoerungTitel(list[0]) + (kurz ? ' · ' + kurz : '');
+		} else if (list.length) {
+			// hoechstens zwei Titel (wie nb_status_infra), ab der dritten "2 weitere"
+			wer = list.slice(0, 2).map(stoerungTitel).join(' · ') + (list.length > 2 ? ' · ' + plural(list.length - 2, 'weitere', 'weitere') : '');
+		}
 		if (!hasData) setStatus('status-infra', 'unknown', 'Noch keine Daten');
 		else if (list.length === 0 && (ok || hinweise)) setStatus('status-infra', 'ok', 'Keine Infrastrukturstörung', hinweise ? plural(hinweise, 'Hinweis ohne Folgen', 'Hinweise ohne Folgen') : '');
 		else if (list.length === 0) setStatus('status-infra', 'unknown', 'Infrastrukturstörungen unbekannt');
-		else if (schwer === 0) setStatus('status-infra', 'warn', plural(list.length, 'leichte Infrastrukturstörung', 'leichte Infrastrukturstörungen'));
-		else setStatus('status-infra', 'alert', plural(list.length, 'Infrastrukturstörung', 'Infrastrukturstörungen'));
+		else if (schwer === 0) setStatus('status-infra', 'warn', plural(list.length, 'leichte Infrastrukturstörung', 'leichte Infrastrukturstörungen'), wer);
+		else setStatus('status-infra', 'alert', plural(list.length, 'Infrastrukturstörung', 'Infrastrukturstörungen'), wer);
 
 		// Karte 2: Eilmeldungen der Nordbahn, akut siehe eilAkut
-		var now = Date.now();
 		var last = state.items.length ? state.items[state.items.length - 1] : null;
 		var akut = state.items.filter(function (it) { return eilAkut(it, now); }).pop();
 		if (!hasData) {
@@ -395,16 +405,35 @@
 		notifyNew(list.map(function (st) {
 			var t = st.ki_titel || st.titel || 'Störung';
 			var b = st.ki_text || st.text || '';
-			return { id: 'st:' + st.key, title: 'Infrastrukturstörung', body: t + (b ? ': ' + b : '') };
-		}));
+			return { id: 'st:' + st.key, title: 'Infrastrukturstörung', body: t + (b ? ': ' + b : ''), ansage: 'Neue Infrastrukturstörung: ' + t };
+		}), 'st');
 
+		// Die Karten stehen im Bereich "Aktuelle Meldungen" unter den Abfahrten; ob Liste und
+		// Bereich sichtbar sind, entscheidet wegAnwenden fuer Karten und Meldungen zusammen
 		var ul = document.getElementById('incidents');
 		if (ul) {
 			clear(ul);
-			ul.hidden = list.length === 0;
 			list.forEach(function (s) { ul.appendChild(renderIncident(s)); });
 			wegAnwenden();
 		}
+	}
+
+	/** Titel einer Stoerung fuer die Anzeige (wie nb_stoerung_titel): Pendler-Titel der KI, sonst der Originaltitel. */
+	function stoerungTitel(st) {
+		return String(st.ki_titel || st.titel || '').trim() || 'Störung';
+	}
+
+	/**
+	 * Kurzangabe zum Zeitraum einer laufenden Stoerung fuer die Lagekarte (wie nb_stoerung_kurzzeit):
+	 * "voraussichtlich bis 15:28 Uhr", nach dem gemeldeten Ende "länger als gemeldet", ohne Ende
+	 * "seit 13:28 Uhr".
+	 */
+	function stoerungKurzzeit(st, now) {
+		var start = Date.parse(st.beginn || ''), ende = Date.parse(st.ende || '');
+		if (!isNaN(ende) && !isNaN(start) && ende <= start) ende = NaN;
+		if (st.abgelaufen || (!isNaN(ende) && now > ende)) return 'länger als gemeldet';
+		if (!isNaN(ende)) return 'voraussichtlich bis ' + fmtZeitRel(ende);
+		return isNaN(start) ? '' : 'seit ' + fmtZeitRel(start);
 	}
 
 	/**
@@ -523,7 +552,7 @@
 		ende = isNaN(ende) ? null : ende;
 
 		return el('li', s.key ? { class: 'card incident', 'data-weg-id': 'st:' + s.key } : { class: 'card incident' }, [
-			el('h4', { class: 'incident__title', text: titel }),
+			el('h3', { class: 'incident__title', text: titel }),
 			text ? el('p', { class: 'incident__text', text: text }) : null,
 			el('p', { class: 'zeitraum', text: fmtZeitraum(start, ende, now, !!s.abgelaufen) }),
 			zeitbalken(start, ende, now, !!s.abgelaufen),
@@ -607,8 +636,9 @@
 	/* ---------- Meldungen wegklicken ---------- */
 
 	/*
-	 * Jede Meldung auf der Startseite (Stoerungskarten, "Aktuelle Meldungen") traegt eine
-	 * Kennung in data-weg-id: eil:<id>, st:<key> oder hvv:<id>. Wer sie wegklickt, sieht sie
+	 * Jede Meldung auf der Startseite (Stoerungskarten, "Aktuelle Meldungen", geplante
+	 * Fahrplanaenderungen) traegt eine Kennung in data-weg-id: eil:<id>, st:<key>, hvv:<id>
+	 * oder sf:<id>. Wer sie wegklickt, sieht sie
 	 * in diesem Browser sieben Tage lang nicht mehr; die Kennungen liegen in localStorage.
 	 * Die Lagekarten oben zeigen weiter die ganze Lage und fuehren zu /aktuell/, wo immer
 	 * alles steht.
@@ -648,16 +678,24 @@
 	/**
 	 * Wendet die Auswahl auf Stoerungskarten und "Aktuelle Meldungen" an, egal ob sie vom
 	 * Server oder vom Script kommen: weggeklickte Eintraege werden versteckt, die Knoepfe
-	 * sichtbar. Bleibt in einer Liste nichts uebrig, verschwindet sie wie bei ruhiger Lage.
+	 * sichtbar. Beide stehen im selben Bereich unter den Abfahrten; bleibt in einer Liste
+	 * nichts uebrig, verschwindet sie, ohne Karte und ohne Meldung der ganze Bereich wie
+	 * bei ruhiger Lage.
 	 */
 	function wegAnwenden() {
 		var weg = wegLesen();
 		Array.prototype.forEach.call(document.querySelectorAll('.feed__weg, .incident__weg'), function (b) { b.hidden = false; });
 		var ul = document.getElementById('incidents');
-		if (ul) ul.hidden = !wegZaehlen(ul.querySelectorAll(':scope > li'), weg);
+		var karten = ul ? wegZaehlen(ul.querySelectorAll(':scope > li'), weg) : 0;
+		if (ul) ul.hidden = !karten;
 		var section = document.getElementById('meldungen');
 		var box = document.getElementById('meldungen-inhalt');
-		if (section && box) section.hidden = !wegZaehlen(box.querySelectorAll('#meldungen-feed > li'), weg);
+		var meldungen = box ? wegZaehlen(box.querySelectorAll('#meldungen-feed > li'), weg) : 0;
+		if (box) box.hidden = !meldungen;
+		if (section) section.hidden = !(karten + meldungen);
+		// Ausblick auf geplante Fahrplanaenderungen (nur vom Server gerendert, Kennung sf:<id>)
+		var ausblick = document.getElementById('ausblick');
+		if (ausblick) ausblick.hidden = !wegZaehlen(ausblick.querySelectorAll('#ausblick-feed > li'), weg);
 	}
 
 	/** Klick auf ×: blendet die Meldung des Eintrags aus. */
@@ -673,7 +711,7 @@
 		});
 	}
 
-	/** Bereich "Aktuelle Meldungen" (wie nb_render_aktuelle_meldungen); ohne Meldung ausgeblendet. */
+	/** Liste im Bereich "Aktuelle Meldungen" (wie nb_render_aktuelle_meldungen), unter den Stoerungskarten. */
 	function renderMeldungen() {
 		var section = document.getElementById('meldungen');
 		var box = document.getElementById('meldungen-inhalt');
@@ -683,12 +721,12 @@
 		var now = Date.now();
 		var liste = aktuelleMeldungen(now);
 		clear(box);
-		// Ohne aktuelle Meldung bleibt der Bereich ganz weg
-		section.hidden = !liste.length;
-		if (!liste.length) return;
-		var ol = el('ol', { class: 'feed', id: 'meldungen-feed' });
-		liste.forEach(function (it) { ol.appendChild(it.art === 'hvv' ? hvvEintrag(it.meldung, now) : meldungEintrag(it)); });
-		box.appendChild(ol);
+		if (liste.length) {
+			var ol = el('ol', { class: 'feed', id: 'meldungen-feed' });
+			liste.forEach(function (it) { ol.appendChild(it.art === 'hvv' ? hvvEintrag(it.meldung, now) : meldungEintrag(it)); });
+			box.appendChild(ol);
+		}
+		// Ohne Meldung und ohne Stoerungskarte bleibt der Bereich ganz weg
 		wegAnwenden();
 	}
 
@@ -707,14 +745,41 @@
 	/**
 	 * Vormittags steht die Fahrt in die Stadt oben, nachmittags der Rueckweg; gilt fuer Nordbahn
 	 * und S3. Auf dem Handy zeigt die Seite nur eine Richtung, die Tabs (.richtung) waehlen sie
-	 * fuer beide Bereiche; die Wahl gilt bis zum naechsten Laden der Seite.
+	 * fuer beide Bereiche. Der Server setzt Klassen und Tabs schon nach der Tageszeit
+	 * (nb_richtung_jetzt), das Script aendert nur noch etwas, wenn eine Wahl gemerkt ist.
 	 */
 	var richtungState = { wahl: null };
+	var RICHTUNG_KEY = 'nordbahn.richtung';      // { r: 'hin'|'rueck', t: Zeitpunkt der Wahl in ms }
+	var RICHTUNG_MAX_MS = 4 * 3600 * 1000;        // so lange gilt eine Wahl gegen die Tageszeit
 
-	function aktuelleRichtung() {
-		if (richtungState.wahl) return richtungState.wahl;
+	/** Richtung nach der Tageszeit: vormittags in die Stadt, ab 12 Uhr zurueck (wie nb_richtung_jetzt). */
+	function richtungNachUhrzeit() {
 		var hour = parseInt(new Date().toLocaleTimeString('de-DE', { timeZone: TZ, hour: '2-digit', hour12: false }), 10);
 		return hour >= 12 ? 'rueck' : 'hin';
+	}
+
+	function aktuelleRichtung() {
+		return richtungState.wahl || richtungNachUhrzeit();
+	}
+
+	/**
+	 * Eine Wahl gegen die Tageszeit (Spaetschicht: nachmittags in die Stadt) ueberlebt das
+	 * stuendliche Neuladen und die Rueckkehr in die App: sie liegt vier Stunden lang in
+	 * sessionStorage. Wer zurueck auf die Richtung der Tageszeit tippt, loescht sie wieder.
+	 */
+	function richtungMerken(r) {
+		try {
+			if (r === richtungNachUhrzeit()) window.sessionStorage.removeItem(RICHTUNG_KEY);
+			else window.sessionStorage.setItem(RICHTUNG_KEY, JSON.stringify({ r: r, t: Date.now() }));
+		} catch (e) { /* privater Modus: die Wahl gilt dann bis zum Neuladen */ }
+	}
+
+	function richtungLesen() {
+		try {
+			var w = JSON.parse(window.sessionStorage.getItem(RICHTUNG_KEY) || 'null');
+			if (w && (w.r === 'hin' || w.r === 'rueck') && Date.now() - w.t < RICHTUNG_MAX_MS) return w.r;
+		} catch (e) { /* egal */ }
+		return null;
 	}
 
 	function orderBoards() {
@@ -730,9 +795,11 @@
 	}
 
 	function initRichtung() {
+		richtungState.wahl = richtungLesen();
 		Array.prototype.forEach.call(document.querySelectorAll('.richtung__tab'), function (b) {
 			b.addEventListener('click', function () {
 				richtungState.wahl = b.getAttribute('data-richtung');
+				richtungMerken(richtungState.wahl);
 				orderBoards();
 				track('Richtung', { richtung: richtungState.wahl });
 			});
@@ -745,6 +812,70 @@
 		return dt.toLocaleTimeString('de-DE', { timeZone: TZ, hour: '2-digit', minute: '2-digit' });
 	}
 
+	/**
+	 * Platzhalterzeilen, solange die Abfahrten laden (wie nb_render_board_skelett): die Tafel
+	 * hat von Anfang an etwa ihre spaetere Hoehe, die Seite springt nicht. Stehen schon
+	 * Platzhalter da (vom Server), bleiben sie stehen.
+	 */
+	function skelettZeilen(list) {
+		if (list.querySelector('.dep--skelett')) return;
+		clear(list);
+		for (var i = 0; i < 6; i++) {
+			list.appendChild(el('li', { class: 'dep dep--skelett', 'aria-hidden': 'true' }, [
+				el('span', { class: 'dep__dot' }),
+				el('div', { class: 'dep__time' }, [el('span', { class: 'skelett' })]),
+				el('div', { class: 'dep__line' }, [el('span', { class: 'skelett' })]),
+				el('div', { class: 'dep__dest' }, [el('span', { class: 'skelett' })]),
+				el('div', { class: 'dep__platform' }, [el('span', { class: 'skelett' })])
+			]));
+		}
+		list.appendChild(el('li', { class: 'visually-hidden board__lade', text: 'Lade Abfahrten …' }));
+	}
+
+	/**
+	 * Ankunft einer Zeile dort, wo sie fuer den Pendler zaehlt (wie nb_ankunft): Richtung Hamburg
+	 * am letzten Halt, den der Zug heute bedient, auf dem Rueckweg am Heimatbahnhof. Aus dem
+	 * Laufweg der Zeile; null ohne Laufweg, bei einem Ausfall oder wenn der Halt fehlt.
+	 */
+	function ankunft(d, key) {
+		var lauf = d.lauf;
+		if (!lauf || lauf.length < 2 || d.ausfall) return null;
+		var h = null, i;
+		if (key === 'rueck') {
+			for (i = 1; i < lauf.length; i++) { if (lauf[i].heimat) { h = lauf[i]; break; } }
+		} else {
+			for (i = lauf.length - 1; i >= 1; i--) { if (!lauf[i].ausfall) { h = lauf[i]; break; } }
+		}
+		if (!h || !h.zeit) return null;
+		return { name: h.name || '', zeit: h.zeit, ist: h.ist || null, verspaetung: h.verspaetung || 0, ausfall: !!h.ausfall };
+	}
+
+	/**
+	 * Die Ankunft als kleine Zeile unter dem Ziel: "an 10:41" Richtung Hamburg (das Ziel steht im
+	 * Chip daneben), "an Prisdorf 17:31" auf dem Rueckweg, verspaetet mit Prognose und "(+14)".
+	 * Haelt der Zug heute nicht am Heimatbahnhof, steht das statt der Zeit da. Null, wenn es
+	 * nichts zu sagen gibt oder die Zeile die Ankunft schon nennt (endet heute vorzeitig).
+	 */
+	function ankunftZeile(d, key) {
+		var an = ankunft(d, key);
+		if (!an) return null;
+		if (key !== 'rueck' && d.teil && d.teil.art === 'endet' && !d.teil.plan) return null;
+		if (an.ausfall) return el('small', { class: 'dep__an dep__an--ausfall', text: 'Halt ' + an.name + ' entfällt' });
+		var spaet = an.verspaetung >= 3 && an.ist;
+		// Der Ort steht nur dabei, wenn er nicht schon in der Zeile steht: auf dem Rueckweg der
+		// Heimatbahnhof (ausser der Zug endet dort), Richtung Hamburg nur, wenn der Zug woanders
+		// ankommt als sein Ziel sagt
+		var nennen = key === 'rueck' ? an.name !== d.ziel : hamburgKurz(an.name) !== hamburgKurz(d.ziel) && !(d.teil && d.teil.art === 'endet');
+		var ort = nennen && an.name ? hamburgKurz(an.name) + ' ' : '';
+		var zeile = el('small', { class: 'dep__an', text: 'an ' + ort + (spaet ? an.ist : an.zeit) });
+		if (spaet) {
+			// geschuetztes Leerzeichen: "(+14)" bricht auf dem Handy nicht allein in die naechste Zeile um
+			zeile.appendChild(document.createTextNode('\u00a0'));
+			zeile.appendChild(el('span', { class: 'dep__an-spaet', text: '(+' + an.verspaetung + ')' }));
+		}
+		return zeile;
+	}
+
 	function renderDepartures(result) {
 		var section = document.getElementById('abfahrten');
 		if (!section) return;
@@ -754,7 +885,7 @@
 
 		// Den Stand zeigt die Kopfzeile fuer die ganze Seite; hier steht nur, wenn etwas fehlt
 		if (sub) {
-			if (!result) sub.textContent = 'Lade …';
+			if (!result) sub.textContent = '';
 			else if (!ok && result.fetched_at) sub.textContent = 'Keine aktuellen Daten, letzter Stand ' + fmtClock(result.fetched_at) + ' Uhr';
 			else if (!ok) sub.textContent = 'Keine aktuellen Daten';
 			else sub.textContent = '';
@@ -764,14 +895,17 @@
 		if (!result || (!ok && !result.richtungen)) {
 			Array.prototype.forEach.call(boards, function (b) {
 				var list = b.querySelector('.board__list');
+				if (!result) { skelettZeilen(list); return; }
 				clear(list);
-				list.appendChild(el('li', {}, [el('p', { class: 'board__empty', text: result ? 'Keine Daten.' : 'Lade …' })]));
+				list.appendChild(el('li', {}, [el('p', { class: 'board__empty', text: 'Keine Daten.' })]));
 			});
 			return;
 		}
 
 		var ausfaelle = 0, verspaetet = 0;
 		var regio = regioZeilen();
+		// Gemerkte Zuege dieses Bahnhofs (Einstellungen, "Meine Zuege"), einmal je Aufbau gelesen
+		var meine = meineZuege().filter(function (z) { return z.heimat === heimatState.id; });
 		Array.prototype.forEach.call(boards, function (b) {
 			var key = b.getAttribute('data-richtung');
 			var list = b.querySelector('.board__list');
@@ -811,6 +945,9 @@
 				if (d.quelle === 'hvv') { /* RE: Linie genuegt, wer faehrt, ist Pendlern egal */ }
 				else if (d.wagen) line.appendChild(el('small', { text: plural(d.wagen, 'Wagen', 'Wagen') }));
 				else if (d.bus) line.appendChild(el('small', { text: 'SEV' }));
+				// Gemerkter Zug: in der Tafel wiederzufinden, ohne die Zeiten abzusuchen
+				var mein = !!d.zug && meine.some(function (z) { return z.richtung === key && nummernVon(z).indexOf(d.zug) >= 0; });
+				if (mein) { cls += ' dep--mein'; line.appendChild(el('small', { class: 'dep__mein', text: 'Mein Zug' })); }
 
 				var dest = el('div', { class: 'dep__dest', title: d.ziel }, []);
 				// Schienenersatzverkehr: der Bus faellt als Chip auf, nicht nur im Hinweistext
@@ -849,6 +986,9 @@
 					if (zielKurz) dest.appendChild(el('span', { class: 'dep__ab' + bahnhofClass(zielKurz), text: 'nach ' + zielKurz }));
 					else dest.appendChild(el('span', { class: 'dep__ziel', text: d.ziel }));
 				}
+				// Ankunft in Hamburg bzw. zu Hause, direkt unter dem Ziel und vor allen Hinweisen
+				var anZeile = ankunftZeile(d, key);
+				if (anZeile) dest.insertBefore(anZeile, dest.querySelector('small'));
 				if (d.teil && d.teil.art === 'beginnt' && d.ausfall) {
 					// Startzeit unterwegs unbekannt: die Zeile bleibt ein Ausfall mit Hinweis
 					dest.appendChild(el('small', { class: 'dep__ersatz', text: 'Fährt erst ab ' + d.teil.name }));
@@ -863,7 +1003,7 @@
 					else {
 						var dtLate = dt.verspaetung >= 3;
 						dest.appendChild(el('small', { class: 'dep__dammtor', text: 'Dammtor ' + fmtClock(dtLate && dt.ist ? dt.ist : dt.zeit) + (dtLate ? ' (+' + dt.verspaetung + ')' : '')
-							+ (dt.gleis ? ', Gl. ' + dt.gleis + (dt.gleis_plan ? ' (statt ' + dt.gleis_plan + ')' : '') : '') }));
+							+ (dt.gleis ? ', Gl.\u00a0' + dt.gleis + (dt.gleis_plan ? ' (statt ' + dt.gleis_plan + ')' : '') : '') }));
 					}
 				}
 				if (d.hinweis) dest.appendChild(el('small', { text: d.hinweis }));
@@ -872,7 +1012,7 @@
 					var e = d.ersatz;
 					var eLate = e.verspaetung >= 3;
 					dest.appendChild(el('small', { class: 'dep__ersatz', text: 'Fährt stattdessen ab ' + e.ab + ' um ' + fmtClock(e.zeit)
-						+ (eLate ? ' (+' + e.verspaetung + ')' : '') + (e.gleis ? ', Gl. ' + e.gleis + (e.gleis_plan ? ' (statt ' + e.gleis_plan + ')' : '') : '') }));
+						+ (eLate ? ' (+' + e.verspaetung + ')' : '') + (e.gleis ? ', Gl.\u00a0' + e.gleis + (e.gleis_plan ? ' (statt ' + e.gleis_plan + ')' : '') : '') }));
 				}
 
 				// Gleiswechsel: das heutige Gleis faellt auf, das Plangleis steht klein darunter
@@ -896,7 +1036,7 @@
 		alertState.ausfaelle = ausfaelle;
 		alertState.verspaetet = verspaetet;
 		updateBadge();
-		notifyNew(collectEvents(result));
+		notifyNew(collectEvents(result), 'zug');
 	}
 
 	var departuresState = { last: null };
@@ -1035,6 +1175,8 @@
 			track('Bahnhof', { bahnhof: heimatState.name });
 			departuresState.last = null;
 			regioState.last = null;
+			// Der erste Stand am neuen Bahnhof ist keine Neuigkeit: Ausfaelle dort nicht ansagen oder melden
+			notifyPrimed.zug = false;
 			renderDepartures(null);
 			refreshDepartures();
 		});
@@ -1795,6 +1937,7 @@
 				events.push({
 					mein: istMeiner(d, key),
 					id: 'zug:' + heimatState.id + ':' + (d.zug || d.linie + d.zeit),
+					ansage: 'Zugausfall: ' + d.linie + ' um ' + fmtClock(d.zeit) + ' Uhr ' + (d.ab ? 'ab ' + d.ab + ' ' : '') + 'nach ' + d.ziel + ' fällt aus',
 					title: 'Zugausfall ' + d.linie + ' um ' + fmtClock(d.zeit) + ' Uhr',
 					body: richtung + (d.ab ? ' ab ' + d.ab : '') + (d.hinweis ? '. ' + d.hinweis : '')
 						+ (d.ersatz ? '. Fährt stattdessen ab ' + d.ersatz.ab + ' um ' + fmtClock(d.ersatz.zeit) + ' Uhr' : '')
@@ -1804,15 +1947,23 @@
 		return events;
 	}
 
-	var notifyPrimed = false;
+	// Je Art (Stoerungen, Zugausfaelle) einmal: was beim ersten Stand schon da ist, wird nicht gemeldet
+	var notifyPrimed = {};
 
-	/** Meldet nur, was seit dem letzten Mal neu ist; beim ersten Laden wird nichts gemeldet. */
-	function notifyNew(events) {
+	/**
+	 * Meldet nur, was seit dem letzten Mal neu ist; beim ersten Laden wird nichts gemeldet.
+	 * $art trennt die beiden Quellen (st: Stoerungen aus dem Lagebild, zug: Ausfaelle aus den
+	 * Abfahrten), damit der erste Stand der einen nicht als Neuigkeit der anderen gilt.
+	 * Neues geht immer als Ansage an Screenreader, als Systembenachrichtigung nur, wenn
+	 * eingeschaltet und nicht ohnehin per Web Push unterwegs.
+	 */
+	function notifyNew(events, art) {
 		var list = loadSeen();
 		var fresh = events.filter(function (ev) { return !list[ev.id]; });
 		fresh.forEach(function (ev) { list[ev.id] = Date.now(); });
 		if (fresh.length) storage('set', SEEN_KEY, JSON.stringify(list));
-		if (!notifyPrimed) { notifyPrimed = true; return; }
+		if (!notifyPrimed[art]) { notifyPrimed[art] = true; return; }
+		ansagen(fresh);
 		if (!notifyEnabled() || pushActive()) return;
 		// Meine Zuege melden sich immer, alles andere nur ohne "nur meine Zuege" und zur gewaehlten Zeit
 		var allesErlaubt = !notifyNur() && notifyAllowedNow();
@@ -1822,6 +1973,23 @@
 				n.onclick = function () { window.focus(); n.close(); };
 			} catch (e) { /* Benachrichtigung nicht moeglich */ }
 		});
+	}
+
+	/**
+	 * Ansage fuer Screenreader in der versteckten Statuszeile (#ansage, aria-live): nur was
+	 * neu ist, hoechstens drei Ereignisse je Stand, und nur eine Minute lang. Die Tafeln selbst
+	 * sind keine Live-Regionen mehr: sie werden jede halbe Minute neu aufgebaut und wuerden
+	 * sonst komplett vorgelesen.
+	 */
+	var ansageTimer = null;
+
+	function ansagen(events) {
+		var box = document.getElementById('ansage');
+		if (!box || !events.length) return;
+		box.textContent = events.slice(0, 3).map(function (ev) { return ev.ansage || ev.title; }).join('. ') + '.';
+		// Nach einer Minute leeren: wer spaeter durch die Seite geht, soll keine alte Ansage vorfinden
+		clearTimeout(ansageTimer);
+		ansageTimer = setTimeout(function () { box.textContent = ''; }, 60000);
 	}
 
 	/**
@@ -1932,6 +2100,8 @@
 			pushUnsubscribe().then(function () {
 				try {
 					Object.keys(window.localStorage).forEach(function (k) { if (k.indexOf('nordbahn.') === 0) window.localStorage.removeItem(k); });
+					// auch die gemerkte Richtung der Abfahrtstafel (sessionStorage)
+					Object.keys(window.sessionStorage).forEach(function (k) { if (k.indexOf('nordbahn.') === 0) window.sessionStorage.removeItem(k); });
 				} catch (e) { /* privater Modus */ }
 				window.location.reload();
 			});
@@ -1983,6 +2153,10 @@
 	}
 
 	function boot() {
+		// Start melden: ohne diese Marke nimmt das Inline-Skript im Head (nb_theme_head) die
+		// Klasse js nach zehn Sekunden wieder weg, damit die Seite auch ohne dieses Script lesbar ist
+		document.documentElement.setAttribute('data-app', '1');
+		document.documentElement.classList.add('js');
 		resolveUrls();
 		if (document.body.getAttribute('data-seite') === 'einstellungen') { bootEinstellungen(); return; }
 		var raw = document.getElementById('nordbahn-data');

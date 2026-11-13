@@ -37,7 +37,7 @@
 	--surface-2: #f1f1ee;
 	--ink: #0b0b0b;
 	--ink-2: #52514e;
-	--muted: #898781;
+	--muted: #706e68;           /* Nebentext: mindestens 4,5:1 auf Seite, Karte und surface-2 (WCAG AA), vorher #898781 mit 3,3:1 */
 	--line: #e1e0d9;
 	--grid: #e8e7e1;
 	--axis: #c3c2b7;
@@ -240,24 +240,6 @@ button.freshness:focus-visible { outline: 2px solid var(--series); outline-offse
 /* Abschnitte */
 .section { margin: 28px 0 0; }
 
-/* Handy: Kopf und Lagekarten kompakt, damit die Zuege ohne Scrollen sichtbar sind.
-   Der Vorspann bleibt im HTML (Suchmaschinen), die Kopfzeile nennt den Namen ohnehin. */
-@media (max-width: 560px) {
-	.page-head { padding: 14px 0 0; gap: 4px 16px; align-items: center; }
-	.page-head h1 { font-size: 19px; margin: 0; }
-	.page-head__lead { display: none; }
-	.freshness { font-size: 12px; }
-	.section { margin: 16px 0 0; }
-	.status-grid { gap: 6px; }
-	.status { padding: 8px 12px; gap: 10px; border-radius: 10px; }
-	.status__icon { width: 22px; height: 22px; font-size: 13px; }
-	.status__title { font-size: 14.5px; }
-	.status__title small { font-size: 12px; margin-top: 1px; }
-	.status-rest { margin-top: 6px; font-size: 12.5px; }
-	.incidents { margin-top: 8px; gap: 8px; }
-	.incident { padding: 12px 14px; }
-	.section__head { margin-bottom: 8px; }
-}
 .section__head { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; flex-wrap: wrap; margin-bottom: 12px; }
 .section__title { font-size: 17px; font-weight: 600; margin: 0 0 12px; letter-spacing: -0.01em; }
 .section__head .section__title { margin: 0; }
@@ -327,6 +309,9 @@ a.status:focus-visible { outline: 2px solid var(--series); outline-offset: 2px; 
 .status-rest::before { content: '\2713'; color: var(--good); font-weight: 700; margin-right: 6px; }
 
 .incidents { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 12px; }
+.incidents[hidden] { display: none; }
+/* Startseite: Stoerungskarten und Meldungsliste teilen sich den Bereich "Aktuelle Meldungen" unter den Abfahrten */
+.incidents:not([hidden]) + .meldungen { margin-top: 12px; }
 .incident { padding: 16px 18px; }
 .incident__title { margin: 0 0 4px; font-size: 16px; font-weight: 600; }
 .incident__text { margin: 0 0 10px; color: var(--ink-2); }
@@ -344,6 +329,27 @@ a.status:focus-visible { outline: 2px solid var(--series); outline-offset: 2px; 
 .incident__link a { color: var(--series); text-decoration: none; }
 .incident__link a::after { content: ' \2192'; }
 .incident__link a:hover { text-decoration: underline; }
+/* Handy: Kopf und Lagekarten kompakt, damit die Zuege ohne Scrollen sichtbar sind.
+   Der Vorspann bleibt im HTML (Suchmaschinen), die Kopfzeile nennt den Namen ohnehin.
+   Der Block muss hinter den Grundregeln fuer Lagekarten, Stoerungskarten und
+   Abschnittskopf stehen: bei gleicher Spezifitaet gewinnt die spaetere Regel. */
+@media (max-width: 560px) {
+	.page-head { padding: 14px 0 0; gap: 4px 16px; align-items: center; }
+	.page-head h1 { font-size: 19px; margin: 0; }
+	.page-head__lead { display: none; }
+	.freshness { font-size: 12px; }
+	.section { margin: 16px 0 0; }
+	.status-grid { gap: 6px; }
+	.status { padding: 8px 12px; gap: 10px; border-radius: 10px; }
+	.status__icon { width: 22px; height: 22px; font-size: 13px; }
+	.status__title { font-size: 14.5px; }
+	.status__title small { font-size: 12px; margin-top: 1px; }
+	.status-rest { margin-top: 6px; font-size: 12.5px; }
+	.incidents { margin-top: 8px; gap: 8px; }
+	.incidents:not([hidden]) + .meldungen { margin-top: 8px; }
+	.incident { padding: 12px 14px; }
+	.section__head { margin-bottom: 8px; }
+}
 /* Ereignisseite: Artikel in schmaler Lesespalte */
 .artikel { max-width: 760px; margin: 0 auto; padding: 36px 0 8px; }
 .artikel__kopf { margin: 0 0 22px; }
@@ -427,6 +433,7 @@ a.status:focus-visible { outline: 2px solid var(--series); outline-offset: 2px; 
 .feed__kicker { margin: 0 0 2px; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--series-2); }
 .feed__kicker--eilmeldung { color: var(--warn-text); }
 .feed__kicker--hvv { color: var(--series); }
+.feed__kicker--plan { color: var(--ink-2); }
 .feed__kicker .dep__ab { margin-left: 6px; letter-spacing: 0; text-transform: none; }
 /* Heutige Eintraege stehen voll da, aeltere treten zurueck */
 .feed > li.is-heute .feed__time { color: var(--ink); font-weight: 500; }
@@ -756,12 +763,54 @@ a.status:focus-visible { outline: 2px solid var(--series); outline-offset: 2px; 
 .installieren__icon { display: inline-block; width: 18px; height: 18px; vertical-align: -3px; color: var(--series); }
 .installieren__icon svg { width: 100%; height: 100%; fill: currentColor; }
 .board__empty { margin: 0; padding: 14px 0 10px; color: var(--muted); font-size: 13.5px; }
+/* Platzhalterzeilen, solange die Abfahrten laden: so hoch wie eine echte Zeile, damit die
+   Seite nicht springt. Ohne JavaScript (keine Klasse js an <html>) bleiben sie weg. */
+.dep--skelett { align-items: center; min-height: 60px; }
+/* Rueckweg: echte Zeilen sind hoeher (Ankunft zu Hause, Halt am Dammtor) */
+.board[data-richtung="rueck"] .dep--skelett { min-height: 71px; }
+@media (max-width: 420px) {
+	.dep--skelett { min-height: 57px; }
+	.board[data-richtung="rueck"] .dep--skelett { min-height: 75px; }
+}
+/* bei 360 px bricht die Zeile zum Dammtor um */
+@media (max-width: 365px) {
+	.board[data-richtung="rueck"] .dep--skelett { min-height: 92px; }
+}
+html:not(.js) .dep--skelett, html:not(.js) .board__lade { display: none; }
+.dep--skelett .dep__dot { align-self: center; margin-top: 0; background: var(--surface-2); }
+.skelett { display: block; height: 13px; border-radius: 5px; background: var(--surface-2); }
+.dep--skelett .dep__time .skelett { width: 52px; height: 20px; }
+.dep--skelett .dep__line .skelett { width: 44px; height: 20px; border-radius: 6px; }
+.dep--skelett .dep__dest .skelett { width: min(170px, 80%); }
+.dep--skelett .dep__platform .skelett { width: 34px; }
+@media (prefers-reduced-motion: no-preference) {
+	.dep--skelett .skelett { animation: skelett 1.1s ease-in-out infinite alternate; }
+}
+@keyframes skelett { to { opacity: 0.45; } }
+/* Gemerkter Zug ("Meine Zuege" in den Einstellungen): dezent hinterlegt und beschriftet */
+/* (der Schatten verlaengert die Flaeche seitlich um 8px, so breit wie die Klickflaeche des Laufwegs) */
+.dep--mein { --mein: color-mix(in srgb, var(--series) 8%, transparent); background: var(--mein); box-shadow: -8px 0 0 var(--mein), 8px 0 0 var(--mein); }
+.dep__line .dep__mein { color: var(--series); font-weight: 700; }
 @media (max-width: 420px) {
 	.dep { grid-template-columns: 10px 62px 48px 1fr auto; gap: 0 8px; }
 	.dep__dest { white-space: normal; } /* "ab Dammtor Itzehoe" passt sonst nicht in die Spalte */
 	.dep__time { font-size: 18px; }
 	.dep__dot { margin-top: 7px; }
 	.dep__dest { font-size: 14px; }
+}
+/* Schmale Handys (360 bis 375 px, die meisten Android-Geraete): Karte und Zeile ruecken
+   seitlich zusammen, die Zielspalte gewinnt rund 18 px. Damit passen "an Prisdorf 15:40"
+   und der Halt am Dammtor in je eine Zeile, statt die Zeile in die Hoehe zu treiben.
+   Die Zeitspalte bleibt breit genug fuer "+22 → 16:39". */
+@media (max-width: 380px) {
+	.board { padding: 12px 14px 6px; }
+	.dep { grid-template-columns: 10px 64px 48px 1fr auto; gap: 0 6px; }
+	.dep--next::before { left: -14px; }
+	.dep--lauf { padding-right: 14px; }
+	.dep--lauf::after { right: 0; }
+	/* Lange Woerter in Hinweisen ("Signalstörung") umbrechen statt abschneiden, Ursachen mit Trennstrich */
+	.dep__dest small { overflow-wrap: anywhere; }
+	.dep__dest small:not([class]) { -webkit-hyphens: auto; hyphens: auto; }
 }
 
 /* Statistik: Filterleiste, Legende und Verlauf je Tag */

@@ -4,7 +4,8 @@
  * Wegklicken. Laufende Infrastrukturstoerungen als Karten, ein gueltiger
  * Baufahrplan, darunter die aktuellen Meldungen wie auf der Startseite
  * (nb_aktuelle_meldungen: akute Eilmeldungen laut nb_eil_akut, gerade
- * aufgehobene Stoerungen, gueltige HVV-Meldungen). Ziel der Lagekarten
+ * aufgehobene Stoerungen, gueltige HVV-Meldungen) und der Ausblick auf geplante
+ * Fahrplanaenderungen (nb_ausblick). Ziel der Lagekarten
  * "Infrastruktur" und "Eilmeldungen". Rein server-seitig.
  */
 
@@ -28,6 +29,7 @@ $bau = nb_baufahrplan($data, $now);
 $gfAktiv = gf_aktiv();
 $gf = $gfAktiv ? nb_read_geofox() : null;
 $meldungen = nb_aktuelle_meldungen($data, $gfAktiv ? ($gf['s3']['meldungen'] ?? []) : null, $now);
+$ausblick = nb_ausblick($data, $now);
 $ruhig = !$stoerungen && !$hinweise && !$bau && !$meldungen;
 
 $pageUrl = SITE_URL . '/aktuell/';
@@ -87,7 +89,7 @@ $jsonLd = [
 
 <?php if ($ruhig): ?>
 	<section class="section">
-		<ol class="feed card"><li><p class="feed__empty">Gerade ist nichts los: keine Infrastrukturst&ouml;rung, kein Baufahrplan, keine aktuelle Eilmeldung<?= $gfAktiv ? ', keine HVV-Meldung' : '' ?>.</p></li></ol>
+		<ol class="feed card"><li><p class="feed__empty">Gerade ist nichts los: keine Infrastrukturst&ouml;rung, <?= $ausblick ? '' : 'kein Baufahrplan, ' ?>keine aktuelle Eilmeldung<?= $gfAktiv ? ', keine HVV-Meldung' : '' ?>.<?= $ausblick ? ' Was die Nordbahn an Fahrplan&auml;nderungen plant, steht unten.' : '' ?></p></li></ol>
 	</section>
 <?php endif; ?>
 
@@ -128,6 +130,13 @@ $jsonLd = [
 	<section class="section">
 		<h2 class="section__title">Aktuelle Meldungen</h2>
 		<div class="card meldungen"><?= nb_render_aktuelle_meldungen($meldungen, $now, false) ?></div>
+	</section>
+<?php endif; ?>
+
+<?php if ($ausblick): ?>
+	<section class="section">
+		<h2 class="section__title">Geplante Fahrplan&auml;nderungen</h2>
+		<div class="card meldungen"><?= nb_render_ausblick($ausblick) ?></div>
 	</section>
 <?php endif; ?>
 

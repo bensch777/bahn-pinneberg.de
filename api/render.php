@@ -305,8 +305,47 @@ function nb_stoerungen_teilen(array $liste)
     return $out;
 }
 
-/** Karte 1: Infrastruktur laut strecken-info.de; Hinweise ohne Folgen zaehlen nicht, die gruene Karte nennt sie klein. */
-function nb_status_infra(array $data)
+/**
+ * Kurzangabe zum Zeitraum einer laufenden Stoerung fuer die Lagekarte (wie
+ * stoerungKurzzeit im Script): mit gemeldetem Ende "voraussichtlich bis 15:28 Uhr",
+ * ist es ueberschritten "länger als gemeldet", ohne Ende "seit 13:28 Uhr". Leer
+ * ohne Beginn und Ende.
+ */
+function nb_stoerung_kurzzeit(array $s, $now = null)
+{
+    $now = $now ?? time();
+    $start = nb_ts($s['beginn'] ?? '');
+    $ende = nb_ts($s['ende'] ?? '');
+    if ($ende !== null && $start !== null && $ende <= $start) {
+        $ende = null; // Ende vor dem Beginn ist keine Angabe (wie nb_zeitraum_satz)
+    }
+    if (!empty($s['abgelaufen']) || ($ende !== null && $now > $ende)) {
+        return 'länger als gemeldet';
+    }
+    if ($ende !== null) {
+        return 'voraussichtlich bis ' . nb_fmt_zeit_rel($ende, $now);
+    }
+
+    return $start !== null ? 'seit ' . nb_fmt_zeit_rel($start, $now) : '';
+}
+
+/** Titel einer Stoerung fuer die Anzeige: Pendler-Titel der KI, sonst der Originaltitel. */
+function nb_stoerung_titel(array $s)
+{
+    $titel = trim((string) (($s['ki_titel'] ?? '') !== '' ? $s['ki_titel'] : ($s['titel'] ?? '')));
+
+    return $titel !== '' ? $titel : 'Störung';
+}
+
+/**
+ * Karte 1: Infrastruktur laut strecken-info.de; Hinweise ohne Folgen zaehlen nicht, die
+ * gruene Karte nennt sie klein. Laeuft etwas, nennt die zweite Zeile die Stoerung beim
+ * Namen: eine einzelne mit Zeitangabe (nb_stoerung_kurzzeit), mehrere nur mit Titel,
+ * ab der dritten als "2 weitere".
+ * Die Stoerungskarten mit dem ganzen Text stehen auf der Startseite erst unter den
+ * Abfahrten, die Lagekarte muss also allein sagen, worum es geht.
+ */
+function nb_status_infra(array $data, $now = null)
 {
     $hasData = !empty($data['received_at']);
     $teile = nb_stoerungen_teilen($hasData ? ($data['stoerungen'] ?? []) : []);
@@ -328,11 +367,19 @@ function nb_status_infra(array $data)
             ? ['level' => 'ok', 'title' => 'Keine Infrastrukturstörung', 'detail' => $hinweise ? nb_plural($hinweise, 'Hinweis ohne Folgen', 'Hinweise ohne Folgen') : '']
             : ['level' => 'unknown', 'title' => 'Infrastrukturstörungen unbekannt', 'detail' => ''];
     }
+    if (count($list) === 1) {
+        $zeit = nb_stoerung_kurzzeit($list[0], $now);
+        $detail = nb_stoerung_titel($list[0]) . ($zeit !== '' ? ' · ' . $zeit : '');
+    } else {
+        // hoechstens zwei Titel, sonst treibt die Karte an einem schlechten Tag die Zuege wieder nach unten
+        $detail = implode(' · ', array_map('nb_stoerung_titel', array_slice($list, 0, 2)))
+            . (count($list) > 2 ? ' · ' . nb_plural(count($list) - 2, 'weitere', 'weitere') : '');
+    }
     if ($schwer === 0) {
-        return ['level' => 'warn', 'title' => nb_plural(count($list), 'leichte Infrastrukturstörung', 'leichte Infrastrukturstörungen'), 'detail' => ''];
+        return ['level' => 'warn', 'title' => nb_plural(count($list), 'leichte Infrastrukturstörung', 'leichte Infrastrukturstörungen'), 'detail' => $detail];
     }
 
-    return ['level' => 'alert', 'title' => nb_plural(count($list), 'Infrastrukturstörung', 'Infrastrukturstörungen'), 'detail' => ''];
+    return ['level' => 'alert', 'title' => nb_plural(count($list), 'Infrastrukturstörung', 'Infrastrukturstörungen'), 'detail' => $detail];
 }
 
 /**
@@ -422,6 +469,95 @@ function nb_baufahrplan_text(array $bau)
     $bis = DateTime::createFromFormat('!Y-m-d', (string) $bau['bis']);
 
     return ($bis ? 'Bis ' . $bis->format('d.m.') . ': ' : '') . $text;
+}
+
+/* ---------- Ausblick: geplante Fahrplanaenderungen ----------
+ * Die Sonderfahrplaene der Nordbahn (Bauarbeiten, Ersatzverkehr) stehen auf der
+ * Startseite und unter /aktuell/ als kurze Liste, damit Pendler es vorher wissen
+ * und nicht erst am Bahnsteig.
+ *
+ * Wichtig: von und bis (data-day-start und data-day-end auf nordbahn.de) sagen, an
+ * welchen Tagen die Nordbahn den Eintrag zeigt, und das ist nicht immer der Zeitraum
+ * der Aenderung selbst. Ein echter Eintrag nannte im Titel "vom 08.06. bis 30.11.",
+ * trug aber 28.05. bis 31.12. Die Felder dienen hier deshalb nur der Auswahl. Wann
+ * etwas gilt, sagt allein der Titel der Nordbahn, und der bleibt unveraendert: Die
+ * Liste behauptet weder "gilt gerade" noch ein eigenes "ab" oder "bis". */
+
+const NB_AUSBLICK_TAGE = 14;   // so weit voraus darf das Fenster eines Sonderfahrplans beginnen
+const NB_AUSBLICK_MAX  = 6;    // hoechstens so viele Eintraege
+
+/**
+ * Sonderfahrplaene zu RB60, RB61 und RB71, deren Fenster heute offen ist oder in den
+ * naechsten NB_AUSBLICK_TAGE Tagen beginnt, nach Beginn des Fensters. Der
+ * Sonderfahrplan, nach dem die Zuege gerade ab/bis Altona fahren (nb_baufahrplan),
+ * fehlt hier: den nennt schon die Lagekarte der Nordbahn. Eintraege ohne
+ * Liniennennung bleiben draussen, etwa Hinweise zu Aufzuegen oder zu anderen Linien
+ * der Nordbahn.
+ *
+ * Steht vorn im Titel ein Datum oder Zeitraum mit Doppelpunkt ("26.10. - 02.11.: …"),
+ * wandert genau dieser Text nach zeitraum und der Rest nach text; sonst ist zeitraum
+ * leer und text der ganze Titel. Gerechnet wird mit dem Datum nicht.
+ *
+ * @return array Liste aus id, zeitraum, text, von, bis (Y-m-d, Fenster der Nordbahn), link
+ */
+function nb_ausblick(array $data, $now = null)
+{
+    $now = $now ?? time();
+    $tz = new DateTimeZone('Europe/Berlin');
+    $heute = (new DateTime('@' . $now))->setTimezone($tz)->format('Y-m-d');
+    $grenze = (new DateTime('@' . $now))->setTimezone($tz)->modify('+' . NB_AUSBLICK_TAGE . ' days')->format('Y-m-d');
+    $bau = nb_baufahrplan($data, $now);
+    $out = [];
+    foreach ($data['sonderfahrplaene'] ?? [] as $s) {
+        $von = (string) ($s['von'] ?? '');
+        $bis = (string) ($s['bis'] ?? '');
+        $titel = trim((string) ($s['title'] ?? ''));
+        if ($titel === '' || $von === '' || $bis === '' || $bis < $von || $bis < $heute || $von > $grenze) {
+            continue;
+        }
+        if (!preg_match('/\bRB\s?(60|61|71)\b/i', $titel) || ($bau !== null && ($bau['id'] ?? '') === ($s['id'] ?? null))) {
+            continue;
+        }
+        $zeitraum = '';
+        $text = $titel;
+        $datum = '\d{1,2}\.\d{1,2}\.(?:\d{2,4})?';
+        if (preg_match('/^(' . $datum . '(?:\s*(?:-|–|bis)\s*' . $datum . ')?)\s*:\s*(\S.*)$/su', $titel, $m)) {
+            $zeitraum = preg_replace('/\s*(?:-|–)\s*/u', ' – ', $m[1]);
+            $text = $m[2];
+        }
+        $out[] = ['id' => (string) ($s['id'] ?? ''), 'zeitraum' => $zeitraum, 'text' => $text, 'von' => $von, 'bis' => $bis, 'link' => (string) ($s['link'] ?? '')];
+    }
+    usort($out, function ($a, $b) {
+        return [$a['von'], $a['id']] <=> [$b['von'], $b['id']];
+    });
+
+    return array_slice($out, 0, NB_AUSBLICK_MAX);
+}
+
+/**
+ * Der Ausblick als Liste im Stil der Meldungen: links der Zeitraum, wie ihn die
+ * Nordbahn im Titel nennt (leer, wenn der Titel keinen voranstellt), rechts der Text
+ * mit Link zum Sonderfahrplan. $ausblendbar: mit Knopf zum Wegklicken (Startseite,
+ * Kennung sf:<id>), siehe nb_weg_knopf(). Leer ohne Eintrag. Die Liste rendert nur
+ * der Server, sie enthaelt nichts, was sich mit der Uhrzeit aendert.
+ */
+function nb_render_ausblick(array $items, $ausblendbar = false)
+{
+    if (!$items) {
+        return '';
+    }
+    $html = '<ol class="feed" id="ausblick-feed">';
+    foreach ($items as $it) {
+        $weg = $ausblendbar && $it['id'] !== '';
+        $titel = $it['link'] !== '' ? '<a href="' . nb_e($it['link']) . '" rel="noopener nofollow">' . nb_e($it['text']) . '</a>' : nb_e($it['text']);
+        $html .= '<li class="is-heute"' . ($weg ? ' data-weg-id="' . nb_e('sf:' . $it['id']) . '"' : '') . '>'
+            . '<div class="feed__time">' . nb_e($it['zeitraum']) . '</div><div>'
+            . '<p class="feed__kicker feed__kicker--plan">Sonderfahrplan</p>'
+            . '<p class="feed__title">' . $titel . '</p></div>'
+            . ($weg ? nb_weg_knopf('feed__weg', 'Sonderfahrplan') : '') . '</li>';
+    }
+
+    return $html . '</ol>';
 }
 
 /**
@@ -517,11 +653,12 @@ function nb_render_status_card($id, array $st, $versteckt = false, $href = '')
     $tag = $href !== '' ? 'a' : 'div';
     $html = '<' . $tag . ' class="card status status--' . nb_e($st['level']) . '" id="' . nb_e($id) . '"' . ($href !== '' ? ' href="' . nb_e($href) . '"' : '') . ' data-ssr' . ($versteckt ? ' hidden' : '') . '>';
     $html .= '<div class="status__icon" aria-hidden="true">' . ($icons[$st['level']] ?? '?') . '</div>';
-    $html .= '<h3 class="status__title">' . nb_e($st['title']);
+    // h2: die Lagekarten stehen direkt unter der h1, die Abschnitte darunter sind ebenfalls h2
+    $html .= '<h2 class="status__title">' . nb_e($st['title']);
     if ($st['detail'] !== '') {
         $html .= '<small>' . nb_e($st['detail']) . '</small>';
     }
-    $html .= '</h3></' . $tag . '>';
+    $html .= '</h2></' . $tag . '>';
 
     return $html;
 }
@@ -603,7 +740,7 @@ function nb_render_incident(array $s, $ausblendbar = false)
     }
 
     $weg = $ausblendbar && !empty($s['key']);
-    $html = '<li class="card incident"' . ($weg ? ' data-weg-id="' . nb_e('st:' . $s['key']) . '"' : '') . '><h4 class="incident__title">' . nb_e($titel) . '</h4>';
+    $html = '<li class="card incident"' . ($weg ? ' data-weg-id="' . nb_e('st:' . $s['key']) . '"' : '') . '><h3 class="incident__title">' . nb_e($titel) . '</h3>';
     $link = !empty($s['key']) && function_exists('nb_link') ? nb_link('stoerung', $s['key'], $titel) : '';
     if ($text !== '') {
         $html .= '<p class="incident__text">' . nb_e($text) . '</p>';
@@ -1065,6 +1202,39 @@ function nb_render_linie($linie)
 {
     $linie = (string) $linie;
     return '<span class="linie linie--' . nb_e(preg_replace('/[^a-z0-9]/', '', strtolower($linie))) . '">' . nb_e($linie) . '</span>';
+}
+
+/**
+ * Platzhalterzeilen fuer eine Abfahrtstafel, solange die Abfahrten noch laden (wie
+ * skelettZeilen im Script). Die Nordbahn-Tafel haengt am Bahnhof, den nur der Browser
+ * kennt, der Server kann sie also nicht fuellen; mit Platzhaltern in der Hoehe echter
+ * Zeilen steht die Seite trotzdem von Anfang an ruhig. Ohne JavaScript bleiben sie
+ * unsichtbar (dashboard.css), Screenreader hoeren nur "Lade Abfahrten".
+ */
+function nb_render_board_skelett($zeilen = 6)
+{
+    $zeile = '<li class="dep dep--skelett" aria-hidden="true"><span class="dep__dot"></span>'
+        . '<div class="dep__time"><span class="skelett"></span></div><div class="dep__line"><span class="skelett"></span></div>'
+        . '<div class="dep__dest"><span class="skelett"></span></div><div class="dep__platform"><span class="skelett"></span></div></li>';
+
+    // Der Text fuer Screenreader steht hinten, damit die erste Platzhalterzeile wie jede erste Zeile ohne Linie beginnt
+    return str_repeat($zeile, max(1, (int) $zeilen)) . '<li class="visually-hidden board__lade">Lade Abfahrten …</li>';
+}
+
+/**
+ * Welche Richtung steht vorn? Vormittags die Fahrt in die Stadt, ab 12 Uhr deutscher
+ * Zeit der Rueckweg (wie aktuelleRichtung im Script). Der Server setzt Klassen und
+ * Tabs schon so, damit beim Start des Scripts nichts umsortiert wird.
+ */
+function nb_richtung_jetzt($now = null)
+{
+    return (int) (new DateTime('@' . ($now ?? time())))->setTimezone(new DateTimeZone('Europe/Berlin'))->format('G') >= 12 ? 'rueck' : 'hin';
+}
+
+/** Klassen einer Tafelgruppe fuer die Richtung (wie orderBoards im Script). */
+function nb_boards_klasse($richtung)
+{
+    return 'boards' . ($richtung === 'rueck' ? ' boards--rueck-first boards--nur-rueck' : ' boards--nur-hin');
 }
 
 /** Ankunft am Ziel des Pendlers ("an Altona 10:27", verspaetet mit Istzeit), leer ohne Laufweg. */
@@ -1559,11 +1729,21 @@ function nb_render_feedback($root)
  * Farbe (localStorage nordbahn.theme = light|dark) als data-theme an <html>, bevor
  * die Seite gezeichnet wird, damit nichts im falschen Schema aufblitzt. Ohne Wahl
  * bleibt es beim Systemschema. Nonce wegen der CSP.
+ *
+ * Dasselbe Skript setzt die Klasse "js" an <html>: Was nur mit JavaScript Sinn hat
+ * (Richtungs-Tabs und Platzhalterzeilen der Abfahrtstafel), steht damit schon beim
+ * ersten Zeichnen an seinem Platz und springt nicht erst beim Start von dashboard.js.
+ * dashboard.js meldet seinen Start mit data-app an <html>. Bleibt das zehn Sekunden
+ * aus, weil das Script nicht geladen wurde, faellt die Klasse wieder weg: beide
+ * Richtungen stehen dann untereinander, ohne Tabs und ohne Platzhalter.
  */
 function nb_theme_head()
 {
-    $js = "(function(){var t;try{t=localStorage.getItem('nordbahn.theme')}catch(e){}"
-        . "if(t!=='light'&&t!=='dark')return;var d=document.documentElement;d.setAttribute('data-theme',t);"
+    $js = "(function(){var d=document.documentElement;d.className+=' js';"
+        // Startet dashboard.js nicht (Funkloch, Blocker), gilt nach zehn Sekunden wieder die Ansicht ohne Script
+        . "setTimeout(function(){if(!d.hasAttribute('data-app'))d.className=d.className.replace(/(^| )js(?= |$)/,'')},10000);"
+        . "var t;try{t=localStorage.getItem('nordbahn.theme')}catch(e){}"
+        . "if(t!=='light'&&t!=='dark')return;d.setAttribute('data-theme',t);"
         . "var m=document.querySelectorAll('meta[name=\"theme-color\"]');"
         . "for(var i=0;i<m.length;i++)m[i].setAttribute('content',t==='dark'?'#121211':'#f6f6f4')})();";
 
@@ -1640,6 +1820,52 @@ function nb_md_uhr($iso)
     return $ts === null ? '' : nb_fmt_uhr($ts);
 }
 
+/**
+ * Ankunft einer Abfahrtszeile dort, wo sie fuer den Pendler zaehlt (wie ankunft im
+ * Script): Richtung Hamburg am letzten Halt, den der Zug heute bedient, auf dem
+ * Rueckweg am Heimatbahnhof. Kommt aus dem Laufweg der Zeile (lauf, siehe abf_lauf
+ * und gf_regio_lauf_tafel), kostet also keine Abfrage. Die Richtung ergibt sich aus
+ * der Zeile: nur der Rueckweg nennt einen Startbahnhof (ab).
+ *
+ * @return array|null name, zeit (Plan, HH:MM), ist (mit Prognose, sonst null),
+ *                    verspaetung (Minuten), ausfall (der Zug haelt heute nicht am
+ *                    Heimatbahnhof); null ohne Laufweg, bei einem Ausfall oder ohne Halt
+ */
+function nb_ankunft(array $d)
+{
+    $lauf = $d['lauf'] ?? null;
+    if (!is_array($lauf) || count($lauf) < 2 || !empty($d['ausfall'])) {
+        return null;
+    }
+    $halt = null;
+    if (!empty($d['ab'])) {
+        foreach (array_slice($lauf, 1) as $h) {
+            if (!empty($h['heimat'])) {
+                $halt = $h;
+                break;
+            }
+        }
+    } else {
+        foreach (array_reverse(array_slice($lauf, 1)) as $h) {
+            if (empty($h['ausfall'])) {
+                $halt = $h;
+                break;
+            }
+        }
+    }
+    if ($halt === null || (string) ($halt['zeit'] ?? '') === '') {
+        return null;
+    }
+
+    return [
+        'name'        => (string) ($halt['name'] ?? ''),
+        'zeit'        => (string) $halt['zeit'],
+        'ist'         => !empty($halt['ist']) ? (string) $halt['ist'] : null,
+        'verspaetung' => (int) ($halt['verspaetung'] ?? 0),
+        'ausfall'     => !empty($halt['ausfall']),
+    ];
+}
+
 /** Eine Abfahrtszeile als Markdown-Listenpunkt. */
 function nb_md_zug(array $d)
 {
@@ -1666,6 +1892,14 @@ function nb_md_zug(array $d)
             } else {
                 $teile[] = ($d['teil']['art'] === 'beginnt' ? 'erst ab ' : 'nur bis ') . $d['teil']['name'] . (!empty($d['teil']['plan']) ? ' (planmäßig)' : '');
             }
+        }
+        // Ankunft in Hamburg bzw. am Heimatbahnhof, aus dem Laufweg
+        $an = nb_ankunft($d);
+        if ($an !== null && $an['ausfall']) {
+            $teile[] = 'hält heute nicht in ' . $an['name'];
+        } elseif ($an !== null) {
+            $spaet = $an['verspaetung'] >= 3 && $an['ist'] !== null;
+            $teile[] = 'an ' . $an['name'] . ' ' . ($spaet ? $an['ist'] : $an['zeit']) . ' Uhr' . ($spaet ? ' (+' . $an['verspaetung'] . ' min)' : '');
         }
     }
     if (!empty($d['hinweis'])) {
@@ -1694,7 +1928,7 @@ function nb_lage_md(array $data, $abf, $heimat, $now = null, $gf = null)
     $md .= 'Abgerufen am ' . (new DateTime('@' . (int) $now))->setTimezone(new DateTimeZone('Europe/Berlin'))->format('d.m.Y \u\m H:i') . " Uhr (Ortszeit Hamburg). Alle Zeiten Ortszeit; „heute“ und „gestern“ beziehen sich auf diesen Abruf.\n\n";
 
     $md .= "## Lage auf einen Blick\n\n";
-    $infra = nb_status_infra($data);
+    $infra = nb_status_infra($data, $now);
     $eil = nb_status_eil($data, $items);
     $betrieb = nb_status_betrieb($abf, nb_baufahrplan($data, $now));
     if ($betrieb['level'] === 'unknown') {
@@ -1768,6 +2002,14 @@ function nb_lage_md(array $data, $abf, $heimat, $now = null, $gf = null)
         $md .= '- ' . $titel . ' (' . nb_ereignis_url('stoerung', $s['key'], $titel) . ")\n";
     }
     if (isset($hinweisKopf)) {
+        $md .= "\n";
+    }
+    $ausblick = nb_ausblick($data, $now);
+    if ($ausblick) {
+        $md .= "## Geplante Fahrplanänderungen\n\nSonderfahrpläne der Nordbahn zu RB60, RB61 und RB71, wie sie auf nordbahn.de stehen. Wann sie gelten, nennt der jeweilige Text.\n\n";
+        foreach ($ausblick as $it) {
+            $md .= '- ' . ($it['zeitraum'] !== '' ? $it['zeitraum'] . ': ' : '') . $it['text'] . ($it['link'] !== '' ? ' (' . $it['link'] . ')' : '') . "\n";
+        }
         $md .= "\n";
     }
     $md .= "## Letzte Eilmeldungen der Nordbahn\n\n";

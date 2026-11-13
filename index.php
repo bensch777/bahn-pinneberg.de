@@ -4,11 +4,17 @@
  * und RB71 zwischen Hamburg, Elmshorn, Itzehoe und Wrist, gedacht fuer
  * Pendler entlang der Strecke.
  *
- * Auf einen Blick: aktive Stoerungen laut strecken-info.de, die naechsten
- * Abfahrten vom eigenen Bahnhof in die Stadt und ab Hamburg zurueck (der
- * Bahnhof ist waehlbar und bleibt im Browser gespeichert), und darueber in
- * einem Bereich die aktuellen Meldungen (Eilmeldungen, gerade aufgehobene
- * Stoerungen, HVV). Der Rueckblick steht auf news/, eilmeldungen/ und stoerungen/.
+ * Auf einen Blick, in dieser Reihenfolge: die Lagekarten (was ist los, in je
+ * zwei Zeilen), direkt darunter die naechsten Abfahrten vom eigenen Bahnhof in
+ * die Stadt und ab Hamburg zurueck (der Bahnhof ist waehlbar und bleibt im
+ * Browser gespeichert), dann in einem Bereich die Einzelheiten: laufende
+ * Stoerungen laut strecken-info.de als Karten und die aktuellen Meldungen
+ * (Eilmeldungen, gerade aufgehobene Stoerungen, HVV). Die Zuege stehen bewusst
+ * vor den Einzelheiten, damit sie auch an einem Stoerungstag ohne Scrollen
+ * sichtbar sind. Darunter der Ausblick auf geplante Fahrplanaenderungen
+ * (Sonderfahrplaene der Nordbahn zu den eigenen Linien, im Wortlaut der Nordbahn)
+ * und die S3.
+ * Der Rueckblick steht auf news/, eilmeldungen/ und stoerungen/.
  *
  * Das Repo-Wurzelverzeichnis ist das Web-Root; alle Links sind relativ,
  * damit die Seite auch unter einem anderen Hostnamen laeuft. Die FAQ liegt
@@ -66,6 +72,13 @@ if ($gfAktiv) {
 }
 $kompakt = nb_status_kompakt($cards);
 $meldungen = nb_aktuelle_meldungen($data, $gfAktiv ? ($gf['s3']['meldungen'] ?? []) : null);
+// Sonderfahrplaene, die die Nordbahn gerade oder bald fuehrt (ohne den Baufahrplan, den die Lagekarte nennt)
+$ausblick = nb_ausblick($data);
+// Richtung, die vorn steht, schon hier: so sortiert das Script beim Start nichts um
+$richtung = nb_richtung_jetzt();
+$tab = function ($r, $label) use ($richtung) {
+    return '<button type="button" class="richtung__tab" data-richtung="' . $r . '" aria-pressed="' . ($r === $richtung ? 'true' : 'false') . '">' . $label . '</button>';
+};
 // Fuer das Vorschaubild hebt die S3 die Lage hoechstens auf "warn": die Nordbahn bleibt das Thema
 $ogCards = $cards;
 if (($ogCards['s3']['level'] ?? '') === 'alert') {
@@ -165,8 +178,10 @@ $jsonLd = [
 			<h1>Aktuelle Lage</h1>
 			<p class="page-head__lead"><?= nb_e($lead) ?></p>
 		</div>
-		<button type="button" class="freshness" id="freshness" aria-live="polite"></button>
+		<button type="button" class="freshness" id="freshness"></button>
 	</div>
+	<?php /* Ansagen fuer Screenreader: nur was neu ist (Stoerung, Zugausfall), siehe ansagen() im Script */ ?>
+	<p class="visually-hidden" id="ansage" role="status" aria-live="polite"></p>
 
 	<section id="status" class="section" aria-label="Lagekarten">
 		<div class="status-grid">
@@ -179,23 +194,6 @@ $jsonLd = [
 <?php endif; ?>
 		</div>
 		<p class="status-rest" id="status-rest"<?= $kompakt['rest'] === '' ? ' hidden' : '' ?>><?= nb_e($kompakt['rest']) ?></p>
-		<ul class="incidents" id="incidents"<?= $aktiv ? '' : ' hidden' ?>>
-<?php foreach ($stoerungenTeile['stoerungen'] as $st): ?>
-			<?= nb_render_incident($st, true) ?>
-
-<?php endforeach; ?>
-		</ul>
-	</section>
-
-	<section id="meldungen" class="section" aria-labelledby="meldungen-h"<?= $gfAktiv ? ' data-hvv' : '' ?><?= $meldungen ? '' : ' hidden' ?>>
-		<div class="section__head">
-			<h2 id="meldungen-h" class="section__title">Aktuelle Meldungen</h2>
-			<a class="section__more" href="<?= $root ?>news/">Verlauf</a>
-		</div>
-		<div class="card meldungen" id="meldungen-inhalt">
-			<?= nb_render_aktuelle_meldungen($meldungen) ?>
-
-		</div>
 	</section>
 
 	<section id="abfahrten" class="section" aria-labelledby="abfahrten-h" data-root="<?= $root ?>" data-endpoint="<?= $root ?>api/abfahrten" data-data-endpoint="<?= $root ?>api/data" data-heimat-default="<?= $heimat ?>"<?php if ($gfAktiv): ?> data-regio-endpoint="<?= $root ?>api/regio" data-regio-bahnhoefe="<?= implode(' ', array_keys(GF_REGIO_HEIMAT)) ?>"<?php endif; ?>>
@@ -214,25 +212,56 @@ $jsonLd = [
 			</div>
 		</div>
 		<div class="richtung" role="group" aria-label="Richtung">
-			<button type="button" class="richtung__tab" data-richtung="hin" aria-pressed="true">Nach Hamburg</button>
-			<button type="button" class="richtung__tab" data-richtung="rueck" aria-pressed="false">Nach Hause</button>
+			<?= $tab('hin', 'Nach Hamburg') ?>
+
+			<?= $tab('rueck', 'Nach Hause') ?>
+
 		</div>
-		<div class="boards">
+		<div class="<?= nb_boards_klasse($richtung) ?>">
 			<div class="card board" data-richtung="hin">
 				<div class="board__head">
 					<h3 class="board__title" id="board-title-hin"><?= nb_e($bahnhof['name']) ?> &rarr; Hamburg</h3>
 				</div>
-				<ol class="board__list" aria-live="polite"></ol>
+				<ol class="board__list" aria-labelledby="board-title-hin"><?= nb_render_board_skelett() ?></ol>
 			</div>
 			<div class="card board" data-richtung="rueck">
 				<div class="board__head">
 					<h3 class="board__title" id="board-title-rueck"><?= nb_e($rueckTitel) ?></h3>
 				</div>
-				<ol class="board__list" aria-live="polite"></ol>
+				<ol class="board__list" aria-labelledby="board-title-rueck"><?= nb_render_board_skelett() ?></ol>
 			</div>
 		</div>
 	</section>
 
+	<section id="meldungen" class="section" aria-labelledby="meldungen-h"<?= $gfAktiv ? ' data-hvv' : '' ?><?= $aktiv || $meldungen ? '' : ' hidden' ?>>
+		<div class="section__head">
+			<h2 id="meldungen-h" class="section__title">Aktuelle Meldungen</h2>
+			<a class="section__more" href="<?= $root ?>news/">Verlauf</a>
+		</div>
+		<ul class="incidents" id="incidents"<?= $aktiv ? '' : ' hidden' ?>>
+<?php foreach ($stoerungenTeile['stoerungen'] as $st): ?>
+			<?= nb_render_incident($st, true) ?>
+
+<?php endforeach; ?>
+		</ul>
+		<div class="card meldungen" id="meldungen-inhalt"<?= $meldungen ? '' : ' hidden' ?>>
+			<?= nb_render_aktuelle_meldungen($meldungen) ?>
+
+		</div>
+	</section>
+
+<?php if ($ausblick): ?>
+	<section id="ausblick" class="section" aria-labelledby="ausblick-h">
+		<div class="section__head">
+			<h2 id="ausblick-h" class="section__title">Geplante Fahrplan&auml;nderungen</h2>
+		</div>
+		<div class="card meldungen">
+			<?= nb_render_ausblick($ausblick, true) ?>
+
+		</div>
+	</section>
+
+<?php endif; ?>
 <?php if ($gfAktiv): ?>
 	<section id="s3" class="section" aria-labelledby="s3-h" data-endpoint="<?= $root ?>api/s3" data-stadt-default="<?= GF_STADT_DEFAULT ?>">
 		<div class="section__head">
@@ -250,21 +279,23 @@ $jsonLd = [
 			</div>
 		</div>
 		<div class="richtung" role="group" aria-label="Richtung der S3">
-			<button type="button" class="richtung__tab" data-richtung="hin" aria-pressed="true">Nach Hamburg</button>
-			<button type="button" class="richtung__tab" data-richtung="rueck" aria-pressed="false">Nach Hause</button>
+			<?= $tab('hin', 'Nach Hamburg') ?>
+
+			<?= $tab('rueck', 'Nach Hause') ?>
+
 		</div>
-		<div class="boards">
+		<div class="<?= nb_boards_klasse($richtung) ?>">
 			<div class="card board" data-richtung="hin">
 				<div class="board__head">
 					<h3 class="board__title" id="s3-title-hin">Pinneberg &rarr; <?= nb_e(GF_STADT[GF_STADT_DEFAULT]['kurz']) ?></h3>
 				</div>
-				<ol class="board__list" id="s3-board-hin" aria-live="polite"><?= nb_render_s3_abfahrten($gf['s3']['abfahrten'] ?? [], GF_PINNEBERG) ?></ol>
+				<ol class="board__list" id="s3-board-hin" aria-labelledby="s3-title-hin"><?= nb_render_s3_abfahrten($gf['s3']['abfahrten'] ?? [], GF_PINNEBERG) ?></ol>
 			</div>
 			<div class="card board" data-richtung="rueck">
 				<div class="board__head">
 					<h3 class="board__title" id="s3-title-rueck"><?= nb_e(GF_STADT[GF_STADT_DEFAULT]['kurz']) ?> &rarr; Pinneberg</h3>
 				</div>
-				<ol class="board__list" id="s3-board-rueck" aria-live="polite"><?= nb_render_s3_abfahrten($gf['s3']['abfahrten'] ?? [], GF_STADT[GF_STADT_DEFAULT]['name']) ?></ol>
+				<ol class="board__list" id="s3-board-rueck" aria-labelledby="s3-title-rueck"><?= nb_render_s3_abfahrten($gf['s3']['abfahrten'] ?? [], GF_STADT[GF_STADT_DEFAULT]['name']) ?></ol>
 			</div>
 		</div>
 	</section>
