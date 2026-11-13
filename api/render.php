@@ -1510,18 +1510,24 @@ function nb_render_meldungen_tabs($root, $aktiv)
 }
 
 /**
- * Feedback: schwebender Knopf unten links und der Dialog dazu (inc/footer.php auf
- * jeder Seite, nur wenn nordbahn_feedback_webhook() gesetzt ist). feedback.js blendet
- * den Knopf ein und schickt das Formular an api/feedback; ohne Script bleibt er weg.
+ * Feedback: Eintrag in der Liste "Seite" im Footer (inc/footer.php auf jeder Seite,
+ * nur wenn nordbahn_feedback_webhook() gesetzt ist). Der Eintrag bleibt versteckt, bis
+ * feedback.js ihn einblendet, ohne Script liesse sich der Dialog nicht oeffnen.
+ */
+function nb_render_feedback_link()
+{
+    return '<li class="site-foot__feedback" hidden><button type="button" class="site-foot__knopf" id="feedback-open" aria-haspopup="dialog" aria-controls="feedback-dialog">Feedback geben</button></li>';
+}
+
+/**
+ * Dialog und Script zum Feedback-Eintrag im Footer. feedback.js schickt das
+ * Formular an api/feedback.
  */
 function nb_render_feedback($root)
 {
     $version = (int) @filemtime(__DIR__ . '/../feedback.js');
 
-    return '<button type="button" class="feedback" id="feedback-open" aria-haspopup="dialog" aria-controls="feedback-dialog" hidden>'
-        . '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3C6.98 3 3 6.36 3 10.5c0 2.3 1.24 4.35 3.2 5.71-.13 1.2-.6 2.32-1.36 3.25a.5.5 0 0 0 .45.82c1.9-.28 3.5-1.02 4.72-1.9.94.2 1.93.31 2.99.31 5.02 0 9-3.36 9-7.5S17.02 3 12 3z"/></svg>'
-        . '<span>Feedback</span></button>'
-        . '<dialog class="feedback-dialog" id="feedback-dialog" aria-labelledby="feedback-titel">'
+    return '<dialog class="feedback-dialog" id="feedback-dialog" aria-labelledby="feedback-titel">'
         . '<form class="feedback-form" id="feedback-form" method="post" action="' . nb_e($root) . 'api/feedback" novalidate>'
         . '<div class="feedback-dialog__head"><h2 class="feedback-dialog__title" id="feedback-titel">Feedback</h2>'
         . '<button type="button" class="feedback-dialog__close" aria-label="Schlie&szlig;en">&times;</button></div>'

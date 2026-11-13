@@ -21,6 +21,10 @@
 		<div>
 			<h2 class="site-foot__head">Seite</h2>
 			<ul class="site-foot__list">
+<?php if (nordbahn_feedback_webhook() !== ''): ?>
+				<?= nb_render_feedback_link() ?>
+
+<?php endif; ?>
 <?php if ($current !== 'faq'): ?>
 				<li><a href="<?= $root ?>faq/">H&auml;ufige Fragen</a></li>
 <?php endif; ?>
