@@ -10,7 +10,9 @@
  * Eilmeldungs-Historie aus seiner Data Table ein und schickt alles per POST
  * an api/push. Der Webserver legt das Paket in cache/ ab
  * und fuehrt nebenbei ein eigenes Logbuch der Stoerungen, weil n8n aufgehobene
- * Stoerungen loescht und es sonst keinen Verlauf gaebe.
+ * Stoerungen loescht und es sonst keinen Verlauf gaebe. Ein zweites Logbuch
+ * merkt sich je Eilmeldung, wann die Nordbahn sie geaendert und wann sie sie
+ * von ihrer Seite genommen hat; n8n kennt nur die erste Fassung.
  *
  * Diese Datei liefert selbst nichts aus. Wird sie direkt aufgerufen, fuehrt
  * der Server sie aus und antwortet leer.
@@ -23,6 +25,7 @@ if (!defined('NORDBAHN_CACHE_DIR')) {
 }
 define('NORDBAHN_DATA_FILE', NORDBAHN_CACHE_DIR . '/data.json');
 define('NORDBAHN_LOG_FILE', NORDBAHN_CACHE_DIR . '/stoerungen-log.json');
+define('NORDBAHN_EIL_LOG_FILE', NORDBAHN_CACHE_DIR . '/eilmeldungen-log.json');
 
 // So lange bleibt eine aufgehobene Stoerung im Logbuch, gerechnet ab dem
 // letzten Zeitpunkt, zu dem n8n sie noch als aktiv gemeldet hat.
@@ -491,6 +494,66 @@ function nordbahn_update_log(array $stoerungen, $nowIso)
 }
 
 /**
+ * Logbuch der Eilmeldungen: je ID, seit wann und bis wann sie auf nordbahn.de stand
+ * (first_live, last_live), wann sie dort verschwand (weg) und jeder Stand von Titel
+ * und "Stand"-Zeit der Nordbahn als Schritt, hoechstens 20. Die Ereignisseite baut
+ * daraus Gemeldet, Update und Aufgehoben.
+ *
+ * Nur aufrufen, wenn nordbahn.de beim Abruf lesbar war: Eine leere Liste nach einem
+ * Fehler wuerde sonst jede laufende Meldung als aufgehoben eintragen.
+ */
+function nordbahn_update_eil_log(array $live, $nowIso)
+{
+    $log = nordbahn_read_json(NORDBAHN_EIL_LOG_FILE);
+    if (!is_array($log)) {
+        $log = [];
+    }
+
+    $da = [];
+    foreach ($live as $e) {
+        $id = (string) ($e['id'] ?? '');
+        if ($id === '') {
+            continue;
+        }
+        $da[$id] = true;
+        $entry = isset($log[$id]) && is_array($log[$id]) ? $log[$id] : [];
+        if (empty($entry['first_live'])) {
+            $entry['first_live'] = $nowIso;
+        }
+        $entry['last_live'] = $nowIso;
+        // Steht sie wieder da, war sie nicht aufgehoben
+        unset($entry['weg']);
+        $stand = ['t' => $nowIso, 'title' => (string) ($e['title'] ?? ''), 'stand' => (string) ($e['stand'] ?? '')];
+        $verlauf = is_array($entry['verlauf'] ?? null) ? $entry['verlauf'] : [];
+        $letzter = $verlauf ? end($verlauf) : null;
+        if ($letzter === null || trim((string) ($letzter['title'] ?? '')) !== trim($stand['title']) || (string) ($letzter['stand'] ?? '') !== $stand['stand']) {
+            $verlauf[] = $stand;
+            if (count($verlauf) > 20) {
+                $verlauf = array_merge([$verlauf[0]], array_slice($verlauf, -19));
+            }
+        }
+        $entry['verlauf'] = $verlauf;
+        $log[$id] = $entry;
+    }
+
+    $cutoff = gmdate('Y-m-d\TH:i:s\Z', time() - NORDBAHN_LOG_KEEP_DAYS * 86400);
+    foreach ($log as $id => $entry) {
+        if (!is_array($entry) || empty($entry['last_live']) || $entry['last_live'] < $cutoff) {
+            unset($log[$id]);
+            continue;
+        }
+        if (!isset($da[$id]) && empty($entry['weg'])) {
+            // Zuletzt gesehen beim vorigen Push, also irgendwann danach entfernt
+            $log[$id]['weg'] = $entry['last_live'];
+        }
+    }
+
+    nordbahn_write_json(NORDBAHN_EIL_LOG_FILE, $log);
+
+    return count($log);
+}
+
+/**
  * Alles, was die Seite und api/data brauchen: das letzte Paket plus das
  * Stoerungs-Logbuch, neueste zuerst. Ohne Push bleibt received_at null.
  */
@@ -520,6 +583,8 @@ function nordbahn_dataset()
         return strcmp($b['first_seen'], $a['first_seen']);
     });
     $data['stoerungen_verlauf'] = array_slice($verlauf, 0, 1000);
+    $eilLog = nordbahn_read_json(NORDBAHN_EIL_LOG_FILE);
+    $data['eilmeldungen_log'] = is_array($eilLog) ? $eilLog : [];
 
     return $data;
 }

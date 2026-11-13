@@ -1,8 +1,8 @@
 <?php
 /**
  * Ereignisseite einer Infrastrukturstoerung (/stoerung/<key>/): Pendler-Text,
- * Verlauf, betroffene Zuege, Eilmeldungen und weitere Stoerungen
- * im Zeitraum. Daten aus dem Logbuch und dem Zuglog, kein JavaScript noetig.
+ * Status, Verlauf und was zur selben Zeit sonst gemeldet war. Gleicher Aufbau
+ * wie eilmeldung.php. Daten aus dem Logbuch, kein JavaScript noetig.
  */
 
 require __DIR__ . '/api/store.php';
@@ -52,9 +52,10 @@ if (!$gefunden) {
         'author' => ['@type' => 'Organization', 'name' => 'Bahn-Pinneberg.de', 'url' => SITE_URL . '/'],
         'publisher' => ['@type' => 'Organization', 'name' => 'Bahn-Pinneberg.de', 'url' => SITE_URL . '/'],
     ];
-    $zuege = nb_zuege_im_zeitraum($st['start'], $st['ende']);
-    $eil = nb_eilmeldungen_im_zeitraum(nb_items($data), $st['start'], $st['ende']);
-    $andere = nb_stoerungen_im_zeitraum($data, $st['start'], $st['ende'], $key);
+    $gleichzeitig = nb_gleichzeitig(
+        nb_stoerungen_im_zeitraum($data, $st['start'], $st['ende'], $key),
+        nb_eilmeldungen_im_zeitraum(nb_items($data), $st['start'], $st['ende'])
+    );
     $schritte = nb_verlauf_schritte($st['verlauf'], $st['aktiv'] ? null : $st['ende']);
     $endeGemeldet = nb_ts($st['ende_gemeldet']);
     // Jede Angabe nur einmal: Vorspann oben, der Verlauf ohne den Text, der schon oben steht.
@@ -109,6 +110,7 @@ if (!$gefunden) {
 		<header class="artikel__kopf">
 			<p class="artikel__dachzeile">
 				<span class="artikel__rubrik">Infrastrukturst&ouml;rung</span>
+				<span><?= nb_e(nb_fmt_tag_lang($st['start'], $now)) ?></span>
 			</p>
 			<h1 class="artikel__titel"><?= nb_e($st['titel']) ?></h1>
 <?php if ($vorspann !== ''): ?>
@@ -134,26 +136,10 @@ if (!$gefunden) {
 		</section>
 <?php endif; ?>
 
+<?php if ($gleichzeitig): ?>
 		<section class="section">
-			<h2 class="section__title">Betroffene Z&uuml;ge</h2>
-<?php if ($zuege['gesamt']): ?>
-			<p class="artikel__vorspann" style="font-size: 15px; margin-bottom: 12px;"><?= (int) $zuege['gesamt'] ?> auff&auml;llige Abfahrten im Zeitraum: <?= (int) $zuege['ausfaelle'] ?> ausgefallen, <?= (int) $zuege['teil'] ?> nur teilweise gefahren, <?= (int) $zuege['spaet'] ?> mit mindestens f&uuml;nf Minuten Versp&auml;tung<?= $zuege['gesamt'] > count($zuege['zuege']) ? ', die ersten ' . count($zuege['zuege']) . ' hier' : '' ?>.</p>
-<?php endif; ?>
-			<div class="card zuege-wrap"><?= nb_render_zuege_liste($zuege) ?></div>
-			<p class="section__note">Beobachtet an den Bahnh&ouml;fen, die in dieser Zeit abgefragt wurden. Ohne Beobachtung fehlt ein Zug hier, auch wenn er betroffen war.</p>
-		</section>
-
-<?php if ($eil): ?>
-		<section class="section">
-			<h2 class="section__title">Eilmeldungen der Nordbahn dazu</h2>
-			<ol class="feed card"><?= nb_render_feed($eil, 10, 0, $now) ?></ol>
-		</section>
-<?php endif; ?>
-
-<?php if ($andere): ?>
-		<section class="section">
-			<h2 class="section__title">Weitere St&ouml;rungen zur selben Zeit</h2>
-			<ol class="feed card"><?= nb_render_verlauf($andere, 10, 0, $now) ?></ol>
+			<h2 class="section__title">Zur selben Zeit</h2>
+			<ol class="feed card"><?php foreach ($gleichzeitig as $g) { echo nb_render_wichtig_eintrag($g, $now); } ?></ol>
 		</section>
 <?php endif; ?>
 

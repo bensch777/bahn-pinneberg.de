@@ -1,10 +1,11 @@
 <?php
 /**
  * Ereignisseiten: eine Seite je Infrastrukturstoerung (/stoerung/<key>/) und je
- * Eilmeldung (/eilmeldung/<id>/). Hier liegen die Datenhelfer: Ereignis aus Log
- * und Lagebild finden, betroffene Zuege aus dem Zuglog im Zeitraum, Eilmeldungen
- * und Stoerungen im selben Zeitraum, Links auf die Seiten.
- * Erwartet store.php, render.php und zuglog.php.
+ * Eilmeldung (/eilmeldung/<id>/). Beide Seiten sind gleich aufgebaut: Titel,
+ * Pendler-Text, Status, Verlauf, "Zur selben Zeit". Hier liegen die Datenhelfer:
+ * Ereignis aus Log und Lagebild finden, Verlauf und Status, Eilmeldungen und
+ * Stoerungen im selben Zeitraum, Links auf die Seiten.
+ * Erwartet store.php und render.php.
  */
 
 /** Relative Wurzel fuer Links in Listen ("./", "../", "../../"); Seiten setzen sie. */
@@ -70,14 +71,6 @@ function nb_ereignis_url($art, $id, $titel = '')
     return nordbahn_site_url() . '/' . nb_ereignis_pfad($art, $id, $titel);
 }
 
-/** Klarname eines Bahnhofskuerzels, Hamburger Bahnhoefe eingeschlossen. */
-function nb_bahnhof_name($id)
-{
-    $hamburg = ['AH' => 'Hamburg Hbf', 'AA' => 'Hamburg-Altona', 'ADF' => 'Hamburg Dammtor'];
-
-    return NORDBAHN_BAHNHOEFE[$id]['name'] ?? $hamburg[$id] ?? (string) $id;
-}
-
 /**
  * Eine Stoerung aus dem Logbuch, angereichert mit dem Live-Stand, wenn sie noch
  * aktiv ist. Null, wenn der Key unbekannt ist.
@@ -141,62 +134,75 @@ function nb_eilmeldung_finden(array $data, $id)
 }
 
 /**
- * Betroffene Zuege im Zeitraum aus dem Zuglog: Ausfaelle, Teilausfaelle und
- * Verspaetungen ab NB_ZUG_SPAET Minuten, deren Planzeit zwischen $start und $ende
- * liegt (mit $rand Sekunden Spielraum). Hoechstens sieben Tage.
+ * Status und Verlauf einer Eilmeldung (aus nb_items) fuer die Ereignisseite, aus dem
+ * Logbuch der Eilmeldungen (nordbahn_update_eil_log).
+ *
+ * status: 'aktiv' wie auf der Startseite (nb_eil_akut), 'aufgehoben' sobald die Nordbahn
+ * sie von ihrer Seite genommen hat, sonst 'alt': nicht mehr akut, aber ein Ende ist nicht
+ * bekannt (steht noch bei der Nordbahn oder stammt aus der Zeit vor dem Logbuch).
+ * start: frueheste bekannte Zeit; ende: Zeitpunkt der Aufhebung oder null.
+ * schritte: wie nb_verlauf_schritte(), fuer nb_render_verlauf_schritte(). Ein Update
+ * ist ein neuer Titel oder eine neue "Stand"-Zeit der Nordbahn; einen Pendler-Text
+ * gibt es dafuer nicht, der Schritt nennt den neuen Titel der Nordbahn.
  */
-function nb_zuege_im_zeitraum($start, $ende, $rand = 600, $limit = 40)
+function nb_eilmeldung_verlauf(array $data, array $em, $now = null)
 {
-    $ende = max($start, $ende);
-    $tz = new DateTimeZone('Europe/Berlin');
-    $tag = (new DateTime('@' . $start))->setTimezone($tz)->setTime(0, 0);
-    $letzter = (new DateTime('@' . $ende))->setTimezone($tz)->setTime(0, 0);
-    $zuege = [];
-    for ($i = 0; $i < 7 && $tag <= $letzter; $i++, $tag->modify('+1 day')) {
-        $log = nordbahn_read_json(NB_ZUGLOG_DIR . '/' . $tag->format('Y-m-d') . '.json');
-        foreach (is_array($log) ? $log : [] as $e) {
-            if (!is_array($e) || empty($e['zug']) || !preg_match('/^\d{2}:\d{2}$/', (string) ($e['plan'] ?? ''))) {
-                continue;
-            }
-            $versp = (int) ($e['versp'] ?? 0);
-            $ausfall = !empty($e['ausfall']);
-            $teil = (string) ($e['teil'] ?? '');
-            if (!$ausfall && $teil === '' && $versp < NB_ZUG_SPAET) {
-                continue;
-            }
-            $ts = (new DateTime($tag->format('Y-m-d') . ' ' . $e['plan'], $tz))->getTimestamp();
-            if ($ts < $start - $rand || $ts > $ende + $rand) {
-                continue;
-            }
-            $zuege[] = [
-                'ts'      => $ts,
-                'zug'     => (string) $e['zug'],
-                'linie'   => (string) ($e['linie'] ?? ''),
-                'ziel'    => (string) ($e['ziel'] ?? ''),
-                'ab'      => nb_bahnhof_name((string) ($e['station'] ?? '')),
-                'dir'     => (string) ($e['dir'] ?? ''),
-                'versp'   => $versp,
-                'max'     => (int) ($e['max'] ?? $versp),
-                'ausfall' => $ausfall,
-                'teil'    => $teil,
-            ];
+    $now = $now ?? time();
+    $log = $data['eilmeldungen_log'][$em['id']] ?? null;
+    $staende = is_array($log) && is_array($log['verlauf'] ?? null) ? array_values($log['verlauf']) : [];
+
+    $start = $em['ts'];
+    foreach ([nb_ts($staende[0]['stand'] ?? ''), nb_ts($log['first_live'] ?? ''), $staende ? null : ($em['stand'] ?? null)] as $t) {
+        if ($t !== null && $t < $start) {
+            $start = $t;
         }
     }
-    usort($zuege, function ($a, $b) {
-        return [$a['ts'], $a['ab']] <=> [$b['ts'], $b['ab']];
-    });
-    $zaehl = ['ausfaelle' => 0, 'teil' => 0, 'spaet' => 0];
-    foreach ($zuege as $z) {
-        if ($z['ausfall']) {
-            $zaehl['ausfaelle']++;
-        } elseif ($z['teil'] !== '') {
-            $zaehl['teil']++;
-        } else {
-            $zaehl['spaet']++;
+    $weg = !empty($em['live']) ? null : nb_ts($log['weg'] ?? '');
+    $status = nb_eil_akut($data, $em, $now) ? 'aktiv' : ($weg !== null ? 'aufgehoben' : 'alt');
+
+    $leer = ['ki_titel' => '', 'ki_text' => '', 'ende' => ''];
+    $schritte = [['ts' => $start, 'art' => 'neu', 'text' => $em['text']] + $leer];
+    for ($i = 1; $i < count($staende); $i++) {
+        // Die Uhrzeit, die die Nordbahn selbst nennt, wenn sie sich geaendert hat; sonst der Abruf
+        $stand = (string) ($staende[$i]['stand'] ?? '');
+        $ts = $stand !== (string) ($staende[$i - 1]['stand'] ?? '') ? nb_ts($stand) : null;
+        $ts = $ts ?? nb_ts($staende[$i]['t'] ?? '');
+        if ($ts === null) {
+            continue;
         }
+        $titel = trim((string) ($staende[$i]['title'] ?? ''));
+        $neuerTitel = $titel !== '' && $titel !== trim((string) ($staende[$i - 1]['title'] ?? ''));
+        $schritte[] = ['ts' => max($start, $ts), 'art' => 'text', 'text' => $neuerTitel ? 'Nordbahn: „' . $titel . '“' : 'Die Nordbahn hat die Meldung aktualisiert.'] + $leer;
+    }
+    if ($status === 'aufgehoben') {
+        $weg = max($weg, $schritte[count($schritte) - 1]['ts']);
+        $schritte[] = ['ts' => $weg, 'art' => 'aufgehoben', 'text' => '', 'dauer' => nb_dauer(max(60, $weg - $start))] + $leer;
     }
 
-    return ['zuege' => array_slice($zuege, 0, $limit), 'gesamt' => count($zuege)] + $zaehl;
+    return ['status' => $status, 'start' => $start, 'ende' => $status === 'aufgehoben' ? $weg : null, 'schritte' => $schritte];
+}
+
+/**
+ * "Zur selben Zeit": Stoerungen (nb_stoerungen_im_zeitraum) und Eilmeldungen
+ * (nb_eilmeldungen_im_zeitraum) als eine Liste fuer nb_render_wichtig_eintrag(), nach
+ * Zeit sortiert, ohne Text. Bei mehr als $limit Eintraegen bleiben die Stoerungen.
+ */
+function nb_gleichzeitig(array $stoerungen, array $eilmeldungen, $limit = 3)
+{
+    $out = [];
+    foreach ($stoerungen as $it) {
+        $out[] = ['art' => 'stoerung', 'ts' => $it['start'], 'titel' => $it['titel'], 'text' => '', 'link' => nb_link('stoerung', $it['key'], $it['titel']), 'key' => $it['key'], 'aktiv' => !empty($it['aktiv']), 'start' => $it['start'], 'ende' => !empty($it['aktiv']) ? time() : $it['ende']];
+    }
+    foreach ($eilmeldungen as $it) {
+        $titel = $it['title'] !== '' ? $it['title'] : $it['id'];
+        $out[] = ['art' => 'eilmeldung', 'ts' => $it['stand'] ?? $it['ts'], 'titel' => $titel, 'text' => '', 'link' => nb_link('eilmeldung', $it['id'], $titel), 'id' => $it['id']];
+    }
+    $out = array_slice($out, 0, $limit);
+    usort($out, function ($a, $b) {
+        return $a['ts'] <=> $b['ts'];
+    });
+
+    return $out;
 }
 
 /** Eilmeldungen (nb_items), deren Stand im Zeitraum liegt, juengste zuerst. */
@@ -272,36 +278,6 @@ function nb_verlauf_schritte(array $verlauf, $aufgehoben = null)
 }
 
 /* ---------- HTML ---------- */
-
-/** Betroffene Zuege (aus nb_zuege_im_zeitraum) als Tabelle mit Status-Pille. */
-function nb_render_zuege_liste(array $info)
-{
-    if (!$info['zuege']) {
-        return '<p class="feed__empty">Keine auffälligen Züge im Zeitraum beobachtet.</p>';
-    }
-    $h = '<table class="zuege">';
-    foreach ($info['zuege'] as $z) {
-        $klein = '';
-        if ($z['ausfall']) {
-            $status = 'Ausgefallen';
-            $cls = 'ausfall';
-        } elseif ($z['teil'] !== '') {
-            $status = $z['teil'] === 'beginnt' ? 'Erst unterwegs gestartet' : 'Vorzeitig geendet';
-            $cls = 'teil';
-        } else {
-            $status = '+' . $z['versp'] . ' min';
-            $cls = 'spaet';
-            if ($z['max'] > $z['versp']) {
-                $klein = 'zeitweise +' . $z['max'];
-            }
-        }
-        $h .= '<tr><td class="zuege__zeit">' . nb_e(nb_fmt_uhr($z['ts'])) . '</td>'
-            . '<td><span class="zuege__zug">' . nb_e($z['linie']) . '</span> <span class="zuege__weg">' . nb_e(trim('ab ' . $z['ab'] . ' nach ' . $z['ziel'])) . '</span></td>'
-            . '<td class="zuege__status"><span class="pill pill--' . $cls . '">' . nb_e($status) . '</span>' . ($klein !== '' ? '<small>' . nb_e($klein) . '</small>' : '') . '</td></tr>';
-    }
-
-    return $h . '</table>';
-}
 
 /**
  * Verlauf einer Stoerung als Aenderungsliste: je Schritt ein Etikett (Gemeldet, Update,

@@ -14,6 +14,9 @@ $root = '../';
 $assetVersion = (int) @filemtime(__DIR__ . '/../dashboard.css');
 
 $changelog = [
+    ['2026-11-13', [
+        ['Störung und Eilmeldung: eine Seite, ein Aufbau', 'Die Seite einer Infrastrukturstörung und die einer Eilmeldung der Nordbahn sehen jetzt gleich aus: Titel, der aktuelle Text, darunter „Aktiv“ oder „Aufgehoben“ mit dem Zeitraum, dann der Verlauf. Neu ist der Verlauf bei Eilmeldungen: Die Seite merkt sich ab jetzt, wann die Nordbahn eine Meldung ändert und wann sie sie von ihrer Seite nimmt, und zeigt das als „Gemeldet“, „Update“ und „Aufgehoben“. Ältere Eilmeldungen haben nur „Gemeldet“, ihr Ende wurde nie festgehalten. Weggefallen sind die Listen „Betroffene Züge“ und „Auffällige Züge rund um die Meldung“ sowie der Kasten mit dem Originaltitel der Nordbahn; Zahlen zu Zügen stehen weiter in der Statistik. Was sonst zur selben Zeit gemeldet war, steht kurz am Ende in einer Liste.'],
+    ]],
     ['2026-11-12', [
         ['Hell oder dunkel nach Wahl', 'Neben der Glocke oben rechts gibt es jetzt einen Schalter für das helle und das dunkle Design. Bisher folgte die Seite immer der Einstellung des Geräts. Die Wahl merkt sich der Browser, sie gilt auf allen Seiten. Wer wieder auf das Design des Geräts zurückschaltet, folgt danach wieder automatisch dem System.'],
         ['S3-Karte schlägt seltener an', 'Bisher stand „S3 beeinträchtigt“ schon da, wenn einer von zwölf Zügen fünf Minuten zu spät war. Bei einer S-Bahn, die alle zehn Minuten fährt, ist das für Pendler kein Problem. Jetzt bleibt die Karte grün („S3 fährt weitgehend planmäßig“, mit den Zahlen darunter), bis gut ein Drittel der Züge betroffen ist. Früher gelb wird sie bei zwei oder mehr Ausfällen oder einer Verspätung ab 15 Minuten. „S3 gestört“ heißt es ab drei Fünfteln betroffener Züge oder bei einer ungeplanten HVV-Meldung zur S3.'],
