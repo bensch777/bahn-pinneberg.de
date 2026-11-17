@@ -61,8 +61,6 @@ $description = 'Meine Züge und Benachrichtigungen für Bahn-Pinneberg.de: Push-
 		<div class="card einst">
 			<h2 id="meine-h" class="einst__label">Meine Z&uuml;ge</h2>
 			<p class="einst__intro">Push-Nachricht ab einer Stunde vor der Abfahrt, wenn dein Zug sp&auml;ter kommt, ausf&auml;llt, woanders abf&auml;hrt oder das Gleis wechselt.</p>
-			<ul class="meine__liste" id="meine-zuege-liste"></ul>
-			<p class="meine__leer-hinweis" id="meine-leer">Noch kein Zug gemerkt. Such unten deine Abfahrt, zum Beispiel 8:13.</p>
 			<div class="meine__neu">
 				<div class="einst__zeile">
 					<label class="einst__text" for="heimat">Bahnhof</label>
@@ -82,6 +80,8 @@ $description = 'Meine Züge und Benachrichtigungen für Bahn-Pinneberg.de: Push-
 					<ul class="meine__vorschlaege" id="meine-vorschlaege" role="listbox" aria-label="Passende Z&uuml;ge" hidden></ul>
 				</div>
 			</div>
+			<ul class="meine__liste" id="meine-zuege-liste"></ul>
+			<p class="meine__leer-hinweis" id="meine-leer">Noch kein Zug gemerkt.</p>
 			<p class="meine__hinweis" id="meine-hinweis" hidden></p>
 		</div>
 	</section>

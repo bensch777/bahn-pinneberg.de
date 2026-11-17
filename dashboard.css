@@ -676,10 +676,9 @@ button.freshness:focus-visible { outline: 2px solid var(--series); outline-offse
 /* Meine Zuege: Liste, Richtung, Suche mit Vorschlaegen */
 .meine { padding: 14px 18px 16px; }
 .meine__intro { margin: 0 0 10px; font-size: 13.5px; color: var(--ink-2); }
-.meine__liste { list-style: none; margin: 0 0 12px; padding: 0; }
+.meine__liste { list-style: none; margin: 12px 0 0; padding: 0; }
 .meine__liste:empty { display: none; }
 .meine__zug { padding: 10px 0; border-top: 1px solid var(--line); }
-.meine__zug:first-child { border-top: 0; padding-top: 2px; }
 .meine__kopf { display: flex; align-items: baseline; gap: 8px; font-variant-numeric: tabular-nums; }
 .meine__zeit { font-size: 18px; }
 .meine__strecke { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink-2); }
@@ -729,7 +728,7 @@ button.freshness:focus-visible { outline: 2px solid var(--series); outline-offse
 .segment__opt input:checked + span { background: var(--surface); color: var(--ink); font-weight: 600; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.14); }
 .segment__opt input:focus-visible + span { outline: 2px solid var(--series); outline-offset: -2px; }
 /* Meine Zuege: Suche mit Vorschlagsliste, Platzhalter ohne gemerkten Zug */
-.meine__leer-hinweis { margin: 2px 0 12px; padding: 14px; border: 1px dashed var(--axis); border-radius: 10px; text-align: center; font-size: 13.5px; color: var(--muted); }
+.meine__leer-hinweis { margin: 12px 0 0; padding: 14px; border: 1px dashed var(--axis); border-radius: 10px; text-align: center; font-size: 13.5px; color: var(--muted); }
 .meine__leer-hinweis[hidden] { display: none; }
 .meine__suche { position: relative; }
 .meine__eingabe { box-sizing: border-box; width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); color: var(--ink); font: inherit; font-size: 16px; }
