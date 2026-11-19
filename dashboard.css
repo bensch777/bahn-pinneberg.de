@@ -235,6 +235,9 @@ button.freshness:focus-visible { outline: 2px solid var(--series); outline-offse
 .freshness__icon { width: 14px; height: 14px; fill: currentColor; flex: none; }
 .freshness.is-busy .freshness__icon { animation: tool-spin 0.8s linear infinite; }
 @keyframes tool-spin { to { transform: rotate(360deg); } }
+/* Live-Karte: der Hinweis "nicht erreichbar" ist lang und darf auf dem Handy umbrechen */
+#karte-freshness { white-space: normal; text-align: left; max-width: 100%; }
+#karte-freshness .dot { flex: none; }
 @media (prefers-reduced-motion: reduce) { .freshness.is-busy .freshness__icon { animation: none; opacity: 0.5; } }
 
 /* Abschnitte */

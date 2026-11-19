@@ -14,6 +14,24 @@
 	var REFRESH_MS = 60 * 1000;           // Störungen und Eilmeldungen nachladen
 	var RELOAD_MS = 60 * 60 * 1000;        // komplette Seite neu laden, damit lange offene Tabs neue Versionen bekommen
 	var STALE_MS = 20 * 60 * 1000;
+	var TIMEOUT_MS = 15 * 1000;            // laenger wartet kein Abruf auf eine Antwort
+	var ALT_MS = 2 * 60 * 1000;            // ab dann zeigt ein laufendes Nachladen "Daten werden geladen"
+
+	/**
+	 * fetch mit Timeout. iOS friert die Home-Screen-App im Hintergrund ein; ein Abruf, der
+	 * dabei unterwegs war, meldet sich unter Umstaenden nie wieder. Ohne Abbruch bliebe
+	 * dann alles haengen, was auf ihn wartet (Drehpfeil, Fahrplansuche).
+	 */
+	function holen(url, opts) {
+		opts = opts || {};
+		var ctrl = window.AbortController ? new AbortController() : null;
+		if (ctrl) opts.signal = ctrl.signal;
+		var timer;
+		var abbruch = new Promise(function (resolve, reject) {
+			timer = setTimeout(function () { if (ctrl) ctrl.abort(); reject(new Error('timeout')); }, TIMEOUT_MS);
+		});
+		return Promise.race([fetch(url, opts), abbruch]).then(function (res) { clearTimeout(timer); return res; }, function (e) { clearTimeout(timer); throw e; });
+	}
 
 	/** Adressen der Endpunkte einmal beim Start aus den Attributen der Seite lesen. */
 	var urls = { root: './', data: 'api/data', abfahrten: 'api/abfahrten', s3: 'api/s3', fahrplan: 'api/fahrplan' };
@@ -264,6 +282,12 @@
 		box.appendChild(el('span', { class: 'dot' }));
 		var text = 'Aktualisiert ' + relTime(latest);
 		if (stale) text += ', Störungsdaten veraltet (Stand ' + fmtDateTime(state.data.received_at) + ')';
+		// Beim Nachladen eines alten Stands (etwa nach dem Zurueckholen der App) nicht mit
+		// "veraltet" erschrecken, sondern sagen, was gerade passiert
+		if (busy && Date.now() - latest > ALT_MS) {
+			box.className = 'freshness is-busy is-empty';
+			text = 'Daten werden geladen …';
+		}
 		box.title = 'Lagebild: ' + fmtDateTime(state.data.received_at) + (isNaN(abfMs) ? '' : ', Abfahrten: ' + fmtDateTime(abf.fetched_at)) + '. Antippen zum Aktualisieren';
 		box.appendChild(document.createTextNode(text));
 		box.appendChild(refreshIcon());
@@ -1039,7 +1063,7 @@
 		notifyNew(collectEvents(result), 'zug');
 	}
 
-	var departuresState = { last: null };
+	var departuresState = { last: null, abruf: 0 };
 
 	/* ---------- Laufweg je Fahrt zum Aufklappen ---------- */
 
@@ -1143,7 +1167,7 @@
 	function refreshRegio() {
 		if (!regioMoeglich() || document.hidden || !window.fetch) return Promise.resolve();
 		var heimat = heimatState.id;
-		return fetch(urls.regio + '?bhf=' + encodeURIComponent(heimat), { cache: 'no-cache', headers: { 'Accept': 'application/json' } })
+		return holen(urls.regio + '?bhf=' + encodeURIComponent(heimat), { cache: 'no-cache', headers: { 'Accept': 'application/json' } })
 			.then(function (res) { return res.json(); })
 			.then(function (result) {
 				if (heimat !== heimatState.id) return;
@@ -1205,14 +1229,17 @@
 		var heimat = heimatState.id;
 		var url = urls.abfahrten + '?bhf=' + encodeURIComponent(heimat);
 		refreshRegio();
-		return fetch(url, { cache: 'no-cache', headers: { 'Accept': 'application/json' } })
+		var nr = ++departuresState.abruf;
+		return holen(url, { cache: 'no-cache', headers: { 'Accept': 'application/json' } })
 			.then(function (res) { return res.json(); })
 			.then(function (result) {
-				if (heimat !== heimatState.id) return; // inzwischen umgestellt, Antwort ist veraltet
+				// inzwischen umgestellt oder neuer Abruf unterwegs: Antwort ist veraltet
+				if (heimat !== heimatState.id || nr !== departuresState.abruf) return;
 				departuresState.last = result;
 				renderDepartures(result);
 			})
 			.catch(function () {
+				if (nr !== departuresState.abruf) return;
 				if (departuresState.last) {
 					departuresState.last.ok = false;
 					renderDepartures(departuresState.last);
@@ -1224,7 +1251,7 @@
 
 	/* ---------- S-Bahn S3 und HVV-Meldungen (api/s3, HVV Geofox) ---------- */
 
-	var s3State = { last: null };
+	var s3State = { last: null, abruf: 0 };
 	var STADT_KEY = 'nordbahn.stadt';
 	var stadtState = { id: 'hbf', name: 'Hamburg Hbf', kurz: 'Hbf' };
 
@@ -1350,14 +1377,17 @@
 	function refreshS3() {
 		if (!document.getElementById('s3') || document.hidden || !window.fetch) return Promise.resolve();
 		var stadt = stadtState.id;
-		return fetch(urls.s3 + '?stadt=' + encodeURIComponent(stadt), { cache: 'no-cache', headers: { 'Accept': 'application/json' } })
+		var nr = ++s3State.abruf;
+		return holen(urls.s3 + '?stadt=' + encodeURIComponent(stadt), { cache: 'no-cache', headers: { 'Accept': 'application/json' } })
 			.then(function (res) { return res.json(); })
 			.then(function (result) {
-				if (stadt !== stadtState.id) return; // inzwischen umgestellt, Antwort ist veraltet
+				// inzwischen umgestellt oder neuer Abruf unterwegs: Antwort ist veraltet
+				if (stadt !== stadtState.id || nr !== s3State.abruf) return;
 				s3State.last = result;
 				renderS3(result);
 			})
 			.catch(function () {
+				if (nr !== s3State.abruf) return;
 				if (s3State.last) { s3State.last.ok = false; renderS3(s3State.last); }
 				else renderS3({ ok: false });
 			});
@@ -1604,7 +1634,7 @@
 		if (fahrplanState.heimat === heimatState.id && (fahrplanState.daten || fahrplanState.laedt)) return fahrplanState.laedt || Promise.resolve();
 		var heimat = heimatState.id;
 		fahrplanState = { heimat: heimat, daten: null, laedt: null };
-		fahrplanState.laedt = fetch(urls.fahrplan + '?bhf=' + encodeURIComponent(heimat), { headers: { 'Accept': 'application/json' } })
+		fahrplanState.laedt = holen(urls.fahrplan + '?bhf=' + encodeURIComponent(heimat), { headers: { 'Accept': 'application/json' } })
 			.then(function (res) { return res.json(); })
 			.then(function (d) { if (fahrplanState.heimat === heimat) fahrplanState.daten = d && d.ok ? d : { hin: [], rueck: [] }; })
 			.catch(function () { if (fahrplanState.heimat === heimat) fahrplanState.daten = { hin: [], rueck: [] }; })
@@ -2128,7 +2158,7 @@
 		if (document.hidden || !window.fetch) return Promise.resolve();
 		var app = document.getElementById('app');
 		var url = urls.data;
-		return fetch(url, { cache: 'no-cache', headers: { 'Accept': 'application/json' } })
+		return holen(url, { cache: 'no-cache', headers: { 'Accept': 'application/json' } })
 			.then(function (res) { if (!res.ok) throw new Error(res.status); return res.json(); })
 			.then(function (data) {
 				if (!data || !data.received_at) return;
@@ -2194,27 +2224,44 @@
 		Array.prototype.forEach.call(document.querySelectorAll('a[href*="t.me"]'), function (a) {
 			a.addEventListener('click', function () { track('Telegram', { kanal: a.getAttribute('href').replace(/.*\//, '') }); });
 		});
-		document.addEventListener('visibilitychange', function () { if (!document.hidden) { refresh(); refreshDepartures(); refreshS3(); } });
+		document.addEventListener('visibilitychange', aufwachen);
+		window.addEventListener('pageshow', function (e) { if (e.persisted) aufwachen(); });
+		window.addEventListener('focus', aufwachen);
+		window.addEventListener('online', aufwachen);
 	}
 
 	/**
-	 * Manuell nachladen per Tipp auf die Zeitangabe. Die Seite laedt jede Minute und
-	 * beim Zurueckholen in den Vordergrund ohnehin selbst nach; das hier ist fuer die
-	 * Webapp ohne Browserleiste und fuer alle, die es genau wissen wollen.
+	 * Alles nachladen und dabei den Pfeil an der Zeitangabe drehen lassen: per Tipp auf die
+	 * Zeitangabe (fuer die Webapp ohne Browserleiste) und automatisch, sobald die Seite
+	 * wieder in den Vordergrund kommt.
 	 */
+	var letztesNachladen = 0;
+	function nachladen() {
+		var btn = document.getElementById('freshness');
+		if (!btn || !window.fetch || !window.Promise || document.hidden) return;
+		if (btn.classList.contains('is-busy')) return;
+		btn.classList.add('is-busy');
+		var started = letztesNachladen = Date.now();
+		renderFreshness();
+		Promise.all([refresh(), refreshDepartures(), refreshS3()]).then(done, done);
+		function done() {
+			// mindestens eine halbe Umdrehung, sonst flackert es nur
+			setTimeout(function () { btn.classList.remove('is-busy'); renderFreshness(); }, Math.max(0, 600 - (Date.now() - started)));
+		}
+	}
+
 	function initRefreshButton() {
 		var btn = document.getElementById('freshness');
-		if (!btn || !window.fetch || !window.Promise) return;
-		btn.addEventListener('click', function () {
-			if (btn.classList.contains('is-busy')) return;
-			btn.classList.add('is-busy');
-			var started = Date.now();
-			Promise.all([refresh(), refreshDepartures(), refreshS3()]).then(done, done);
-			function done() {
-				// mindestens eine halbe Umdrehung, sonst flackert es nur
-				setTimeout(function () { btn.classList.remove('is-busy'); renderFreshness(); }, Math.max(0, 600 - (Date.now() - started)));
-			}
-		});
+		if (btn) btn.addEventListener('click', nachladen);
+	}
+
+	/**
+	 * Zurueck im Vordergrund: Tab gewechselt, Home-Screen-App wieder geoeffnet (iOS meldet das
+	 * je nach Version per visibilitychange, pageshow oder focus) oder Netz wieder da. Die
+	 * Ereignisse kommen oft zu zweit, ein Nachladen reicht.
+	 */
+	function aufwachen() {
+		if (Date.now() - letztesNachladen > 5000) nachladen();
 	}
 
 	if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);

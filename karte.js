@@ -20,6 +20,7 @@
 	var TICK_MS = 1000;           // Positionen nachrechnen
 	var LISTE_MS = 15 * 1000;     // Liste neu schreiben
 	var STALE_MS = 3 * 60 * 1000; // ab dann gilt der Stand als alt
+	var TIMEOUT_MS = 15 * 1000;   // laenger wartet ein Abruf nicht auf api/karte
 	var NACHLAUF_MS = 3 * 60 * 1000;
 	var TILES = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 
@@ -33,7 +34,8 @@
 	}
 	var strecke = lesen('karte-strecke') || { stationen: {}, kanten: [], ansichten: {}, linien: {} };
 	var endpoint = app.getAttribute('data-endpoint');
-	var state = { zuege: [], fetchedAt: null, ok: false };
+	// fehler: der letzte Abruf ist gescheitert oder der Monitor hat nicht geantwortet
+	var state = { zuege: [], fetchedAt: null, ok: false, fehler: false };
 
 	/* ---------- Hilfen ---------- */
 
@@ -353,15 +355,27 @@
 		el.innerHTML = zeilen.length ? '<ul class="zugliste">' + zeilen.join('') + '</ul>' : '<p class="zugliste__leer">' + (state.ok || state.zuege.length ? 'Gerade kein Zug auf der Karte.' : 'Gerade keine Daten vom Stationsmonitor.') + '</p>';
 	}
 
-	/** Hinweis nur, wenn der Stand alt ist oder der Monitor nicht antwortet; sonst bleibt die Zeile weg. */
+	/**
+	 * Hinweis nur, wenn der Stand alt ist oder der Monitor nicht antwortet; sonst bleibt die
+	 * Zeile weg. Laeuft gerade ein Abruf, heisst es "Daten werden geladen" statt "nicht
+	 * erreichbar": so sieht es nach dem Zurueckholen der Home-Screen-App nicht nach einer
+	 * Stoerung aus, nur weil iOS die Seite im Hintergrund angehalten hat. Ein Tipp laedt neu.
+	 */
 	function kopfSchreiben() {
 		var el = document.getElementById('karte-freshness');
 		var text = document.getElementById('karte-freshness-text');
 		if (!el || !text) return;
 		var alt = !!state.fetchedAt && Date.now() - state.fetchedAt > STALE_MS;
-		var problem = state.fetchedAt ? (alt || !state.ok) : false;
+		// Alter Stand und seit dem Intervall kein Abruf mehr (eingefrorene Timer): selbst nachladen
+		if (alt && !laeuftNoch() && Date.now() - letzterAbruf > REFRESH_MS + 5000) refresh();
+		var laedt = laeuftNoch();
+		var problem = state.fetchedAt ? (alt || state.fehler) : false;
 		el.hidden = !problem;
-		text.textContent = problem ? 'Stand ' + uhr(state.fetchedAt) + ' Uhr, Stationsmonitor gerade nicht erreichbar' : '';
+		el.classList.toggle('is-busy', laedt);
+		el.classList.toggle('is-stale', problem && !laedt);
+		el.classList.toggle('is-empty', problem && laedt);
+		text.textContent = !problem ? '' : laedt ? 'Daten werden geladen …' : 'Stand ' + uhr(state.fetchedAt) + ' Uhr, Stationsmonitor gerade nicht erreichbar';
+		el.title = problem ? 'Antippen zum Aktualisieren' : '';
 	}
 
 	/* ---------- Daten ---------- */
@@ -369,25 +383,56 @@
 	function uebernehmen(daten) {
 		if (!daten || typeof daten !== 'object') return;
 		state.ok = !!daten.ok;
+		state.fehler = !daten.ok;
 		state.fetchedAt = daten.fetched_at ? Date.parse(daten.fetched_at) : state.fetchedAt;
 		if (Array.isArray(daten.zuege) && (daten.ok || !state.zuege.length)) {
 			state.zuege = daten.zuege.map(vorbereiten);
 		}
 		markerAbgleichen();
 		listeSchreiben();
-		kopfSchreiben();
 	}
 
-	var laeuft = false;
-	function refresh() {
-		if (laeuft) return;
-		laeuft = true;
-		fetch(endpoint, { cache: 'no-cache', headers: { 'Accept': 'application/json' } })
-			.then(function (r) { return r.ok ? r.json() : null; })
-			.then(uebernehmen)
-			.catch(function () { state.ok = false; kopfSchreiben(); })
-			.then(function () { laeuft = false; });
+	/*
+	 * Ein Abruf, den iOS beim Wechsel in den Hintergrund einfriert, meldet sich unter
+	 * Umstaenden nie wieder. Darum bricht ein Timeout ab, und ein Abruf, der laenger als
+	 * das haengt, gilt nicht mehr als laufend; seine spaete Antwort zaehlt dann nicht.
+	 */
+	var abruf = 0;
+	var laeuftSeit = 0;
+	var letzterAbruf = 0;
+	function laeuftNoch() {
+		return !!laeuftSeit && Date.now() - laeuftSeit < TIMEOUT_MS + 2000;
 	}
+	function refresh() {
+		if (laeuftNoch() || !window.fetch) return;
+		var nr = ++abruf;
+		laeuftSeit = letzterAbruf = Date.now();
+		var ctrl = window.AbortController ? new AbortController() : null;
+		var timer = setTimeout(function () { if (ctrl) ctrl.abort(); }, TIMEOUT_MS);
+		kopfSchreiben();
+		fetch(endpoint, { cache: 'no-store', headers: { 'Accept': 'application/json' }, signal: ctrl ? ctrl.signal : undefined })
+			.then(function (r) { return r.ok ? r.json() : { ok: false }; })
+			.then(function (daten) { if (nr === abruf) uebernehmen(daten); })
+			.catch(function () { if (nr === abruf) { state.ok = false; state.fehler = true; } })
+			.then(function () {
+				clearTimeout(timer);
+				if (nr !== abruf) return;
+				laeuftSeit = 0;
+				kopfSchreiben();
+			});
+	}
+
+	/** Zurueck im Vordergrund (Tab, Home-Screen-App, Netz wieder da): sofort nachrechnen und laden. */
+	function aufwachen() {
+		if (document.hidden) return;
+		tick();
+		listeSchreiben();
+		// focus und visibilitychange kommen oft zusammen; ein Abruf reicht
+		if (Date.now() - letzterAbruf > 5000) refresh();
+	}
+
+	var kopf = document.getElementById('karte-freshness');
+	if (kopf) kopf.addEventListener('click', refresh);
 
 	/* ---------- Ausschnitt ---------- */
 
@@ -414,10 +459,8 @@
 	setInterval(tick, TICK_MS);
 	setInterval(listeSchreiben, LISTE_MS);
 	setInterval(kopfSchreiben, 10000);
-	document.addEventListener('visibilitychange', function () {
-		if (!document.hidden) {
-			tick();
-			refresh();
-		}
-	});
+	document.addEventListener('visibilitychange', aufwachen);
+	window.addEventListener('pageshow', function (e) { if (e.persisted) aufwachen(); });
+	window.addEventListener('focus', aufwachen);
+	window.addEventListener('online', aufwachen);
 })();
