@@ -14,6 +14,7 @@ const NB_EIL_HINWEIS_S       = 12 * 3600;  // bis dahin nennt die gruene Karte "
 const NB_STOERUNG_NACHLAUF_S  = 3600;      // aufgehobene Stoerung bleibt so lange unter "Aktuelle Meldungen"
 const NB_BETRIEB_ALERT_ANTEIL = 0.25;      // darueber "Betrieb gestoert" statt "beeintraechtigt"
 const NB_ABF_MAX_AGE_S        = 10 * 60;   // so alt darf der Abfahrten-Cache fuer die Karte sein
+const NB_S3_VERSPAETUNG_MIN   = 15;        // ab so viel Verspaetung eines Nordbahnzugs erscheint die S3 als Ausweg
 
 function nb_e($text)
 {
@@ -627,6 +628,39 @@ function nb_status_betrieb($abf, $bau = null)
         'title'  => $level === 'alert' ? 'Nordbahn gestört' : ($bau ? 'Nordbahn fährt nach Baufahrplan' : 'Nordbahn beeinträchtigt'),
         'detail' => ($bau ? $bauText . ' · ' : '') . $betroffen . ' von ' . $total . ' Zügen (' . round($anteil * 100) . ' %): ' . implode(', ', $parts),
     ];
+}
+
+/**
+ * Braucht der Pendler gerade die S3 als Ausweg? Nur dann zeigt die Startseite Lagekarte
+ * und Tafeln der S3 (wie s3Noetig im Script). Im Normalbetrieb kennt jeder Pendler seine
+ * S-Bahn, dort waere sie nur ein Fremdkoerper. Gezaehlt werden dieselben Zuege wie bei
+ * nb_status_betrieb: ein Ausfall, ein Zug nur ab/bis einem Zwischenhalt oder eine
+ * Verspaetung ab NB_S3_VERSPAETUNG_MIN Minuten. Fahrten ueber Altona (Umleitung,
+ * Baufahrplan) zaehlen nicht, ab Pinneberg faehrt dann ja trotzdem ein Zug.
+ */
+function nb_s3_noetig($abf)
+{
+    if (!$abf || empty($abf['richtungen'])) {
+        return false;
+    }
+    foreach (['hin', 'rueck'] as $key) {
+        foreach (array_slice($abf['richtungen'][$key] ?? [], 0, 6) as $d) {
+            if (!empty($d['ersatz_fuer'])) {
+                continue;
+            }
+            if (!empty($d['teil']) && empty($d['teil']['plan'])) {
+                return true;
+            }
+            if (!empty($d['ausfall']) && empty($d['ersatz'])) {
+                return true;
+            }
+            if (empty($d['ausfall']) && ($d['verspaetung'] ?? 0) >= NB_S3_VERSPAETUNG_MIN) {
+                return true;
+            }
+        }
+    }
+
+    return false;
 }
 
 /** Gesamtlage fuer das Vorschaubild: alert > warn > ok, sonst info. */

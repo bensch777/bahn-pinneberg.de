@@ -336,13 +336,17 @@
 		var alles = document.getElementById('status-alles');
 		var rest = document.getElementById('status-rest');
 		if (!alles || !rest) return;
-		var karten = Object.keys(STATUS_NAMEN).map(function (id) { return document.getElementById(id); }).filter(Boolean);
+		// Die S3-Karte zaehlt nur, solange die S3 als Ausweg gebraucht wird (s3Bedarf)
+		var s3Karte = document.getElementById('status-s3');
+		if (s3Karte && !s3Bedarf.an) s3Karte.hidden = true;
+		var karten = Object.keys(STATUS_NAMEN).map(function (id) { return document.getElementById(id); })
+			.filter(function (k) { return k && (k.id !== 'status-s3' || s3Bedarf.an); });
 		var gruen = karten.filter(function (k) { return k.classList.contains('status--ok'); });
 		var allesGruen = gruen.length === karten.length;
 		karten.forEach(function (k) { k.hidden = allesGruen || k.classList.contains('status--ok'); });
 		alles.hidden = !allesGruen;
 		var eil = document.querySelector('#status-eil small');
-		var detail = 'Keine Störung oder Eilmeldung, Nordbahn' + (document.getElementById('status-s3') ? ' und S3' : '') + ' planmäßig'
+		var detail = 'Keine Störung oder Eilmeldung, Nordbahn' + (s3Karte && s3Bedarf.an ? ' und S3' : '') + ' planmäßig'
 			+ (eil && eil.textContent ? ' · ' + eil.textContent.replace('Letzte ', 'letzte Eilmeldung ') : '');
 		var small = alles.querySelector('small');
 		if (small) small.textContent = detail;
@@ -493,6 +497,39 @@
 		return (m ? 'Bis ' + m[2] + '.' + m[1] + '.: ' : '') + text;
 	}
 
+	/* S3 nur als Ausweg (wie nb_s3_noetig): Lagekarte und Tafeln der S3 erscheinen erst, wenn
+	   unter den naechsten Nordbahnzuegen einer ausfaellt, nur ab/bis einem Zwischenhalt faehrt
+	   oder mindestens S3_VERSPAETUNG_MIN Minuten zu spaet ist. Damit die S3 nicht bei jedem
+	   Abruf auf- und zuklappt, bleibt sie danach noch S3_NACHLAUF_MS stehen. */
+	var S3_VERSPAETUNG_MIN = 15;
+	var S3_NACHLAUF_MS = 10 * 60 * 1000;
+	var s3Bedarf = (function () {
+		var section = document.getElementById('s3');
+		var an = !!(section && section.hasAttribute('data-noetig'));
+		return { an: an, zuletzt: an ? Date.now() : 0 };
+	})();
+
+	function s3Noetig(result) {
+		var noetig = false;
+		['hin', 'rueck'].forEach(function (key) {
+			(result.richtungen[key] || []).slice(0, 6).forEach(function (d) {
+				if (d.ersatz_fuer) return;
+				if ((d.teil && !d.teil.plan) || (d.ausfall && !d.ersatz) || (!d.ausfall && d.verspaetung >= S3_VERSPAETUNG_MIN)) noetig = true;
+			});
+		});
+		return noetig;
+	}
+
+	function updateS3Bedarf(result) {
+		var section = document.getElementById('s3');
+		if (!section || !result || !result.richtungen) return; // ohne Abfahrten bleibt es, wie es ist
+		var now = Date.now();
+		if (result.ok && s3Noetig(result)) { s3Bedarf.an = true; s3Bedarf.zuletzt = now; }
+		else if (s3Bedarf.an && now - s3Bedarf.zuletzt > S3_NACHLAUF_MS) s3Bedarf.an = false;
+		section.hidden = !s3Bedarf.an;
+		// die S3-Lagekarte blendet renderKompakt mit ein oder aus (setStatus in renderBetrieb)
+	}
+
 	function renderBetrieb(result) {
 		var card = document.getElementById('status-betrieb');
 		if (!result) {
@@ -502,6 +539,7 @@
 			return;
 		}
 		if (card) card.removeAttribute('data-ssr');
+		updateS3Bedarf(result);
 		if (!result.richtungen) { setStatus('status-betrieb', 'unknown', 'Nordbahn-Lage unbekannt'); return; }
 		var bau = baufahrplan(state.data);
 		var total = 0, ausfaelle = 0, umleitungen = 0, verspaetet = 0, maxDelay = 0, teil = 0, teilOrt = '';
