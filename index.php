@@ -62,13 +62,17 @@ $items = nb_items($data);
 $cards = [
     'infra'   => nb_status_infra($data),
     'eil'     => nb_status_eil($data, $items),
-    'betrieb' => nb_status_betrieb(nb_read_abfahrten($heimat), nb_baufahrplan($data)),
+    'betrieb' => nb_status_betrieb($abfHeimat = nb_read_abfahrten($heimat), nb_baufahrplan($data)),
 ];
-// S-Bahn S3 und HVV-Meldungen nur mit Zugang zur HVV-Schnittstelle (config.php)
+// S-Bahn S3 und HVV-Meldungen nur mit Zugang zur HVV-Schnittstelle (config.php). Karte und
+// Tafeln der S3 erscheinen nur, wenn die Nordbahn ausfaellt oder stark verspaetet ist
+// (nb_s3_noetig); die HVV-Meldungen laufen immer mit.
 $gfAktiv = gf_aktiv();
 $gf = $gfAktiv ? nb_read_geofox() : null;
-if ($gfAktiv) {
-    $cards['s3'] = nb_status_s3($gf);
+$s3Noetig = $gfAktiv && nb_s3_noetig($abfHeimat);
+$s3Karte = $gfAktiv ? nb_status_s3($gf) : null;
+if ($s3Noetig) {
+    $cards['s3'] = $s3Karte;
 }
 $kompakt = nb_status_kompakt($cards);
 $meldungen = nb_aktuelle_meldungen($data, $gfAktiv ? ($gf['s3']['meldungen'] ?? []) : null);
@@ -190,7 +194,7 @@ $jsonLd = [
 			<?= nb_render_status_card('status-eil', $cards['eil'], $kompakt['versteckt']['eil']) ?>
 			<?= nb_render_status_card('status-betrieb', $cards['betrieb'], $kompakt['versteckt']['betrieb']) ?>
 <?php if ($gfAktiv): ?>
-			<?= nb_render_status_card('status-s3', $cards['s3'], $kompakt['versteckt']['s3']) ?>
+			<?= nb_render_status_card('status-s3', $s3Karte, $kompakt['versteckt']['s3'] ?? true) ?>
 <?php endif; ?>
 		</div>
 		<p class="status-rest" id="status-rest"<?= $kompakt['rest'] === '' ? ' hidden' : '' ?>><?= nb_e($kompakt['rest']) ?></p>
@@ -263,7 +267,7 @@ $jsonLd = [
 
 <?php endif; ?>
 <?php if ($gfAktiv): ?>
-	<section id="s3" class="section" aria-labelledby="s3-h" data-endpoint="<?= $root ?>api/s3" data-stadt-default="<?= GF_STADT_DEFAULT ?>">
+	<section id="s3" class="section" aria-labelledby="s3-h"<?= $s3Noetig ? ' data-noetig' : ' hidden' ?> data-endpoint="<?= $root ?>api/s3" data-stadt-default="<?= GF_STADT_DEFAULT ?>">
 		<div class="section__head">
 			<h2 id="s3-h" class="section__title">S-Bahn S3</h2>
 			<div class="section__tools">

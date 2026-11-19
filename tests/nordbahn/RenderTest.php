@@ -32,6 +32,17 @@ function test_betrieb_zaehlt_arten()
     t_eq('4 von 6 Zügen (67 %): 1 Zugausfall, 1 Zug nur ab/bis Pinneberg, dazwischen S-Bahn, Umleitung über Altona, Verspätungen bis 12 Min', $s['detail'], 'Detailtext');
 }
 
+function test_s3_nur_als_ausweg()
+{
+    t_eq(false, nb_s3_noetig(null), 'ohne Abfahrten keine S3');
+    t_eq(false, nb_s3_noetig(t_abf([['verspaetung' => 12], []], [['ab' => 'Hbf']])), 'Normalbetrieb und kleine Verspaetung: keine S3');
+    t_eq(false, nb_s3_noetig(t_abf([['ziel' => 'Hamburg-Altona']], [['ab' => 'Hbf', 'ausfall' => true, 'ersatz' => ['ab' => 'Altona']]])), 'Umleitung ueber Altona: keine S3');
+    t_eq(true, nb_s3_noetig(t_abf([['verspaetung' => 15]])), 'ab 15 Minuten Verspaetung: S3');
+    t_eq(true, nb_s3_noetig(t_abf([], [['ab' => 'Hbf', 'ausfall' => true]])), 'Zugausfall: S3');
+    t_eq(true, nb_s3_noetig(t_abf([['teil' => ['art' => 'endet', 'name' => 'Pinneberg']]])), 'Zug nur bis Pinneberg: S3');
+    t_eq(false, nb_s3_noetig(t_abf([[], [], [], [], [], [], ['ausfall' => true]])), 'nur die naechsten sechs Zuege je Richtung zaehlen');
+}
+
 function test_betrieb_ersatz_zaehlt_nicht_doppelt()
 {
     $s = nb_status_betrieb(t_abf([], [
