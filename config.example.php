@@ -56,7 +56,8 @@ return [
 
     // Angaben fuer das Impressum, optional: ueberschreibt die Vorgabe in
     // impressum/index.php Feld fuer Feld (name, zusatz, strasse, ort, land,
-    // email, hoster). 'hoster' erscheint in der Datenschutzerklaerung.
+    // email, hoster). 'hoster' erscheint in der Datenschutzerklaerung. Leere
+    // Werte gelten als nicht gesetzt, dann greift die Vorgabe.
     'NORDBAHN_IMPRESSUM' => [
         'hoster' => '',
     ],

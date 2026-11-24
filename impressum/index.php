@@ -15,7 +15,7 @@ $root = '../';
 $assetVersion = (int) @filemtime(__DIR__ . '/../dashboard.css');
 
 $config = nordbahn_config();
-$imp = is_array($config['NORDBAHN_IMPRESSUM'] ?? null) ? $config['NORDBAHN_IMPRESSUM'] : [];
+$imp = is_array($config['NORDBAHN_IMPRESSUM'] ?? null) ? array_filter($config['NORDBAHN_IMPRESSUM'], 'strlen') : [];
 $imp += [
     'name'    => 'Benjamin Neske',
     'zusatz'  => 'c/o Rechtsanwalt Matutis',
@@ -23,7 +23,7 @@ $imp += [
     'ort'     => '14467 Potsdam',
     'land'    => 'Deutschland',
     'email'   => 'hallo@bahn-pinneberg.de',
-    'hoster'  => '',
+    'hoster'  => 'Hetzner Online GmbH, Industriestr. 25, 91710 Gunzenhausen',
 ];
 $vollstaendig = $imp['name'] !== '' && $imp['strasse'] !== '' && $imp['ort'] !== '' && $imp['email'] !== '';
 $anschrift = array_values(array_filter([$imp['name'], $imp['zusatz'], $imp['strasse'], $imp['ort'], $imp['land']], 'strlen'));
