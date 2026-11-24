@@ -16,6 +16,15 @@ const NB_BETRIEB_ALERT_ANTEIL = 0.25;      // darueber "Betrieb gestoert" statt 
 const NB_ABF_MAX_AGE_S        = 10 * 60;   // so alt darf der Abfahrten-Cache fuer die Karte sein
 const NB_S3_VERSPAETUNG_MIN   = 15;        // ab so viel Verspaetung eines Nordbahnzugs erscheint die S3 als Ausweg
 
+/**
+ * Dezente Kennzeichnung KI-formulierter Texte (Art. 50 Abs. 4 KI-VO). Steht direkt
+ * hinter dem Text im selben Absatz; Gegenstueck in dashboard.js: kiMarke().
+ */
+function nb_ki_marke()
+{
+    return ' <span class="ki-marke" title="Text von einer KI formuliert">KI-formuliert</span>';
+}
+
 function nb_e($text)
 {
     return htmlspecialchars((string) $text, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
@@ -779,7 +788,7 @@ function nb_render_incident(array $s, $ausblendbar = false)
     $html = '<li class="card incident"' . ($weg ? ' data-weg-id="' . nb_e('st:' . $s['key']) . '"' : '') . '><h3 class="incident__title">' . nb_e($titel) . '</h3>';
     $link = !empty($s['key']) && function_exists('nb_link') ? nb_link('stoerung', $s['key'], $titel) : '';
     if ($text !== '') {
-        $html .= '<p class="incident__text">' . nb_e($text) . '</p>';
+        $html .= '<p class="incident__text">' . nb_e($text) . ($ki && !empty($s['ki_text']) ? nb_ki_marke() : '') . '</p>';
     }
     $html .= $zeitraum;
     $rows = array_filter($rows, function ($v) { return $v !== ''; });
@@ -1176,7 +1185,7 @@ function nb_render_wichtig_eintrag(array $it, $now, $mitTag = true, $ausblendbar
     return '<li' . (nb_ist_heute($it['ts'], $now) ? ' class="is-heute"' : '') . ($weg ? ' data-weg-id="' . nb_e($wegId) . '"' : '') . '><div class="feed__time">' . nb_e($zeit) . '</div><div>'
         . '<p class="feed__kicker feed__kicker--' . $it['art'] . '">' . $rubrik . ($it['art'] === 'stoerung' && $it['aktiv'] ? ' <span class="dep__ab dep__ab--aktiv">aktiv</span>' : '') . '</p>'
         . '<p class="feed__title"><a href="' . nb_e($it['link']) . '">' . nb_e($it['titel']) . '</a></p>'
-        . ($meta || $it['text'] !== '' ? '<p class="feed__meta">' . nb_e(implode('', $meta)) . ($meta && $it['text'] !== '' ? '<br>' : '') . nb_e($it['text']) . '</p>' : '')
+        . ($meta || $it['text'] !== '' ? '<p class="feed__meta">' . nb_e(implode('', $meta)) . ($meta && $it['text'] !== '' ? '<br>' : '') . nb_e($it['text']) . ($it['text'] !== '' ? nb_ki_marke() : '') . '</p>' : '')
         . '</div>'
         . ($weg ? nb_weg_knopf('feed__weg', $it['art'] === 'stoerung' ? 'Störung' : 'Eilmeldung') : '')
         . '</li>';
@@ -1492,7 +1501,7 @@ function nb_render_verlauf(array $items, $limit, $maxAgeDays, $now = null, $akti
             . '<div class="feed__time">' . nb_e(nb_fmt_wann($it['start'], $now)) . '</div><div>'
             . '<p class="feed__title"><a href="' . nb_e(nb_link('stoerung', $it['key'], $it['titel'])) . '">' . nb_e($it['titel']) . '</a></p>'
             . '<p class="feed__meta">' . nb_e(nb_fmt_bis($it['start'], $it['ende'], $now)) . ' · ' . nb_e(nb_dauer($it['ende'] - $it['start']))
-            . ($it['text'] !== '' ? '<br>' . nb_e($it['text']) : '') . '</p></div></li>';
+            . ($it['text'] !== '' ? '<br>' . nb_e($it['text']) . nb_ki_marke() : '') . '</p></div></li>';
     }
 
     return $html;
@@ -1519,7 +1528,7 @@ function nb_render_feed(array $items, $limit, $maxAgeDays, $now = null)
         $html .= '<a href="' . nb_e(nb_link('eilmeldung', $it['id'], $title)) . '">' . nb_e($title) . '</a>';
         $html .= '</p>';
         if (($it['text'] ?? '') !== '') {
-            $html .= '<p class="feed__meta">' . nb_e($it['text']) . '</p>';
+            $html .= '<p class="feed__meta">' . nb_e($it['text']) . nb_ki_marke() . '</p>';
         }
         $html .= '</div></li>';
     }
@@ -1592,7 +1601,7 @@ function nb_render_archiv_eil(array $items, $now = null)
             $tooltip = !empty($it['original']) && $it['original'] !== $it['title'] ? ' title="Nordbahn: ' . nb_e($it['original']) . '"' : '';
             $html .= '<li id="' . nb_e(nb_anker($it['id'])) . '"' . ($heute ? ' class="is-heute"' : '') . '><div class="feed__time">' . nb_e(nb_fmt_uhr($zeit($it))) . '</div><div><p class="feed__title"' . $tooltip . '>'
                 . '<a href="' . nb_e(nb_link('eilmeldung', $it['id'], $title)) . '">' . nb_e($title) . '</a></p>'
-                . (($it['text'] ?? '') !== '' ? '<p class="feed__meta">' . nb_e($it['text']) . '</p>' : '') . '</div></li>';
+                . (($it['text'] ?? '') !== '' ? '<p class="feed__meta">' . nb_e($it['text']) . nb_ki_marke() . '</p>' : '') . '</div></li>';
         }
         $html .= '</ol></section>';
     }
@@ -1617,7 +1626,7 @@ function nb_render_archiv_stoerungen(array $items, $now = null)
                 : nb_fmt_bis($it['start'], $it['ende'], $now) . ' · ' . nb_dauer($it['ende'] - $it['start']);
             $html .= '<li id="' . nb_e(nb_anker($it['key'])) . '"' . ($heute || !empty($it['aktiv']) ? ' class="is-heute"' : '') . '><div class="feed__time">' . nb_e(nb_fmt_uhr($it['start'])) . '</div><div>'
                 . '<p class="feed__title"><a href="' . nb_e(nb_link('stoerung', $it['key'], $it['titel'])) . '">' . nb_e($it['titel']) . '</a>' . (!empty($it['aktiv']) ? ' <span class="dep__ab dep__ab--aktiv">aktiv</span>' : '') . '</p>'
-                . '<p class="feed__meta">' . nb_e($meta) . ($it['text'] !== '' ? '<br>' . nb_e($it['text']) : '') . '</p></div></li>';
+                . '<p class="feed__meta">' . nb_e($meta) . ($it['text'] !== '' ? '<br>' . nb_e($it['text']) . nb_ki_marke() : '') . '</p></div></li>';
         }
         $html .= '</ol></section>';
     }
@@ -1747,7 +1756,7 @@ function nb_render_feedback($root)
         . '<input type="text" id="feedback-kontakt" name="kontakt" maxlength="120" autocomplete="off" placeholder="E-Mail oder Telegram-Name, nur wenn du eine Antwort m&ouml;chtest">'
         . '<button type="submit" class="feedback-form__submit">Absenden</button>'
         . '<p class="feedback-form__status" role="status" aria-live="polite"></p>'
-        . '<p class="feedback-form__hinweis">Deine Nachricht geht mit Seite und Browser-Kennung in einen privaten Discord-Kanal des Betreibers. Bitte keine sensiblen Daten.</p>'
+        . '<p class="feedback-form__hinweis">Deine Nachricht geht mit Seite und Browser-Kennung in einen privaten Discord-Kanal des Betreibers. Bitte keine sensiblen Daten. <a href="' . nb_e($root) . 'impressum/#datenschutz">Datenschutz</a></p>'
         . '</form></dialog>'
         . '<script src="' . nb_e($root) . 'feedback.js?v=' . $version . '" defer></script>';
 }

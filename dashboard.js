@@ -615,7 +615,7 @@
 
 		return el('li', s.key ? { class: 'card incident', 'data-weg-id': 'st:' + s.key } : { class: 'card incident' }, [
 			el('h3', { class: 'incident__title', text: titel }),
-			text ? el('p', { class: 'incident__text', text: text }) : null,
+			text ? el('p', { class: 'incident__text' }, [text, ki && s.ki_text ? ' ' : null, ki && s.ki_text ? kiMarke() : null]) : null,
 			el('p', { class: 'zeitraum', text: fmtZeitraum(start, ende, now, !!s.abgelaufen) }),
 			zeitbalken(start, ende, now, !!s.abgelaufen),
 			meta.childNodes.length ? meta : null,
@@ -677,10 +677,15 @@
 		return liste;
 	}
 
+	/** Dezente Kennzeichnung KI-formulierter Texte (Art. 50 Abs. 4 KI-VO), wie nb_ki_marke(). */
+	function kiMarke() {
+		return el('span', { class: 'ki-marke', title: 'Text von einer KI formuliert', text: 'KI-formuliert' });
+	}
+
 	/** Stoerung oder Eilmeldung als Listeneintrag (wie nb_render_wichtig_eintrag), mit Knopf zum Wegklicken. */
 	function meldungEintrag(it) {
 		var meta = el('p', { class: 'feed__meta' }, [it.meta]);
-		if (it.text) { if (it.meta) meta.appendChild(el('br')); meta.appendChild(document.createTextNode(it.text)); }
+		if (it.text) { if (it.meta) meta.appendChild(el('br')); meta.appendChild(document.createTextNode(it.text)); meta.appendChild(document.createTextNode(' ')); meta.appendChild(kiMarke()); }
 		var attrs = istHeute(it.ts) ? { class: 'is-heute' } : {};
 		if (it.wegId) attrs['data-weg-id'] = it.wegId;
 		var rubrik = it.art === 'stoerung' ? 'Störung' : 'Eilmeldung';

@@ -113,7 +113,7 @@ if (!$gefunden) {
 			</p>
 			<h1 class="artikel__titel"><?= nb_e($titel) ?></h1>
 <?php if ($em['text'] !== ''): ?>
-			<p class="artikel__vorspann"><?= nb_e($em['text']) ?></p>
+			<p class="artikel__vorspann"><?= nb_e($em['text']) . nb_ki_marke() ?></p>
 <?php endif; ?>
 			<div class="artikel__status">
 <?php if ($v['status'] === 'aktiv'): ?>

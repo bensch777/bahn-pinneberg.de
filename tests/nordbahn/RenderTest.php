@@ -413,7 +413,7 @@ function test_feed_render_heute_und_ki_text()
     $html = nb_render_feed($items, 6, 3, $now);
     t_contains('<li class="is-heute"><div class="feed__time">Heute, 08:50 Uhr</div>', $html, 'heutiger Eintrag markiert');
     t_contains('<li><div class="feed__time">Gestern, 11:45 Uhr</div>', $html, 'gestriger Eintrag ohne Markierung');
-    t_contains('<p class="feed__meta">Die RB60 um 12:22 ab Hamburg-Altona fällt wegen eines Stellwerkdefekts aus.</p>', $html, 'KI-Text unter dem Titel');
+    t_contains('<p class="feed__meta">Die RB60 um 12:22 ab Hamburg-Altona fällt wegen eines Stellwerkdefekts aus.' . nb_ki_marke() . '</p>', $html, 'KI-Text unter dem Titel');
     t_eq(1, substr_count($html, 'feed__meta'), 'kein Meta ohne KI-Text');
     t_contains('Keine Eilmeldung in den letzten 3 Tagen.', nb_render_feed($items, 6, 3, $now + 5 * 86400), 'Altersgrenze mit now');
 
@@ -440,7 +440,7 @@ function test_archiv_eilmeldungen_nach_tagen()
     t_eq(3, substr_count($html, '<section'), 'drei Tage, drei Abschnitte');
     t_eq(['Heute, 16.10.2026', 'Gestern, 15.10.2026', 'Dienstag, 13.10.2026'], t_titles($html), 'Reihenfolge und Tagesnamen');
     t_contains('<li id="b" class="is-heute"><div class="feed__time">08:50 Uhr</div>', $html, 'heute nur Uhrzeit, markiert, Anker aus der id');
-    t_contains('<p class="feed__meta">Stellwerkdefekt.</p>', $html, 'KI-Text');
+    t_contains('<p class="feed__meta">Stellwerkdefekt.' . nb_ki_marke() . '</p>', $html, 'KI-Text');
     t_eq(strpos($html, 'Gestern spät') < strpos($html, 'Gestern früh'), true, 'innerhalb eines Tages juengste zuerst');
     t_contains('Noch keine Eilmeldung erfasst.', nb_render_archiv_eil([], $now), 'leer');
 }
@@ -736,7 +736,7 @@ function test_wichtig_items_und_startseite()
 
     $html = nb_render_wichtig_eintrag($items[0], $jetzt);
     t_contains('<p class="feed__kicker feed__kicker--eilmeldung">Eilmeldung</p><p class="feed__title"><a href="./eilmeldung/em-2/rb71-ersatzverkehr-elmshorn-wrist-bis-18-uhr/">RB71: Ersatzverkehr Elmshorn – Wrist bis 18 Uhr</a></p>', $html, 'Eilmeldung mit Rubrik und Link');
-    t_contains('<p class="feed__kicker feed__kicker--stoerung">St&ouml;rung</p><p class="feed__title"><a href="./stoerung/GROSS/ausfaelle-bei-tornesch/">Ausfälle bei Tornesch</a></p><p class="feed__meta">bis 09:00 Uhr · 1 Std.<br>Weiche klemmte.</p>', nb_render_wichtig_eintrag($items[2], $jetzt), 'Stoerung mit Ende, Dauer und Text');
+    t_contains('<p class="feed__kicker feed__kicker--stoerung">St&ouml;rung</p><p class="feed__title"><a href="./stoerung/GROSS/ausfaelle-bei-tornesch/">Ausfälle bei Tornesch</a></p><p class="feed__meta">bis 09:00 Uhr · 1 Std.<br>Weiche klemmte.' . nb_ki_marke() . '</p>', nb_render_wichtig_eintrag($items[2], $jetzt), 'Stoerung mit Ende, Dauer und Text');
 
     $markiert = nb_wichtig_markieren($data, $jetzt);
     t_eq(true, $markiert['stoerungen'][0]['wichtig'], 'laufende Stoerung markiert');
