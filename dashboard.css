@@ -929,3 +929,7 @@ html:not(.js) .dep--skelett, html:not(.js) .board__lade { display: none; }
 @media (max-width: 560px) {
 	.karte { height: 60vh; min-height: 340px; }
 }
+
+/* Kennzeichnung KI-formulierter Texte (Art. 50 Abs. 4 KI-VO): dezent hinter dem Text */
+.ki-marke { font-size: 11px; color: var(--muted); white-space: nowrap; letter-spacing: .01em; }
+.ki-marke::before { content: "· "; }

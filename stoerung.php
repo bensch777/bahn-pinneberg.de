@@ -114,7 +114,7 @@ if (!$gefunden) {
 			</p>
 			<h1 class="artikel__titel"><?= nb_e($st['titel']) ?></h1>
 <?php if ($vorspann !== ''): ?>
-			<p class="artikel__vorspann"><?= nb_e($vorspann) ?></p>
+			<p class="artikel__vorspann"><?= nb_e($vorspann) . ($st['ki_text'] !== '' ? nb_ki_marke() : '') ?></p>
 <?php endif; ?>
 			<div class="artikel__status">
 				<span class="pill <?= $st['aktiv'] ? 'pill--aktiv pill--live' : 'pill--aufgehoben' ?>"><?= $st['aktiv'] ? 'Aktiv' : 'Aufgehoben' ?></span>
