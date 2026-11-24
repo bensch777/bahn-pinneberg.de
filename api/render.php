@@ -1747,7 +1747,7 @@ function nb_render_feedback($root)
         . '<input type="text" id="feedback-kontakt" name="kontakt" maxlength="120" autocomplete="off" placeholder="E-Mail oder Telegram-Name, nur wenn du eine Antwort m&ouml;chtest">'
         . '<button type="submit" class="feedback-form__submit">Absenden</button>'
         . '<p class="feedback-form__status" role="status" aria-live="polite"></p>'
-        . '<p class="feedback-form__hinweis">Deine Nachricht geht mit Seite und Browser-Kennung in einen privaten Discord-Kanal des Betreibers. Bitte keine sensiblen Daten.</p>'
+        . '<p class="feedback-form__hinweis">Deine Nachricht geht mit Seite und Browser-Kennung in einen privaten Discord-Kanal des Betreibers. Bitte keine sensiblen Daten. <a href="' . nb_e($root) . 'impressum/#datenschutz">Datenschutz</a></p>'
         . '</form></dialog>'
         . '<script src="' . nb_e($root) . 'feedback.js?v=' . $version . '" defer></script>';
 }

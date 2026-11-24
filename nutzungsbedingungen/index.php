@@ -71,7 +71,7 @@ $description = 'Nutzungsbedingungen von Bahn-Pinneberg.de für Website, Datensch
 			<p>Welche Daten anfallen, steht in der <a href="<?= $root ?>impressum/#datenschutz">Datenschutzerklärung</a>.</p>
 
 			<h2>8. Schlussbestimmungen</h2>
-			<p>Es gilt deutsches Recht. Diese Bedingungen können angepasst werden; es gilt die hier veröffentlichte Fassung. Fragen an <a href="mailto:hallo@bahn-pinneberg.de">hallo@bahn-pinneberg.de</a>.</p>
+			<p>Es gilt deutsches Recht; zwingende Verbraucherschutzvorschriften des Staates, in dem Sie Ihren gewöhnlichen Aufenthalt haben, bleiben unberührt. Diese Bedingungen können angepasst werden; es gilt die hier veröffentlichte Fassung. Fragen an <a href="mailto:hallo@bahn-pinneberg.de">hallo@bahn-pinneberg.de</a>.</p>
 
 			<p class="section__note">Stand: <?= nb_e(date('d.m.Y', (int) @filemtime(__FILE__))) ?></p>
 		</div>
