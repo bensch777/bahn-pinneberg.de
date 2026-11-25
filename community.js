@@ -19,6 +19,9 @@
 		{ id: 'kurz', text: 'Kurzer Zug' },
 		{ id: 'klima', text: 'Klima/Heizung aus' }
 	];
+	// Fuer den Hinweis in Zeile und Liste: Symbol und Wortlaut hinter "Fahrgäste:"
+	var SYMBOL = { steht: '\u23F8\uFE0F', voll: '\uD83D\uDC65', kurz: '\uD83D\uDE83', klima: '\uD83C\uDF21\uFE0F' };
+	var KURZ = { steht: 'Zug steht', voll: 'sehr voll', kurz: 'kurzer Zug', klima: 'Klima/Heizung aus' };
 	var TEXT = {};
 	ARTEN.forEach(function (a) { TEXT[a.id] = a.text; });
 	var REFRESH_MS = 60 * 1000;
@@ -156,9 +159,11 @@
 		var liste = fuer(zug);
 		if (!state.an || !liste.length) return null;
 		var a = liste[0];
-		return el('span', { class: 'cm-hinweis-zeile', title: 'Ungeprüfte Angabe von Fahrgästen' }, [
-			'Fahrgäste: ',
-			el('span', { class: 'cm-hinweis cm-hinweis--' + a.art, text: TEXT[a.art] })
+		return el('span', { class: 'cm-hinweis cm-hinweis--' + a.art, title: 'Ungeprüfte Angabe von Fahrgästen' }, [
+			el('span', { class: 'cm-hinweis__symbol', 'aria-hidden': 'true', text: SYMBOL[a.art] || '' }),
+			// Breit "Fahrgäste: sehr voll", auf schmalen Handys nur "Sehr voll", damit die Pille einzeilig bleibt
+			el('span', { class: 'cm-hinweis__lang', text: 'Fahrgäste: ' + KURZ[a.art] }),
+			el('span', { class: 'cm-hinweis__kurz', 'aria-hidden': 'true', text: TEXT[a.art] })
 		]);
 	}
 
