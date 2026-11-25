@@ -270,6 +270,28 @@
 		return h;
 	}
 
+	/**
+	 * Popup als Element: der Text von oben und darunter die Fahrgastmeldungen
+	 * (community.js). Melden geht, solange der Zug nicht angekommen ist; im Zug ist die
+	 * Karte der Ort dafuer, denn aus der Tafel ist er nach der Abfahrt verschwunden.
+	 */
+	function popupInhalt(z) {
+		var box = document.createElement('div');
+		box.innerHTML = popupHtml(z);
+		if (window.nbCommunity) {
+			var l = lage(z, Date.now());
+			var cm = window.nbCommunity.block(z.zug, !!l && l.status !== 'ziel');
+			if (cm) box.firstChild.insertBefore(cm, box.firstChild.querySelector('.karte-popup__halte'));
+		}
+		return box;
+	}
+
+	/** Hinweis "Fahrgaeste: Zug steht" als HTML fuer Popup-Kopf und Liste, leer ohne Meldung. */
+	function cmHinweisHtml(z) {
+		var h = window.nbCommunity ? window.nbCommunity.hinweis(z.zug) : null;
+		return h ? ' ' + h.outerHTML : '';
+	}
+
 	/** Marker anlegen, aktualisieren, entfernen nach dem aktuellen Stand. */
 	function markerAbgleichen() {
 		var now = Date.now();
@@ -285,7 +307,7 @@
 			var icon = zugIcon(z, l);
 			if (!e) {
 				var m = L.marker(pos, { icon: icon, riseOnHover: true, keyboard: true, title: z.linie + ' ' + z.von + ' → ' + z.nach, zIndexOffset: 1000 });
-				m.bindPopup(function () { return popupHtml(z); }, { maxWidth: 300, className: 'karte-popup-wrap' });
+				m.bindPopup(function () { return popupInhalt(marker[z.zug] ? marker[z.zug].zug : z); }, { maxWidth: 300, className: 'karte-popup-wrap' });
 				m.addTo(zugLayer);
 				marker[z.zug] = e = { m: m, zug: z, status: l.status, delay: l.verspaetung };
 			} else {
@@ -297,7 +319,7 @@
 					e.delay = l.verspaetung;
 				}
 				if (e.m.isPopupOpen()) {
-					e.m.setPopupContent(popupHtml(z));
+					e.m.setPopupContent(popupInhalt(z));
 				}
 			}
 		});
@@ -349,7 +371,7 @@
 			var d = l.verspaetung;
 			zeilen.push('<li><span class="linie linie--' + esc(linieKlasse(z.linie)) + '">' + esc(z.linie) + '</span>'
 				+ '<span class="zugliste__text"><strong>' + esc(z.von) + ' &rarr; ' + esc(z.nach) + '</strong>'
-				+ '<span class="zugliste__lage">' + esc(lageText(l)) + (z.hinweis ? ' &middot; ' + esc(z.hinweis) : '') + '</span></span>'
+				+ '<span class="zugliste__lage">' + esc(lageText(l)) + (z.hinweis ? ' &middot; ' + esc(z.hinweis) : '') + cmHinweisHtml(z) + '</span></span>'
 				+ (d >= 3 ? '<span class="pill ' + (d >= 10 ? 'pill--ausfall' : 'pill--teil') + '">+' + d + '</span>' : '') + '</li>');
 		});
 		el.innerHTML = zeilen.length ? '<ul class="zugliste">' + zeilen.join('') + '</ul>' : '<p class="zugliste__leer">' + (state.ok || state.zuege.length ? 'Gerade kein Zug auf der Karte.' : 'Gerade keine Daten vom Stationsmonitor.') + '</p>';
@@ -433,6 +455,18 @@
 
 	var kopf = document.getElementById('karte-freshness');
 	if (kopf) kopf.addEventListener('click', refresh);
+
+	// Fahrgastmeldungen: offene Popups und die Liste mit neuen Daten neu schreiben
+	if (window.nbCommunity) {
+		window.nbCommunity.beiAenderung(function () {
+			Object.keys(marker).forEach(function (zug) {
+				var e = marker[zug];
+				if (e.m.isPopupOpen()) e.m.setPopupContent(popupInhalt(e.zug));
+			});
+			listeSchreiben();
+		});
+		window.nbCommunity.start(String(endpoint || '').replace(/api\/karte$/, '') || './');
+	}
 
 	/* ---------- Ausschnitt ---------- */
 

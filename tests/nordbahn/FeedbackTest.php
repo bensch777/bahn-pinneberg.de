@@ -52,7 +52,10 @@ function test_feedback_kennung_und_limit()
     t_eq($a, nb_feedback_kennung(t_feedback_server(), $now + 600), 'gleicher Tag, gleiche Kennung');
     t_assert($a !== nb_feedback_kennung(t_feedback_server(), $now + 86400), 'naechster Tag, andere Kennung');
     t_assert($a !== nb_feedback_kennung(t_feedback_server(['REMOTE_ADDR' => '203.0.113.8']), $now), 'andere IP, andere Kennung');
-    t_eq($a, nb_feedback_kennung(t_feedback_server(['HTTP_X_FORWARDED_FOR' => '203.0.113.7, 10.0.0.1', 'REMOTE_ADDR' => '10.0.0.1']), $now), 'X-Forwarded-For zaehlt');
+    t_eq($a, nb_feedback_kennung(t_feedback_server(['HTTP_X_FORWARDED_FOR' => '203.0.113.7, 10.0.0.1', 'REMOTE_ADDR' => '10.0.0.1']), $now), 'X-Forwarded-For hinter eigenem Proxy zaehlt');
+    t_eq($a, nb_feedback_kennung(t_feedback_server(['HTTP_X_FORWARDED_FOR' => '198.51.100.99']), $now), 'X-Forwarded-For von aussen zaehlt nicht');
+    t_eq('203.0.113.7', nb_besucher_ip(['REMOTE_ADDR' => '127.0.0.1', 'HTTP_X_FORWARDED_FOR' => '203.0.113.7']), 'lokaler Proxy reicht die IP durch');
+    t_eq('10.0.0.1', nb_besucher_ip(['REMOTE_ADDR' => '10.0.0.1', 'HTTP_X_FORWARDED_FOR' => 'kaputt']), 'ungueltiger Header faellt auf REMOTE_ADDR zurueck');
 
     $dir = NORDBAHN_CACHE_DIR . '/feedback-test-' . getmypid();
     for ($i = 0; $i < 5; $i++) {

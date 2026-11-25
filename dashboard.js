@@ -1073,6 +1073,9 @@
 							+ (dt.gleis ? ', Gl.\u00a0' + dt.gleis + (dt.gleis_plan ? ' (statt ' + dt.gleis_plan + ')' : '') : '') }));
 					}
 				}
+				// Fahrgastmeldung (Zug steht, sehr voll ...): vor dem amtlichen Hinweis, sie ist meist neuer
+				var cmHinweis = d.quelle !== 'hvv' && window.nbCommunity ? window.nbCommunity.hinweis(d.zug) : null;
+				if (cmHinweis) dest.appendChild(el('small', { class: 'dep__cm' }, [cmHinweis]));
 				if (d.hinweis) dest.appendChild(el('small', { text: d.hinweis }));
 				// Zuverlaessigkeit der letzten Tage, sobald der Zug oft genug beobachtet wurde
 				if (d.ersatz) {
@@ -1145,7 +1148,19 @@
 				el('span', { class: 'lauf__gleis', text: h.gleis ? 'Gl. ' + h.gleis : '' })
 			]));
 		});
-		return el('li', { class: 'dep-lauf', id: 'lauf-' + slug(laufKey(d, key)) }, [ol]);
+		return el('li', { class: 'dep-lauf', id: 'lauf-' + slug(laufKey(d, key)) }, [ol, cmBlock(d)]);
+	}
+
+	/**
+	 * Fahrgastmeldungen zur aufgeklappten Fahrt: melden geht ab NB_CM_VORLAUF (15) Minuten
+	 * vor der Abfahrt, nur fuer Nordbahn-Zuege, die fahren. Die Live-Karte deckt die Fahrt
+	 * danach ab, wenn der Zug aus der Tafel verschwunden ist.
+	 */
+	function cmBlock(d) {
+		if (!window.nbCommunity || d.quelle === 'hvv' || !d.zug) return null;
+		var ab = Date.parse(d.zeit); // Planzeit: bei Verspaetung steht man schon am Bahnsteig
+		var erlaubt = !d.ausfall && !isNaN(ab) && ab - Date.now() <= 15 * 60000;
+		return window.nbCommunity.block(d.zug, erlaubt);
 	}
 
 	function laufAnhaengen(list, row, d, key) {
@@ -2252,6 +2267,11 @@
 			refreshDepartures();
 			setInterval(refreshDepartures, DEPARTURES_MS);
 			setInterval(function () { if (departuresState.last) renderDepartures(departuresState.last); }, 30000);
+			// Fahrgastmeldungen (community.js): neue Daten zeichnen die Tafel neu
+			if (window.nbCommunity) {
+				window.nbCommunity.beiAenderung(function () { if (departuresState.last) renderDepartures(departuresState.last); });
+				window.nbCommunity.start(urls.root);
+			}
 		}
 		if (document.getElementById('s3')) {
 			initStadt();

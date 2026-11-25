@@ -24,7 +24,7 @@ nb_send_security_headers(['img-src' => 'https://tile.openstreetmap.org']);
 define('SITE_URL', nordbahn_site_url());
 $root = '../';
 $leafletVersion = '1.9.4';
-$assetVersion = max((int) @filemtime(__DIR__ . '/../dashboard.css'), (int) @filemtime(__DIR__ . '/../karte.js'));
+$assetVersion = max((int) @filemtime(__DIR__ . '/../dashboard.css'), (int) @filemtime(__DIR__ . '/../karte.js'), (int) @filemtime(__DIR__ . '/../community.js'));
 $jsonFlags = JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
 
 $strecke = ka_strecke();
@@ -151,6 +151,7 @@ function nb_karte_liste(array $zuege)
 <script id="karte-strecke" type="application/json"><?= $streckeJson ?></script>
 <script id="karte-stand" type="application/json"><?= $standJson ?></script>
 <script src="<?= $root ?>vendor/leaflet/leaflet.js?v=<?= $leafletVersion ?>" defer></script>
+<script src="<?= $root ?>community.js?v=<?= $assetVersion ?>" defer></script>
 <script src="<?= $root ?>karte.js?v=<?= $assetVersion ?>" defer></script>
 </body>
 </html>

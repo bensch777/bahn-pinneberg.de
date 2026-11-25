@@ -24,6 +24,7 @@ require_once __DIR__ . '/../api/abfahrten.php';
 require_once __DIR__ . '/../api/geofox.php';
 require_once __DIR__ . '/../api/karte.php';
 require_once __DIR__ . '/../api/feedback.php';
+require_once __DIR__ . '/../api/community.php';
 require_once __DIR__ . '/../api/fahrplan.php';
 require_once __DIR__ . '/../api/mcp.php';
 require_once __DIR__ . '/support.php';

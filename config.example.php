@@ -47,6 +47,13 @@ return [
     // und die Adresse hier eintragen. Leer: kein Feedback-Eintrag.
     'NORDBAHN_FEEDBACK_WEBHOOK' => '',
 
+    // Fahrgastmeldungen (api/community.php): "Zug steht", "Sehr voll", "Kurzer Zug",
+    // "Klima/Heizung aus" an einer Fahrt, in der Tafel und auf der Live-Karte.
+    // false schaltet Melden und Anzeige sofort ab. Die Schwelle sagt, ab wie vielen
+    // verschiedenen Besuchern eine Meldung sichtbar ist (1 bis 5).
+    'NORDBAHN_COMMUNITY'          => true,
+    'NORDBAHN_COMMUNITY_SCHWELLE' => 1,
+
     // Token fuer den Domain-Nachweis im ChatGPT-App-Verzeichnis (platform.openai.com,
     // ChatGPT Apps). Wird unter /.well-known/openai-apps-challenge ausgeliefert.
     'NORDBAHN_OPENAI_CHALLENGE' => '',
