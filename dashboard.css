@@ -955,8 +955,35 @@ html:not(.js) .dep--skelett, html:not(.js) .board__lade { display: none; }
 .zug--stark .zug__delay { background: var(--critical); color: #fff; }
 /* Liste unter der Karte */
 .zugliste { list-style: none; margin: 0; padding: 0; }
-.zugliste li { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); font-size: 14.5px; }
-.zugliste li:first-child { border-top: 0; }
+.zugliste > li { border-top: 1px solid var(--line); font-size: 14.5px; }
+.zugliste > li:first-child { border-top: 0; }
+.zugliste__kopf { position: relative; display: flex; align-items: center; gap: 12px; padding: 10px 0; }
+/* Ganze Zeile ist der Knopf zum Aufklappen, Pfeil rechts wie bei der Tafel der Startseite */
+.zugliste__knopf { position: absolute; inset: 0 -8px; margin: 0; padding: 0; border: 0; border-radius: 8px; background: transparent; cursor: pointer; }
+.zugliste__knopf:focus-visible { outline: 2px solid var(--series); outline-offset: -2px; }
+.zugliste__kopf:hover .zugliste__knopf { background: color-mix(in srgb, var(--series) 6%, transparent); }
+.zugliste__zug .zugliste__kopf { padding-right: 20px; }
+.zugliste__zug .zugliste__kopf::after {
+	content: ''; position: absolute; right: 3px; top: calc(50% - 5px); width: 6px; height: 6px; pointer-events: none;
+	border-right: 1.5px solid var(--muted); border-bottom: 1.5px solid var(--muted); transform: rotate(45deg); transition: transform 0.15s;
+}
+.zugliste__zug.ist-offen .zugliste__kopf::after { transform: rotate(-135deg); top: calc(50% - 1px); }
+.zugliste__richtung { margin: 0; padding: 12px 0 2px; font-size: 12px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+.zugliste + .zugliste__richtung { margin-top: 4px; border-top: 1px solid var(--line); }
+.zugliste__auf { max-width: 640px; padding: 0 0 12px; }
+.zugliste__auf .cm { margin-left: 20px; }
+.lauf__halt--vorbei .lauf__name, .lauf__halt--vorbei .lauf__zeit { color: var(--muted); font-weight: 500; }
+.lauf__halt--vorbei .lauf__punkt::after { background: var(--line); border-color: var(--line); }
+.lauf__halt--jetzt .lauf__punkt::after { box-shadow: 0 0 0 3px color-mix(in srgb, var(--series) 25%, transparent); }
+.zugliste__fuss { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin: 10px 0 0 20px; font-size: 12.5px; color: var(--muted); }
+.zugliste__teilen {
+	margin-left: auto; padding: 4px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface);
+	color: var(--ink); font: inherit; font-weight: 600; cursor: pointer;
+}
+.zugliste__teilen:hover { border-color: var(--series); }
+.zugliste__teilen:focus-visible { outline: 2px solid var(--series); outline-offset: 1px; }
+.zugliste__geteilt { color: var(--ink-2); word-break: break-all; }
+.zugliste__geteilt-weg { padding: 10px 0 0 !important; }
 .zugliste__text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .zugliste__lage { font-size: 13px; color: var(--muted); }
 .zugliste__leer { margin: 0; color: var(--muted); font-size: 14.5px; }
