@@ -678,11 +678,17 @@ button.freshness:focus-visible { outline: 2px solid var(--series); outline-offse
 }
 /* Fahrgastmeldungen (community.js): Hinweis in der Zeile, Block in der aufgeklappten Fahrt und im Karten-Popup */
 .cm-hinweis {
-	display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 11.5px; font-weight: 600; line-height: 1.6;
-	background: var(--status-warn-bg); color: var(--warn-text); white-space: nowrap;
+	display: inline-block; padding: 2px 9px; border-radius: 10px; font-size: 12px; font-weight: 600; line-height: 1.5;
+	background: var(--status-warn-bg); color: var(--warn-text);
+}
+.cm-hinweis__symbol { margin-right: 5px; font-size: 11px; }
+.cm-hinweis__kurz { display: none; }
+@media (max-width: 560px) {
+	.dep__cm .cm-hinweis { white-space: nowrap; }
+	.dep__cm .cm-hinweis__lang { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+	.dep__cm .cm-hinweis__kurz { display: inline; }
 }
 .cm-hinweis--steht { background: var(--status-crit-bg); color: var(--critical-text); }
-.cm-hinweis-zeile { color: var(--muted); }
 .dep__dest small.dep__cm { margin: 3px 0 1px; }
 .zugliste__lage .cm-hinweis { margin-left: 6px; vertical-align: 1px; }
 .cm { margin: 10px 0 0; padding: 10px 12px 8px; border-radius: 10px; background: var(--surface-2); font-size: 13px; }
