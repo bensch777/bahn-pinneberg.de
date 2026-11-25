@@ -29,6 +29,10 @@
 	var EIGENE_MS = 3 * 60 * 60 * 1000;
 
 	var state = { url: '', an: false, zuege: {}, geladen: false, laeuft: false, zuletzt: 0, meldung: {} };
+	// Welche Zuege den Hinweistext unter dem (i) gerade offen haben; der Block wird
+	// bei jeder neuen Datenlage neu gebaut, deshalb steht der Zustand hier.
+	var infoOffen = {};
+	var INFO_TEXT = 'Ungeprüfte Angaben von Fahrgästen, keine Auskunft der Nordbahn. Gilt nur für diese Fahrt.';
 	var hoerer = [];
 
 	function el(tag, attrs, children) {
@@ -191,12 +195,27 @@
 			});
 			box.appendChild(ul);
 		}
+		var offen = !!infoOffen[zug];
+		var info = el('button', { type: 'button', class: 'cm__info', 'aria-expanded': offen ? 'true' : 'false', 'aria-label': 'Hinweis zu Fahrgastmeldungen', title: 'Hinweis zu Fahrgastmeldungen', text: 'i' });
+		info.addEventListener('click', function (ev) {
+			ev.preventDefault();
+			ev.stopPropagation();
+			if (infoOffen[zug]) delete infoOffen[zug]; else infoOffen[zug] = true;
+			melden();
+		});
+		box.appendChild(el('div', { class: 'cm__kopf' }, [
+			erlaubt ? el('p', { class: 'cm__frage', text: 'Wie ist es in diesem Zug?' }) : el('span', { class: 'cm__frage' }),
+			info
+		]));
+		if (offen) box.appendChild(el('p', { class: 'cm__infotext', text: INFO_TEXT }));
 		if (erlaubt) {
-			box.appendChild(el('p', { class: 'cm__frage', text: 'Wie ist es in diesem Zug?' }));
 			var knoepfe = el('div', { class: 'cm__knoepfe' });
 			ARTEN.forEach(function (a) {
 				var meins = selbstGemeldet(zug, a.id);
-				var b = el('button', { type: 'button', class: 'cm__knopf cm__knopf--' + a.id, 'aria-pressed': meins ? 'true' : 'false', text: a.text });
+				var b = el('button', { type: 'button', class: 'cm__knopf cm__knopf--' + a.id, 'aria-pressed': meins ? 'true' : 'false' }, [
+					el('span', { class: 'cm__knopf-symbol', 'aria-hidden': 'true', text: SYMBOL[a.id] || '' }),
+					el('span', { class: 'cm__knopf-text', text: a.text })
+				]);
 				b.addEventListener('click', function (ev) {
 					ev.preventDefault();
 					ev.stopPropagation();
@@ -208,7 +227,6 @@
 		}
 		var m = state.meldung[zug];
 		box.appendChild(el('p', { class: 'cm__status' + (m && m.fehler ? ' cm__status--fehler' : ''), role: 'status', text: m ? m.text : '' }));
-		box.appendChild(el('p', { class: 'cm__fuss', text: 'Ungeprüfte Angaben von Fahrgästen, keine Auskunft der Nordbahn. Gilt nur für diese Fahrt.' }));
 		return box;
 	}
 
