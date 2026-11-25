@@ -64,21 +64,58 @@ function nb_karte_delay_pill($min)
     return '<span class="pill ' . ($min >= 10 ? 'pill--ausfall' : 'pill--teil') . '">+' . $min . '</span>';
 }
 
-/** Liste der Zuege wie sie karte.js auch baut; Stand aus dem Cache. */
+/** Planzeit fuer die Reihenfolge: Pinneberg (dort fahren alle Linien durch), sonst der erste Halt. */
+function nb_karte_sortzeit(array $z)
+{
+    $erste = null;
+    foreach ($z['halte'] ?? [] as $h) {
+        $t = $h['an'] ?? null ?: ($h['ab'] ?? null);
+        if (!$t) {
+            continue;
+        }
+        if (($h['id'] ?? '') === 'AP') {
+            return strtotime($t);
+        }
+        $erste = $erste ?? strtotime($t);
+    }
+
+    return $erste ?? 0;
+}
+
+/**
+ * Liste der Zuege wie sie karte.js auch baut: nach Fahrtrichtung, je Richtung nach Zeit,
+ * vormittags "Nach Hamburg" vorn. Stand aus dem Cache; aufklappen geht erst mit dem Script.
+ */
 function nb_karte_liste(array $zuege)
 {
     if (!$zuege) {
         return '<p class="zugliste__leer">Gerade kein Zug auf der Karte.</p>';
     }
-    $h = '<ul class="zugliste">';
+    $gruppen = ['hamburg' => [], 'nord' => []];
     foreach ($zuege as $z) {
-        $h .= '<li><span class="linie linie--' . nb_e(nb_karte_linie_klasse($z['linie'] ?? '')) . '">' . nb_e($z['linie'] ?? '') . '</span>'
-            . '<span class="zugliste__text"><strong>' . nb_e($z['von'] ?? '') . ' &rarr; ' . nb_e($z['nach'] ?? '') . '</strong>'
-            . '<span class="zugliste__lage">' . nb_e($z['lage']['text'] ?? '') . ($z['hinweis'] !== '' ? ' &middot; ' . nb_e($z['hinweis']) : '') . '</span></span>'
-            . nb_karte_delay_pill($z['verspaetung'] ?? 0) . '</li>';
+        $gruppen[($z['richtung'] ?? '') === 'hamburg' ? 'hamburg' : 'nord'][] = $z;
+    }
+    $titel = ['hamburg' => 'Nach Hamburg', 'nord' => 'Aus Hamburg'];
+    $reihe = (int) (new DateTime('now', new DateTimeZone('Europe/Berlin')))->format('G') >= 12 ? ['nord', 'hamburg'] : ['hamburg', 'nord'];
+    $h = '';
+    foreach ($reihe as $r) {
+        if (!$gruppen[$r]) {
+            continue;
+        }
+        usort($gruppen[$r], function ($a, $b) {
+            return nb_karte_sortzeit($a) <=> nb_karte_sortzeit($b);
+        });
+        $h .= '<h3 class="zugliste__richtung">' . $titel[$r] . '</h3><ul class="zugliste">';
+        foreach ($gruppen[$r] as $z) {
+            $h .= '<li><div class="zugliste__kopf"><span class="linie linie--' . nb_e(nb_karte_linie_klasse($z['linie'] ?? '')) . '">' . nb_e($z['linie'] ?? '') . '</span>'
+                . '<span class="zugliste__text"><strong>' . nb_e($z['von'] ?? '') . ' &rarr; ' . nb_e($z['nach'] ?? '') . '</strong>'
+                . '<span class="zugliste__lage">' . nb_e($z['lage']['text'] ?? '') . (($z['hinweis'] ?? '') !== '' ? ' &middot; ' . nb_e($z['hinweis']) : '') . '</span></span>'
+                . nb_karte_delay_pill($z['verspaetung'] ?? 0) . '</div></li>';
+        }
+        $h .= '</ul>';
     }
 
-    return $h . '</ul>';
+    return $h;
 }
 ?>
 <!DOCTYPE html>

@@ -138,7 +138,7 @@
 		z._halte = (z.halte || []).map(function (h) {
 			var an = h.an_ist ? Date.parse(h.an_ist) : null;
 			var ab = h.ab_ist ? Date.parse(h.ab_ist) : null;
-			return { id: h.id, name: h.name, an: an, ab: ab, dep: ab || an, arr: an || ab, verspaetung: h.verspaetung || 0, ausfall: !!h.ausfall, bedient: !!h.bedient && !!station(h.id) && (an || ab), gleis: h.gleis || '' };
+			return { id: h.id, name: h.name, planAn: h.an ? Date.parse(h.an) : null, planAb: h.ab ? Date.parse(h.ab) : null, an: an, ab: ab, dep: ab || an, arr: an || ab, verspaetung: h.verspaetung || 0, ausfall: !!h.ausfall, faehrt: h.bedient !== false, bedient: !!h.bedient && !!station(h.id) && (an || ab), gleis: h.gleis || '' };
 		});
 		z._bedient = [];
 		z._halte.forEach(function (h, i) { if (h.bedient) z._bedient.push(i); });
@@ -360,22 +360,181 @@
 
 	/* ---------- Liste und Kopfzeile ---------- */
 
+	/*
+	 * Zuege nach Fahrtrichtung, je Richtung nach der Planzeit in Pinneberg (dort fahren alle
+	 * drei Linien durch; fehlt der Halt, zaehlt der erste). Vormittags steht "Nach Hamburg"
+	 * vorn, ab 12 Uhr "Aus Hamburg", wie auf der Startseite. Jede Zeile klappt den ganzen
+	 * Halteverlauf mit Soll und Ist auf, dazu die Fahrgastmeldungen und einen Link zum
+	 * Teilen (#zug=Nummer&halt=Bahnhof), der die Karte beim Empfaenger gleich aufklappt.
+	 */
+	var RICHTUNGEN = [{ id: 'hamburg', titel: 'Nach Hamburg' }, { id: 'nord', titel: 'Aus Hamburg' }];
+	var offen = {};        // zugnummer -> true, uebersteht das Neuschreiben der Liste
+	var geteilt = null;    // { zug, halt } aus dem Link, bis der Zug einmal gezeigt wurde
+	var teilenText = {};   // zugnummer -> Rueckmeldung nach dem Teilen
+
+	function hashLesen() {
+		var m = /(?:^|[#&])zug=(\d{3,6})(?:&halt=([A-Z]{1,5}))?/.exec(location.hash || '');
+		return m ? { zug: m[1], halt: m[2] || '' } : null;
+	}
+	geteilt = hashLesen();
+
+	/** Bahnhof, der im Verlauf hervorgehoben wird: aus dem Link, sonst der Heimatbahnhof der Startseite. */
+	function heimat() {
+		if (geteilt && geteilt.halt) return geteilt.halt;
+		try { return localStorage.getItem('nordbahn.heimat') || 'APD'; } catch (e) { return 'APD'; }
+	}
+
+	function sortZeit(z) {
+		var erste = null;
+		for (var i = 0; i < z._halte.length; i++) {
+			var h = z._halte[i];
+			var t = h.planAn || h.planAb;
+			if (!t) continue;
+			if (h.id === 'AP') return t;
+			if (erste === null) erste = t;
+		}
+		return erste || 0;
+	}
+
+	function el(tag, attrs, kinder) {
+		var n = document.createElement(tag);
+		Object.keys(attrs || {}).forEach(function (k) {
+			if (k === 'class') n.className = attrs[k];
+			else if (k === 'text') n.textContent = attrs[k];
+			else if (k === 'html') n.innerHTML = attrs[k];
+			else n.setAttribute(k, attrs[k]);
+		});
+		(kinder || []).forEach(function (c) { if (c) n.appendChild(typeof c === 'string' ? document.createTextNode(c) : c); });
+		return n;
+	}
+
+	/** Halteverlauf wie in der aufgeklappten Fahrt der Startseite: Soll vorn, Ist klein dahinter. */
+	function verlaufHtml(z, l) {
+		var naechster = l.status === 'unterwegs' ? l.nach : l.bei;
+		var idxNaechster = z._halte.indexOf(naechster);
+		var hb = heimat();
+		var ol = el('ol', { class: 'lauf__halte' });
+		z._halte.forEach(function (st, i) {
+			var plan = i === 0 ? (st.planAb || st.planAn) : (st.planAn || st.planAb);
+			var ist = i === 0 ? (st.ab || st.an) : (st.an || st.ab);
+			var weg = st.ausfall || !st.faehrt;
+			var vorbei = l.status === 'ziel' ? st !== naechster : i < idxNaechster;
+			var cls = 'lauf__halt' + (i === 0 ? ' lauf__halt--start' : '') + (weg ? ' lauf__halt--ausfall' : '')
+				+ (st.id === hb ? ' lauf__halt--heimat' : '') + (vorbei && !weg ? ' lauf__halt--vorbei' : '')
+				+ (st === naechster && l.status !== 'ziel' ? ' lauf__halt--jetzt' : '');
+			var zeit = el('span', { class: 'lauf__zeit', text: uhr(plan) || '–' });
+			if (weg) zeit.appendChild(el('small', { text: 'entfällt' }));
+			else if (ist && uhr(ist) !== uhr(plan)) zeit.appendChild(el('small', { class: st.verspaetung >= 3 ? 'lauf__spaet' : '', text: uhr(ist) }));
+			ol.appendChild(el('li', { class: cls }, [
+				zeit,
+				el('span', { class: 'lauf__punkt', 'aria-hidden': 'true' }),
+				el('span', { class: 'lauf__name', text: st.name }),
+				el('span', { class: 'lauf__gleis', text: st.gleis && !weg ? 'Gl. ' + st.gleis : '' })
+			]));
+		});
+		return ol;
+	}
+
+	function teilen(z) {
+		var url = location.origin + location.pathname + '#zug=' + encodeURIComponent(z.zug) + '&halt=' + encodeURIComponent(heimat());
+		var titel = z.linie + ' ' + z.von + ' → ' + z.nach;
+		function melden(t) {
+			teilenText[z.zug] = t;
+			listeSchreiben();
+			setTimeout(function () { if (teilenText[z.zug] === t) { delete teilenText[z.zug]; listeSchreiben(); } }, 4000);
+		}
+		if (navigator.share) {
+			navigator.share({ title: titel, text: titel + ' live verfolgen', url: url }).catch(function () { /* abgebrochen */ });
+		} else if (navigator.clipboard && navigator.clipboard.writeText) {
+			navigator.clipboard.writeText(url).then(function () { melden('Link kopiert'); }, function () { melden(url); });
+		} else {
+			melden(url);
+		}
+	}
+
+	function panelBauen(z, l) {
+		var panel = el('div', { class: 'zugliste__auf', id: 'zug-' + z.zug }, [verlaufHtml(z, l)]);
+		if (window.nbCommunity) {
+			var cm = window.nbCommunity.block(z.zug, l.status !== 'ziel');
+			if (cm) panel.appendChild(cm);
+		}
+		var knopf = el('button', { type: 'button', class: 'zugliste__teilen', text: 'Link teilen' });
+		knopf.addEventListener('click', function (ev) { ev.stopPropagation(); teilen(z); });
+		panel.appendChild(el('p', { class: 'zugliste__fuss' }, [
+			el('span', { text: 'Zug ' + z.zug + (z.wagen ? ' · ' + z.wagen + ' Wagen' : '') }),
+			teilenText[z.zug] ? el('span', { class: 'zugliste__geteilt', role: 'status', text: teilenText[z.zug] }) : null,
+			knopf
+		]));
+		return panel;
+	}
+
+	function zeileBauen(z, l) {
+		var d = l.verspaetung;
+		var auf = !!offen[z.zug];
+		var li = el('li', { class: 'zugliste__zug' + (auf ? ' ist-offen' : ''), 'data-zug': z.zug });
+		var kopf = el('div', { class: 'zugliste__kopf', html:
+			'<span class="linie linie--' + esc(linieKlasse(z.linie)) + '">' + esc(z.linie) + '</span>'
+			+ '<span class="zugliste__text"><strong>' + esc(z.von) + ' &rarr; ' + esc(z.nach) + '</strong>'
+			+ '<span class="zugliste__lage">' + esc(lageText(l)) + (z.hinweis ? ' &middot; ' + esc(z.hinweis) : '') + cmHinweisHtml(z) + '</span></span>'
+			+ (d >= 3 ? '<span class="pill ' + (d >= 10 ? 'pill--ausfall' : 'pill--teil') + '">+' + d + '</span>' : '') });
+		var knopf = el('button', { type: 'button', class: 'zugliste__knopf', 'aria-expanded': auf ? 'true' : 'false', 'aria-controls': 'zug-' + z.zug,
+			'aria-label': 'Halteverlauf: ' + z.linie + ' ' + z.von + ' nach ' + z.nach });
+		knopf.addEventListener('click', function () {
+			if (offen[z.zug]) delete offen[z.zug]; else offen[z.zug] = true;
+			listeSchreiben();
+			var neu = document.querySelector('#karte-liste [data-zug="' + z.zug + '"] .zugliste__knopf');
+			if (neu) neu.focus();
+			try { if (offen[z.zug] && window.plausible) window.plausible('Zugverlauf'); } catch (e) { /* egal */ }
+		});
+		kopf.appendChild(knopf);
+		li.appendChild(kopf);
+		if (auf) li.appendChild(panelBauen(z, l));
+		return li;
+	}
+
 	function listeSchreiben() {
-		var el = document.getElementById('karte-liste');
-		if (!el) return;
+		var el0 = document.getElementById('karte-liste');
+		if (!el0) return;
 		var now = Date.now();
-		var zeilen = [];
+		var gruppen = { hamburg: [], nord: [] };
 		state.zuege.forEach(function (z) {
 			var l = lage(z, now);
 			if (!l) return;
-			var d = l.verspaetung;
-			zeilen.push('<li><span class="linie linie--' + esc(linieKlasse(z.linie)) + '">' + esc(z.linie) + '</span>'
-				+ '<span class="zugliste__text"><strong>' + esc(z.von) + ' &rarr; ' + esc(z.nach) + '</strong>'
-				+ '<span class="zugliste__lage">' + esc(lageText(l)) + (z.hinweis ? ' &middot; ' + esc(z.hinweis) : '') + cmHinweisHtml(z) + '</span></span>'
-				+ (d >= 3 ? '<span class="pill ' + (d >= 10 ? 'pill--ausfall' : 'pill--teil') + '">+' + d + '</span>' : '') + '</li>');
+			(gruppen[z.richtung === 'hamburg' ? 'hamburg' : 'nord']).push({ z: z, l: l, t: sortZeit(z) });
 		});
-		el.innerHTML = zeilen.length ? '<ul class="zugliste">' + zeilen.join('') + '</ul>' : '<p class="zugliste__leer">' + (state.ok || state.zuege.length ? 'Gerade kein Zug auf der Karte.' : 'Gerade keine Daten vom Stationsmonitor.') + '</p>';
+		var frag = document.createDocumentFragment();
+		var reihe = new Date().getHours() >= 12 ? [RICHTUNGEN[1], RICHTUNGEN[0]] : RICHTUNGEN;
+		var hinweisGeteilt = '';
+		if (geteilt && state.fetchedAt) {
+			var da = gruppen.hamburg.concat(gruppen.nord).some(function (e) { return e.z.zug === geteilt.zug; });
+			if (da && !geteilt.gezeigt) { offen[geteilt.zug] = true; geteilt.gezeigt = true; geteilt.scrollen = true; }
+			if (!da) hinweisGeteilt = 'Zug ' + geteilt.zug + ' ist gerade nicht unterwegs, vielleicht schon angekommen.';
+		}
+		if (hinweisGeteilt) frag.appendChild(el('p', { class: 'zugliste__leer zugliste__geteilt-weg', text: hinweisGeteilt }));
+		var n = 0;
+		reihe.forEach(function (r) {
+			var liste = gruppen[r.id];
+			if (!liste.length) return;
+			liste.sort(function (a, b) { return a.t - b.t; });
+			var ul = el('ul', { class: 'zugliste' });
+			liste.forEach(function (e) { ul.appendChild(zeileBauen(e.z, e.l)); n++; });
+			frag.appendChild(el('h3', { class: 'zugliste__richtung', text: r.titel }));
+			frag.appendChild(ul);
+		});
+		if (!n) frag.appendChild(el('p', { class: 'zugliste__leer', text: state.ok || state.zuege.length ? 'Gerade kein Zug auf der Karte.' : 'Gerade keine Daten vom Stationsmonitor.' }));
+		el0.innerHTML = '';
+		el0.appendChild(frag);
+		if (geteilt && geteilt.scrollen) {
+			geteilt.scrollen = false;
+			var ziel = el0.querySelector('[data-zug="' + geteilt.zug + '"]');
+			if (ziel && ziel.scrollIntoView) ziel.scrollIntoView({ block: 'start' });
+		}
 	}
+
+	window.addEventListener('hashchange', function () {
+		geteilt = hashLesen();
+		listeSchreiben();
+	});
 
 	/**
 	 * Hinweis nur, wenn der Stand alt ist oder der Monitor nicht antwortet; sonst bleibt die
