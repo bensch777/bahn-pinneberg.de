@@ -37,10 +37,29 @@ function nb_feedback_bereinigen($wert, $max)
     return trim(mb_substr(trim($wert), 0, $max));
 }
 
+/**
+ * IP des Besuchers. X-Forwarded-For kann jeder Browser selbst setzen; es zaehlt darum
+ * nur, wenn die Verbindung von einem Proxy im eigenen Netz kommt (REMOTE_ADDR privat
+ * oder lokal). Sonst liesse sich jedes Limit mit einem neuen Header umgehen.
+ */
+function nb_besucher_ip(array $server)
+{
+    $remote = trim((string) ($server['REMOTE_ADDR'] ?? ''));
+    $privat = $remote !== '' && filter_var($remote, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false;
+    if ($privat && isset($server['HTTP_X_FORWARDED_FOR'])) {
+        $xff = trim(explode(',', (string) $server['HTTP_X_FORWARDED_FOR'])[0]);
+        if (filter_var($xff, FILTER_VALIDATE_IP) !== false) {
+            return $xff;
+        }
+    }
+
+    return $remote;
+}
+
 /** Kennung des Besuchers fuer das Limit: IP, User-Agent und Tag, gekuerzter Hash, nichts davon wird gespeichert. */
 function nb_feedback_kennung(array $server, $now = null)
 {
-    $ip = isset($server['HTTP_X_FORWARDED_FOR']) ? trim(explode(',', $server['HTTP_X_FORWARDED_FOR'])[0]) : ($server['REMOTE_ADDR'] ?? '');
+    $ip = nb_besucher_ip($server);
     $tag = (new DateTime('@' . ($now ?? time())))->setTimezone(new DateTimeZone('Europe/Berlin'))->format('Y-m-d');
 
     return substr(hash('sha256', $ip . '|' . ($server['HTTP_USER_AGENT'] ?? '') . '|' . $tag), 0, 16);

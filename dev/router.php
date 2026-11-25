@@ -48,6 +48,7 @@ $map = [
     '/api/regio'     => '/api/regio.php',
     '/api/karte'     => '/api/karte.php',
     '/api/feedback'  => '/api/feedback.php',
+    '/api/community' => '/api/community.php',
     '/api/fahrplan'  => '/api/fahrplan.php',
     '/mcp'           => '/api/mcp.php',
     '/mcp-hilfe/'    => '/mcp-hilfe/index.php',

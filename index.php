@@ -92,7 +92,7 @@ $ogImage = SITE_URL . '/og/' . nb_overall_level($ogCards) . '.png';
 
 // Versionsstempel an Script und Stylesheet, damit Browser nach einem Deploy nicht
 // mit altem JavaScript gegen die neue API laufen.
-$assetVersion = max((int) @filemtime(__DIR__ . '/dashboard.js'), (int) @filemtime(__DIR__ . '/dashboard.css'));
+$assetVersion = max((int) @filemtime(__DIR__ . '/dashboard.js'), (int) @filemtime(__DIR__ . '/dashboard.css'), (int) @filemtime(__DIR__ . '/community.js'));
 
 $stoerungSatz = $aktiv > 0
     ? $aktiv . ' aktive Störung' . ($aktiv === 1 ? '' : 'en') . ' auf der Nordbahn-Strecke Hamburg – Elmshorn – Itzehoe/Wrist.'
@@ -311,6 +311,7 @@ $jsonLd = [
 <?php $current = 'lage'; require __DIR__ . '/inc/footer.php'; ?>
 
 <script id="nordbahn-data" type="application/json"><?= $json ?></script>
+<script src="<?= $root ?>community.js?v=<?= $assetVersion ?>" defer></script>
 <script src="<?= $root ?>dashboard.js?v=<?= $assetVersion ?>" defer></script>
 </body>
 </html>
