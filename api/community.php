@@ -22,7 +22,8 @@
  * Gegen Missbrauch: nur feste Arten, keine Texte; nur Zuege, die gerade fahren oder
  * gleich abfahren (bekannt aus der Live-Karte oder einer frischen Tafel); je
  * Besucher eine Meldung pro Art und Zug; hoechstens NB_CM_LIMIT Aktionen je
- * Besucher und Stunde; Herkunft und Bot-Filter wie beim Feedback. Besucher sind
+ * Besucher und NB_CM_LIMIT_IP je IP-Adresse und Stunde (sonst hilft ein neuer
+ * User-Agent je Anfrage, um jedes Limit zu umgehen); Herkunft und Bot-Filter wie beim Feedback. Besucher sind
  * nur als Tageskennung bekannt (Hash aus IP, Browser und Tag, nb_feedback_kennung).
  * Gespeichert wird je Tag eine Datei cache/community/<Tag>.json, aeltere Tage
  * werden geloescht. Aus mit NORDBAHN_COMMUNITY => false in config.php.
@@ -45,6 +46,7 @@ const NB_CM_ARTEN = [
 ];
 const NB_CM_LIMIT    = 20;   // Aktionen je Besucher ...
 const NB_CM_FENSTER  = 3600; // ... in diesem Zeitraum (Sekunden)
+const NB_CM_LIMIT_IP = 40;   // Aktionen je IP-Adresse in diesem Zeitraum, egal mit welchem Browser
 const NB_CM_FRISCH   = 600;  // so alt darf ein Stand sein, der einen Zug als "unterwegs" belegt
 const NB_CM_VORLAUF  = 15;   // Minuten vor der Abfahrt, ab denen gemeldet werden darf
 
@@ -279,7 +281,8 @@ if ($p['code'] !== 200) {
     nb_cm_antwort($p['code'], ['ok' => false, 'status' => $p['status']]);
 }
 $kennung = nb_feedback_kennung($_SERVER, $now);
-if (!nb_feedback_limit($kennung, NORDBAHN_CACHE_DIR . '/community-limit', $now, NB_CM_LIMIT, NB_CM_FENSTER)) {
+if (!nb_feedback_limit(nb_ip_kennung($_SERVER, $now), NORDBAHN_CACHE_DIR . '/community-limit-ip', $now, NB_CM_LIMIT_IP, NB_CM_FENSTER)
+    || !nb_feedback_limit($kennung, NORDBAHN_CACHE_DIR . '/community-limit', $now, NB_CM_LIMIT, NB_CM_FENSTER)) {
     nb_cm_antwort(429, ['ok' => false, 'status' => 'limit']);
 }
 $ergebnis = nb_cm_aendern($now, function ($daten) use ($p, $kennung, $now) {

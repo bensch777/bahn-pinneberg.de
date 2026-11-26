@@ -28,6 +28,7 @@ const NB_FEEDBACK_MAX_KONTAKT = 120;
 const NB_FEEDBACK_MAX_SEITE = 300;
 const NB_FEEDBACK_MAX      = 5;      // Nachrichten je Besucher ...
 const NB_FEEDBACK_FENSTER  = 3600;   // ... in diesem Zeitraum (Sekunden)
+const NB_FEEDBACK_MAX_IP   = 15;     // Nachrichten je IP-Adresse und Stunde, egal mit welchem Browser
 
 /** Steuerzeichen raus (ausser Zeilenumbruch und Tab), auf $max Zeichen gekuerzt. */
 function nb_feedback_bereinigen($wert, $max)
@@ -63,6 +64,19 @@ function nb_feedback_kennung(array $server, $now = null)
     $tag = (new DateTime('@' . ($now ?? time())))->setTimezone(new DateTimeZone('Europe/Berlin'))->format('Y-m-d');
 
     return substr(hash('sha256', $ip . '|' . ($server['HTTP_USER_AGENT'] ?? '') . '|' . $tag), 0, 16);
+}
+
+/**
+ * Kennung nur aus IP und Tag, fuer ein zweites, groesseres Limit. Die Kennung oben
+ * enthaelt den User-Agent, den ein Skript bei jeder Anfrage wechseln kann; ohne
+ * dieses Limit gaebe es dann gar keine Grenze. Etwas grosszuegiger, weil sich im
+ * Mobilfunk viele Leute eine IP teilen.
+ */
+function nb_ip_kennung(array $server, $now = null)
+{
+    $tag = (new DateTime('@' . ($now ?? time())))->setTimezone(new DateTimeZone('Europe/Berlin'))->format('Y-m-d');
+
+    return substr(hash('sha256', 'ip|' . nb_besucher_ip($server) . '|' . $tag), 0, 16);
 }
 
 /**
@@ -234,7 +248,8 @@ if ($ergebnis['status'] === 'honeypot') {
 if ($ergebnis['code'] !== 200) {
     nb_feedback_antwort($ergebnis['code'], $ergebnis['status']);
 }
-if (!nb_feedback_limit(nb_feedback_kennung($_SERVER), NORDBAHN_CACHE_DIR . '/feedback')) {
+if (!nb_feedback_limit(nb_ip_kennung($_SERVER), NORDBAHN_CACHE_DIR . '/feedback-ip', null, NB_FEEDBACK_MAX_IP)
+    || !nb_feedback_limit(nb_feedback_kennung($_SERVER), NORDBAHN_CACHE_DIR . '/feedback')) {
     nb_feedback_antwort(429, 'limit');
 }
 if (!nb_feedback_senden($webhook, nb_feedback_nachricht($ergebnis['daten'], nordbahn_site_url()))) {

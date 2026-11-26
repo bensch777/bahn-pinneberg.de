@@ -57,6 +57,13 @@ function test_feedback_kennung_und_limit()
     t_eq('203.0.113.7', nb_besucher_ip(['REMOTE_ADDR' => '127.0.0.1', 'HTTP_X_FORWARDED_FOR' => '203.0.113.7']), 'lokaler Proxy reicht die IP durch');
     t_eq('10.0.0.1', nb_besucher_ip(['REMOTE_ADDR' => '10.0.0.1', 'HTTP_X_FORWARDED_FOR' => 'kaputt']), 'ungueltiger Header faellt auf REMOTE_ADDR zurueck');
 
+    // IP-Kennung: ein neuer User-Agent je Anfrage darf das Limit nicht aushebeln
+    $ip = nb_ip_kennung(t_feedback_server(), $now);
+    t_assert($a !== nb_feedback_kennung(t_feedback_server(['HTTP_USER_AGENT' => 'Mozilla/5.0 (X11) Firefox/1']), $now), 'anderer Browser, andere Besucherkennung');
+    t_eq($ip, nb_ip_kennung(t_feedback_server(['HTTP_USER_AGENT' => 'Mozilla/5.0 (X11) Firefox/1']), $now), 'anderer Browser, gleiche IP-Kennung');
+    t_assert($ip !== nb_ip_kennung(t_feedback_server(['REMOTE_ADDR' => '203.0.113.8']), $now), 'andere IP, andere IP-Kennung');
+    t_assert($ip !== $a, 'IP-Kennung und Besucherkennung verschieden');
+
     $dir = NORDBAHN_CACHE_DIR . '/feedback-test-' . getmypid();
     for ($i = 0; $i < 5; $i++) {
         t_eq(true, nb_feedback_limit($a, $dir, $now + $i), 'Nachricht ' . ($i + 1) . ' erlaubt');
