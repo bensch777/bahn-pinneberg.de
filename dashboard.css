@@ -732,6 +732,83 @@ button.freshness:focus-visible { outline: 2px solid var(--series); outline-offse
 .karte-popup .cm { margin: 8px 0 0; padding: 8px 10px 6px; }
 .karte-popup .cm__knopf { padding: 7px 8px; font-size: 12.5px; }
 
+/* Pendlermeldungen (pendler.js): Kasten auf der Startseite und /aktuell/, Block in der aufgeklappten Fahrt, Dialog */
+.pd-start { margin-top: 10px; }
+.feed__kicker--pendler { color: var(--series); }
+.pd .feed__title { color: var(--ink) !important; }
+.pd__symbol { margin-right: 6px; }
+.pd__text { margin: 3px 0 0; font-size: 14px; line-height: 1.45; overflow-wrap: anywhere; }
+.pd__aktionen { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 5px; margin-top: 7px; }
+.pd__knopf {
+	padding: 3px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface);
+	font: inherit; font-size: 12px; font-weight: 600; color: var(--ink-2); cursor: pointer; white-space: nowrap;
+}
+.pd__knopf:hover { color: var(--ink); border-color: var(--axis); }
+.pd__knopf:focus-visible { outline: 2px solid var(--series); outline-offset: 1px; }
+.pd__knopf[aria-pressed="true"] { border-color: var(--series); color: var(--series); background: color-mix(in srgb, var(--series) 10%, var(--surface)); }
+.pd__knopf--leise { padding-left: 4px; padding-right: 4px; border-color: transparent; background: transparent; color: var(--muted); font-weight: 500; }
+.pd__meta { display: none; font-size: 12px; color: var(--muted); margin-right: 1px; white-space: nowrap; }
+@media (max-width: 560px) {
+	.pd-liste > li.pd { display: block; }
+	.pd-liste > li.pd > .feed__time { display: none; }
+	.pd__meta { display: inline; }
+}
+.pd-zug .feed__kicker { margin-bottom: 1px; }
+.pd__knopf--fahne { font-size: 14px; line-height: 1; padding: 4px 6px; }
+.pd__eigene { font-size: 12px; font-weight: 600; color: var(--good-text); }
+.pd__status { font-size: 12px; color: var(--good-text); }
+.pd__status:empty { display: none; }
+.pd__status--fehler { color: var(--critical-text); }
+.pd-fuss { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 10px 18px 12px; border-top: 1px solid var(--line); }
+.pd-start > .feed__empty + .pd-fuss, .pd-start > .pd-fuss:first-child { border-top: 0; }
+.pd-fuss__frage { flex: 1 1 220px; font-size: 13.5px; font-weight: 600; color: var(--ink-2); }
+.pd-fuss__neu {
+	padding: 6px 12px; border-radius: 8px; border: 1px solid var(--series); background: transparent;
+	font: inherit; font-size: 13px; font-weight: 600; color: var(--series); cursor: pointer;
+}
+.pd-fuss__neu:hover { background: color-mix(in srgb, var(--series) 10%, transparent); }
+.pd-fuss__neu:focus-visible { outline: 2px solid var(--series); outline-offset: 1px; }
+.pd-fuss__alle { margin-left: auto; font-size: 13px; color: var(--series); }
+.pd-filter { font: inherit; font-size: 13px; color: var(--ink); background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; padding: 4px 8px; }
+.pd-filter[hidden] { display: none; }
+.dep__dest small.dep__pd { margin: 3px 0 1px; }
+.pd-symbol { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; color: var(--series); }
+@media (max-width: 560px) {
+	.pd-symbol__text { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+}
+.pd-zug { margin: 8px 0 0 20px; display: grid; gap: 6px; font-size: 13px; }
+.pd-zug__meldung { padding: 8px 12px; border-radius: 10px; background: color-mix(in srgb, var(--series) 8%, var(--surface-2)); }
+.pd-zug__kopf { margin: 0; color: var(--ink-2); }
+.pd-zug__kopf strong { color: var(--ink); }
+.pd-zug .pd__text { font-size: 13.5px; }
+.pd-zug__neu {
+	justify-self: start; padding: 4px 0; border: 0; background: transparent;
+	font: inherit; font-size: 13px; font-weight: 600; color: var(--series); cursor: pointer;
+}
+.pd-zug__neu:hover { text-decoration: underline; text-underline-offset: 3px; }
+.pd-zug__neu:focus-visible { outline: 2px solid var(--series); outline-offset: 2px; border-radius: 4px; }
+.pd-form__label { margin: 12px 0 6px; font-size: 11.5px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); }
+.pd-themen { display: flex; flex-wrap: wrap; gap: 6px; }
+.pd-themen__input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.pd-form .pd-themen__chip {
+	display: inline-block; margin: 0; padding: 6px 11px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface-2);
+	font-size: 13px; font-weight: 600; letter-spacing: 0; text-transform: none; color: var(--ink); cursor: pointer;
+}
+.pd-themen__input:checked + .pd-themen__chip { border-color: var(--series); background: color-mix(in srgb, var(--series) 12%, var(--surface)); color: var(--series); }
+.pd-themen__input:focus-visible + .pd-themen__chip { outline: 2px solid var(--series); outline-offset: 1px; }
+.pd-form .pd-form__zug { display: flex; align-items: center; gap: 8px; margin: 10px 0 0; font-size: 13px; font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--ink-2); }
+.pd-form .pd-form__zug input { width: auto; margin: 0; }
+.pd-form__zug[hidden] { display: none !important; }
+.pd-form__textkopf { display: flex; justify-content: space-between; align-items: baseline; }
+.pd-form__zaehler { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.pd-form__zaehler.is-knapp { color: var(--warn-text); }
+.pd-form textarea { min-height: 84px; }
+.pd-verwalten { max-width: 560px; padding: 24px 16px; }
+.pd-verwalten__karte { padding: 14px 18px; margin: 12px 0; }
+.pd-verwalten__karte blockquote { margin: 8px 0; font-size: 16px; }
+.pd-verwalten__knoepfe button { padding: 8px 16px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); font: inherit; font-weight: 600; cursor: pointer; }
+.pd-verwalten__hinweis { font-weight: 600; color: var(--good-text); }
+
 /* Meine Zuege: Liste, Richtung, Suche mit Vorschlaegen */
 .meine { padding: 14px 18px 16px; }
 .meine__intro { margin: 0 0 10px; font-size: 13.5px; color: var(--ink-2); }

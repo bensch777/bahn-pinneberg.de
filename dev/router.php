@@ -50,6 +50,7 @@ $map = [
     '/api/feedback'  => '/api/feedback.php',
     '/api/community' => '/api/community.php',
     '/api/fahrplan'  => '/api/fahrplan.php',
+    '/api/pendler'   => '/api/pendler.php',
     '/mcp'           => '/api/mcp.php',
     '/mcp-hilfe/'    => '/mcp-hilfe/index.php',
     '/nutzungsbedingungen/' => '/nutzungsbedingungen/index.php',
@@ -78,6 +79,12 @@ if (preg_match('#^/(stoerung|eilmeldung)/([A-Za-z0-9_.-]+)(?:/([a-z0-9-]*))?/?$#
     $_GET['slug'] = $m[3] ?? '';
     chdir($root);
     require $root . '/' . $m[1] . '.php';
+    return true;
+}
+if (preg_match('#^/pendler/verwalten/?$#', $path)) {
+    $_GET['verwalten'] = '1';
+    chdir($root . '/api');
+    require $root . '/api/pendler.php';
     return true;
 }
 if (isset($map[$path])) {

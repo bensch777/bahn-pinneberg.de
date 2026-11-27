@@ -2044,6 +2044,7 @@ function nb_lage_md(array $data, $abf, $heimat, $now = null, $gf = null)
     if ($gf !== null) {
         $md .= nb_lage_md_s3($gf, $now);
     }
+    $md .= nb_lage_md_pendler($now);
 
     foreach ($teile['hinweise'] as $s) {
         if (!isset($hinweisKopf)) {
@@ -2108,6 +2109,34 @@ function nb_lage_md(array $data, $abf, $heimat, $now = null, $gf = null)
 }
 
 /** Abschnitt S3 und HVV-Meldungen fuer lage.md. */
+/**
+ * Laufende Pendlermeldungen fuer lage.md und den MCP-Server, leer wenn keine da sind
+ * oder die Funktion aus ist. Klar als ungepruefte Angaben von Fahrgaesten gekennzeichnet.
+ */
+function nb_lage_md_pendler($now)
+{
+    if (!nordbahn_pendler_an()) {
+        return '';
+    }
+    if (!function_exists('nb_pd_oeffentlich')) {
+        if (!defined('NORDBAHN_PENDLER_LIB')) {
+            define('NORDBAHN_PENDLER_LIB', true);
+        }
+        require_once __DIR__ . '/pendler.php';
+    }
+    $liste = array_slice(nb_pd_oeffentlich(nb_pd_lesen(), $now), 0, 10);
+    if (!$liste) {
+        return '';
+    }
+    $md = "## Von Pendlern (ungeprüft)\n\nKurze Hinweise anderer Fahrgäste, vor dem Veröffentlichen automatisch auf Regeln geprüft, aber nicht auf Richtigkeit. Keine Auskunft der Nordbahn.\n\n";
+    foreach ($liste as $m) {
+        $md .= '- ' . nb_fmt_wann(nb_ts($m['zeit']), $now) . ', ' . NB_PD_THEMEN[$m['thema']]['text'] . ', ' . $m['bhf_name'] . ': ' . $m['text']
+            . ($m['stimmt'] ? ' (' . $m['stimmt'] . '× bestätigt)' : '') . "\n";
+    }
+
+    return $md . "\n";
+}
+
 function nb_lage_md_s3($gf, $now)
 {
     $md = "## S3 zwischen Pinneberg und Hamburg (HVV)\n\n";

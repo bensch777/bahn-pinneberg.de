@@ -56,21 +56,27 @@ $description = 'Nutzungsbedingungen von Bahn-Pinneberg.de für Website, Datensch
 			<p>Die Seite bereitet öffentliche Angaben zu Störungen, Abfahrten und Eilmeldungen der Nordbahn-Linien RB60, RB61 und RB71 automatisch auf. Die Nutzung ist kostenlos und ohne Konto möglich. Es besteht kein Anspruch auf eine bestimmte Verfügbarkeit, auf bestimmte Funktionen oder auf den Fortbestand des Angebots; Funktionen können sich jederzeit ändern oder wegfallen.</p>
 
 			<h2>3. Keine verbindliche Auskunft</h2>
-			<p>Die Angaben stammen aus Quellen Dritter (Nordbahn, DB InfraGO, HVV) und können unvollständig, verspätet oder falsch sein. Texte in Alltagssprache sind teilweise von einem Sprachmodell formuliert. Fahrgastmeldungen („Zug steht“, „Sehr voll“ und ähnliche) sind ungeprüfte Angaben anderer Nutzer. Verbindlich sind allein die Auskünfte der Nordbahn. Das Angebot ist keine offizielle Seite der NBE Nordbahn Eisenbahngesellschaft und steht mit ihr in keiner Verbindung.</p>
+			<p>Die Angaben stammen aus Quellen Dritter (Nordbahn, DB InfraGO, HVV) und können unvollständig, verspätet oder falsch sein. Texte in Alltagssprache sind teilweise von einem Sprachmodell formuliert. Fahrgastmeldungen („Zug steht“, „Sehr voll“ und ähnliche) und Pendlermeldungen sind ungeprüfte Angaben anderer Nutzer. Verbindlich sind allein die Auskünfte der Nordbahn. Das Angebot ist keine offizielle Seite der NBE Nordbahn Eisenbahngesellschaft und steht mit ihr in keiner Verbindung.</p>
 
 			<h2>4. Faire Nutzung</h2>
 			<p>Die Datenschnittstellen bitte höchstens einmal pro Minute abrufen. Der MCP-Server erlaubt bis zu 120 Werkzeugaufrufe je Nutzer und Stunde. Fahrgastmeldungen bitte nur zu einem Zug abgeben, in dem oder an dem Sie gerade sind, und nur, was Sie selbst sehen. Nicht erlaubt sind Abrufe, die den Betrieb stören oder die Quellen übermäßig belasten, Versuche, Schutzmaßnahmen zu umgehen, und das Weiterverbreiten der Daten in einer Weise, die den Eindruck einer offiziellen Auskunft der Nordbahn erweckt. Bei Missbrauch kann der Zugang ohne Ankündigung gesperrt werden.</p>
 
-			<h2>5. Haftung</h2>
+			<h2 id="pendler">5. Pendlermeldungen</h2>
+			<p>Mit einer Pendlermeldung teilen Sie anderen kurz mit, was Sie unterwegs oder am Bahnhof selbst erleben: eine Durchsage, wo der Ersatzbus hält, einen defekten Aufzug, einen Tipp. Jede Meldung ist öffentlich sichtbar, nennt Thema, Bahnhof und Uhrzeit, aber nie Sie, und verschwindet nach einer bis zwölf Stunden von selbst.</p>
+			<p>Nicht erlaubt sind: Hinweise auf Fahrkartenkontrollen, Beschreibungen oder Namen von Personen (auch von Personal), Beleidigungen und Herabwürdigungen, Links, Telefonnummern und E-Mail-Adressen, Werbung, Themen ohne Bezug zur Bahn und bewusst falsche Angaben. Mit dem Absenden versichern Sie, dass die Meldung diese Regeln einhält und keine Rechte Dritter verletzt.</p>
+			<p>So wird moderiert: Jede Meldung prüft zuerst der Server nach festen Regeln (Länge, Links, Kontaktdaten, bestimmte Wörter). Ist zusätzlich eine automatische Prüfung eingeschaltet, beurteilt danach ein Sprachmodell von OpenAI, ob sie gegen diese Regeln verstößt; es ändert keinen Text. Ist diese Prüfung eingeschaltet, aber nicht verfügbar, erscheint die Meldung erst nach Freigabe durch den Betreiber. Abgelehnte Meldungen werden nicht veröffentlicht, der Grund steht direkt im Formular. Der Betreiber sieht jede Meldung und kann sie jederzeit entfernen. Nach drei abgelehnten oder entfernten Meldungen ist das Melden für den Rest des Tages gesperrt.</p>
+			<p>Halten Sie eine Meldung für rechtswidrig oder unpassend, melden Sie sie über die Fahne an der Meldung oder per E-Mail an <a href="mailto:hallo@bahn-pinneberg.de">hallo@bahn-pinneberg.de</a> (Art. 16 DSA). Meldungen von zwei verschiedenen Anschlüssen blenden sie aus, bis der Betreiber entschieden hat. Ein Anspruch auf Veröffentlichung besteht nicht.</p>
+
+			<h2>6. Haftung</h2>
 			<p>Für Schäden, die aus der Nutzung der Angaben entstehen, etwa verpasste Züge oder Termine, wird nicht gehaftet, außer bei Vorsatz und grober Fahrlässigkeit sowie bei Verletzung von Leben, Körper oder Gesundheit.</p>
 
-			<h2>6. KI-Assistenten</h2>
+			<h2>7. KI-Assistenten</h2>
 			<p>Wer den MCP-Server über einen Assistenten wie Claude oder ChatGPT nutzt, nutzt zugleich dessen Dienst; dafür gelten die Bedingungen und Datenschutzregeln des jeweiligen Anbieters. Wie der Assistent die Daten wiedergibt, liegt nicht in der Hand dieser Seite.</p>
 
-			<h2>7. Datenschutz</h2>
+			<h2>8. Datenschutz</h2>
 			<p>Welche Daten anfallen, steht in der <a href="<?= $root ?>impressum/#datenschutz">Datenschutzerklärung</a>.</p>
 
-			<h2>8. Schlussbestimmungen</h2>
+			<h2>9. Schlussbestimmungen</h2>
 			<p>Es gilt deutsches Recht; zwingende Verbraucherschutzvorschriften des Staates, in dem Sie Ihren gewöhnlichen Aufenthalt haben, bleiben unberührt. Diese Bedingungen können angepasst werden; es gilt die hier veröffentlichte Fassung. Fragen an <a href="mailto:hallo@bahn-pinneberg.de">hallo@bahn-pinneberg.de</a>.</p>
 
 			<p class="section__note">Stand: <?= nb_e(date('d.m.Y', (int) @filemtime(__FILE__))) ?></p>

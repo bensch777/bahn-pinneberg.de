@@ -759,7 +759,11 @@
 		var box = document.getElementById('meldungen-inhalt');
 		var meldungen = box ? wegZaehlen(box.querySelectorAll('#meldungen-feed > li'), weg) : 0;
 		if (box) box.hidden = !meldungen;
-		if (section) section.hidden = !(karten + meldungen);
+		// Pendlermeldungen (pendler.js) halten den Bereich ebenso offen
+		var pd = document.getElementById('pendler-start');
+		var pendler = pd && !pd.hidden ? 1 : 0;
+		if (section) section.hidden = !(karten + meldungen + pendler);
+		pdEinladen(karten);
 		// Ausblick auf geplante Fahrplanaenderungen (nur vom Server gerendert, Kennung sf:<id>)
 		var ausblick = document.getElementById('ausblick');
 		if (ausblick) ausblick.hidden = !wegZaehlen(ausblick.querySelectorAll('#ausblick-feed > li'), weg);
@@ -1076,6 +1080,9 @@
 				// Fahrgastmeldung (Zug steht, sehr voll ...): vor dem amtlichen Hinweis, sie ist meist neuer
 				var cmHinweis = d.quelle !== 'hvv' && window.nbCommunity ? window.nbCommunity.hinweis(d.zug) : null;
 				if (cmHinweis) dest.appendChild(el('small', { class: 'dep__cm' }, [cmHinweis]));
+				// Pendlermeldung zum Zug (pendler.js): nur ein Symbol, der Text steht in der aufgeklappten Fahrt
+				var pdSymbol = d.quelle !== 'hvv' && window.nbPendler ? window.nbPendler.zeilenSymbol(d.zug) : null;
+				if (pdSymbol) dest.appendChild(el('small', { class: 'dep__pd' }, [pdSymbol]));
 				if (d.hinweis) dest.appendChild(el('small', { text: d.hinweis }));
 				// Zuverlaessigkeit der letzten Tage, sobald der Zug oft genug beobachtet wurde
 				if (d.ersatz) {
@@ -1148,7 +1155,7 @@
 				el('span', { class: 'lauf__gleis', text: h.gleis ? 'Gl. ' + h.gleis : '' })
 			]));
 		});
-		return el('li', { class: 'dep-lauf', id: 'lauf-' + slug(laufKey(d, key)) }, [ol, cmBlock(d)]);
+		return el('li', { class: 'dep-lauf', id: 'lauf-' + slug(laufKey(d, key)) }, [ol, cmBlock(d), pdBlock(d)]);
 	}
 
 	/**
@@ -1161,6 +1168,35 @@
 		var ab = Date.parse(d.zeit); // Planzeit: bei Verspaetung steht man schon am Bahnsteig
 		var erlaubt = !d.ausfall && !isNaN(ab) && ab - Date.now() <= 15 * 60000;
 		return window.nbCommunity.block(d.zug, erlaubt);
+	}
+
+	/**
+	 * Pendlermeldungen zur aufgeklappten Fahrt (pendler.js): was andere zu diesem Zug
+	 * geschrieben haben und, im selben Zeitfenster wie die Ein-Tipp-Meldungen, "Mehr erzählen".
+	 */
+	function pdBlock(d) {
+		if (!window.nbPendler || d.quelle === 'hvv' || !d.zug) return null;
+		var ab = Date.parse(d.zeit);
+		var erlaubt = !d.ausfall && !isNaN(ab) && ab - Date.now() <= 15 * 60000;
+		return window.nbPendler.zugBlock(d.zug, erlaubt, { bhf: heimatState.id, zugText: fmtClock(d.zeit) + ' ' + d.linie + ' → ' + d.ziel });
+	}
+
+	/** Kasten "Von Pendlern" unter den aktuellen Meldungen der Startseite, hoechstens drei. */
+	function renderPendlerStart() {
+		var box = document.getElementById('pendler-start');
+		if (!box || !window.nbPendler) return;
+		window.nbPendler.liste(box, { max: 3, alleUrl: urls.root + 'aktuell/#pendler' });
+		wegAnwenden();
+	}
+
+	/**
+	 * Zum Schreiben einladen, wenn gerade etwas los ist: eine Stoerungskarte steht da oder
+	 * unter den naechsten Zuegen ist ein Ausfall oder eine grosse Verspaetung (wie bei der S3).
+	 */
+	function pdEinladen(karten) {
+		if (!window.nbPendler) return;
+		var last = departuresState.last;
+		window.nbPendler.einladen(karten > 0 || !!(last && last.ok && last.richtungen && s3Noetig(last)));
 	}
 
 	function laufAnhaengen(list, row, d, key) {
@@ -1295,6 +1331,7 @@
 				if (heimat !== heimatState.id || nr !== departuresState.abruf) return;
 				departuresState.last = result;
 				renderDepartures(result);
+				wegAnwenden(); // laedt bei Ausfall oder grosser Verspaetung zum Melden ein
 			})
 			.catch(function () {
 				if (nr !== departuresState.abruf) return;
@@ -2271,6 +2308,13 @@
 			if (window.nbCommunity) {
 				window.nbCommunity.beiAenderung(function () { if (departuresState.last) renderDepartures(departuresState.last); });
 				window.nbCommunity.start(urls.root);
+			}
+			if (window.nbPendler) {
+				window.nbPendler.beiAenderung(function () {
+					renderPendlerStart();
+					if (departuresState.last) renderDepartures(departuresState.last);
+				});
+				window.nbPendler.start(urls.root, { heimat: function () { return heimatState; } });
 			}
 		}
 		if (document.getElementById('s3')) {

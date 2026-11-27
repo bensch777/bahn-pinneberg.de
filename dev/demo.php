@@ -92,6 +92,7 @@ require_once __DIR__ . '/../api/render.php';
 require_once __DIR__ . '/../api/abfahrten.php';
 require_once __DIR__ . '/../api/geofox.php';
 require_once __DIR__ . '/../api/karte.php';
+require_once __DIR__ . '/../api/pendler.php';
 require_once __DIR__ . '/../tests/support.php';
 
 const DEMO_NAMEN = [
@@ -528,6 +529,47 @@ function demo_zuglog(DateTime $now)
     }
 }
 
+/**
+ * Pendlermeldungen fuer die Demo, Zeiten relativ zu jetzt. Selbst geschriebene Meldungen
+ * (Kennung nicht "demo") bleiben stehen, damit man den Dialog ausprobieren kann. Die
+ * erste Meldung haengt am naechsten Zug ab Prisdorf Richtung Hamburg.
+ */
+function demo_pendler($szenario, $ts, ?array $tafel)
+{
+    $zug = null;
+    foreach ($tafel['richtungen']['hin'] ?? [] as $z) {
+        if (!empty($z['zug']) && empty($z['ausfall'])) {
+            $zug = (string) $z['zug'];
+            break;
+        }
+    }
+    $vorlagen = [
+        'stoerung' => [
+            ['lage', 'ATM', $zug, 'Durchsage im Zug: Signalstörung bei Elmshorn, wir warten auf Freigabe. Laut Zugführer etwa 15 Minuten.', 6, 3],
+            ['tipp', 'AEL', null, 'RE7 ab Elmshorn fährt normal und hat noch Platz, Gleis 3.', 12, 1],
+            ['sev', 'AP', null, 'Ersatzbusse nach Elmshorn fahren vom ZOB, Steig 4. Am Bahnhof selbst ist nichts ausgeschildert.', 25, 2],
+            ['bahnhof', 'AEL', null, 'Aufzug zu Gleis 4/5 außer Betrieb, Treppe gegenüber vom Kiosk nehmen.', 130, 0],
+        ],
+        'leicht'   => [
+            ['bahnhof', 'AP', null, 'Aufzug zu Gleis 1 außer Betrieb.', 50, 1],
+        ],
+    ][$szenario] ?? [];
+    $alt = nordbahn_read_json(NORDBAHN_CACHE_DIR . '/pendler/meldungen.json') ?? [];
+    $meldungen = array_values(array_filter($alt['meldungen'] ?? [], function ($m) { return ($m['kennung'] ?? '') !== 'demo'; }));
+    foreach ($vorlagen as $i => $v) {
+        [$thema, $bhf, $mitZug, $text, $vorMin, $stimmt] = $v;
+        $start = $ts - $vorMin * 60;
+        $meldungen[] = [
+            'id' => 'de' . str_pad((string) $i, 10, '0', STR_PAD_LEFT), 'thema' => $thema, 'bhf' => $bhf, 'zug' => $mitZug, 'text' => $text,
+            'ts' => $start, 'bis' => $start + NB_PD_THEMEN[$thema]['minuten'] * 60, 'status' => 'frei', 'kennung' => 'demo', 'ip' => 'demo', 'geheim' => '',
+            'stimmt' => $stimmt ? array_fill_keys(array_map(function ($n) { return 'demo' . $n; }, range(1, $stimmt)), $start) : [],
+            'nein' => [], 'melden' => [],
+        ];
+    }
+    @mkdir(NORDBAHN_CACHE_DIR . '/pendler', 0775, true);
+    nordbahn_write_json(NORDBAHN_CACHE_DIR . '/pendler/meldungen.json', ['meldungen' => $meldungen] + $alt);
+}
+
 /** Schreibt alle Cache-Dateien fuer den Stand "jetzt". */
 function demo_seed($szenario, ?DateTime $now = null)
 {
@@ -557,6 +599,7 @@ function demo_seed($szenario, ?DateTime $now = null)
     foreach (array_keys(GF_REGIO_HEIMAT) as $bhf) {
         nordbahn_write_json(gf_regio_cache_file($bhf), demo_regio($szenario, $now, $bhf));
     }
+    demo_pendler($szenario, $ts, nordbahn_read_json(NORDBAHN_CACHE_DIR . '/abfahrten-APD.json'));
     $karte = ka_build($fetch, $now, nordbahn_read_json(KA_CACHE));
     if ($karte !== null) {
         nordbahn_write_json(KA_CACHE, $karte);
