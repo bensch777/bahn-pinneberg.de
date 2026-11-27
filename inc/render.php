@@ -1844,11 +1844,20 @@ function nb_render_kopf($root, $aktiv, $tools = '')
         . '<svg class="tool__icon theme-toggle__sonne" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 7a5 5 0 1 1 0 10 5 5 0 0 1 0-10Zm0 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6Zm-1-7h2v3h-2V2Zm0 17h2v3h-2v-3ZM2 11h3v2H2v-2Zm17 0h3v2h-3v-2ZM4.2 5.6l1.4-1.4 2.1 2.1-1.4 1.4-2.1-2.1Zm12.1 12.1 1.4-1.4 2.1 2.1-1.4 1.4-2.1-2.1ZM18.4 4.2l1.4 1.4-2.1 2.1-1.4-1.4 2.1-2.1ZM6.3 16.3l1.4 1.4-2.1 2.1-1.4-1.4 2.1-2.1Z"/></svg>'
         . '<span class="visually-hidden" id="theme-label">Hell oder dunkel</span></button>';
 
+    // Melden: Pendlermeldung schreiben. pendler.js oeffnet auf Start und /aktuell/ direkt
+    // den Dialog, sonst fuehrt der Link nach /aktuell/ und oeffnet ihn dort.
+    $melden = '';
+    if (function_exists('nordbahn_pendler_an') && nordbahn_pendler_an()) {
+        $melden = '<a class="tool pd-kopf-melden" href="' . nb_e($root) . 'aktuell/?melden=1#pendler" title="Pendlermeldung schreiben">'
+            . '<svg class="tool__icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 3h16a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H9l-5 4v-4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Zm0 2v11h2v1.8L8.3 16H20V5H4Zm7 2h2v3h3v2h-3v3h-2v-3H8v-2h3V7Z"/></svg>'
+            . '<span>Melden</span></a>';
+    }
+
     return '<header class="site-head">'
         . '<div class="wrap site-head__row">'
         . '<a class="site-head__brand" href="' . nb_e($root) . '"><img class="site-head__logo" src="' . nb_e($root) . 'assets/icons/icon-64.png" alt="" width="28" height="28">Bahn-Pinneberg.de</a>'
         . '<nav class="site-nav" aria-label="Bereiche">' . $leiste . '</nav>'
-        . '<div class="site-head__tools">' . $tools . $glocke . $schema
+        . '<div class="site-head__tools">' . $tools . $melden . $glocke . $schema
         . '<details class="nav-menu" id="nav-menu">'
         . '<summary class="tool nav-menu__knopf" title="Men&uuml;">'
         . '<svg class="tool__icon nav-menu__auf" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18v2H3V6Zm0 5h18v2H3v-2Zm0 5h18v2H3v-2Z"/></svg>'
@@ -2130,7 +2139,7 @@ function nb_lage_md_pendler($now)
     }
     $md = "## Von Pendlern (ungeprüft)\n\nKurze Hinweise anderer Fahrgäste, vor dem Veröffentlichen automatisch auf Regeln geprüft, aber nicht auf Richtigkeit. Keine Auskunft der Nordbahn.\n\n";
     foreach ($liste as $m) {
-        $md .= '- ' . nb_fmt_wann(nb_ts($m['zeit']), $now) . ', ' . NB_PD_THEMEN[$m['thema']]['text'] . ', ' . $m['bhf_name'] . ': ' . $m['text']
+        $md .= '- ' . nb_fmt_wann(nb_ts($m['zeit']), $now) . ', ' . NB_PD_THEMEN[$m['thema']]['text'] . ($m['bhf'] === 'STRECKE' ? '' : ', ' . $m['bhf_name']) . ': ' . $m['text']
             . ($m['stimmt'] ? ' (' . $m['stimmt'] . '× bestätigt)' : '') . "\n";
     }
 

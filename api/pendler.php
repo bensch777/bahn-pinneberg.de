@@ -101,7 +101,8 @@ function nb_pd_an()
 /** Alle Orte, an die sich eine Meldung haengen laesst: ID => Name, in Streckenreihenfolge ab Hamburg. */
 function nb_pd_orte()
 {
-    $orte = NB_PD_HAMBURG;
+    // STRECKE: Meldung ohne bestimmten Bahnhof (z. B. eine Durchsage zur ganzen Linie)
+    $orte = ['STRECKE' => 'Ohne Bahnhof'] + NB_PD_HAMBURG;
     foreach (NORDBAHN_BAHNHOEFE as $id => $b) {
         $orte[$id] = $b['name'];
     }
