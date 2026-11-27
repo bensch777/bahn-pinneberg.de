@@ -233,6 +233,92 @@ function nb_filter_select($name, $label, array $optionen, $wert)
 		form.submit();
 	});
 })();
+(function () {
+	// Tooltip am Verlauf: Maus zeigt den naechsten Tag, Tippen schaltet ihn um, Pfeiltasten wandern
+	var chart = document.querySelector('.verlauf');
+	if (!chart) return;
+	var karte = chart.parentNode;
+	var tage = Array.prototype.slice.call(chart.querySelectorAll('.verlauf__tag'));
+	if (!tage.length) return;
+	tage.forEach(function (t) { t.removeAttribute('title'); });
+	chart.classList.add('verlauf--js');
+	chart.tabIndex = 0;
+	var tip = document.createElement('div');
+	tip.className = 'verlauf-tip';
+	tip.hidden = true;
+	tip.setAttribute('role', 'status');
+	karte.appendChild(tip);
+	var aktiv = -1;
+
+	function el(tag, cls, text) {
+		var e = document.createElement(tag);
+		if (cls) e.className = cls;
+		if (text !== undefined) e.textContent = text;
+		return e;
+	}
+	function zeile(art, label, wert, n) {
+		var z = el('span', 'verlauf-tip__zeile');
+		z.appendChild(el('span', 'legende__punkt legende__punkt--' + art));
+		z.appendChild(el('span', '', label));
+		z.appendChild(el('b', '', wert + (n && wert ? ' · ' + Math.round(100 * wert / n) + ' %' : '')));
+		return z;
+	}
+	function zeigen(i) {
+		if (i < 0 || i >= tage.length) return;
+		var t = tage[i], d = t.dataset;
+		if (aktiv >= 0) tage[aktiv].classList.remove('verlauf__tag--aktiv');
+		aktiv = i;
+		t.classList.add('verlauf__tag--aktiv');
+		chart.classList.add('verlauf--fokus');
+		tip.textContent = '';
+		tip.appendChild(el('span', 'verlauf-tip__tag', d.tag || ''));
+		if (d.leer) {
+			tip.appendChild(el('span', 'verlauf-tip__fuss', d.leer));
+		} else {
+			var n = +d.n, s = +d.spaet, a = +d.ausfall;
+			tip.appendChild(zeile('spaet', 'Verspätet', s, n));
+			tip.appendChild(zeile('ausfall', 'Ausgefallen', a, n));
+			tip.appendChild(el('span', 'verlauf-tip__fuss', (n - s - a) + ' von ' + n + (n === 1 ? ' Fahrt' : ' Fahrten') + ' pünktlich'));
+		}
+		tip.hidden = false;
+		// Neben die Saeule, damit sie sichtbar bleibt; am rechten Rand links davon
+		var kr = karte.getBoundingClientRect(), tr = t.getBoundingClientRect(), cr = chart.getBoundingClientRect();
+		var w = tip.offsetWidth, x = tr.right - kr.left + 8;
+		if (x + w > kr.width - 4) x = tr.left - kr.left - 8 - w;
+		tip.style.left = Math.max(4, x) + 'px';
+		tip.style.top = (cr.top - kr.top + 4) + 'px';
+	}
+	function weg() {
+		if (aktiv >= 0) tage[aktiv].classList.remove('verlauf__tag--aktiv');
+		aktiv = -1;
+		chart.classList.remove('verlauf--fokus');
+		tip.hidden = true;
+	}
+	function naechster(x) {
+		var best = 0, abst = Infinity;
+		tage.forEach(function (t, i) {
+			var r = t.getBoundingClientRect(), m = Math.abs(r.left + r.width / 2 - x);
+			if (m < abst) { abst = m; best = i; }
+		});
+		return best;
+	}
+	chart.addEventListener('pointermove', function (e) { if (e.pointerType === 'mouse') zeigen(naechster(e.clientX)); });
+	chart.addEventListener('pointerleave', function (e) { if (e.pointerType === 'mouse') weg(); });
+	chart.addEventListener('pointerdown', function (e) {
+		if (e.pointerType === 'mouse') return;
+		var i = naechster(e.clientX);
+		if (i === aktiv) weg(); else zeigen(i);
+	});
+	document.addEventListener('pointerdown', function (e) { if (aktiv >= 0 && !chart.contains(e.target)) weg(); });
+	chart.addEventListener('keydown', function (e) {
+		if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+			e.preventDefault();
+			zeigen(aktiv < 0 ? (e.key === 'ArrowRight' ? 0 : tage.length - 1) : Math.min(tage.length - 1, Math.max(0, aktiv + (e.key === 'ArrowRight' ? 1 : -1))));
+		} else if (e.key === 'Escape') weg();
+	});
+	chart.addEventListener('blur', weg);
+	window.addEventListener('resize', function () { if (aktiv >= 0) zeigen(aktiv); });
+})();
 </script>
 </body>
 </html>

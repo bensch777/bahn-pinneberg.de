@@ -974,16 +974,19 @@ function nb_render_zug_verlauf(array $verlauf, $fenster = '')
     foreach ($verlauf as $v) {
         $n = $v['puenktlich'] + $v['spaet'] + $v['ausfall'];
         $schlecht = $v['spaet'] + $v['ausfall'];
+        // Werte fuer den Tooltip (statistik/index.php), title bleibt fuer ohne Script
+        $daten = ' data-tag="' . nb_e(nb_tag_kurz($v['tag'])) . '"';
         if (!$n) {
-            $html .= '<div class="verlauf__tag verlauf__tag--leer" title="' . nb_e(nb_tag_kurz($v['tag']) . ': ' . ($v['beobachtet'] ? 'keine passende Fahrt' : 'nicht beobachtet')) . '"></div>';
+            $html .= '<div class="verlauf__tag verlauf__tag--leer"' . $daten . ' data-leer="' . nb_e($v['beobachtet'] ? 'Keine passende Fahrt' : 'Nicht beobachtet') . '" title="' . nb_e(nb_tag_kurz($v['tag']) . ': ' . ($v['beobachtet'] ? 'keine passende Fahrt' : 'nicht beobachtet')) . '"></div>';
             continue;
         }
+        $daten .= ' data-n="' . (int) $n . '" data-spaet="' . (int) $v['spaet'] . '" data-ausfall="' . (int) $v['ausfall'] . '"';
         $titel = nb_tag_kurz($v['tag']) . ': ' . (int) round(100 * $schlecht / $n) . ' % unpünktlich, ' . $v['spaet'] . ' verspätet, ' . $v['ausfall'] . ' ausgefallen von ' . $n;
         if (!$schlecht) {
-            $html .= '<div class="verlauf__tag verlauf__tag--gut" title="' . nb_e($titel) . '"></div>';
+            $html .= '<div class="verlauf__tag verlauf__tag--gut"' . $daten . ' title="' . nb_e($titel) . '"></div>';
             continue;
         }
-        $html .= '<div class="verlauf__tag" data-h="' . nb_bar_stufe($schlecht / $n, $skala / 100) . '" title="' . nb_e($titel) . '">';
+        $html .= '<div class="verlauf__tag"' . $daten . ' data-h="' . nb_bar_stufe($schlecht / $n, $skala / 100) . '" title="' . nb_e($titel) . '">';
         foreach (['ausfall', 'spaet'] as $art) {
             if ($v[$art]) {
                 $html .= '<span class="verlauf__seg verlauf__seg--' . $art . '" data-h="' . nb_bar_stufe($v[$art], $schlecht) . '"></span>';
