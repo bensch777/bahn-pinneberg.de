@@ -28,6 +28,9 @@ function nb_send_security_headers(array $extra = [])
     if (headers_sent()) {
         return;
     }
+    // Bricht die Seite mit einem schweren Fehler ab, kommt die Fehlerseite statt einer halben Seite
+    require_once __DIR__ . '/fehler.php';
+    nb_fehler_bei_absturz();
     $plausible = nordbahn_plausible_js();
     $plausibleOrigin = '';
     if ($plausible !== '') {

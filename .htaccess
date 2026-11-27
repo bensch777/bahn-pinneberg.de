@@ -19,6 +19,20 @@ RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
 	Header always set X-Frame-Options "SAMEORIGIN"
 </IfModule>
 
+# Fehlerseiten im Design der Seite (seiten/fehler.php). Der Statuscode bleibt der
+# des Fehlers; unter /api/ und /mcp antwortet dieselbe Datei mit JSON.
+ErrorDocument 400 /seiten/fehler.php
+ErrorDocument 401 /seiten/fehler.php
+ErrorDocument 403 /seiten/fehler.php
+ErrorDocument 404 /seiten/fehler.php
+ErrorDocument 405 /seiten/fehler.php
+ErrorDocument 410 /seiten/fehler.php
+ErrorDocument 429 /seiten/fehler.php
+ErrorDocument 500 /seiten/fehler.php
+ErrorDocument 502 /seiten/fehler.php
+ErrorDocument 503 /seiten/fehler.php
+ErrorDocument 504 /seiten/fehler.php
+
 # ---------- Aufbau ----------
 # Oeffentlich liegen nur assets/ (CSS, JS, Schriften, Bilder) und api/ (Endpunkte).
 # Seiten stehen in seiten/, Bibliotheken und Bausteine in inc/; beide sind nur ueber
