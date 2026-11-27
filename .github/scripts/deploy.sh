@@ -88,7 +88,10 @@ if [ $(( ${#HOCH[@]} + ${#WEG[@]} )) -gt 0 ]; then
     for p in "${HOCH[@]}"; do dirname "$p"; done | sort -u | while IFS= read -r d; do
       [ "$d" = "." ] || echo "mkdir -p -f \"$ZIEL/$d\""
     done
-    for p in "${HOCH[@]}"; do echo "put \"$p\" -o \"$ZIEL/$p\""; done
+    # .htaccess zuletzt: ihre Regeln zeigen womoeglich auf Dateien, die erst in
+    # diesem Lauf hochkommen
+    for p in "${HOCH[@]}"; do [ "$p" = ".htaccess" ] || echo "put \"$p\" -o \"$ZIEL/$p\""; done
+    for p in "${HOCH[@]}"; do [ "$p" = ".htaccess" ] && echo "put \"$p\" -o \"$ZIEL/$p\""; done
     for p in "${WEG[@]}"; do echo "rm -f \"$ZIEL/$p\""; done
     echo "bye"
   } > "$SKRIPT"
