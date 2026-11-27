@@ -29,9 +29,34 @@ $maxWoche = max(1, max(array_column($stat['wochen'], 'n') ?: [0]));
 $maxUrsache = max(1, max(array_column($stat['ursachen'], 'n') ?: [0]));
 $dash = $f['ansicht'] === 'zuege' ? zl_dashboard(array_diff_key($f, ['ansicht' => 1])) : null;
 $k = $dash['kennzahlen'] ?? null;
+// Trend zum Vorzeitraum in Prozentpunkten; unter einem Punkt gilt er als gleich
+$trend = null;
+if ($k && $k['quote'] !== null && !empty($dash['vorher'])) {
+    $diff = (int) round(100 * ($k['quote'] - $dash['vorher']['quote']));
+    $trend = [
+        'art'   => $diff > 0 ? 'gut' : ($diff < 0 ? 'schlecht' : 'gleich'),
+        'text'  => $diff > 0 ? '▲ ' . $diff . ' Pkt.' : ($diff < 0 ? '▼ ' . abs($diff) . ' Pkt.' : '± 0 Pkt.'),
+        'titel' => 'In den ' . $f['tage'] . ' Tagen davor ' . nb_prozent($dash['vorher']['quote']) . ' pünktlich (' . (int) $dash['vorher']['fahrten'] . ' Fahrten)',
+    ];
+}
+// Bei beiden Richtungen getrennt: morgens hin, abends zurueck
+$richtungen = [];
+if ($k && $f['richtung'] === 'beide' && !empty($k['richtungen']['hin']['fahrten']) && !empty($k['richtungen']['rueck']['fahrten'])) {
+    foreach (['hin' => 'Nach Hamburg', 'rueck' => 'Zurück'] as $dir => $name) {
+        $r = $k['richtungen'][$dir];
+        $richtungen[] = ['name' => $name, 'quote' => $r['puenktlich'] / $r['fahrten']];
+    }
+}
 $fenster = ZL_PENDELFENSTER;
 $uhr = function ($hhmm) { return (int) $hhmm; };
-$fensterText = 'Mo–Fr, hin ' . $uhr($fenster['hin'][0]) . '–' . $uhr($fenster['hin'][1]) . ' Uhr, zurück ' . $uhr($fenster['rueck'][0]) . '–' . $uhr($fenster['rueck'][1]) . ' Uhr';
+$fensterTeile = [];
+if ($f['richtung'] !== 'rueck') {
+    $fensterTeile[] = 'hin ' . $uhr($fenster['hin'][0]) . '–' . $uhr($fenster['hin'][1]) . ' Uhr';
+}
+if ($f['richtung'] !== 'hin') {
+    $fensterTeile[] = 'zurück ' . $uhr($fenster['rueck'][0]) . '–' . $uhr($fenster['rueck'][1]) . ' Uhr';
+}
+$fensterText = 'Mo–Fr, ' . implode(', ', $fensterTeile);
 
 $zeitraumText = 'letzte ' . $f['tage'] . ' Tage';
 $title = 'Statistik Nordbahn RB60/RB61/RB71 – Pünktlichkeit und Störungen ab Pinneberg, Elmshorn, Itzehoe, Wrist';
@@ -51,10 +76,10 @@ $jsonLd = [
     'spatialCoverage' => 'Hamburg – Pinneberg – Elmshorn – Itzehoe / Wrist',
 ];
 
-/** Auswahlfeld der Filterleiste. */
+/** Auswahlfeld der Filterleiste als Chip; die Beschriftung ist nur fuer Screenreader da, die Auswahl spricht fuer sich. */
 function nb_filter_select($name, $label, array $optionen, $wert)
 {
-    $h = '<label class="filter"><span class="filter__label">' . $label . '</span><select class="heimat__select" name="' . nb_e($name) . '">';
+    $h = '<label class="chip"><span class="visually-hidden">' . nb_e($label) . '</span><select class="chip__select" name="' . nb_e($name) . '">';
     foreach ($optionen as $v => $text) {
         $h .= '<option value="' . nb_e($v) . '"' . ((string) $v === (string) $wert ? ' selected' : '') . '>' . nb_e($text) . '</option>';
     }
@@ -95,7 +120,7 @@ function nb_filter_select($name, $label, array $optionen, $wert)
 <?= nb_render_kopf($root, 'statistik') ?>
 
 <main class="wrap">
-	<div class="page-head">
+	<div class="page-head page-head--statistik">
 		<div>
 			<h1>Statistik</h1>
 <?php if ($f['ansicht'] === 'zuege'): ?>
@@ -104,38 +129,61 @@ function nb_filter_select($name, $label, array $optionen, $wert)
 			<p class="page-head__lead">Wie oft die Strecke Hamburg &ndash; Elmshorn &ndash; Itzehoe / Wrist gest&ouml;rt ist.</p>
 <?php endif; ?>
 		</div>
+		<nav class="umschalter" aria-label="Ansicht">
+			<a class="umschalter__wahl" href="<?= nb_e(nb_statistik_url($f, ['ansicht' => 'zuege'])) ?>"<?= $f['ansicht'] === 'zuege' ? ' aria-current="page"' : '' ?>>Z&uuml;ge</a>
+			<a class="umschalter__wahl" href="<?= nb_e(nb_statistik_url($f, ['ansicht' => 'strecke'])) ?>"<?= $f['ansicht'] === 'strecke' ? ' aria-current="page"' : '' ?>>Strecke</a>
+		</nav>
 	</div>
 
-	<nav class="tabs" aria-label="Ansicht">
-		<a class="tabs__tab" href="<?= nb_e(nb_statistik_url($f, ['ansicht' => 'zuege'])) ?>"<?= $f['ansicht'] === 'zuege' ? ' aria-current="page"' : '' ?>>Z&uuml;ge</a>
-		<a class="tabs__tab" href="<?= nb_e(nb_statistik_url($f, ['ansicht' => 'strecke'])) ?>"<?= $f['ansicht'] === 'strecke' ? ' aria-current="page"' : '' ?>>Strecke</a>
-	</nav>
-
-	<form class="filters" id="filter" method="get" action="./" data-bhf-gesetzt="<?= isset($_GET['bhf']) ? '1' : '' ?>">
+	<form class="chips<?= $f['ansicht'] === 'zuege' && !in_array($f['bhf'], ZL_DB_BAHNHOEFE, true) ? ' chips--drei' : '' ?>" id="filter" method="get" action="./" data-bhf-gesetzt="<?= isset($_GET['bhf']) ? '1' : '' ?>">
 <?php if ($f['ansicht'] === 'strecke'): ?>
 		<input type="hidden" name="ansicht" value="strecke">
 <?php endif; ?>
 <?php if ($f['ansicht'] === 'zuege'): ?>
 		<?= nb_filter_select('bhf', 'Bahnhof', array_map(function ($b) { return $b['name']; }, NORDBAHN_BAHNHOEFE), $f['bhf']) ?>
 <?php if (in_array($f['bhf'], ZL_DB_BAHNHOEFE, true)): ?>
-		<?= nb_filter_select('betreiber', 'Züge', ['' => ZL_BETREIBER['nordbahn'], 'db' => ZL_BETREIBER['db']], $f['betreiber'] === 'db' ? 'db' : '') ?>
+		<?= nb_filter_select('betreiber', 'Züge', ['' => 'Nordbahn', 'db' => 'DB Regio'], $f['betreiber'] === 'db' ? 'db' : '') ?>
 <?php endif; ?>
-		<?= nb_filter_select('richtung', 'Richtung', ['beide' => 'Beide Richtungen', 'hin' => 'Nach Hamburg', 'rueck' => 'Zurück'], $f['richtung']) ?>
+		<?= nb_filter_select('richtung', 'Richtung', ['beide' => 'Hin & zurück', 'hin' => 'Nach Hamburg', 'rueck' => 'Zurück'], $f['richtung']) ?>
 <?php else: ?>
 		<input type="hidden" name="bhf" value="<?= nb_e($f['bhf']) ?>">
 		<input type="hidden" name="betreiber" value="<?= $f['betreiber'] === 'db' ? 'db' : '' ?>">
 		<input type="hidden" name="richtung" value="<?= nb_e($f['richtung']) ?>">
 <?php endif; ?>
 		<?= nb_filter_select('tage', 'Zeitraum', [7 => '7 Tage', 14 => '14 Tage', 30 => '30 Tage', 60 => '60 Tage'], $f['tage']) ?>
-		<button type="submit" class="filters__los">Anzeigen</button>
+		<button type="submit" class="chips__los">Anzeigen</button>
 	</form>
 
 <?php if ($f['ansicht'] === 'zuege'): ?>
-	<section class="section" aria-label="Kennzahlen">
-		<div class="stats stats--drei">
-			<div class="card stat"><p class="stat__label">P&uuml;nktlich</p><p class="stat__value"><?= nb_e(nb_prozent($k['quote'])) ?></p><p class="stat__note"><?= (int) $k['puenktlich'] ?> von <?= (int) $k['fahrten'] ?> Fahrten</p></div>
-			<div class="card stat"><p class="stat__label">Ausgefallen</p><p class="stat__value"><?= (int) $k['ausfall'] ?></p><p class="stat__note"><?= nb_e(nb_prozent($k['fahrten'] ? $k['ausfall'] / $k['fahrten'] : null)) ?><?= $k['teil'] ? ', davon ' . (int) $k['teil'] . ' teilweise' : '' ?></p></div>
-			<div class="card stat"><p class="stat__label">&Oslash; Versp&auml;tung</p><p class="stat__value"><?= $k['fahrten'] ? '+' . nb_e(number_format($k['schnitt'], 1, ',', '')) . ' Min.' : '–' ?></p><p class="stat__note">ohne Ausf&auml;lle</p></div>
+	<section class="card kpi<?= $richtungen ? ' kpi--richtungen' : '' ?>" aria-label="Kennzahlen">
+		<div class="kpi__zelle kpi__zelle--haupt">
+			<p class="kpi__label">P&uuml;nktlich</p>
+			<p class="kpi__wert"><?= nb_e(nb_prozent($k['quote'])) ?></p>
+<?php if ($trend): ?>
+			<p class="kpi__note"><span class="trend trend--<?= $trend['art'] ?>" title="<?= nb_e($trend['titel']) ?>"><?= nb_e($trend['text']) ?></span> vorher <?= nb_e(nb_prozent($dash['vorher']['quote'])) ?></p>
+<?php endif; ?>
+			<p class="kpi__note"><?= (int) $k['puenktlich'] ?> von <?= (int) $k['fahrten'] ?> Fahrten</p>
+		</div>
+<?php if ($richtungen): ?>
+		<div class="kpi__zelle kpi__zelle--richtungen">
+<?php foreach ($richtungen as $r): ?>
+			<div class="kpi-richtung">
+				<span class="kpi-richtung__name"><?= nb_e($r['name']) ?></span>
+				<span class="kpi-richtung__wert"><?= nb_e(nb_prozent($r['quote'])) ?></span>
+				<span class="bar__track kpi-richtung__balken kpi-richtung__balken--<?= $r['quote'] >= 0.9 ? 'gut' : ($r['quote'] >= 0.75 ? 'mittel' : 'schlecht') ?>" aria-hidden="true"><span class="bar__fill" data-w="<?= nb_bar_stufe($r['quote'], 1) ?>"></span></span>
+			</div>
+<?php endforeach; ?>
+		</div>
+<?php endif; ?>
+		<div class="kpi__zelle">
+			<p class="kpi__label">Ausgefallen</p>
+			<p class="kpi__wert kpi__wert--klein"><?= (int) $k['ausfall'] ?></p>
+			<p class="kpi__note"><?= nb_e(nb_prozent($k['fahrten'] ? $k['ausfall'] / $k['fahrten'] : null)) ?><?= $k['teil'] ? ' · ' . (int) $k['teil'] . ' teilweise' : ' der Fahrten' ?></p>
+		</div>
+		<div class="kpi__zelle">
+			<p class="kpi__label">&Oslash; Versp&auml;tung</p>
+			<p class="kpi__wert kpi__wert--klein"><?= $k['fahrten'] ? '+' . nb_e(number_format($k['schnitt'], 1, ',', '')) . '<small> Min.</small>' : '–' ?></p>
+			<p class="kpi__note">ohne Ausf&auml;lle</p>
 		</div>
 	</section>
 
@@ -152,24 +200,26 @@ function nb_filter_select($name, $label, array $optionen, $wert)
 		</div>
 	</section>
 
-	<div class="top-raster">
-		<section class="section">
+	<div class="top-raster" id="top">
+		<div class="top-schalter umschalter" role="group" aria-label="Rangliste" hidden>
+			<button type="button" class="umschalter__wahl" data-top="unzuverlaessig" aria-pressed="true">Unzuverl&auml;ssigste</button>
+			<button type="button" class="umschalter__wahl" data-top="zuverlaessig" aria-pressed="false">Zuverl&auml;ssigste</button>
+		</div>
+		<section class="section top-liste" data-top-liste="unzuverlaessig">
 			<h2 class="section__title">Unzuverl&auml;ssigste Z&uuml;ge</h2>
 			<div class="card"><?= nb_render_zug_top($dash['top']['unzuverlaessig']) ?></div>
 		</section>
-		<section class="section">
+		<section class="section top-liste" data-top-liste="zuverlaessig">
 			<h2 class="section__title">Zuverl&auml;ssigste Z&uuml;ge</h2>
 			<div class="card"><?= nb_render_zug_top($dash['top']['zuverlaessig']) ?></div>
 		</section>
 	</div>
 <?php else: ?>
-	<section class="section" aria-label="Kennzahlen">
-		<div class="stats">
-			<div class="card stat"><p class="stat__label">St&ouml;rungen</p><p class="stat__value"><?= (int) $sz['n'] ?></p></div>
-			<div class="card stat"><p class="stat__label">Gesamtdauer</p><p class="stat__value"><?= $sz['n'] ? nb_e(nb_dauer($sz['dauer'])) : '–' ?></p></div>
-			<div class="card stat"><p class="stat__label">Dauer im Schnitt</p><p class="stat__value"><?= $sz['n'] ? nb_e(nb_dauer($sz['schnitt'])) : '–' ?></p></div>
-			<div class="card stat"><p class="stat__label">L&auml;ngste St&ouml;rung</p><p class="stat__value"><?= $sz['laengste'] ? nb_e(nb_dauer($sz['laengste']['dauer'])) : '–' ?></p><?php if ($sz['laengste']): ?><p class="stat__note"><?= nb_e($sz['laengste']['titel']) ?>, <?= nb_e(date('d.m.', $sz['laengste']['start'])) ?></p><?php endif; ?></div>
-		</div>
+	<section class="card kpi kpi--vier" aria-label="Kennzahlen">
+		<div class="kpi__zelle"><p class="kpi__label">St&ouml;rungen</p><p class="kpi__wert kpi__wert--klein"><?= (int) $sz['n'] ?></p></div>
+		<div class="kpi__zelle"><p class="kpi__label">Gesamtdauer</p><p class="kpi__wert kpi__wert--klein"><?= $sz['n'] ? nb_e(nb_dauer($sz['dauer'])) : '–' ?></p></div>
+		<div class="kpi__zelle"><p class="kpi__label">Dauer im Schnitt</p><p class="kpi__wert kpi__wert--klein"><?= $sz['n'] ? nb_e(nb_dauer($sz['schnitt'])) : '–' ?></p></div>
+		<div class="kpi__zelle"><p class="kpi__label">L&auml;ngste St&ouml;rung</p><p class="kpi__wert kpi__wert--klein"><?= $sz['laengste'] ? nb_e(nb_dauer($sz['laengste']['dauer'])) : '–' ?></p><?php if ($sz['laengste']): ?><p class="kpi__note"><?= nb_e($sz['laengste']['titel']) ?>, <?= nb_e(date('d.m.', $sz['laengste']['start'])) ?></p><?php endif; ?></div>
 	</section>
 
 	<section class="section">
@@ -226,11 +276,29 @@ function nb_filter_select($name, $label, array $optionen, $wert)
 		if (heimat && heimat !== sel.value && sel.querySelector('option[value="' + heimat + '"]')) { sel.value = heimat; form.submit(); return; }
 	}
 	// Jede Aenderung schickt das Formular ab; der Knopf bleibt nur ohne Script
-	form.querySelector('.filters__los').hidden = true;
+	form.querySelector('.chips__los').hidden = true;
 	form.addEventListener('change', function () {
 		// Leere Werte nicht in die Adresse
 		Array.prototype.forEach.call(form.elements, function (el) { if (el.name && el.value === '') el.disabled = true; });
 		form.submit();
+	});
+})();
+(function () {
+	// Handy: nur eine Rangliste, umschaltbar; ohne Script stehen beide untereinander
+	var raster = document.getElementById('top');
+	if (!raster) return;
+	var schalter = raster.querySelector('.top-schalter');
+	var knoepfe = schalter.querySelectorAll('button');
+	function waehlen(wahl) {
+		raster.setAttribute('data-wahl', wahl);
+		Array.prototype.forEach.call(knoepfe, function (b) { b.setAttribute('aria-pressed', b.getAttribute('data-top') === wahl ? 'true' : 'false'); });
+	}
+	schalter.hidden = false;
+	raster.classList.add('top-raster--js');
+	waehlen('unzuverlaessig');
+	schalter.addEventListener('click', function (e) {
+		var b = e.target.closest('button');
+		if (b) waehlen(b.getAttribute('data-top'));
 	});
 })();
 (function () {

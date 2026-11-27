@@ -65,6 +65,26 @@ function test_zuglog_dateien_und_auswertung()
     array_map('unlink', glob(NORDBAHN_CACHE_DIR . '/zugstat*.json') ?: []);
 }
 
+function test_zuglog_vorher_und_richtungen()
+{
+    $jetzt = ['quote' => 0.8, 'fahrten' => 100, 'ausfall' => 5, 'schnitt' => 2.0];
+    t_eq(['quote' => 0.7, 'fahrten' => 60, 'ausfall' => 9, 'schnitt' => 3.1], zl_vorher(['quote' => 0.7, 'fahrten' => 60, 'ausfall' => 9, 'schnitt' => 3.1, 'teil' => 1], $jetzt), 'Vorzeitraum mit genug Fahrten');
+    t_eq(null, zl_vorher(['quote' => 0.7, 'fahrten' => 40] + $jetzt, $jetzt), 'zu duenn beobachtet: kein Trend');
+    t_eq(null, zl_vorher(['quote' => null, 'fahrten' => 0] + $jetzt, $jetzt), 'ohne Fahrten kein Trend');
+
+    $now = strtotime('2026-10-16 20:00:00 Europe/Berlin'); // Freitag
+    $e = function ($zug, $station, $dir, $plan, $versp) {
+        return ['zug' => $zug, 'linie' => 'RB61', 'ziel' => $dir === 'hin' ? 'Hamburg Hbf' : 'Itzehoe', 'ab' => $dir === 'hin' ? '' : 'Hbf', 'station' => $station, 'dir' => $dir, 'plan' => $plan, 'versp' => $versp, 'max' => $versp, 'ausfall' => false, 'teil' => '', 'gleis' => false];
+    };
+    $logs = ['2026-10-16' => [
+        'APD|hin|1'  => $e('1', 'APD', 'hin', '07:00', 0),
+        'APD|hin|2'  => $e('2', 'APD', 'hin', '07:20', 8),
+        'AH|rueck|3' => $e('3', 'AH', 'rueck', '17:00', 0),
+    ]];
+    $k = zl_dashboard_rechnen($logs, zl_filter(['bhf' => 'APD']), $now)['kennzahlen'];
+    t_eq(['hin' => ['fahrten' => 2, 'puenktlich' => 1], 'rueck' => ['fahrten' => 1, 'puenktlich' => 1]], $k['richtungen'], 'Kennzahlen je Richtung');
+}
+
 function test_zuglog_filter()
 {
     t_eq(['bhf' => 'APD', 'betreiber' => 'nordbahn', 'richtung' => 'beide', 'tage' => 30], zl_filter([]), 'Vorgaben');
