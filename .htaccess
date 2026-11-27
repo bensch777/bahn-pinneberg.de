@@ -38,6 +38,8 @@ RewriteRule ^api/karte$ api/karte.php [L]
 RewriteRule ^api/feedback$ api/feedback.php [L]
 RewriteRule ^api/community$ api/community.php [L]
 RewriteRule ^api/fahrplan$ api/fahrplan.php [L]
+RewriteRule ^api/pendler$ api/pendler.php [L]
+RewriteRule ^pendler/verwalten/?$ api/pendler.php?verwalten=1 [L,QSA]
 RewriteRule ^mcp/?$ api/mcp.php [L]
 RewriteRule ^\.well-known/openai-apps-challenge$ openai-challenge.php [L]
 

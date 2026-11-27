@@ -54,6 +54,17 @@ return [
     'NORDBAHN_COMMUNITY'          => true,
     'NORDBAHN_COMMUNITY_SCHWELLE' => 1,
 
+    // Pendlermeldungen (api/pendler.php): kurze Texte von Fahrgaesten zu Thema und
+    // Bahnhof. false schaltet Schreiben und Anzeige sofort ab.
+    // PRUEFUNG: Adresse des n8n-Webhooks "Pendlermeldung pruefen" (KI-Urteil, Header
+    // X-Nordbahn-Token mit NORDBAHN_PUSH_TOKEN). Leer: jede Meldung wartet auf Freigabe
+    // von Hand ueber den Link in Discord.
+    // WEBHOOK: Discord-Kanal fuer neue Meldungen mit Link zum Freigeben/Entfernen.
+    // Leer: der Feedback-Kanal (NORDBAHN_FEEDBACK_WEBHOOK).
+    'NORDBAHN_PENDLER'          => true,
+    'NORDBAHN_PENDLER_PRUEFUNG' => '',
+    'NORDBAHN_PENDLER_WEBHOOK'  => '',
+
     // Token fuer den Domain-Nachweis im ChatGPT-App-Verzeichnis (platform.openai.com,
     // ChatGPT Apps). Wird unter /.well-known/openai-apps-challenge ausgeliefert.
     'NORDBAHN_OPENAI_CHALLENGE' => '',

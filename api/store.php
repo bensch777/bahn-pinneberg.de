@@ -120,6 +120,17 @@ function nordbahn_feedback_webhook()
     return preg_match('#^https://(discord\.com|discordapp\.com)/api/webhooks/#', $url) ? $url : '';
 }
 
+/**
+ * Pendlermeldungen an (NORDBAHN_PENDLER in config.php, Vorgabe an)? Hier statt in
+ * api/pendler.php, damit Seiten nicht den ganzen Endpunkt laden muessen.
+ */
+function nordbahn_pendler_an()
+{
+    $config = nordbahn_config();
+
+    return !array_key_exists('NORDBAHN_PENDLER', $config) || !empty($config['NORDBAHN_PENDLER']);
+}
+
 /** Liest eine JSON-Datei als Array, oder null wenn sie fehlt oder kaputt ist. */
 function nordbahn_read_json($file)
 {
