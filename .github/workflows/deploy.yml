@@ -4,12 +4,35 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
+    inputs:
+      voll:
+        description: 'Voller Abgleich: alles neu hochladen und Fremdes auf dem Server loeschen'
+        type: boolean
+        default: false
+
+# Immer nur ein Deploy zur Zeit, in der Reihenfolge der Pushes. Der Diff-Deploy
+# liest die Marke des vorigen Laufs, zwei gleichzeitige Laeufe wuerden sich
+# dabei in die Quere kommen.
+concurrency:
+  group: deploy
+  cancel-in-progress: false
 
 jobs:
-  tests:
+  deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      # Volle Historie: der Deploy vergleicht mit dem zuletzt ausgerollten Commit.
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # lftp installiert sich im Hintergrund, waehrend die Tests laufen.
+      - name: lftp im Hintergrund installieren
+        run: |
+          nohup bash -c 'sudo apt-get install -y --no-install-recommends lftp > "$RUNNER_TEMP/lftp.log" 2>&1; echo $? > "$RUNNER_TEMP/lftp.rc"' > /dev/null 2>&1 &
+
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
@@ -20,20 +43,19 @@ jobs:
       - name: Tests
         run: php tests/run.php
 
-  deploy:
-    needs: tests
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - name: Auf lftp warten
+        run: |
+          timeout 180 bash -c 'until [ -f "$RUNNER_TEMP/lftp.rc" ]; do sleep 1; done' || true
+          if [ "$(cat "$RUNNER_TEMP/lftp.rc" 2>/dev/null)" != "0" ]; then
+            cat "$RUNNER_TEMP/lftp.log" || true
+            echo "::error::lftp liess sich nicht installieren."
+            exit 1
+          fi
 
-      - name: Install lftp
-        run: sudo apt-get install -y lftp
-
-      # Sicherung vor dem Mirror: --delete loescht alles, was nicht im Repo ist.
-      # Zeigt DEPLOY_PATH versehentlich auf das Home-Verzeichnis des SFTP-Nutzers
-      # (leer, "/" oder "." bei einem chrooted Zugang, oder ein Verzeichnis mit
-      # .bashrc, public_html, www_logs), bricht der Lauf hier ab.
+      # Sicherung vor dem Deploy: der volle Abgleich loescht alles, was nicht im
+      # Repo ist. Zeigt DEPLOY_PATH versehentlich auf das Home-Verzeichnis des
+      # SFTP-Nutzers (leer, "/" oder "." bei einem chrooted Zugang, oder ein
+      # Verzeichnis mit .bashrc, public_html, www_logs), bricht der Lauf hier ab.
       - name: Zielverzeichnis pruefen
         env:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
@@ -51,45 +73,20 @@ jobs:
             set net:max-retries 2;
             open -u \"$DEPLOY_USER\",\"$DEPLOY_PASSWORD\" \"sftp://$DEPLOY_HOST\";
             cls -a \"$DEPLOY_PATH\"
-          " > remote-listing.txt
-          echo "Inhalt von $DEPLOY_PATH:"; cat remote-listing.txt
-          if grep -qE '(^|/)(\.bashrc|\.bash_logout|\.profile|\.phpversion|\.ssh|public_html|www_logs|htdocs|logs)/?$' remote-listing.txt; then
+          " > "$RUNNER_TEMP/remote-listing.txt"
+          echo "Inhalt von $DEPLOY_PATH:"; cat "$RUNNER_TEMP/remote-listing.txt"
+          if grep -qE '(^|/)(\.bashrc|\.bash_logout|\.profile|\.phpversion|\.ssh|public_html|www_logs|htdocs|logs)/?$' "$RUNNER_TEMP/remote-listing.txt"; then
             echo "::error::DEPLOY_PATH sieht wie das Home-Verzeichnis des SFTP-Nutzers aus, nicht wie das Web-Root. Deploy abgebrochen, nichts geaendert."
             exit 1
           fi
 
-      # Spiegelt das Repo ins Web-Root. config.php und cache/ liegen nur auf dem
-      # Server und bleiben durch die Ausnahmen bei --delete unangetastet. v2/ ist
-      # der Rest einer Design-Vorschau, den SFTP nicht loeschen kann (liefert 403);
-      # ohne Ausnahme bricht jeder Deploy am Ende mit "Directory is not empty" ab.
-      # Zugangsdaten gehen per -u und nicht in der URL mit, damit Sonderzeichen
-      # im Passwort (: @ /) die Adresse nicht zerlegen. DEPLOY_HOST ist nur der
-      # Hostname, DEPLOY_PATH der absolute Pfad zum Web-Root.
+      # Uebertraegt nur die Dateien, die sich seit dem letzten Deploy geaendert
+      # haben. Details und die Faelle fuer den vollen Abgleich stehen im Skript.
       - name: Deploy via SFTP
         env:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
           DEPLOY_PASSWORD: ${{ secrets.DEPLOY_PASSWORD }}
           DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
-        run: |
-          lftp -c "
-            set sftp:auto-confirm yes;
-            set net:max-retries 3;
-            set net:reconnect-interval-base 5;
-            open -u \"$DEPLOY_USER\",\"$DEPLOY_PASSWORD\" \"sftp://$DEPLOY_HOST\";
-            mirror --reverse --delete --verbose \
-              --exclude='^\.git/' \
-              --exclude='^\.github/' \
-              --exclude='^\.claude/' \
-              --exclude='^\.gitignore$' \
-              --exclude='^tests/' \
-              --exclude='^dev/' \
-              --exclude='^config\.php$' \
-              --exclude='^cache/' \
-              --exclude='^v2/' \
-              --exclude='^README\.md$' \
-              --exclude='^php-error\.log$' \
-              --exclude='^error_log$' \
-              ./ \"$DEPLOY_PATH\";
-            bye
-          "
+          DEPLOY_VOLL: ${{ inputs.voll && '1' || '' }}
+        run: bash .github/scripts/deploy.sh
