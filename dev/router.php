@@ -94,9 +94,12 @@ foreach ($statisch as $muster => $datei) {
         return true;
     }
 }
-if (!preg_match('#^/(assets|api)/[^/]+#', $path) || preg_match('#/$|(^|/)\.#', $path)) {
-    http_response_code(404);
+// Was es nicht gibt, bekommt wie bei Apache (ErrorDocument) die Fehlerseite
+if (!preg_match('#^/(assets|api)/[^/]+#', $path) || preg_match('#/$|(^|/)\.#', $path) || !is_file($root . $path)) {
+    $_SERVER['REDIRECT_STATUS'] = '404';
+    $_SERVER['REDIRECT_URL'] = $path;
+    require $root . '/seiten/fehler.php';
     return true;
 }
 
-return false; // statische Datei oder 404
+return false; // statische Datei

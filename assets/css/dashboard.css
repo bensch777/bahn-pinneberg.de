@@ -381,6 +381,18 @@ button.freshness:focus-visible { outline: 2px solid var(--series); outline-offse
 	.artikel .section__title { font-size: 18px; }
 }
 
+/* Fehlerseite (404, 500 ...): Lesespalte wie die Ereignisseiten, Knopf zur Startseite */
+.fehler { padding-bottom: 32px; }
+.fehler__aktionen { display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 26px; }
+.fehler__knopf { display: inline-block; padding: 10px 18px; border: 1px solid var(--series); border-radius: 8px; background: var(--series); color: #fff; font-size: 15px; font-weight: 600; text-decoration: none; }
+.fehler__knopf:hover { filter: brightness(1.08); }
+.fehler__knopf:focus-visible { outline: 2px solid var(--series); outline-offset: 2px; }
+.fehler__knopf--zweit { background: var(--surface); color: var(--ink); border-color: var(--line); }
+.fehler__knopf--zweit:hover { filter: none; border-color: var(--axis); }
+.fehler__weiter { display: flex; flex-wrap: wrap; gap: 8px 18px; padding-top: 14px; border-top: 1px solid var(--line); font-size: 14.5px; }
+.fehler__weiter a { color: var(--ink-2); text-underline-offset: 3px; }
+.fehler__weiter a:hover { color: var(--ink); }
+
 .pill { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; line-height: 1.5; white-space: nowrap; }
 .pill--aktiv { background: var(--status-crit-bg); color: var(--critical-text); }
 .pill--aufgehoben { background: var(--status-good-bg); color: var(--good-text); }
