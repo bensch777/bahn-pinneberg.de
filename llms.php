@@ -43,7 +43,7 @@ echo "- Ereignisseiten: `" . $site . "/stoerung/<key>/` (z. B. BZI_33570) und `"
 echo "- [Aktive Meldungen](" . $site . "/aktuell/): was gerade gilt, ohne Wichtig-Filter: laufende Infrastrukturstörungen, Baufahrplan, Eilmeldungen, die noch auf nordbahn.de stehen (höchstens vier Stunden alt), gerade aufgehobene Störungen und gültige HVV-Meldungen, dazu die geplanten Fahrplanänderungen (Sonderfahrpläne der Nordbahn zu RB60, RB61 und RB71 im Wortlaut der Nordbahn, soweit sie dort gerade oder für die nächsten 14 Tage geführt werden; wann sie gelten, sagt der jeweilige Text; auch als Abschnitt in lage.md).\n";
 echo "- [Wichtige Meldungen](" . $site . "/news/): nur die Störungen mit schwerer Einschränkung, Ausfällen, Umleitungen oder Ersatzverkehr und die Eilmeldungen zu Ersatzverkehr, Sperrungen, Bauarbeiten oder mehreren Zügen; einzelne kurzfristige Zugausfälle fehlen hier bewusst.\n";
 echo "- [Live-Karte](" . $site . "/karte/): wo die Züge gerade sind; der Kartenausschnitt folgt dem Heimatbahnhof; Positionen gerechnet aus Laufweg und Prognose, nicht geortet.\n";
-echo "- [Statistik](" . $site . "/statistik/): Pünktlichkeit je Zug und Bahnhof (Filter bhf, richtung=hin|rueck, tage=7|14|30|60, zeit=morgens|abends, werktage=1) und Infrastrukturstörungen mit Ursachen (ansicht=strecke).\n";
+echo "- [Statistik](" . $site . "/statistik/): Pünktlichkeit im Berufsverkehr (Mo–Fr, nach Hamburg 5–10 Uhr, zurück 15–20 Uhr) mit den unzuverlässigsten und zuverlässigsten Zügen (Filter bhf, richtung=hin|rueck, tage=7|14|30|60) und Infrastrukturstörungen mit Ursachen (ansicht=strecke).\n";
 echo "- [Was ist neu](" . $site . "/changelog/): Änderungen der Seite.\n\n";
 
 echo "## Begriffe\n\n";

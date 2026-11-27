@@ -854,15 +854,20 @@ function test_lagekarten_kompakt()
 
 function test_statistik_url_und_verlauf()
 {
-    $f = zl_filter([]) + ['ansicht' => 'zuege', 'sort' => 'zeit'];
+    $f = zl_filter([]) + ['ansicht' => 'zuege'];
     t_eq('./', nb_statistik_url($f), 'Vorgaben: keine Parameter');
     t_eq('./?ansicht=strecke&tage=7', nb_statistik_url($f, ['ansicht' => 'strecke', 'tage' => 7]), 'nur Abweichungen');
     $html = nb_render_zug_verlauf([
-        ['tag' => '2026-10-15', 'puenktlich' => 8, 'spaet' => 1, 'ausfall' => 1, 'beobachtet' => true],
+        ['tag' => '2026-10-15', 'puenktlich' => 6, 'spaet' => 3, 'ausfall' => 1, 'beobachtet' => true],
         ['tag' => '2026-10-16', 'puenktlich' => 0, 'spaet' => 0, 'ausfall' => 0, 'beobachtet' => false],
+        ['tag' => '2026-10-19', 'puenktlich' => 9, 'spaet' => 0, 'ausfall' => 0, 'beobachtet' => true],
     ]);
-    t_contains('<div class="verlauf__tag" data-h="100" title="Do 15.10.: 8 pünktlich, 1 verspätet, 1 ausgefallen">', $html, 'Saeule mit Tooltip');
-    t_contains('<span class="verlauf__seg verlauf__seg--ausfall" data-h="10"></span>', $html, 'Ausfall unten');
+    t_contains('<span class="verlauf__skala" aria-hidden="true">40 %</span>', $html, 'Skala nach dem schlechtesten Tag');
+    t_contains('<div class="verlauf__tag" data-h="100" title="Do 15.10.: 40 % unpünktlich, 3 verspätet, 1 ausgefallen von 10">', $html, 'Saeule mit Anteil und Tooltip');
+    t_contains('<span class="verlauf__seg verlauf__seg--ausfall" data-h="25"></span>', $html, 'Ausfall unten');
     t_contains('title="Fr 16.10.: nicht beobachtet"', $html, 'Tag ohne Beobachtung');
+    t_contains('<div class="verlauf__tag verlauf__tag--gut" title="Mo 19.10.: 0 % unpünktlich', $html, 'Tag ohne Problem');
+    $top = nb_render_zug_top([['zug' => '1', 'linie' => 'RB61', 'ziel' => 'Itzehoe', 'ab' => 'Hbf', 'plan' => '17:05', 'dir' => 'rueck', 'fahrten' => 20, 'puenktlich' => 13, 'spaet' => 5, 'ausfall' => 2, 'quote' => 0.65, 'schnitt' => 3.2]]);
+    t_contains('<span class="top__weg">ab Hamburg Hbf</span><span class="top__info">5× zu spät · 2× Ausfall</span></span><span class="top__quote">65 %<small>pünktlich</small></span>', $top, 'Rangliste');
     t_eq('87 %', nb_prozent(0.866), 'Prozent');
 }

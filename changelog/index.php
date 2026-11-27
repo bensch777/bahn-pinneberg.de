@@ -14,6 +14,9 @@ $root = '../';
 $assetVersion = (int) @filemtime(__DIR__ . '/../dashboard.css');
 
 $changelog = [
+    ['2026-11-27', [
+        ['Statistik zeigt, wie verlässlich das Pendeln ist', 'Die Statistik der Züge wertet jetzt nur noch den Berufsverkehr aus: montags bis freitags, nach Hamburg 5 bis 10 Uhr, zurück 15 bis 20 Uhr. Nachtzüge und Wochenenden verwässern die Zahlen nicht mehr. Der Verlauf zeigt je Werktag, welcher Anteil der Fahrten verspätet oder ausgefallen war, statt absoluter Zugzahlen. Die langen Tabellen je Tag und je Zug sind weg. Stattdessen stehen dort die fünf unzuverlässigsten und die fünf zuverlässigsten Züge, gezählt nur, wenn sie oft genug beobachtet wurden. Die Filter Tageszeit und Werktage entfallen damit.'],
+    ]],
     ['2026-11-25', [
         ['Fahrgastmeldungen: Zug steht, sehr voll, kurz, Klima aus', 'Was im Zug los ist, wissen die offiziellen Daten oft nicht oder erst spät. Beim Notarzteinsatz stand die RB61, galt in der Tafel aber noch lange als pünktlich. Jetzt können Fahrgäste mit einem Tipp melden, dass der Zug steht, sehr voll oder kurz ist oder Klima bzw. Heizung ausgefallen sind. Vor dem Einsteigen geht das in der aufgeklappten Fahrt in der Abfahrtstafel, unterwegs über das Popup am Zug auf der Live-Karte. Gemeldetes steht als „Fahrgäste: Zug steht“ in der Zeile und in der Liste unter der Karte. Jede Meldung gilt nur für diese Fahrt und verschwindet von selbst, „Stimmt nicht mehr“ blendet sie sofort aus. Kein Konto, kein Freitext, keine Daten an Dritte.'],
     ]],

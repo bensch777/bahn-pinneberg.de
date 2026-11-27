@@ -21,7 +21,8 @@
  * (ZL_DB_LAUFEND, mit dem n8n-Push), dort halten alle RE.
  *
  * Die Auswertung fuer die Statistikseite (zl_dashboard) filtert nach Bahnhof,
- * Betreiber, Richtung, Zeitraum, Tageszeit und Werktagen und wird je Filter
+ * Betreiber, Richtung und Zeitraum, immer nur im Pendelfenster (ZL_PENDELFENSTER:
+ * Mo-Fr, nach Hamburg morgens, zurueck abends), und wird je Filter
  * NB_ZUGSTAT_TTL Sekunden gecacht. Nordbahn und DB Regio werden nie gemischt.
  */
 
@@ -152,71 +153,6 @@ function zl_log(array $result, $heimat, $now = null)
     }
 }
 
-/**
- * Fasst Tageslogs je Zug zusammen: Beobachtungstage, Ausfaelle, Teilausfaelle,
- * Verspaetungen ab NB_ZUG_SPAET Minuten, mittlere und hoechste Verspaetung
- * (jeweils ohne ausgefallene Tage). Ergebnis: [station][dir][zug] => Kennzahlen.
- */
-function zl_auswertung(array $logs)
-{
-    $zuege = [];
-    ksort($logs);
-    foreach ($logs as $tag => $eintraege) {
-        foreach ($eintraege as $e) {
-            if (!is_array($e) || empty($e['zug']) || empty($e['station']) || empty($e['dir'])) {
-                continue;
-            }
-            $z = &$zuege[$e['station']][$e['dir']][$e['zug']];
-            if (!is_array($z)) {
-                $z = ['zug' => $e['zug'], 'linie' => '', 'ziel' => '', 'ab' => '', 'plan' => '', 'tage' => 0, 'ausfaelle' => 0, 'teil' => 0, 'spaet' => 0, 'gleis' => 0, 'versp_summe' => 0, 'max' => 0, 'zuletzt' => ''];
-            }
-            // Stammdaten vom juengsten Tag
-            $z['linie'] = (string) ($e['linie'] ?? $z['linie']);
-            $z['ziel'] = (string) ($e['ziel'] ?? $z['ziel']);
-            $z['ab'] = (string) ($e['ab'] ?? $z['ab']);
-            $z['plan'] = (string) ($e['plan'] ?? $z['plan']);
-            $z['zuletzt'] = $tag;
-            $z['tage']++;
-            if (!empty($e['ausfall'])) {
-                $z['ausfaelle']++;
-                continue;
-            }
-            if (!empty($e['teil'])) {
-                $z['teil']++;
-            }
-            if (!empty($e['gleis'])) {
-                $z['gleis']++;
-            }
-            $v = (int) ($e['versp'] ?? 0);
-            if ($v >= NB_ZUG_SPAET) {
-                $z['spaet']++;
-            }
-            $z['versp_summe'] += max(0, $v);
-            $z['max'] = max($z['max'], (int) ($e['max'] ?? $v));
-            unset($z);
-        }
-    }
-    foreach ($zuege as &$dirs) {
-        foreach ($dirs as &$liste) {
-            foreach ($liste as &$z) {
-                $gefahren = $z['tage'] - $z['ausfaelle'];
-                $z['schnitt'] = $gefahren > 0 ? round($z['versp_summe'] / $gefahren, 1) : 0;
-                $z['ausfallquote'] = $z['tage'] > 0 ? round($z['ausfaelle'] / $z['tage'], 3) : 0;
-                $z['spaetquote'] = $gefahren > 0 ? round($z['spaet'] / $gefahren, 3) : 0;
-                unset($z['versp_summe']);
-            }
-            unset($z);
-            uasort($liste, function ($a, $b) {
-                return strcmp($a['plan'], $b['plan']);
-            });
-        }
-        unset($liste);
-    }
-    unset($dirs);
-
-    return $zuege;
-}
-
 /** Liest die Tageslogs der letzten $tage Tage (Berliner Kalendertage, heute eingeschlossen). */
 function zl_lesen($tage, $now = null)
 {
@@ -254,7 +190,8 @@ function zl_aufraeumen($now = null)
 /* ---------- Dashboard mit Filtern (statistik/) ---------- */
 
 const ZL_ZEITRAEUME  = [7, 14, 30, 60];                         // waehlbare Zeitraeume in Tagen, hoechstens NB_ZUGLOG_KEEP_DAYS
-const ZL_TAGESZEITEN = ['alle' => null, 'morgens' => ['05:00', '10:00'], 'abends' => ['15:00', '20:00']];
+const ZL_PENDELFENSTER = ['hin' => ['05:00', '10:00'], 'rueck' => ['15:00', '20:00']]; // Planabfahrt, nur Mo-Fr
+const ZL_TOP         = 5;                                       // Zuege je Rangliste
 const ZL_HAMBURG     = ['AH', 'AA', 'ADF'];                     // Hamburger Abfahrten der Rueckrichtung
 const ZL_BETREIBER   = ['nordbahn' => 'Nordbahn (RB)', 'db' => 'DB Regio (RE)'];
 const ZL_DB_BAHNHOEFE = ['AP', 'AEL', 'AGST', 'AIZ', 'AWST'];   // wie GF_REGIO_HEIMAT in api/geofox.php
@@ -273,14 +210,19 @@ function zl_filter(array $get)
         'betreiber' => $db ? 'db' : 'nordbahn',
         'richtung' => in_array($get['richtung'] ?? '', ['hin', 'rueck'], true) ? $get['richtung'] : 'beide',
         'tage'     => in_array($tage, ZL_ZEITRAEUME, true) ? $tage : NB_ZUGLOG_TAGE,
-        'zeit'     => isset(ZL_TAGESZEITEN[$get['zeit'] ?? '']) ? $get['zeit'] : 'alle',
-        'werktage' => ($get['werktage'] ?? '') === '1',
     ];
 }
 
+/** Werktag (Mo-Fr) nach Kalender, Feiertage zaehlen mit. */
+function zl_werktag($tag)
+{
+    return (int) date('N', strtotime($tag . ' 12:00:00')) < 6;
+}
+
 /**
- * Passt ein Logeintrag eines Tages zum Filter? Nordbahn und DB Regio nie
- * gemischt. Rueckrichtung: nur Zuege, die den Bahnhof erreichen (RE laut bis).
+ * Passt ein Logeintrag eines Tages zum Filter? Nur im Pendelfenster, Nordbahn
+ * und DB Regio nie gemischt. Rueckrichtung: nur Zuege, die den Bahnhof
+ * erreichen (RE laut bis).
  */
 function zl_passt(array $e, $tag, array $f)
 {
@@ -291,11 +233,8 @@ function zl_passt(array $e, $tag, array $f)
     if ($db !== (($f['betreiber'] ?? 'nordbahn') === 'db')) {
         return false;
     }
-    if ($f['werktage'] && (int) date('N', strtotime($tag . ' 12:00:00')) >= 6) {
-        return false;
-    }
-    $fenster = ZL_TAGESZEITEN[$f['zeit']] ?? null;
-    if ($fenster && (($e['plan'] ?? '') < $fenster[0] || ($e['plan'] ?? '') >= $fenster[1])) {
+    $fenster = ZL_PENDELFENSTER[$e['dir']] ?? null;
+    if (!$fenster || !zl_werktag($tag) || ($e['plan'] ?? '') < $fenster[0] || ($e['plan'] ?? '') >= $fenster[1]) {
         return false;
     }
     if ($e['dir'] === 'hin') {
@@ -324,24 +263,26 @@ function zl_ergebnis(array $e)
 }
 
 /**
- * Dashboard fuer einen Filter: Kennzahlen, Verlauf je Tag (aelteste zuerst, auch
- * Tage ohne Beobachtung) und die Zugtabellen je Richtung. Reine Funktion ueber
+ * Dashboard fuer einen Filter: Kennzahlen, Verlauf je Werktag (aelteste zuerst,
+ * auch Tage ohne Beobachtung) und die Ranglisten der Zuege. Reine Funktion ueber
  * den Tageslogs, damit sie sich testen laesst.
  */
 function zl_dashboard_rechnen(array $logs, array $f, $now)
 {
     $tz = new DateTimeZone('Europe/Berlin');
-    $gefiltert = [];
     $k = ['fahrten' => 0, 'puenktlich' => 0, 'spaet' => 0, 'ausfall' => 0, 'teil' => 0, 'versp_summe' => 0, 'gefahren' => 0];
     $verlauf = [];
+    $zuege = [];
     for ($i = $f['tage'] - 1; $i >= 0; $i--) {
         $tag = (new DateTime('@' . ($now - $i * 86400)))->setTimezone($tz)->format('Y-m-d');
+        if (!zl_werktag($tag)) {
+            continue;
+        }
         $v = ['tag' => $tag, 'puenktlich' => 0, 'spaet' => 0, 'ausfall' => 0, 'beobachtet' => isset($logs[$tag])];
-        foreach ($logs[$tag] ?? [] as $key => $e) {
+        foreach ($logs[$tag] ?? [] as $e) {
             if (!is_array($e) || !zl_passt($e, $tag, $f)) {
                 continue;
             }
-            $gefiltert[$tag][$key] = $e;
             $erg = zl_ergebnis($e);
             $v[$erg]++;
             $k[$erg]++;
@@ -353,6 +294,22 @@ function zl_dashboard_rechnen(array $logs, array $f, $now)
                 $k['gefahren']++;
                 $k['versp_summe'] += max(0, (int) ($e['versp'] ?? 0));
             }
+            // Wiederkehrende Fahrt: Zugnummer an ihrem Bahnhof und in ihrer Richtung
+            $z = &$zuege[$e['station'] . '|' . $e['dir'] . '|' . $e['zug']];
+            if (!is_array($z)) {
+                $z = ['fahrten' => 0, 'puenktlich' => 0, 'spaet' => 0, 'ausfall' => 0, 'versp_summe' => 0, 'gefahren' => 0];
+            }
+            // Stammdaten vom juengsten Tag
+            foreach (['zug', 'linie', 'ziel', 'ab', 'plan', 'dir'] as $feld) {
+                $z[$feld] = (string) ($e[$feld] ?? '');
+            }
+            $z[$erg]++;
+            $z['fahrten']++;
+            if (empty($e['ausfall'])) {
+                $z['gefahren']++;
+                $z['versp_summe'] += max(0, (int) ($e['versp'] ?? 0));
+            }
+            unset($z);
         }
         $verlauf[] = $v;
     }
@@ -361,18 +318,42 @@ function zl_dashboard_rechnen(array $logs, array $f, $now)
     $k['tage_beobachtet'] = count(array_filter($verlauf, function ($v) { return $v['beobachtet']; }));
     unset($k['versp_summe'], $k['gefahren']);
 
-    $a = zl_auswertung($gefiltert);
-    $rueck = [];
-    foreach (ZL_HAMBURG as $hh) {
-        foreach ($a[$hh]['rueck'] ?? [] as $zug => $z) {
-            $rueck[$hh . '|' . $zug] = $z;
+    return ['kennzahlen' => $k, 'verlauf' => $verlauf, 'top' => zl_ranglisten($zuege)];
+}
+
+/**
+ * Unzuverlaessigste und zuverlaessigste Zuege, je hoechstens ZL_TOP und ohne
+ * Ueberschneidung. In die Wertung kommt nur, wer mindestens halb so oft
+ * beobachtet wurde wie der am haeufigsten beobachtete Zug (wenigstens
+ * NB_ZUGLOG_MIN_TAGE Fahrten), damit kein Zug mit zwei Fahrten oben steht.
+ * Massstab ist der Anteil puenktlicher Fahrten, danach Ausfaelle und mittlere
+ * Verspaetung.
+ */
+function zl_ranglisten(array $zuege)
+{
+    $most = max(array_column($zuege, 'fahrten') ?: [0]);
+    $min = max(NB_ZUGLOG_MIN_TAGE, (int) ceil($most / 2));
+    $liste = [];
+    foreach ($zuege as $key => $z) {
+        if ($z['fahrten'] < $min) {
+            continue;
         }
+        $z['quote'] = $z['puenktlich'] / $z['fahrten'];
+        $z['schnitt'] = $z['gefahren'] ? round($z['versp_summe'] / $z['gefahren'], 1) : 0;
+        unset($z['versp_summe'], $z['gefahren']);
+        $liste[$key] = $z;
     }
-    uasort($rueck, function ($x, $y) {
-        return strcmp($x['plan'], $y['plan']);
+    $schlecht = array_filter($liste, function ($z) { return $z['quote'] < 1; });
+    uasort($schlecht, function ($a, $b) {
+        return [$a['quote'], $b['ausfall'], $b['schnitt'], $a['plan']] <=> [$b['quote'], $a['ausfall'], $a['schnitt'], $b['plan']];
+    });
+    $schlecht = array_slice($schlecht, 0, ZL_TOP, true);
+    $gut = array_diff_key($liste, $schlecht);
+    uasort($gut, function ($a, $b) {
+        return [$b['quote'], $a['schnitt'], $a['plan']] <=> [$a['quote'], $b['schnitt'], $b['plan']];
     });
 
-    return ['kennzahlen' => $k, 'verlauf' => $verlauf, 'hin' => $a[$f['bhf']]['hin'] ?? [], 'rueck' => $rueck];
+    return ['unzuverlaessig' => array_values($schlecht), 'zuverlaessig' => array_values(array_slice($gut, 0, ZL_TOP, true)), 'min' => $min];
 }
 
 /** Dashboard fuer einen Filter, je Filter NB_ZUGSTAT_TTL Sekunden gecacht. */
