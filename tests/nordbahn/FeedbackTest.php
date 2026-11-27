@@ -98,7 +98,7 @@ function test_feedback_nachricht_und_markup()
     t_contains('<form class="feedback-form" id="feedback-form" method="post" action="../api/feedback" novalidate>', $html, 'Formular zum Endpunkt');
     t_contains('name="website" tabindex="-1"', $html, 'Honeypot');
     t_contains('<option value="sonst" selected>Sonstiges</option>', $html, 'Sonstiges vorausgewaehlt');
-    t_contains('<script src="../feedback.js?v=', $html, 'Script dabei');
+    t_contains('<script src="../assets/js/feedback.js?v=', $html, 'Script dabei');
     t_eq('', nordbahn_feedback_webhook(), 'ohne config.php kein Webhook');
-    t_eq(false, strpos(t_seite_rendern('faq/index.php'), 'feedback-open'), 'ohne Webhook kein Feedback-Eintrag im Footer');
+    t_eq(false, strpos(t_seite_rendern('seiten/faq.php'), 'feedback-open'), 'ohne Webhook kein Feedback-Eintrag im Footer');
 }

@@ -1,0 +1,237 @@
+<?php
+/**
+ * Changelog des Nordbahn Monitors: alle Aenderungen nach Datum, verlinkt aus
+ * Footer und Handy-Menue. Neue Eintraege oben anfuegen.
+ */
+
+require __DIR__ . '/../inc/store.php';
+require_once __DIR__ . '/../inc/render.php';
+require __DIR__ . '/../inc/security.php';
+nb_send_security_headers();
+
+define('SITE_URL', nordbahn_site_url());
+$root = '../';
+$assetVersion = (int) @filemtime(__DIR__ . '/../assets/css/dashboard.css');
+
+$changelog = [
+    ['2026-11-27', [
+        ['Pendlermeldungen: was andere unterwegs wissen', 'Manche Infos stehen nirgends: was der Zugführer durchsagt, wo der Ersatzbus wirklich hält, welcher Aufzug kaputt ist. Dafür gibt es jetzt Pendlermeldungen. Ein Thema wählen (Lage unterwegs, Ersatzverkehr, Am Bahnhof, Tipp), den Bahnhof, dazu ein, zwei Sätze, fertig, ohne Konto. Die Seite prüft jede Meldung vorher automatisch, sie erscheint dann unter den aktuellen Meldungen, unter „Meldungen“ und, wenn sie an einem Zug hängt, in der Abfahrtstafel. Andere bestätigen mit „Stimmt noch“ oder blenden mit „Nicht mehr“ aus, nach einer bis zwölf Stunden ist sie von selbst weg.'],
+        ['Statistik zeigt, wie verlässlich das Pendeln ist', 'Die Statistik der Züge wertet jetzt nur noch den Berufsverkehr aus: montags bis freitags, nach Hamburg 5 bis 10 Uhr, zurück 15 bis 20 Uhr. Nachtzüge und Wochenenden verwässern die Zahlen nicht mehr. Der Verlauf zeigt je Werktag, welcher Anteil der Fahrten verspätet oder ausgefallen war, statt absoluter Zugzahlen. Die langen Tabellen je Tag und je Zug sind weg. Stattdessen stehen dort die fünf unzuverlässigsten und die fünf zuverlässigsten Züge, gezählt nur, wenn sie oft genug beobachtet wurden. Die Filter Tageszeit und Werktage entfallen damit.'],
+    ]],
+    ['2026-11-25', [
+        ['Fahrgastmeldungen: Zug steht, sehr voll, kurz, Klima aus', 'Was im Zug los ist, wissen die offiziellen Daten oft nicht oder erst spät. Beim Notarzteinsatz stand die RB61, galt in der Tafel aber noch lange als pünktlich. Jetzt können Fahrgäste mit einem Tipp melden, dass der Zug steht, sehr voll oder kurz ist oder Klima bzw. Heizung ausgefallen sind. Vor dem Einsteigen geht das in der aufgeklappten Fahrt in der Abfahrtstafel, unterwegs über das Popup am Zug auf der Live-Karte. Gemeldetes steht als „Fahrgäste: Zug steht“ in der Zeile und in der Liste unter der Karte. Jede Meldung gilt nur für diese Fahrt und verschwindet von selbst, „Stimmt nicht mehr“ blendet sie sofort aus. Kein Konto, kein Freitext, keine Daten an Dritte.'],
+    ]],
+    ['2026-11-13', [
+        ['Züge zuerst, auch an Störungstagen', 'Ist etwas los, standen bisher erst die Lagekarten, dann die Störung mit ihrem ganzen Text und die aktuellen Meldungen auf der Startseite. Die Züge kamen auf dem Handy erst nach langem Scrollen, ausgerechnet dann, wenn man sie am dringendsten braucht. Jetzt folgen die Abfahrten direkt auf die Lagekarten. Die Karte „Infrastruktur“ nennt die Störung dafür gleich beim Namen und sagt, bis wann sie voraussichtlich dauert. Die Störungskarte mit dem ganzen Text und die Meldungen stehen zusammen unter „Aktuelle Meldungen“ unterhalb der Züge. Bei ruhiger Lage ändert sich nichts.'],
+        ['Ankunftszeit bei jedem Zug', 'Unter jedem Zug steht jetzt, wann er ankommt: Richtung Hamburg am Ziel („an 08:41“), auf dem Rückweg am eigenen Bahnhof („an Prisdorf 17:31“). Ist der Zug verspätet, steht die erwartete Ankunft mit der Verspätung in Klammern da. Bisher musste man dafür die Zeile aufklappen und die Halte durchsehen. In Elmshorn und überall, wo auch RE halten, zeigt sich so auf einen Blick, welcher Zug zuerst in Hamburg ist. Hält ein Zug heute nicht am eigenen Bahnhof, steht „Halt … entfällt“ in der Zeile. Damit die Zeilen dadurch nicht höher werden, rücken Tafel und Spalten auf schmalen Handys etwas zusammen, und ein Gleis wie „Gl. 3“ bricht nicht mehr mitten durch um. Die Ankunft steht auch in lage.md und in den Antworten für Claude und ChatGPT.'],
+        ['Ausblick: geplante Fahrplanänderungen', 'Neuer Bereich auf der Startseite und unter „Meldungen · Aktiv“: die Sonderfahrpläne der Nordbahn zu RB60, RB61 und RB71, die die Nordbahn gerade führt oder für die nächsten 14 Tage ankündigt. Dort steht zum Beispiel „21.11. – 23.11.“ und daneben „Ersatzverkehr mit Bussen zwischen Elmshorn und Itzehoe“, im Wortlaut der Nordbahn und mit Link zum Sonderfahrplan auf nordbahn.de. Bisher wertete die Seite die Sonderfahrpläne nur aus, um einen laufenden Baufahrplan ab und bis Altona zu erkennen, alles andere blieb unsichtbar. Der Bereich erscheint nur, wenn es etwas gibt, einzelne Einträge lassen sich mit dem Kreuz ausblenden. Auch lage.md und die Antworten für Claude und ChatGPT nennen die geplanten Änderungen.'],
+        ['S3-Karte richtet sich nur noch nach den Zügen', 'Bisher setzte jede ungeplante HVV-Meldung, die an der S3 hing, die Karte auf „S3 gestört“. Der HVV hängt eine Meldung aber oft an alle Linien, die im betroffenen Abschnitt halten. So färbte „Derzeit Verspätungen und Ausfälle auf der S1“ die S3-Karte rot, obwohl die S3 pünktlich fuhr. Jetzt zählt für die Karte nur noch, was die Züge zeigen: Ausfälle und Verspätungen der nächsten Stunde, mit denselben Schwellen wie bisher. HVV-Meldungen stehen weiter unter „Aktuelle Meldungen“, zur S3 aber nur noch, wenn ihr Titel die S3 nennt. Bei RB60, RB61 und RB71 gilt weiter die Zuordnung des HVV, weil die Titel dort die Linie meist gar nicht nennen.'],
+        ['Mein Zug in der Tafel, gewählte Richtung bleibt', 'Ein unter „Meine Züge“ gemerkter Zug ist in der Abfahrtstafel jetzt leicht hinterlegt und mit „Mein Zug“ beschriftet. Und wer gegen die Tageszeit umschaltet, etwa nachmittags auf „Nach Hamburg“ für die Spätschicht, behält diese Wahl vier Stunden lang, auch wenn die Seite sich zwischendurch neu lädt. Bisher sprang sie nach jedem Neuladen zurück.'],
+        ['Die Seite steht beim Laden still', 'Bisher baute sich die Startseite in Schüben auf: erst „Lade …“ in den Tafeln, dann sortierten sich die Richtungen um, dann schoben die Züge alles darunter nach unten. Wer in dem Moment tippen wollte, traf leicht daneben. Jetzt stehen in der Abfahrtstafel von Anfang an Platzhalterzeilen in der Höhe echter Zeilen, und die Richtung nach der Tageszeit kommt gleich vom Server mit. Am Computer springt beim Laden nichts mehr, auf dem Handy bleibt der Bereich unter den Zügen an seinem Platz.'],
+        ['Lagekarten auf dem Handy wirklich kompakt', 'Die kompakte Darstellung der Lagekarten auf dem Handy hat bisher nicht gegriffen: Die Regeln dafür standen im Stylesheet vor den Grundregeln und wurden von ihnen überschrieben. Jetzt sind Karten, Abstände und Schrift auf schmalen Bildschirmen so knapp wie gedacht, eine Karte braucht rund ein Fünftel weniger Höhe. Zusammen mit der neuen Reihenfolge stehen selbst bei vier roten Karten die ersten Züge auf dem ersten Bildschirm.'],
+        ['Lagekarten sind keine Links mehr', 'Die Karten „Infrastruktur“ und „Eilmeldungen“ führten beim Antippen zu „Meldungen · Aktiv“. Zu erkennen war das nicht, und seit Störung und Meldungen direkt unter den Zügen stehen, brachte der Sprung nichts Neues. Die Lagekarten sind jetzt reine Anzeige. „Meldungen · Aktiv“ mit allem, was gerade gilt, auch dem Weggeklickten, bleibt über „Meldungen“ in der Navigation erreichbar.'],
+        ['Grauer Text besser lesbar', 'Zeiten wie „in 9 Min“, Gleise, Wagenzahl und Hinweise standen im hellen Design in einem Grau, das für kleine Schrift zu schwach war, vor allem draußen im Tageslicht. Der Nebentext ist jetzt etwas dunkler und erfüllt den üblichen Mindestkontrast von 4,5 zu 1. Das dunkle Design war schon in Ordnung.'],
+        ['Für Screenreader: Ansage nur bei Neuem', 'Die Abfahrtstafeln waren als Live-Bereiche ausgezeichnet und bauen sich jede halbe Minute neu auf. Ein Screenreader las deshalb immer wieder alle Züge vor. Jetzt sagt die Seite nur an, was neu ist: eine neue Infrastrukturstörung oder einen neuen Zugausfall. Die Tafeln tragen dafür ihren Titel als Beschriftung, die Zeitangabe „Aktualisiert vor …“ wird nicht mehr jede Minute vorgelesen, und die Überschriften der Startseite folgen jetzt lückenlos aufeinander.'],
+        ['Störung und Eilmeldung: eine Seite, ein Aufbau', 'Die Seite einer Infrastrukturstörung und die einer Eilmeldung der Nordbahn sehen jetzt gleich aus: Titel, der aktuelle Text, darunter „Aktiv“ oder „Aufgehoben“ mit dem Zeitraum, dann der Verlauf. Neu ist der Verlauf bei Eilmeldungen: Die Seite merkt sich ab jetzt, wann die Nordbahn eine Meldung ändert und wann sie sie von ihrer Seite nimmt, und zeigt das als „Gemeldet“, „Update“ und „Aufgehoben“. Ältere Eilmeldungen haben nur „Gemeldet“, ihr Ende wurde nie festgehalten. Weggefallen sind die Listen „Betroffene Züge“ und „Auffällige Züge rund um die Meldung“ sowie der Kasten mit dem Originaltitel der Nordbahn; Zahlen zu Zügen stehen weiter in der Statistik. Was sonst zur selben Zeit gemeldet war, steht kurz am Ende in einer Liste.'],
+    ]],
+    ['2026-11-12', [
+        ['Hell oder dunkel nach Wahl', 'Neben der Glocke oben rechts gibt es jetzt einen Schalter für das helle und das dunkle Design. Bisher folgte die Seite immer der Einstellung des Geräts. Die Wahl merkt sich der Browser, sie gilt auf allen Seiten. Wer wieder auf das Design des Geräts zurückschaltet, folgt danach wieder automatisch dem System.'],
+        ['S3-Karte schlägt seltener an', 'Bisher stand „S3 beeinträchtigt“ schon da, wenn einer von zwölf Zügen fünf Minuten zu spät war. Bei einer S-Bahn, die alle zehn Minuten fährt, ist das für Pendler kein Problem. Jetzt bleibt die Karte grün („S3 fährt weitgehend planmäßig“, mit den Zahlen darunter), bis gut ein Drittel der Züge betroffen ist. Früher gelb wird sie bei zwei oder mehr Ausfällen oder einer Verspätung ab 15 Minuten. „S3 gestört“ heißt es ab drei Fünfteln betroffener Züge oder bei einer ungeplanten HVV-Meldung zur S3.'],
+        ['DB Regio auch in Pinneberg, Glückstadt, Itzehoe und Wrist', 'Die RE von DB Regio stehen jetzt nicht nur in Elmshorn mit in der Tafel, sondern überall, wo sie halten: der RE6 in Glückstadt und Itzehoe, einzelne RE70 in Wrist und, falls ein RE dort hält, in Pinneberg. Auf dem Weg nach Hause erscheinen nur die RE, die am eigenen Bahnhof auch halten. Ein RE70, der in Wrist durchfährt, steht dort also nicht in der Liste.'],
+    ]],
+    ['2026-11-11', [
+        ['DB Regio ab Elmshorn', 'Wer Elmshorn als Bahnhof gewählt hat, sieht in „Nächste Züge“ jetzt auch die RE6, RE7 und RE70 von DB Regio, gemischt mit den Zügen der Nordbahn und nach Abfahrt sortiert. Sie fahren im HVV-Tarif, das HVV-Ticket und das Deutschlandticket gelten also auch dort. Nach Hamburg stehen die Züge mit ihrem Ziel, zurück mit „ab Hbf“ (RE7, RE70) oder „ab Altona“ (RE6). Echtzeit, Ausfälle und Gleiswechsel kommen vom HVV. IC und ICE fehlen bewusst, dort gilt der HVV-Tarif nicht.'],
+    ]],
+    ['2026-11-03', [
+        ['Tabs für die Richtung auf dem Handy', 'Auf dem Handy stehen „Nächste Züge“ und „S-Bahn S3“ nicht mehr mit beiden Richtungen untereinander. Tabs „Nach Hamburg | Nach Hause“ zeigen eine Richtung, vormittags ist „Nach Hamburg“ gewählt, ab 12 Uhr „Nach Hause“. Ein Tipp schaltet Nordbahn und S3 gemeinsam um. Am Computer bleibt alles nebeneinander.'],
+    ]],
+    ['2026-10-30', [
+        ['Anleitung für Claude und ChatGPT, Nutzungsbedingungen', 'Neue Seite „In Claude und ChatGPT“ (unten im Footer): wie man den MCP-Server in Claude oder ChatGPT einträgt, Beispielfragen, was die Werkzeuge können und wo die Grenzen sind. Dazu gibt es jetzt Nutzungsbedingungen, und die Datenschutzerklärung beschreibt, welche Daten beim MCP-Server anfallen: nur die Anfrage des Assistenten, nie der Inhalt der Unterhaltung. Nebenbei korrigiert: Die Datenschutzerklärung erwähnte noch den Stern und die Glocke als Menü und sprach von „keinem Formular“, obwohl es den Feedback-Knopf gibt.'],
+        ['Bahn-Pinneberg.de in Claude und ChatGPT', 'Die Seite hat jetzt einen MCP-Server unter bahn-pinneberg.de/mcp. Wer ihn in Claude, ChatGPT oder einem anderen Assistenten als Connector einträgt, kann dort einfach fragen: „Gibt es gerade Probleme auf der RB61?“, „Fährt der nächste Zug ab Elmshorn pünktlich?“ oder „Was ist mit der Störung bei Tornesch?“. Die Antwort kommt mit dem Stand von jetzt, nicht aus einem Suchindex von gestern. Ohne Anmeldung, nur lesend. Nebenbei nennt lage.md jetzt Datum und Uhrzeit des Abrufs, und die Abfahrten unter /api/ dürfen von Assistenten abgerufen werden, die sich an robots.txt halten.'],
+        ['Erledigte Eilmeldungen verschwinden sofort', 'Eine Eilmeldung galt bisher vier Stunden lang als akut, auch wenn die Nordbahn sie längst von ihrer Seite genommen hatte. So stand morgens noch „Eilmeldung vor 2 Std.: Streckensperrung Dauenhof – Wrist“ oben, obwohl die Sperrung vorbei war. Jetzt zählt eine Eilmeldung nur so lange, wie sie auf nordbahn.de steht, und höchstens vier Stunden. Nimmt die Nordbahn sie herunter, wird die Lagekarte grün und nennt nur noch „Letzte vor …“, und die Meldung verschwindet aus „Aktuelle Meldungen“ und „Meldungen · Aktiv“. Im Verlauf und im Archiv bleibt sie erhalten. Kann nordbahn.de gerade nicht gelesen werden, gilt wie bisher nur das Alter.'],
+    ]],
+    ['2026-10-27', [
+        ['Einstellungen im Stil einer Systemeinstellung', 'Die Einstellungsseite besteht jetzt aus zwei Karten mit Zeilen: „Meine Züge“ mit Bahnhof, Richtung als Segment, Suchfeld in voller Breite und einem Platzhalter, solange kein Zug gemerkt ist; „Benachrichtigungen“ mit Kippschalter, den Wahlen „Alles | Nur meine Züge“ und „Pendelzeiten | Immer“ als Segmente und der Erklärung nur zur gewählten Option. Der Bereich „Gespeicherte Daten“ ist weg, er wiederholte nur die Einstellungen; „Alles löschen“ steht als Zeile am Ende. Nebenbei repariert: Die Styles für Suche und Vorschlagsliste waren beim Entfernen der Startseitenkarte verloren gegangen.'],
+        ['Zeitraum in Alltagssprache, Zeitbalken und Verlauf als Änderungsliste', 'Statt „seit 27.10., 14:50 Uhr, voraussichtlich bis 28.10., 14:00 Uhr“ steht bei einer Störung jetzt „Seit 14:50 Uhr (4 Std.) · voraussichtlich bis morgen 14:00 Uhr“, auf der Startseite wie auf der Seite der Störung. Darunter zeigt ein dünner Balken, wie weit der gemeldete Zeitraum fortgeschritten ist; ist das Ende überschritten, wird er gelb. Der Verlauf nennt je Schritt nur, was sich geändert hat: „Gemeldet“, „Update“, „Verlängert“ mit altem und neuem Ende, zum Schluss „Aufgehoben“ mit der Dauer. Ältere Schritte sind eingeklappt. Die Quelle steht beim Zitat der Originalmeldung, die Zeiten stehen nicht mehr dreimal auf der Seite.'],
+        ['Verlauf ohne „Pendler-Text aktualisiert“', 'Auf der Seite einer Störung zeigte die Zeitleiste einen eigenen Schritt, wenn nur die lesbare Fassung einer Änderung nachkam. Das war Technik, kein Ereignis. Jetzt gehört die neue Fassung zum Schritt der Änderung selbst, die Zeitleiste kennt nur noch „Störung gemeldet“, „Neuer Stand“ und „Neues voraussichtliches Ende“.'],
+        ['Hinweise ohne spürbare Folgen sind keine Störungen mehr', 'Meldungen wie „Betrieb wieder planmäßig, Ersatzteil wird noch eingebaut“ führte strecken-info.de tagelang als aktive Störung, und die Seite zeigte sie als solche: gelbe Lagekarte, Karte auf der Startseite, Benachrichtigung. Jetzt zählen sie als Hinweis: Die Lagekarte bleibt grün und nennt sie nur klein, auf der Startseite erscheint keine Karte, es gibt keinen Push, und sie fehlen unter „Wichtig“ und in der Statistik. Unter „Meldungen · Aktiv“ stehen sie in einem eigenen Abschnitt. Das Urteil trifft die KI aus dem Text der Meldung, im Zweifel bleibt es eine Störung. Ändert sich die Lage, etwa von „keine Folgen“ zu „Verspätungen“, kommt die Meldung wie neu.'],
+        ['Neue Seite: Einstellungen', 'Die Glocke oben rechts öffnet kein Menü mehr, sondern die neue Seite „Einstellungen“, auch im Handy-Menü zu finden. Dort stehen „Meine Züge“ mit der Suche, die Benachrichtigungen (an oder aus, alles oder nur meine Züge, Pendelzeiten), eine Anleitung, wie die Seite auf den Home-Bildschirm kommt, und unter „Gespeicherte Daten“, was der Browser für die Seite speichert, mit „Alles löschen“. Die Startseite bleibt frei von Einstellungen, dort stehen nur Lage, Meldungen und Abfahrten. Ist die Glocke blau, sind Benachrichtigungen an.'],
+        ['Meine Züge: Baufahrplan erkannt', 'Im Baufahrplan fährt mancher Zug unter anderer Nummer und Zeit, etwa 08:18 nach Altona statt 08:17 zum Hbf. Die Suche fasst solche Varianten jetzt zu einem Zug zusammen („sonst 08:17 → Hbf“), und die Benachrichtigung meldet sich zu der Variante, die gerade fährt. Wer beide gemerkt hatte, hat jetzt einen Eintrag.'],
+        ['Meine Züge: Suche statt Stern', 'Den Stern in der Abfahrtstafel gibt es nicht mehr, er war missverständlich und kannte nur die Züge der nächsten zwei Stunden. Stattdessen steht unter den Abfahrten der Abschnitt „Meine Züge“: Richtung wählen, Abfahrtszeit eintippen („8:13“, „813“, „RB 71“ oder „Altona“), Zug antippen. Die Suche kennt alle Züge, die die Seite in den letzten zwei Wochen gesehen hat, auch den Zug morgen früh. Die gemerkten Züge stehen mit Wochentagen in der Liste, und sobald einer in der Tafel auftaucht, steht dort seine Lage von heute. Die Glocke führt mit „Meine Züge bearbeiten“ dorthin.'],
+        ['Benachrichtigung für meinen Zug', 'Neben jedem Zug in der Abfahrtstafel steht jetzt ein Stern. Wer seine Züge merkt, etwa den 7:12 ab Prisdorf und den 17:04 ab Hbf zurück, bekommt ab einer Stunde vor der Abfahrt eine Meldung, wenn genau dieser Zug ausfällt, stattdessen ab Altona fährt, erst in Pinneberg startet, früher endet, ein Bus fährt, er fünf Minuten oder mehr zu spät ist oder das Gleis wechselt. Wird die Verspätung größer, kommt bei 10, 15, 20, 30, 45 und 60 Minuten eine neue Meldung, die die alte auf dem Handy ersetzt. In der Glocke stehen die gemerkten Züge mit ihren Wochentagen, und „Nur meine Züge“ schaltet alle anderen Meldungen ab. Die Züge reisen mit dem Push-Abo zum Server, ein Konto braucht es nicht.'],
+        ['Feedback-Knopf', 'Unten links auf jeder Seite gibt es jetzt „Feedback“: Fehler, Idee oder Sonstiges auswählen, ein paar Sätze schreiben, abschicken. Die Nachricht geht direkt beim Betreiber ein, ein Kontakt ist nur nötig, wenn du eine Antwort möchtest.'],
+        ['Lagekarten führen zu „Aktiv“', 'Die Karten „Infrastruktur“ und „Eilmeldungen“ auf der Startseite sind jetzt Links. Sie führen zur neuen Kategorie „Aktiv“ unter Meldungen: alles, was gerade gilt, ohne Wichtig-Filter. Laufende Infrastrukturstörungen, ein Baufahrplan, Eilmeldungen der letzten vier Stunden, gerade aufgehobene Störungen und gültige HVV-Meldungen. Auch leichte Störungen stehen dort, die unter „Wichtig“ bewusst fehlen.'],
+        ['Meldungen wegklicken', 'Jede Störungskarte und jede Meldung unter „Aktuelle Meldungen“ hat jetzt ein Kreuz. Ein Tipp darauf blendet sie aus, etwa wenn sie eine Linie oder einen Abschnitt betrifft, mit dem man nichts zu tun hat. Der Browser merkt sich das sieben Tage lang, die Meldung bleibt auch nach dem Neuladen weg. Die Auswahl bleibt im eigenen Browser, es wird nichts an den Server geschickt. Die Lagekarten oben zeigen weiter die ganze Lage, und unter „Meldungen · Aktiv“ stehen immer alle Meldungen, auch die weggeklickten.'],
+    ]],
+    ['2026-10-26', [
+        ['Home-Bildschirm: „Bahn Pinneberg“ und neues Symbol', 'Das Symbol auf dem Home-Bildschirm heißt jetzt „Bahn Pinneberg“ statt „Bahn PI“. Safari merkt sich das App-Symbol sehr lange, deshalb zeigte der Dialog „Zum Home-Bildschirm“ oft noch das alte blaue „N“. Das Symbol hat jetzt eine neue Adresse, Safari lädt den Nordbahn-Zug damit frisch. Wer die Seite schon auf dem Home-Bildschirm hat, entfernt sie einmal und fügt sie neu hinzu.'],
+        ['Baufahrplan statt „gestört“', 'Fahren RB61 und RB71 wegen Bauarbeiten planmäßig nur ab und bis Hamburg-Altona, galt jeder Zug bisher als Umleitung und die Karte stand auf rot „Nordbahn gestört“. Jetzt liest die Seite auch die Sonderfahrpläne der Nordbahn mit. Ist einer mit „ab/bis Hamburg-Altona“ gerade gültig, zeigt die Karte gelb „Nordbahn fährt nach Baufahrplan“ mit dem Text des Sonderfahrplans und bis wann er gilt. Ausfälle und Verspätungen zählen weiter wie bisher.'],
+    ]],
+    ['2026-10-25', [
+        ['Schlankerer Footer', 'Meldungen, Live-Karte und Statistik stehen nur noch in der Kopfzeile. Der Footer zeigt, was dort fehlt: die Kanäle auf Telegram und X, die häufigen Fragen, „Was ist neu“ und das Impressum.'],
+        ['Meldungen aufgeräumt', 'Wichtig, Eilmeldungen und Störungen sind jetzt ein Bereich „Meldungen“ mit drei Kategorien zum Durchklicken. Die Einleitungen („erfasst seit dem …“) und die Quellenhinweise unter den Listen sind weg, woher die Daten kommen, steht in den häufigen Fragen. Die Rubriken heißen kurz „Störung“ und „Eilmeldung“, auch bei den aktuellen Meldungen auf der Startseite.'],
+        ['Neues Icon: der Nordbahn-Zug', 'Statt des blauen „N“ zeigt die Seite jetzt einen grünen Nordbahn-Triebwagen von vorn: als Favicon im Browser-Tab, als Logo neben dem Namen in der Kopfzeile und als App-Symbol auf dem Home-Bildschirm. Bei Störungen bekommt das Favicon wie bisher einen roten oder orangen Punkt. Wer die Seite schon auf dem Home-Bildschirm hat, sieht das neue Symbol erst nach dem erneuten Hinzufügen.'],
+        ['Live-Karte zeigt immer das ganze Netz', 'Die Karte öffnet nicht mehr im Abschnitt des Heimatbahnhofs, sondern zeigt gleich alle Züge zwischen Hamburg, Elmshorn, Itzehoe und Wrist. Hineinzoomen geht wie gewohnt.'],
+        ['Neue Kopfzeile mit Menü', 'Oben stehen jetzt auf jeder Seite die Bereiche Start, Meldungen, Live-Karte und Statistik, die aktuelle Seite ist hervorgehoben. Auf dem Handy liegen sie hinter dem Menü-Knopf rechts, zusammen mit den häufigen Fragen und „Was ist neu“. Die Kopfzeile bleibt beim Scrollen oben stehen, die Glocke für Benachrichtigungen bleibt neben dem Menü direkt erreichbar. Der Knopf zum Aktualisieren ist weg: Die Seite lädt jede Minute und beim Zurückkehren in die App ohnehin selbst nach. Wer sofort nachladen will, tippt auf „Aktualisiert vor …“.'],
+        ['Live-Karte ohne Filter und mit weniger Text', 'Die Chips für Linie und Ausschnitt sind weg, die Karte öffnet im Abschnitt des Heimatbahnhofs. Die Erklärung, wie die Positionen entstehen, ist auf einen Satz geschrumpft und steht ausführlich in den häufigen Fragen. Unter der Liste nennt ein fester Absatz Linien und Halte.'],
+        ['Live-Karte: Gleise und Nordbahn-Zug', 'Die Strecke folgt jetzt den echten Gleisen aus OpenStreetMap statt gerader Linien zwischen den Bahnhöfen, in den Farben der Linien, die dort fahren. Jeder Zug ist ein kleiner Nordbahn-Triebwagen mit Linienbadge und Verspätung daneben; wartende Züge stehen über ihrem Startbahnhof, angekommene darunter.'],
+        ['Live-Karte: wo die Züge gerade sind', 'Neue Seite „Nordbahn live“ unter /karte/, verlinkt im Footer: eine Karte mit allen Zügen der RB60, RB61 und RB71, die unterwegs sind oder in den nächsten 20 Minuten starten. Jeder Zug ist ein Chip in Linienfarbe mit Verspätung; ein Tipp darauf zeigt Laufweg, nächsten Halt, Gleis und Hinweis. Der Kartenausschnitt richtet sich beim Laden nach dem Heimatbahnhof der Startseite (Hamburg – Elmshorn, der Ast nach Itzehoe oder nach Wrist), darunter die Liste aller Züge mit ihrer Lage. Die Positionen sind gerechnet, nicht geortet: aus dem Laufweg mit Prognose je Halt aus dem Stationsmonitor; zwischen zwei Abrufen fahren die Züge nach diesen Zeiten weiter. Die Karte selbst (Leaflet) liegt auf dem eigenen Server, nur die Kacheln kommen von OpenStreetMap. Auch als JSON unter api/karte.'],
+    ]],
+    ['2026-10-23', [
+        ['Statistik als Dashboard', 'Die Statistikseite hat zwei Ansichten: „Züge“ und „Strecke“. Bei den Zügen lassen sich Bahnhof, Richtung, Zeitraum (7, 14, 30 oder 60 Tage), Tageszeit (morgens, abends) und Werktage wählen. Oben stehen Pünktlichkeit, Ausfälle, mittlere Verspätung und wie viele Tage beobachtet wurden, darunter ein Verlauf je Tag und die Tabelle je Zug, sortierbar nach Abfahrt oder Ausfällen. „Strecke“ zeigt die Infrastrukturstörungen im gewählten Zeitraum. Die Filter stehen in der Adresse, ein Link zeigt also genau diese Auswahl. Ohne Auswahl gilt der Bahnhof von der Startseite.'],
+        ['Unterseiten aufgeräumt', 'Oben rechts führt überall „← Startseite“ zurück statt „Zur Lage“. Wichtige Meldungen, Eilmeldungen und Störungen haben eine gemeinsame Filterleiste „Wichtig · Eilmeldungen · Störungen“, jede Ansicht behält ihre eigene Adresse. Geblättert wird nur noch unten, und eine Seite endet nie mitten in einem Tag.'],
+        ['Footer ohne Quellenzeile', 'Die Zeile „Quellen: nordbahn.de, strecken-info.de, hvv.de“ steht nicht mehr im Footer. Woher die Daten kommen, erklären weiter die häufigen Fragen.'],
+        ['RB60 überall genannt', 'Titel, Beschreibungen, Footer und Vorschaubilder nennen jetzt RB60, RB61 und RB71. Die HVV-Meldungen umfassen auch die RB60.'],
+        ['Kompakte Lage auf dem Handy', 'Läuft alles, steht oben nur noch eine Karte „Alles planmäßig“ statt vier grüner Karten, und „Aktuelle Meldungen“ bleibt ausgeblendet. Ist etwas los, erscheinen nur die betroffenen Karten groß, die übrigen fasst eine Zeile wie „Eilmeldungen, Nordbahn und S3 ok“ zusammen. So stehen die Abfahrten deutlich weiter oben.'],
+        ['Aufgeräumter Footer', 'Im Footer stehen „Aktuelle Lage“, „Alle Eilmeldungen“ und „Alle Störungen“ nicht mehr. Zur Startseite führt der Name oben und unten, die beiden Archive sind unter „Wichtige Meldungen“ direkt unter der Einleitung verlinkt.'],
+        ['Neuer Name: Bahn-Pinneberg.de', 'Die Seite heißt jetzt wie ihre Adresse. Im Header steht nur noch „Bahn-Pinneberg.de“ statt „Nordbahn Monitor · bahn-pinneberg.de“, ebenso in Seitentiteln, Footer, Benachrichtigungen, App-Name und Vorschaubildern. Auf dem Homescreen heißt das Symbol „Bahn PI“.'],
+        ['Eilmeldungskarte ohne alten Hinweis', 'Die grüne Karte „Keine akuten Eilmeldungen“ nennt die letzte Meldung („Letzte vor 6 Std.“) nur noch bis zwölf Stunden danach. Die Nordbahn liefert keine Gültigkeit mit, der Hinweis soll nur zeigen, ob eine jüngere Meldung noch nachwirken kann.'],
+        ['Ein Bereich „Aktuelle Meldungen“', 'Statt vier Listen („Wichtig in den letzten 24 Stunden“, „Letzte Eilmeldungen“, „Letzte Infrastrukturstörungen“, „Letzte HVV-Meldungen“) gibt es direkt unter den Lagekarten einen Bereich mit dem, was gerade gilt: Eilmeldungen der letzten vier Stunden, Störungen bis eine Stunde nach ihrer Aufhebung und ungeplante HVV-Meldungen. Geplante HVV-Hinweise wie Bauarbeiten oder Vorankündigungen fallen weg, weil ihr Zeitraum oft nur der der Ankündigung ist. Doppelte HVV-Meldungen erscheinen nur einmal. Ist nichts los, bleibt eine Zeile übrig. Der Rückblick steht unter „Verlauf“ sowie bei allen Eilmeldungen und Störungen.'],
+    ]],
+    ['2026-10-21', [
+        ['S3-Tafeln nach Tageszeit', 'Wie bei der Nordbahn steht auch bei der S3 vormittags die Fahrt in die Stadt oben und ab 12 Uhr die Rückfahrt nach Pinneberg.'],
+        ['Abfahrtstafel ohne Zugbilanz', 'Die graue Zeile „Letzte N Tage: …“ unter jeder Nordbahn-Abfahrt ist weg. Wie zuverlässig ein Zug in den letzten 30 Tagen war, steht weiter auf der Statistikseite.'],
+    ]],
+    ['2026-10-20', [
+        ['Einheitliche Lagekarten für Nordbahn und S3', 'Die Karte zur Fahrplanlage heißt jetzt wie die S3-Karte nach der Linie: „Nordbahn fährt planmäßig“, „Nordbahn beeinträchtigt“, „Nordbahn gestört“, analog „S3 fährt planmäßig“ und so weiter.'],
+        ['S-Bahn S3 und HVV-Meldungen', 'Neue Lagekarte „S3 Pinneberg – Hamburg“ aus den Echtzeit-Abfahrten der S3, dazu zwei Tafeln: Pinneberg Richtung Stadt und vom gewählten Stadtbahnhof (Altona, Stadthausbrücke, Jungfernstieg oder Hauptbahnhof) zurück nach Pinneberg. Darunter die neue Liste „Letzte HVV-Meldungen“ zu S3, RB61 und RB71. Quelle ist die Schnittstelle des HVV (Geofox). Geplante Meldungen wie Bauarbeiten stehen in der Liste, färben die Karte aber nicht ein. Auch in lage.md und unter api/s3.'],
+    ]],
+    ['2026-10-19', [
+        ['Rubrik „Wichtige Meldungen“', 'Unter /news/ stehen nur noch die Störungen und Eilmeldungen, die viele Pendler betreffen: schwere Einschränkungen, Ausfälle, Umleitungen, Ersatzverkehr, Sperrungen, Bauarbeiten oder Meldungen zu mehreren Zügen. Die Startseite zeigt die wichtigen Meldungen der letzten 24 Stunden oberhalb der Abfahrten. Die Regeln stehen in den häufigen Fragen.'],
+        ['Ereignisseiten im Artikel-Layout mit lesbaren Adressen', 'Störungen und Eilmeldungen haben jetzt eine Lesespalte mit Vorspann, Faktenbox, Originalmeldung als Zitat, Zeitleiste und Teilen-Zeile. Die Adressen tragen den Titel, etwa /eilmeldung/em-123456/rb61-elmshorn-altona-faellt-aus/. Alte Links ohne Titel leiten weiter.'],
+    ]],
+    ['2026-10-18', [
+        ['Eine Seite je Störung und je Eilmeldung', 'Jede Infrastrukturstörung hat jetzt eine eigene Seite mit Pendler-Text, Originalmeldung, Verlauf (neuer Stand, geändertes Ende), den auffälligen Zügen im Zeitraum, Eilmeldungen und weiteren Störungen zur selben Zeit. Eilmeldungen bekommen ebenfalls eine Seite mit Pendler-Text, Nordbahn-Titel und der Lage zu dieser Zeit. Alle Listen, die Störungskarte und die Push-Nachrichten verlinken dorthin, die Seiten stehen in der Sitemap.'],
+    ]],
+    ['2026-10-17', [
+        ['Züge ab Pinneberg in der Rückrichtung', 'Nachts beginnen die Züge nach Norden regulär in Pinneberg und standen deshalb nicht unter „Hamburg → Prisdorf“. Jetzt liest die Seite zusätzlich die Pinneberger Tafel (für die Äste auch Elmshorn) und zeigt diese Züge als „ab Pinneberg“ mit Hinweis „Beginnt planmäßig in Pinneberg, aus Hamburg mit der S-Bahn“. Die Zugauskunft bestätigt den Start, Züge, die Hamburg schon verlassen haben, erscheinen nicht doppelt.'],
+        ['Nachtzüge und Busse vollständig', 'Der Stationsmonitor der Nordbahn trägt bei Abfahrten kurz nach Mitternacht manchmal das Datum von gestern; diese Züge und Ersatzbusse fehlten dann in der Liste. Das wird jetzt erkannt. Züge, die planmäßig nur bis Pinneberg fahren (nachts, weiter mit der S-Bahn), stehen als „nur bis Pinneberg“ ohne Warnfarbe in der Liste und zählen nicht als Störung, auch nicht in der Zuverlässigkeit je Zug.'],
+        ['Züge nach Pinneberg zählen als Züge nach Hamburg', 'Wenden die Züge wegen einer Störung in Pinneberg, führt die Tafel sie mit Ziel „Pinneberg“. Bisher fielen sie damit aus der Liste Richtung Hamburg, die Seite zeigte „Keine Abfahrt“. Jetzt stehen sie drin, markiert als „nur bis Pinneberg“, ab dort geht es mit der S-Bahn weiter. Gilt allgemein für jedes Ziel, das vom eigenen Bahnhof aus Richtung Hamburg liegt.'],
+    ]],
+    ['2026-10-16', [
+        ['Zuverlässigkeit je Zug', 'Die Seite merkt sich bei jeder Abfrage je Tag und Zug den letzten Stand vor der Abfahrt. Nach fünf beobachteten Tagen steht unter der Abfahrtszeile „Letzte 30 Tage: 2× ausgefallen, Ø +3 min“, und die Statistikseite zeigt je Bahnhof eine Tabelle aller Züge mit Ausfällen, Teilausfällen, Verspätungen ab 5 Minuten, Durchschnitt und Maximum. Die Sammlung beginnt mit diesem Update, die ersten Werte gibt es also in einer Woche.'],
+        ['Für KI-Assistenten lesbar', 'Unter /llms.txt beschreibt die Seite sich selbst samt Datenfeldern, unter /lage.md gibt es die aktuelle Lage als Text: Status, aktive Störungen, nächste Züge, letzte Eilmeldungen. Wer einem Assistenten „Wie sieht es auf der Nordbahn aus?“ fragt, kann ihm diese Adresse geben.'],
+        ['Abfahrten laden schneller', 'Der Server fragt die vier Tafeln und bis zu 16 Zugauskünfte jetzt gleichzeitig ab statt nacheinander, aus bis zu 20 Wartezeiten werden zwei. Ist der letzte Stand bis zu drei Minuten alt, kommt er sofort und wird im Hintergrund erneuert. Der n8n-Push wärmt alle zwei Minuten die Abfahrten für Prisdorf vor.'],
+        ['Heimatbahnhof in der Statistik', 'Plausible bekommt zu jedem Seitenaufruf den gewählten Heimatbahnhof als Eigenschaft „heimat“ mit, ohne Cookies und ohne Personenbezug. So ist sichtbar, aus welchen Orten die Pendler kommen. Wer nie einen Bahnhof gewählt hat, zählt als „Prisdorf (Vorgabe)“.'],
+        ['Archiv für Eilmeldungen und Störungen', 'Die Startseite zeigt nur die jüngsten Einträge. Unter „Alle Eilmeldungen“ und „Alle Störungen“ gibt es jetzt je eine Seite mit der kompletten Historie, nach Tagen gegliedert. Laufende Störungen sind dort als „aktiv“ markiert. Beide Seiten stehen auch im Footer und in der Sitemap.'],
+        ['Heute auf einen Blick', 'In den Listen „Letzte Eilmeldungen“ und „Letzte Störungen“ steht statt des Datums „Heute“ oder „Gestern“. Heutige Einträge sind voll ausgezeichnet, ältere treten zurück, damit Veraltetes sofort erkennbar ist. Eilmeldungen mit Pendler-Titel zeigen darunter auch den Pendler-Text.'],
+        ['Benachrichtigungen auch bei geschlossener Seite', 'Web Push mit Service Worker: Wer die Glocke einschaltet, bekommt neue Störungen (mit Pendler-Text), Entwarnungen, neue Eilmeldungen und Zugausfälle am eigenen Bahnhof aufs Gerät, auch wenn die Seite zu ist. Pendelzeiten gelten weiter. Auf dem iPhone zuerst zum Home-Bildschirm hinzufügen.'],
+    ]],
+    ['2026-10-15', [
+        ['Störungsstatistik', 'Neue Seite mit Kennzahlen aus dem Logbuch: Störungen und Gesamtdauer der letzten 30 Tage, Verlauf über acht Kalenderwochen und die häufigsten Ursachen. Verlinkt im Footer.'],
+        ['Impressum und Datenschutz', 'Eigene Seite mit Anbieterkennzeichnung und Datenschutzerklärung (Hosting, Plausible, lokale Einstellungen, Benachrichtigungen). Die Kontaktangaben kommen aus der Konfiguration.'],
+        ['Sicherheit und Suchmaschinen', 'Security-Header (HSTS, Content-Security-Policy, nosniff, Referrer-Policy, Permissions-Policy). Titel und Beschreibung nennen die Bahnhöfe, Strukturdaten beschreiben die Website, Verifizierung für Search Console und Bing per Konfiguration.'],
+        ['Eilmeldungen mit Pendler-Titel', 'Der Eilmeldungs-Workflow lässt sich von der KI einen sprechenden Titel schreiben, zum Beispiel welcher Zug wann ausfällt statt nur „Zugausfall RB60“. Die Seite zeigt diesen Titel, der Nordbahn-Titel steht im Tooltip. Meldungen zu kurzfristigem Personalausfall landen nur noch auf der Seite, nicht mehr per Telegram.'],
+        ['Abgelaufen ist nicht aufgehoben', 'strecken-info.de meldet eine Störung als „abgelaufen“, sobald ihr gemeldetes Ende vorbei ist, auch wenn sie weiter andauert. Die Workflows nahmen das bisher als erledigt. Jetzt zählt nur noch „geschlossen“; eine abgelaufene Störung bleibt aktiv und zeigt „gemeldetes Ende überschritten, dauert an“.'],
+        ['Letzte Störungen', 'Unter den Eilmeldungen steht eine Liste der zuletzt aufgehobenen Infrastruktur-Störungen der letzten sieben Tage: Beginn, Ende, Dauer und der Pendler-Text. Bisher verschwand eine Störung mit ihrer Aufhebung sofort von der Seite.'],
+        ['Eigenes Projekt', 'Der Monitor hat ein eigenes Repository mit eigenem Deploy und läuft unabhängig von bensch777.de. Adresse und Analytics stehen in der Konfiguration, nicht mehr im Code.'],
+        ['Automatische Tests für die Abfahrten', 'Alle Fälle der Abfahrtstafel sind jetzt als Tests festgehalten: Normalbetrieb, Verspätung, Gleiswechsel, Ausfall mit Ersatz ab Altona, Umleitung, Dammtor, Teilausfälle in beiden Richtungen, Heimatbahnhof-Filter und Ausfälle der Datenquelle. Sie laufen bei jeder Änderung auf GitHub, bevor etwas live geht.'],
+        ['„Erst ab Pinneberg“ wie „nur bis Pinneberg“', 'Startet ein Zug der Rückrichtung erst unterwegs, ist die Zeile kein Ausfall mehr, sondern die Abfahrt dort: orangener Punkt, Chip „erst ab Pinneberg“, Abfahrtszeit und Countdown ab Pinneberg, dazu die Hamburger Planzeit als Hinweis. Auch das Gleis ist das in Pinneberg, nicht mehr das am Hbf. Die Zeile bleibt stehen, bis der Zug in Pinneberg abfährt.'],
+        ['Nordbahn-Hinweis zum Zuglauf ausgewertet', 'Die Zugauskunft markiert den letzten Halt eines Zuges nicht als Ausfall, auch wenn er laut Hinweis entfällt. Darum zählt jetzt auch der Nordbahn-Text „hält heute nicht in …“. Meldet die Nordbahn „hält nicht in Pinneberg“, der Zug kommt dort laut Prognose aber noch an und wendet, gilt Pinneberg als Endhalt („nur bis Pinneberg“). Fährt ein Zug ab dem Heimatbahnhof wirklich keinen Halt mehr an, steht er als Ausfall mit dem Nordbahn-Hinweis in der Liste.'],
+        ['Teilausfälle auch bei unauffälligen Zügen', 'Der Stationsmonitor meldet einen Zug, der heute nur bis Pinneberg fährt, am Heimatbahnhof oft als ganz normale Abfahrt. Darum wird jetzt für jeden gelisteten Zug der Zuglauf geprüft, nicht mehr nur bei Ausfall, Verspätung oder Zuglaufhinweis.'],
+        ['Teilausfälle erkannt', 'Endet ein Zug vorzeitig (z. B. in Pinneberg, weil die Hamburger Halte entfallen), steht das als „nur bis Pinneberg“ in der Zeile. Beginnt ein Zug ab Hamburg erst unterwegs, zeigt die Ausfallzeile „Fährt erst ab Pinneberg um …“. Die Fahrplankarte zählt solche Züge mit.'],
+        ['Störungskarte kompakter', 'Liegt der Pendler-Text vor, zeigt die Störung nur noch Titel, Text und Zeitraum. Die technischen Details erscheinen nur, solange der Text fehlt.'],
+        ['Verlinkte Eilmeldungen erkennbar', 'Meldungen, die noch auf nordbahn.de stehen, sind blau und unterstrichen; ältere aus der Historie bleiben Text.'],
+        ['Ortsfehler im Pendler-Text behoben', 'Die Kürzel der Bahn (etwa AE für Hamburg-Eidelstedt) werden jetzt anhand einer Liste für den ganzen Korridor übersetzt. Störungen werden mit Status in der Datenbank behalten statt gelöscht.'],
+    ]],
+    ['2026-10-14', [
+        ['Pendler-Text bei Störungen', 'Infrastrukturstörungen erscheinen in Alltagssprache statt im Bahnjargon („ggl mit zs 6“). Der Text kommt aus dem Alert-Workflow, der auch die Telegram-Kanäle versorgt.'],
+        ['Farbige Chips für Start und Ziel', '„ab Hbf“ und „nach Hbf“ blau, „ab Altona“ und „nach Altona“ orange, „ab Dammtor“ blau umrandet. Beide Tafeln lesen sich gleich.'],
+        ['Störungen östlich vom Hbf ausgeblendet', 'Eine Weichenstörung bei Schwarzenbek tauchte als Nordbahn-Störung auf. Der räumliche Filter schneidet jetzt alles östlich vom Hbf ab.'],
+        ['Footer neu', 'Eigener Streifen mit Projekt, Kanälen (Telegram, X) und Links. Die Telegram-Icons sind aus dem Kopf verschwunden.'],
+        ['Überschrift „Aktuelle Lage“', 'Der Seitenname stand doppelt, jetzt sagt die Überschrift, was darunter kommt.'],
+        ['FAQ auf eigener Seite', 'Häufige Fragen unter /faq/, nur aus dem Footer verlinkt. Die zwischenzeitlichen Bahnhofsseiten sind wieder weg, sie waren nur doppelter Inhalt.'],
+        ['Handy-Ansicht kompakter', 'Titel, Vorspann und Lagekarten nehmen weniger Platz ein, die ersten Züge sind ohne Scrollen sichtbar.'],
+    ]],
+    ['2026-10-13', [
+        ['Suchmaschinen und Vorschauen', 'Lage, Störungen und Eilmeldungen stehen direkt im HTML, Vorschaubild je Lage für Telegram und WhatsApp, Sitemap und robots.txt, Weiterleitung von bensch777.de/nordbahn/ auf die Subdomain.'],
+        ['Benachrichtigungen nur zu Pendelzeiten', 'Die Glocke öffnet ein Menü: an/aus und wahlweise nur Mo bis Fr, 6 bis 9 und 16 bis 19 Uhr.'],
+        ['Dammtor', 'Züge ab Hbf zeigen ihren Halt am Dammtor mit Zeit und Gleis. Ist der Zug am Hbf schon weg, steht er als eigene Zeile „ab Dammtor“.'],
+        ['Ausfälle bleiben kurz stehen', 'Ein ausgefallener Zug bleibt fünf Minuten nach seiner Zeit sichtbar, damit der Bezug zum Ersatzzug erkennbar bleibt.'],
+        ['Mein Bahnhof', 'Der eigene Bahnhof ist wählbar, von Pinneberg bis Itzehoe und Wrist, und bleibt im Browser gespeichert. Die Rückrichtung zeigt nur Züge, die dort halten.'],
+        ['Eine Standangabe', 'Statt zwei Zeitstempeln steht oben „Aktualisiert vor x Min.“ für die ganze Seite.'],
+        ['Refresh-Button und schnellere Daten', 'Button im Kopf zum sofortigen Nachladen. Störungen und Eilmeldungen kommen alle zwei statt fünf Minuten, die Seite fragt jede Minute nach.'],
+        ['Leichte Störungen orange', 'Stuft strecken-info eine Störung als leicht ein, bleibt die Karte orange statt rot.'],
+        ['Gleiswechsel', 'Das heutige Gleis wird orange hervorgehoben, das Plangleis steht durchgestrichen daneben. Vorher stand bei einem Wechsel das falsche Gleis.'],
+        ['Ersatzzug ab Altona als eigene Zeile', 'Fällt ein Zug ab Hbf aus und startet stattdessen ab Altona, steht er zusätzlich als eigene Zeile mit Hinweis „Ersatz für den …“.'],
+        ['Eilmeldungen als schlichte Liste', 'Zeit und Titel, ohne die doppelten Linien-Tags.'],
+        ['Drei Lagekarten', 'Infrastruktur (strecken-info), akute Eilmeldungen (jünger als vier Stunden) und Fahrplan. Die Fahrplankarte stuft nach dem Anteil betroffener Züge ein: bis 25 % beeinträchtigt, darüber gestört.'],
+        ['Startbahnhof der Rückfahrt', 'Jede Zeile der Rückrichtung zeigt, ob der Zug ab Hbf oder ab Altona fährt.'],
+        ['Ursachen, Countdown, Benachrichtigungen', 'Verspätungs- und Ausfallgründe aus der Zugauskunft, „in 7 Min“ je Zug, der nächste fahrbare Zug ist markiert, Tab-Markierung und Systembenachrichtigungen bei Ausfällen und Störungen, Installation als Webapp.'],
+        ['Wagenzahl und automatisches Nachladen', 'Anzahl der Wagen je Zug, Eilmeldungen älter als drei Tage ausgeblendet, Seite lädt alle zwei Minuten nach und stündlich komplett neu.'],
+        ['Start', 'Nordbahn Monitor für RB61 und RB71: Störungen von strecken-info.de, Abfahrten vom Stationsmonitor der Nordbahn, Eilmeldungen von nordbahn.de.'],
+    ]],
+];
+
+$jsonLd = [
+    '@context' => 'https://schema.org',
+    '@type' => 'WebPage',
+    'name' => 'Was ist neu – Bahn-Pinneberg.de',
+    'url' => SITE_URL . '/changelog/',
+    'inLanguage' => 'de',
+];
+$title = 'Was ist neu – Bahn-Pinneberg.de';
+$description = 'Alle Änderungen an Bahn-Pinneberg.de nach Datum: neue Funktionen, Korrekturen und Anpassungen an Lage, Abfahrten und Eilmeldungen.';
+
+function nb_datum($iso)
+{
+    $dt = DateTime::createFromFormat('Y-m-d', $iso);
+
+    return $dt ? $dt->format('d.m.Y') : $iso;
+}
+?>
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title><?= nb_e($title) ?></title>
+<meta name="description" content="<?= nb_e($description) ?>">
+<link rel="canonical" href="<?= SITE_URL ?>/changelog/">
+<meta name="robots" content="index, follow">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#f6f6f4" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#121211" media="(prefers-color-scheme: dark)">
+<?= nb_theme_head() ?>
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Bahn-Pinneberg.de">
+<meta property="og:locale" content="de_DE">
+<meta property="og:url" content="<?= SITE_URL ?>/changelog/">
+<meta property="og:title" content="<?= nb_e($title) ?>">
+<meta property="og:description" content="<?= nb_e($description) ?>">
+<meta property="og:image" content="<?= SITE_URL ?>/assets/og/info.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<link rel="icon" type="image/png" sizes="64x64" href="<?= $root ?>assets/icons/icon-64.png">
+<link rel="apple-touch-icon" href="<?= $root ?>assets/icons/icon-180.png?v=2">
+<link rel="stylesheet" href="<?= $root ?>assets/css/dashboard.css?v=<?= $assetVersion ?>">
+<script type="application/ld+json"><?= json_encode($jsonLd, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) ?></script>
+<?php require __DIR__ . '/../inc/analytics.php'; ?>
+</head>
+<body>
+
+<?= nb_render_kopf($root, 'changelog') ?>
+
+<main class="wrap">
+	<div class="page-head">
+		<div>
+			<h1>Was ist neu</h1>
+			<p class="page-head__lead">Alle &Auml;nderungen an Bahn-Pinneberg.de, neueste zuerst.</p>
+		</div>
+	</div>
+
+	<section class="section changelog" aria-label="&Auml;nderungen nach Datum">
+<?php foreach ($changelog as $tag): ?>
+		<h2 class="changelog__date"><?= nb_e(nb_datum($tag[0])) ?></h2>
+		<ul class="card changelog__list">
+<?php foreach ($tag[1] as $e): ?>
+			<li><strong><?= nb_e($e[0]) ?></strong> <span><?= nb_e($e[1]) ?></span></li>
+<?php endforeach; ?>
+		</ul>
+<?php endforeach; ?>
+	</section>
+</main>
+
+<?php $current = 'changelog'; require __DIR__ . '/../inc/footer.php'; ?>
+</body>
+</html>

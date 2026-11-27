@@ -5,7 +5,7 @@
  *
  * URL: /api/regio?bhf=AEL   (AP, AEL, AGST, AIZ, AWST; siehe GF_REGIO_HEIMAT)
  *
- * Quelle ist die HVV-Schnittstelle Geofox GTI (api/geofox.php, gf_regio_*). Die
+ * Quelle ist die HVV-Schnittstelle Geofox GTI (inc/geofox.php, gf_regio_*). Die
  * Zeilen haben das Format von api/abfahrten (richtungen.hin/rueck) mit
  * quelle=hvv, die Startseite mischt sie in die Nordbahn-Tafel. Ohne Zugang in
  * config.php kommt ok=false und richtungen=null. Ein Stand gilt GF_REGIO_TTL
@@ -13,8 +13,8 @@
  * und danach im Hintergrund erneuert.
  */
 
-require_once __DIR__ . '/store.php';
-require_once __DIR__ . '/geofox.php';
+require_once __DIR__ . '/../inc/store.php';
+require_once __DIR__ . '/../inc/geofox.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('X-Robots-Tag: noindex');

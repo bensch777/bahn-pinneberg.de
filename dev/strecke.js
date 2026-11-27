@@ -2,12 +2,12 @@
 /**
  * Streckenverlauf fuer die Live-Karte aus OpenStreetMap:
  *
- *   node dev/strecke.js            Gleise von Overpass holen, karte/strecke.json neu schreiben
+ *   node dev/strecke.js            Gleise von Overpass holen, inc/strecke.json neu schreiben
  *   node dev/strecke.js osm.json   dieselbe Rechnung mit einer gespeicherten Overpass-Antwort
  *
  * Holt alle Gleise (railway=rail) im Kasten Hamburg - Itzehoe - Wrist, baut daraus
  * einen Graphen (Wege teilen sich Knoten an Weichen) und sucht fuer jede Kante aus
- * karte/strecke.json den kuerzesten Weg ueber die Schienen zwischen ihren beiden
+ * inc/strecke.json den kuerzesten Weg ueber die Schienen zwischen ihren beiden
  * Bahnhoefen (Dijkstra). Nebengleise (service=*) und S-Bahn-Gleise mit Stromschiene
  * (electrified=rail) kosten mehr, damit der Weg auf der Fernbahn bleibt. Der Abzweig
  * "J" (Altona-Nord) wird nicht geraten, sondern als der Punkt bestimmt, an dem sich
@@ -24,7 +24,7 @@ const fs = require('fs');
 const path = require('path');
 const https = require('https');
 
-const DATEI = path.join(__dirname, '..', 'karte', 'strecke.json');
+const DATEI = path.join(__dirname, '..', 'inc', 'strecke.json');
 const OVERPASS = 'https://overpass-api.de/api/interpreter';
 const RAND = 0.03;        // Grad Rand um die Bahnhoefe fuer den Abfragekasten
 const TOLERANZ = 4;       // Meter: Douglas-Peucker fuer die Stuetzpunkte
@@ -302,7 +302,7 @@ async function main() {
 	const { strecke: neu, protokoll } = rechnen(strecke, osm);
 	protokoll.forEach(z => process.stderr.write(z + '\n'));
 	fs.writeFileSync(DATEI, schreiben(neu));
-	process.stderr.write(`karte/strecke.json geschrieben.\n`);
+	process.stderr.write(`inc/strecke.json geschrieben.\n`);
 }
 
 if (require.main === module) {

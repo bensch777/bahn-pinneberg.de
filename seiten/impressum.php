@@ -1,0 +1,143 @@
+<?php
+/**
+ * Impressum und Datenschutzerklaerung. Die Anbieterangaben stehen hier als
+ * Vorgabe (oeffentliche Impressumsadresse) und lassen sich per config.php
+ * (NORDBAHN_IMPRESSUM) ueberschreiben, z. B. fuer den Hoster-Namen.
+ */
+
+require __DIR__ . '/../inc/store.php';
+require_once __DIR__ . '/../inc/render.php';
+require __DIR__ . '/../inc/security.php';
+nb_send_security_headers();
+
+define('SITE_URL', nordbahn_site_url());
+$root = '../';
+$assetVersion = (int) @filemtime(__DIR__ . '/../assets/css/dashboard.css');
+
+$config = nordbahn_config();
+$imp = is_array($config['NORDBAHN_IMPRESSUM'] ?? null) ? array_filter($config['NORDBAHN_IMPRESSUM'], 'strlen') : [];
+$imp += [
+    'name'    => 'Benjamin Neske',
+    'zusatz'  => 'c/o Rechtsanwalt Matutis',
+    'strasse' => 'Berliner Straße 57',
+    'ort'     => '14467 Potsdam',
+    'land'    => 'Deutschland',
+    'email'   => 'hallo@bahn-pinneberg.de',
+    'hoster'  => 'Hetzner Online GmbH, Industriestr. 25, 91710 Gunzenhausen',
+];
+$vollstaendig = $imp['name'] !== '' && $imp['strasse'] !== '' && $imp['ort'] !== '' && $imp['email'] !== '';
+$anschrift = array_values(array_filter([$imp['name'], $imp['zusatz'], $imp['strasse'], $imp['ort'], $imp['land']], 'strlen'));
+
+$title = 'Impressum und Datenschutz – Bahn-Pinneberg.de';
+$description = 'Anbieterkennzeichnung und Datenschutzerklärung von Bahn-Pinneberg.de.';
+?>
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title><?= nb_e($title) ?></title>
+<meta name="description" content="<?= nb_e($description) ?>">
+<link rel="canonical" href="<?= SITE_URL ?>/impressum/">
+<meta name="robots" content="noindex, nofollow">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#f6f6f4" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#121211" media="(prefers-color-scheme: dark)">
+<?= nb_theme_head() ?>
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Bahn-Pinneberg.de">
+<meta property="og:locale" content="de_DE">
+<meta property="og:url" content="<?= SITE_URL ?>/impressum/">
+<meta property="og:title" content="<?= nb_e($title) ?>">
+<meta property="og:description" content="<?= nb_e($description) ?>">
+<link rel="icon" type="image/png" sizes="64x64" href="<?= $root ?>assets/icons/icon-64.png">
+<link rel="apple-touch-icon" href="<?= $root ?>assets/icons/icon-180.png?v=2">
+<link rel="stylesheet" href="<?= $root ?>assets/css/dashboard.css?v=<?= $assetVersion ?>">
+<?php require __DIR__ . '/../inc/analytics.php'; ?>
+</head>
+<body>
+
+<?= nb_render_kopf($root, 'impressum') ?>
+
+<main class="wrap">
+	<div class="page-head">
+		<div>
+			<h1>Impressum</h1>
+			<p class="page-head__lead">Wer hinter Bahn-Pinneberg.de steht und was mit Ihren Daten passiert.</p>
+		</div>
+	</div>
+
+	<section class="section">
+		<div class="card prose">
+			<h2>Angaben gem&auml;&szlig; &sect; 5 DDG</h2>
+<?php if ($vollstaendig): ?>
+			<p><?= implode('<br>', array_map('nb_e', $anschrift)) ?></p>
+			<h2>Kontakt</h2>
+			<p>E-Mail: <a href="mailto:<?= nb_e($imp['email']) ?>"><?= nb_e($imp['email']) ?></a></p>
+			<h2>Verantwortlich f&uuml;r den Inhalt nach &sect; 18 Abs. 2 MStV</h2>
+			<p><?= nb_e($imp['name']) ?>, Anschrift wie oben.</p>
+<?php else: ?>
+			<p><strong>Die Anbieterangaben sind noch nicht hinterlegt.</strong> Sie werden in der Konfiguration des Servers gepflegt (NORDBAHN_IMPRESSUM in config.php).</p>
+<?php endif; ?>
+			<h2>Hinweis zum Projekt</h2>
+			<p>Bahn-Pinneberg.de ist ein privates, nicht kommerzielles Projekt ohne Verbindung zur NBE Nordbahn Eisenbahngesellschaft mbH, zur DB InfraGO AG oder zur NAH.SH GmbH. Alle Angaben zu St&ouml;rungen, Abfahrten und Eilmeldungen stammen aus &ouml;ffentlichen Quellen (nordbahn.de, strecken-info.de, HVV-Schnittstelle) und werden automatisch aufbereitet. F&uuml;r Richtigkeit, Vollst&auml;ndigkeit und Aktualit&auml;t wird keine Gew&auml;hr &uuml;bernommen. Verbindlich sind allein die Ausk&uuml;nfte der Nordbahn.</p>
+			<h2>Haftung f&uuml;r Links</h2>
+			<p>Die Seite verlinkt auf Angebote Dritter (nordbahn.de, strecken-info.de, Telegram, X). Auf deren Inhalte habe ich keinen Einfluss; es gelten die Angaben der jeweiligen Anbieter.</p>
+		</div>
+	</section>
+
+	<section class="section" id="datenschutz">
+		<div class="section__head">
+			<h2 class="section__title">Datenschutzerkl&auml;rung</h2>
+		</div>
+		<div class="card prose">
+			<h2>Verantwortlicher</h2>
+			<p><?= $vollstaendig ? nb_e(implode(', ', $anschrift)) . ', E-Mail <a href="mailto:' . nb_e($imp['email']) . '">' . nb_e($imp['email']) . '</a>' : 'Siehe Impressum.' ?></p>
+
+			<h2>Was diese Seite nicht tut</h2>
+			<p>Es gibt kein Konto, keinen Newsletter und keine Cookies. Es werden keine personenbezogenen Daten zu Werbezwecken verarbeitet; an Dritte gehen Daten nur in den unten beschriebenen F&auml;llen (Feedback, Pendlermeldungen, Push-Dienst des Browsers, Kartenkacheln). Fahrgastmeldungen bleiben auf dem Server dieser Seite.</p>
+
+			<h2>Server-Logs</h2>
+			<p>Beim Aufruf speichert der Webserver<?= $imp['hoster'] !== '' ? ' (Hosting: ' . nb_e($imp['hoster']) . ')' : '' ?> technisch bedingt IP-Adresse, Zeitpunkt, aufgerufene Adresse, &uuml;bertragene Datenmenge, Browser und Referrer in Logdateien. Das dient dem sicheren Betrieb und der Fehlersuche (Art. 6 Abs. 1 lit. f DSGVO). Die Logs werden nach den Fristen des Hosting-Anbieters gel&ouml;scht.</p>
+
+			<h2>Reichweitenmessung mit Plausible</h2>
+			<p>Zur Messung der Nutzung wird Plausible Analytics eingesetzt (Plausible Insights O&Uuml;, Estland, Server in der EU). Plausible arbeitet ohne Cookies und ohne Speicherung personenbezogener Daten: Die IP-Adresse wird nur fl&uuml;chtig zur Bildung eines t&auml;glich wechselnden, nicht r&uuml;ckrechenbaren Kennzeichens verwendet und nicht gespeichert. Erfasst werden Seitenaufrufe, Referrer, Ger&auml;tetyp, Browser und Land sowie einzelne Aktionen (z. B. Wechsel des Heimatbahnhofs mit dem gew&auml;hlten Bahnhof, Klick auf einen Telegram-Kanal). Plausible liest dabei nichts aus dem Speicher Ihres Browsers aus. Rechtsgrundlage ist das berechtigte Interesse, die Nutzung der Seite zu verstehen (Art. 6 Abs. 1 lit. f DSGVO). Details: <a href="https://plausible.io/data-policy" rel="noopener">plausible.io/data-policy</a>.</p>
+
+			<h2>Einstellungen im Browser</h2>
+			<p>Heimatbahnhof, Benachrichtigungseinstellungen, Ihre eigenen Fahrgast- und Pendlermeldungen werden ausschlie&szlig;lich im lokalen Speicher Ihres Browsers (localStorage) abgelegt. Das ist f&uuml;r die von Ihnen gew&uuml;nschte Funktion unbedingt erforderlich (&sect; 25 Abs. 2 Nr. 2 TDDDG). Wenn Sie Benachrichtigungen einschalten, geht der Heimatbahnhof au&szlig;erdem an den Server dieser Seite (siehe unten). Alles Weitere bleibt in Ihrem Browser und l&auml;sst sich &uuml;ber dessen Einstellungen l&ouml;schen.</p>
+
+			<h2>Benachrichtigungen (Web Push)</h2>
+			<p>Wenn Sie Benachrichtigungen einschalten, richtet Ihr Browser ein Push-Abo beim Push-Dienst seines Herstellers ein (z. B. Google f&uuml;r Chrome, Apple f&uuml;r Safari, Mozilla f&uuml;r Firefox). Auf dem Server dieser Seite werden dazu die Abo-Adresse, die vom Browser erzeugten Verschl&uuml;sselungsschl&uuml;ssel, Ihr gew&auml;hlter Heimatbahnhof, die Zeitregel und, falls Sie unter &bdquo;Meine Z&uuml;ge&ldquo; Z&uuml;ge merken, diese Z&uuml;ge (Bahnhof, Richtung, Zugnummer, Abfahrtszeit, Wochentage) gespeichert, sonst nichts; Name oder E-Mail-Adresse werden nicht erhoben. Diese Angaben bleiben gespeichert, bis Sie das Abo beenden. Nachrichten werden Ende-zu-Ende verschl&uuml;sselt an den Push-Dienst &uuml;bergeben, der nur die Abo-Adresse kennt. Rechtsgrundlage ist Ihre Einwilligung (Art. 6 Abs. 1 lit. a DSGVO), die Sie jederzeit unter Einstellungen oder in den Browser-Einstellungen widerrufen; das Abo wird dann gel&ouml;scht, nicht mehr erreichbare Abos l&ouml;schen wir automatisch.</p>
+
+			<h2>Feedback-Formular</h2>
+			<p>&Uuml;ber den Eintrag &bdquo;Feedback geben&ldquo; im Seitenfu&szlig; k&ouml;nnen Sie uns eine Nachricht schicken. &Uuml;bermittelt werden Ihr Text, die gew&auml;hlte Art, ein freiwilliger Kontakt, der Pfad der Seite, von der Sie schreiben, und die Browser-Kennung (User-Agent), damit sich Anzeigefehler nachvollziehen lassen. Die Nachricht wird nicht auf unserem Server gespeichert, sondern an einen privaten Kanal bei Discord (Discord Inc., USA) weitergeleitet, den nur der Betreiber liest; Discord Inc. ist nach eigenen Angaben unter dem EU-U.S. Data Privacy Framework zertifiziert, f&uuml;r die &Uuml;bermittlung in die USA besteht damit ein Angemessenheitsbeschluss der EU-Kommission (Art. 45 DSGVO). Nachrichten werden gel&ouml;scht, sobald sie bearbeitet sind. Zum Schutz vor Missbrauch bildet der Server aus IP-Adresse, Browser-Kennung und Datum ein t&auml;glich wechselndes, nicht r&uuml;ckrechenbares Kennzeichen und merkt sich dazu f&uuml;r eine Stunde die Zeitpunkte Ihrer Nachrichten. Rechtsgrundlage ist Ihre Einwilligung durch das Absenden (Art. 6 Abs. 1 lit. a DSGVO), die Sie jederzeit per E-Mail f&uuml;r die Zukunft widerrufen k&ouml;nnen. Bitte geben Sie keine sensiblen Daten an.</p>
+
+			<h2 id="fahrgastmeldungen">Fahrgastmeldungen</h2>
+			<p>Zu einer Fahrt k&ouml;nnen Sie mit einem Tipp melden, dass der Zug steht, sehr voll oder kurz ist oder Klima bzw. Heizung ausgefallen sind, und eine fremde Meldung als &bdquo;Stimmt nicht mehr&ldquo; markieren. Freitext gibt es nicht. Der Server speichert dazu die Zugnummer, die Art der Meldung, den Zeitpunkt und das t&auml;glich wechselnde, nicht r&uuml;ckrechenbare Kennzeichen aus IP-Adresse, Browser-Kennung und Datum, wie beim Feedback. So z&auml;hlt jede Person je Zug und Art nur einmal, und es l&auml;sst sich begrenzen, wie oft jemand meldet (daf&uuml;r merkt sich der Server eine Stunde lang die Zeitpunkte). Die Meldungen eines Tages liegen in einer Datei, die sp&auml;testens am Folgetag gel&ouml;scht wird; angezeigt werden nur Art, Anzahl und Uhrzeit, nie das Kennzeichen. Ihr Browser merkt sich im lokalen Speicher f&uuml;r drei Stunden, was Sie selbst gemeldet haben, damit Sie es mit einem zweiten Tipp zur&uuml;cknehmen k&ouml;nnen (&sect; 25 Abs. 2 Nr. 2 TDDDG). Rechtsgrundlage ist das berechtigte Interesse an einer verl&auml;sslichen, missbrauchsfreien Anzeige (Art. 6 Abs. 1 lit. f DSGVO).</p>
+
+			<h2 id="pendlermeldungen">Pendlermeldungen</h2>
+			<p>Wenn Sie eine Pendlermeldung schreiben, speichert der Server Ihren Text, das gew&auml;hlte Thema, den Bahnhof, falls gew&auml;hlt die Zugnummer, den Zeitpunkt, zwei t&auml;glich wechselnde, nicht r&uuml;ckrechenbare Kennzeichen (aus IP-Adresse, Browser-Kennung und Datum bzw. nur IP-Adresse und Datum) und einen Pr&uuml;fwert des Zufallsschl&uuml;ssels, mit dem Sie die Meldung l&ouml;schen k&ouml;nnen. Angezeigt werden nur Text, Thema, Bahnhof, Uhrzeit und wie oft sie best&auml;tigt wurde. Bitte schreiben Sie nichts, das Sie oder andere erkennbar macht.</p>
+			<p>Ist die automatische Pr&uuml;fung eingeschaltet, gehen Text, Thema, Bahnhof und Zugnummer, ohne Kennzeichen, &uuml;ber den Automatisierungsdienst n8n des Betreibers an OpenAI (OpenAI, L.L.C., USA), das beurteilt, ob die Meldung gegen die <a href="<?= $root ?>nutzungsbedingungen/#pendler">Regeln</a> verst&ouml;&szlig;t. Jede Meldung geht au&szlig;erdem mit denselben Angaben an den privaten Discord-Kanal des Betreibers, damit er sie freigeben oder entfernen kann. OpenAI und Discord sind nach eigenen Angaben unter dem EU-U.S. Data Privacy Framework zertifiziert (Art. 45 DSGVO). Wenn Sie eine Meldung best&auml;tigen, als &bdquo;Nicht mehr&ldquo; oder als unpassend markieren, merkt sich der Server dazu Ihr Kennzeichen, damit jede Person nur einmal z&auml;hlt.</p>
+			<p>Meldungen verschwinden nach einer bis zw&ouml;lf Stunden aus der Anzeige; Text und Kennzeichen l&ouml;scht der Server nach sieben Tagen, damit sich Missbrauch und Hinweise auf rechtswidrige Inhalte noch bearbeiten lassen. Zur Begrenzung merkt er sich au&szlig;erdem eine Stunde lang die Zeitpunkte Ihrer Meldungen und bis Mitternacht die Zahl abgelehnter Meldungen. Ihr Browser merkt sich im lokalen Speicher 24 Stunden lang, welche Meldungen Sie geschrieben oder bewertet haben, samt Schl&uuml;ssel zum L&ouml;schen (&sect; 25 Abs. 2 Nr. 2 TDDDG). Rechtsgrundlage ist das berechtigte Interesse an aktuellen, missbrauchsfreien Hinweisen f&uuml;r Pendler (Art. 6 Abs. 1 lit. f DSGVO).</p>
+
+			<h2 id="mcp">MCP-Server f&uuml;r KI-Assistenten</h2>
+			<p>Unter <code><?= nb_e(SITE_URL) ?>/mcp</code> l&auml;sst sich die Seite als Connector in KI-Assistenten wie Claude (Anthropic) oder ChatGPT (OpenAI) einbinden (<a href="<?= $root ?>mcp-hilfe/">Anleitung</a>). Die Anfragen kommen dann von den Servern des Assistenten-Anbieters, nicht von Ihrem Ger&auml;t. Der Server erh&auml;lt dabei die IP-Adresse und Kennung des anfragenden Servers, das aufgerufene Werkzeug und dessen Angaben (Bahnhof, Richtung, Anzahl oder Kennung einer St&ouml;rung). Den Inhalt Ihrer Unterhaltung erh&auml;lt er nicht. Gespeichert wird nur, wie oft jedes Werkzeug je Tag aufgerufen wurde, ohne Bezug zu einer Person (90 Tage). Zum Schutz vor &Uuml;berlastung bildet der Server wie beim Feedback ein t&auml;glich wechselndes, nicht r&uuml;ckrechenbares Kennzeichen und merkt sich daf&uuml;r eine Stunde lang die Zeitpunkte der Aufrufe. Rechtsgrundlage ist das berechtigte Interesse am sicheren Betrieb (Art. 6 Abs. 1 lit. f DSGVO). Was der Assistent mit Ihrer Frage und den Antworten macht, regeln die Datenschutzbestimmungen seines Anbieters.</p>
+
+			<h2>Datenquellen und externe Dienste</h2>
+			<p>Die Seite l&auml;dt St&ouml;rungen, Abfahrten und Eilmeldungen serverseitig von nordbahn.de und strecken-info.de; Ihr Browser verbindet sich dabei nicht mit diesen Diensten. Die Abfahrten der S-Bahn und der DB-Regio-Züge ab Elmshorn sowie die HVV-Meldungen fragt der Server &uuml;ber die Schnittstelle des HVV (Geofox GTI, betrieben von der HBT Hamburger Berater Team GmbH) ab; &uuml;bertragen werden dabei nur Haltestelle, Linie und Zeitfenster, keine Daten von Besuchern. Links zu Telegram, X, nordbahn.de und strecken-info.de f&uuml;hren zu Angeboten Dritter mit eigenen Datenschutzbestimmungen.</p>
+
+			<h2>Kartenkacheln von OpenStreetMap (nur Live-Karte)</h2>
+			<p>Die Seite <a href="<?= $root ?>karte/">Live-Karte</a> zeigt die Zugpositionen auf einer Karte. Die Kartenbilder (Kacheln) l&auml;dt Ihr Browser dabei direkt von den Servern der OpenStreetMap Foundation (St John&rsquo;s Innovation Centre, Cowley Road, Cambridge, CB4 0WS, Vereinigtes K&ouml;nigreich); dabei werden IP-Adresse, Browser, Referrer und der gezeigte Kartenausschnitt an diese &uuml;bertragen. F&uuml;r das Vereinigte K&ouml;nigreich besteht ein Angemessenheitsbeschluss der EU-Kommission (Art. 45 DSGVO). Die Kartensoftware (Leaflet) und die Zugpositionen kommen vom Server dieser Seite. Rechtsgrundlage ist das berechtigte Interesse, die Lage der Z&uuml;ge auf einer Karte darzustellen (Art. 6 Abs. 1 lit. f DSGVO); auf allen anderen Seiten findet keine Verbindung zu OpenStreetMap statt. Details: <a href="https://osmfoundation.org/wiki/Privacy_Policy" rel="noopener">osmfoundation.org/wiki/Privacy_Policy</a>.</p>
+
+			<h2>Ihre Rechte</h2>
+			<p>Sie haben das Recht auf Auskunft, Berichtigung, L&ouml;schung, Einschr&auml;nkung der Verarbeitung, Daten&uuml;bertragbarkeit und Widerspruch (Art. 15 bis 21 DSGVO) sowie auf Beschwerde bei einer Datenschutz-Aufsichtsbeh&ouml;rde, etwa an Ihrem Wohnort. Eine Einwilligung k&ouml;nnen Sie jederzeit f&uuml;r die Zukunft widerrufen. Eine E-Mail an die oben genannte Adresse gen&uuml;gt.</p>
+			<p><strong>Widerspruchsrecht:</strong> Soweit die Verarbeitung auf berechtigtem Interesse beruht (Art. 6 Abs. 1 lit. f DSGVO), k&ouml;nnen Sie ihr aus Gr&uuml;nden, die sich aus Ihrer besonderen Situation ergeben, jederzeit widersprechen (Art. 21 DSGVO).</p>
+
+			<p class="section__note">Stand: <?= nb_e(date('d.m.Y', (int) @filemtime(__FILE__))) ?></p>
+		</div>
+	</section>
+</main>
+
+<?php $current = 'impressum'; require __DIR__ . '/../inc/footer.php'; ?>
+</body>
+</html>

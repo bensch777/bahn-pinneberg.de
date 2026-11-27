@@ -1,6 +1,6 @@
 <?php
 /**
- * Tests fuer api/geofox.php (HVV-Schnittstelle): Signatur, Anfrage, Abfahrten,
+ * Tests fuer inc/geofox.php (HVV-Schnittstelle): Signatur, Anfrage, Abfahrten,
  * Meldungen, Statusregel, Cache und Darstellung. Die Fixtures spiegeln das
  * Format, von dem die Entwicklung ausgeht; mit echten Antworten abgleichen.
  */

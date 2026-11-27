@@ -40,7 +40,7 @@
  * fliegen beim naechsten Schreiben raus. Aus mit NORDBAHN_PENDLER => false.
  */
 
-require_once __DIR__ . '/store.php';
+require_once __DIR__ . '/../inc/store.php';
 if (!function_exists('nb_feedback_kennung')) {
     if (!defined('NORDBAHN_FEEDBACK_LIB')) {
         define('NORDBAHN_FEEDBACK_LIB', true);
@@ -652,7 +652,7 @@ function nb_pd_verwalten($now)
     $status = ['frei' => 'sichtbar', 'wartet' => 'wartet auf Freigabe', 'gemeldet' => 'als unangemessen gemeldet, ausgeblendet', 'entfernt' => 'entfernt', 'geloescht' => 'vom Verfasser gelöscht'];
     echo '<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">'
         . '<meta name="robots" content="noindex, nofollow"><title>Pendlermeldung verwalten</title>'
-        . '<link rel="stylesheet" href="../../dashboard.css"></head><body><main class="wrap pd-verwalten"><h1>Pendlermeldung verwalten</h1>';
+        . '<link rel="stylesheet" href="../../assets/css/dashboard.css"></head><body><main class="wrap pd-verwalten"><h1>Pendlermeldung verwalten</h1>';
     if ($hinweis !== '') {
         echo '<p class="pd-verwalten__hinweis" role="status">' . $e($hinweis) . '</p>';
     }

@@ -87,10 +87,10 @@ if (!defined('NORDBAHN_ABF_LIB')) {
 if (!defined('NORDBAHN_KARTE_LIB')) {
     define('NORDBAHN_KARTE_LIB', true);
 }
-require_once __DIR__ . '/../api/store.php';
-require_once __DIR__ . '/../api/render.php';
+require_once __DIR__ . '/../inc/store.php';
+require_once __DIR__ . '/../inc/render.php';
 require_once __DIR__ . '/../api/abfahrten.php';
-require_once __DIR__ . '/../api/geofox.php';
+require_once __DIR__ . '/../inc/geofox.php';
 require_once __DIR__ . '/../api/karte.php';
 require_once __DIR__ . '/../api/pendler.php';
 require_once __DIR__ . '/../tests/support.php';

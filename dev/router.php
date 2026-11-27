@@ -37,59 +37,65 @@ if ($demo !== false && $demo !== '') {
         }
     }
 }
-$map = [
-    '/api/data'      => '/api/data.php',
-    '/api/push'      => '/api/push.php',
-    '/api/abfahrten' => '/api/abfahrten.php',
-    '/api/revision'  => '/api/revision.php',
-    '/api/subscribe' => '/api/subscribe.php',
-    '/api/push-key'  => '/api/push-key.php',
-    '/api/s3'        => '/api/s3.php',
-    '/api/regio'     => '/api/regio.php',
-    '/api/karte'     => '/api/karte.php',
-    '/api/feedback'  => '/api/feedback.php',
-    '/api/community' => '/api/community.php',
-    '/api/fahrplan'  => '/api/fahrplan.php',
-    '/api/pendler'   => '/api/pendler.php',
-    '/mcp'           => '/api/mcp.php',
-    '/mcp-hilfe/'    => '/mcp-hilfe/index.php',
-    '/nutzungsbedingungen/' => '/nutzungsbedingungen/index.php',
-    '/.well-known/openai-apps-challenge' => '/openai-challenge.php',
-    '/sitemap.xml'   => '/sitemap.php',
-    '/llms.txt'      => '/llms.php',
-    '/lage.md'       => '/lage.php',
-    '/eilmeldungen/' => '/eilmeldungen/index.php',
-    '/stoerungen/'   => '/stoerungen/index.php',
-    '/news/'         => '/news/index.php',
-    '/aktuell/'      => '/aktuell/index.php',
-    '/robots.txt'    => '/robots.php',
-    '/'              => '/index.php',
-    '/faq/'          => '/faq/index.php',
-    '/changelog/'    => '/changelog/index.php',
-    '/statistik/'    => '/statistik/index.php',
-    '/karte/'        => '/karte/index.php',
-    '/impressum/'    => '/impressum/index.php',
+// Gleiche Regeln wie in der .htaccess: Seiten aus seiten/, Endpunkte aus api/,
+// feste Adressen im Wurzelverzeichnis aus assets/, alles andere ausser assets/ gibt es nicht
+$seiten = 'aktuell|changelog|eilmeldungen|einstellungen|faq|impressum|karte|mcp-hilfe|news|nutzungsbedingungen|statistik|stoerungen';
+$dateien = [
+    '/sitemap.xml' => '/seiten/sitemap.php',
+    '/robots.txt'  => '/seiten/robots.php',
+    '/llms.txt'    => '/seiten/llms.php',
+    '/lage.md'     => '/seiten/lage.php',
+    '/.well-known/openai-apps-challenge' => '/seiten/openai-challenge.php',
+    '/mcp'         => '/api/mcp.php',
+    '/mcp/'        => '/api/mcp.php',
 ];
-if (preg_match('#^/(cache|tests|dev|\.git)(/|$)#', $path) || preg_match('#^/(config(\.example)?\.php|README\.md)$#', $path)) {
-    http_response_code(403);
+$statisch = [
+    '#^/sw\.js$#' => '/assets/js/sw.js',
+    '#^/manifest\.webmanifest$#' => '/assets/manifest.webmanifest',
+    '#^/favicon\.ico$#' => '/assets/icons/favicon.ico',
+    '#^/(icon-[a-z0-9-]+\.png)$#' => '/assets/icons/$1',
+    '#^/og/([a-z]+\.png)$#' => '/assets/og/$1',
+    '#^/(google[0-9a-f]+\.html)$#' => '/assets/$1',
+];
+$ziel = null;
+if ($path === '/') {
+    $ziel = '/seiten/start.php';
+} elseif ($path === '/index.php') {
+    header('Location: /', true, 301);
     return true;
-}
-if (preg_match('#^/(stoerung|eilmeldung)/([A-Za-z0-9_.-]+)(?:/([a-z0-9-]*))?/?$#', $path, $m)) {
+} elseif (preg_match('#^/(' . $seiten . ')(/index\.php)?$#', $path, $m)) {
+    header('Location: /' . $m[1] . '/', true, 301);
+    return true;
+} elseif (preg_match('#^/(' . $seiten . ')/$#', $path, $m)) {
+    $ziel = '/seiten/' . $m[1] . '.php';
+} elseif (preg_match('#^/(stoerung|eilmeldung)/([A-Za-z0-9_.-]+)(?:/([a-z0-9-]*))?/?$#', $path, $m)) {
     $_GET[$m[1] === 'stoerung' ? 'key' : 'id'] = $m[2];
     $_GET['slug'] = $m[3] ?? '';
-    chdir($root);
-    require $root . '/' . $m[1] . '.php';
-    return true;
-}
-if (preg_match('#^/pendler/verwalten/?$#', $path)) {
+    $ziel = '/seiten/' . $m[1] . '.php';
+} elseif (isset($dateien[$path])) {
+    $ziel = $dateien[$path];
+} elseif (preg_match('#^/api/([a-z0-9-]+)$#', $path, $m) && is_file($root . '/api/' . $m[1] . '.php')) {
+    $ziel = '/api/' . $m[1] . '.php';
+} elseif (preg_match('#^/pendler/verwalten/?$#', $path)) {
     $_GET['verwalten'] = '1';
-    chdir($root . '/api');
-    require $root . '/api/pendler.php';
+    $ziel = '/api/pendler.php';
+}
+if ($ziel !== null) {
+    chdir(dirname($root . $ziel));
+    require $root . $ziel;
     return true;
 }
-if (isset($map[$path])) {
-    chdir(dirname($root . $map[$path]));
-    require $root . $map[$path];
+foreach ($statisch as $muster => $datei) {
+    if (preg_match($muster, $path)) {
+        $datei = $root . preg_replace($muster, $datei, $path);
+        $typen = ['js' => 'text/javascript', 'webmanifest' => 'application/manifest+json', 'ico' => 'image/x-icon', 'png' => 'image/png', 'html' => 'text/html'];
+        header('Content-Type: ' . ($typen[pathinfo($datei, PATHINFO_EXTENSION)] ?? 'application/octet-stream'));
+        readfile($datei);
+        return true;
+    }
+}
+if (!preg_match('#^/(assets|api)/[^/]+#', $path) || preg_match('#/$|(^|/)\.#', $path)) {
+    http_response_code(404);
     return true;
 }
 

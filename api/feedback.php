@@ -20,7 +20,7 @@
  * den Discord-Server anpingen kann.
  */
 
-require_once __DIR__ . '/store.php';
+require_once __DIR__ . '/../inc/store.php';
 
 const NB_FEEDBACK_MIN      = 5;
 const NB_FEEDBACK_MAX_TEXT = 2000;

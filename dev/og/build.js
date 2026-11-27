@@ -1,4 +1,4 @@
-// Erzeugt die Vorschaubilder og/<lage>.png (1200x630) aus dev/og/template.html.
+// Erzeugt die Vorschaubilder assets/og/<lage>.png (1200x630) aus dev/og/template.html.
 //
 //   node dev/og/build.js            (braucht: npm i -g playwright, Chromium)
 //   node dev/og/build.js karte      nur das genannte Bild
@@ -15,7 +15,7 @@ const LAGEN = [
   { name: 'warn',  color: '#fab219', icon: '!', title: 'Betrieb beeinträchtigt' },
   { name: 'alert', color: '#d33b3b', icon: '!', title: 'Störung auf der Strecke' },
   { name: 'info',  color: '#2a78d6', icon: 'i', title: 'Störungen, Abfahrten und Eilmeldungen' },
-  { name: 'karte', color: '#1f9d55', image: '../../karte/zug.png', title: 'Nordbahn live: Wo ist mein Zug?', sub: 'RB60, RB61 und RB71 jetzt auf der Karte · Hamburg – Elmshorn – Itzehoe / Wrist', foot: 'Verspätung und nächster Halt je Zug, jede Minute neu' },
+  { name: 'karte', color: '#1f9d55', image: '../../assets/img/zug.png', title: 'Nordbahn live: Wo ist mein Zug?', sub: 'RB60, RB61 und RB71 jetzt auf der Karte · Hamburg – Elmshorn – Itzehoe / Wrist', foot: 'Verspätung und nächster Halt je Zug, jede Minute neu' },
 ];
 const nur = process.argv[2] || '';
 
@@ -44,7 +44,7 @@ const nur = process.argv[2] || '';
     if (l.image) {
       await page.waitForFunction(() => { const i = document.querySelector('#icon img'); return i && i.complete && i.naturalWidth > 0; });
     }
-    const out = path.join(root, 'og', l.name + '.png');
+    const out = path.join(root, 'assets', 'og', l.name + '.png');
     await page.screenshot({ path: out, type: 'png' });
     console.log('geschrieben', path.relative(root, out));
   }

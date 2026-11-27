@@ -44,15 +44,15 @@ def icon(zug, groesse, anteil=1.0, grund=None):
 
 def main():
     zug = quadrat(Image.open(QUELLE).convert('RGBA'))
-    icon(zug, 64).save(ROOT / 'icon-64.png', optimize=True)
-    icon(zug, 192, 0.96).save(ROOT / 'icon-192.png', optimize=True)
-    icon(zug, 512, 0.96).save(ROOT / 'icon-512.png', optimize=True)
-    icon(zug, 180, 0.8, WEISS).convert('RGB').save(ROOT / 'icon-180.png', optimize=True)
-    icon(zug, 512, 0.64, WEISS).convert('RGB').save(ROOT / 'icon-512-maskable.png', optimize=True)
+    icon(zug, 64).save(ROOT / 'assets' / 'icons' / 'icon-64.png', optimize=True)
+    icon(zug, 192, 0.96).save(ROOT / 'assets' / 'icons' / 'icon-192.png', optimize=True)
+    icon(zug, 512, 0.96).save(ROOT / 'assets' / 'icons' / 'icon-512.png', optimize=True)
+    icon(zug, 180, 0.8, WEISS).convert('RGB').save(ROOT / 'assets' / 'icons' / 'icon-180.png', optimize=True)
+    icon(zug, 512, 0.64, WEISS).convert('RGB').save(ROOT / 'assets' / 'icons' / 'icon-512-maskable.png', optimize=True)
     ico = [icon(zug, s) for s in (48, 32, 16)]
-    ico[0].save(ROOT / 'favicon.ico', sizes=[(48, 48), (32, 32), (16, 16)], append_images=ico[1:])
+    ico[0].save(ROOT / 'assets' / 'icons' / 'favicon.ico', sizes=[(48, 48), (32, 32), (16, 16)], append_images=ico[1:])
     for name in ('favicon.ico', 'icon-64.png', 'icon-180.png', 'icon-192.png', 'icon-512.png', 'icon-512-maskable.png'):
-        print(name, (ROOT / name).stat().st_size, 'Bytes')
+        print(name, (ROOT / 'assets' / 'icons' / name).stat().st_size, 'Bytes')
 
 
 if __name__ == '__main__':
