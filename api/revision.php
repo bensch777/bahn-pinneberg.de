@@ -22,7 +22,7 @@
  * WebSocket bemueht.
  */
 
-require __DIR__ . '/store.php';
+require __DIR__ . '/../inc/store.php';
 
 const REV_HOST       = 'strecken-info.de';
 const REV_PATH       = '/api/websocket';

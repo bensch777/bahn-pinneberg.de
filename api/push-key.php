@@ -1,7 +1,7 @@
 <?php
 /** Oeffentlicher VAPID-Schluessel fuer den Service Worker (pushsubscriptionchange). */
-require __DIR__ . '/store.php';
-require __DIR__ . '/notify.php';
+require __DIR__ . '/../inc/store.php';
+require __DIR__ . '/../inc/notify.php';
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: public, max-age=3600');
 header('X-Robots-Tag: noindex');

@@ -12,7 +12,7 @@
  * irgendwo abfahren, also unterwegs sind oder gleich starten. Fuer jeden dieser
  * Zuege holt der Endpunkt den Laufweg und rechnet aus den Ist-Zeiten (Soll plus
  * Prognose), zwischen welchen Halten der Zug gerade ist und wie weit; die
- * Koordinate dazu kommt aus dem Streckennetz in karte/strecke.json.
+ * Koordinate dazu kommt aus dem Streckennetz in inc/strecke.json.
  *
  * Ein Zug, der seinen letzten Zwischenhalt verlassen hat, steht auf keiner Tafel
  * mehr (die Tafeln zeigen Abfahrten, keine Ankuenfte). Er bleibt deshalb aus dem
@@ -26,7 +26,7 @@
  * KA_STALE_TTL wird der alte Stand sofort geliefert und im Hintergrund erneuert.
  */
 
-require_once __DIR__ . '/store.php';
+require_once __DIR__ . '/../inc/store.php';
 if (!defined('NORDBAHN_ABF_LIB')) {
     define('NORDBAHN_ABF_LIB', true);
 }
@@ -42,11 +42,11 @@ const KA_ZUG_MAX    = 30;    // Laufweg-Abfragen je Aufbereitung
 const KA_STATIONEN  = ['AH', 'ADF', 'AA', 'AP', 'APD', 'ATM', 'AEL', 'AHZH', 'AGST', 'AKM', 'AKHD', 'AIZ', 'AHOT', 'ADH', 'AWST'];
 define('KA_CACHE', NORDBAHN_CACHE_DIR . '/karte.json');
 define('KA_LOCK', NORDBAHN_CACHE_DIR . '/karte.lock');
-define('KA_STRECKE', __DIR__ . '/../karte/strecke.json');
+define('KA_STRECKE', __DIR__ . '/../inc/strecke.json');
 
 /* ---------- Streckennetz ---------- */
 
-/** Streckennetz aus karte/strecke.json: stationen, kanten, ansichten, linien. */
+/** Streckennetz aus inc/strecke.json: stationen, kanten, ansichten, linien. */
 function ka_strecke()
 {
     static $strecke = null;
@@ -666,7 +666,7 @@ if (PHP_SAPI === 'cli') {
     exit;
 }
 
-// Als Bibliothek eingebunden (karte/index.php setzt NORDBAHN_KARTE_LIB): kein Endpunkt
+// Als Bibliothek eingebunden (seiten/karte.php setzt NORDBAHN_KARTE_LIB): kein Endpunkt
 if (defined('NORDBAHN_KARTE_LIB')) {
     return;
 }

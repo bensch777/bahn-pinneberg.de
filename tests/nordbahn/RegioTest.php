@@ -1,6 +1,6 @@
 <?php
 /**
- * Tests fuer die DB-Regio-Zuege (Elmshorn, Glueckstadt, Itzehoe, Wrist, Pinneberg) (gf_regio_* in api/geofox.php):
+ * Tests fuer die DB-Regio-Zuege (Elmshorn, Glueckstadt, Itzehoe, Wrist, Pinneberg) (gf_regio_* in inc/geofox.php):
  * Linien und Richtung, Gleiswechsel, Filter mit Rueckfall, Cache.
  */
 

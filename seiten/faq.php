@@ -1,0 +1,128 @@
+<?php
+/**
+ * Haeufige Fragen zum Nordbahn Monitor. Eigene Seite, aus Footer und Handy-Menue
+ * verlinkt; die Fragen stehen zusaetzlich als FAQPage-JSON-LD im Head.
+ */
+
+require __DIR__ . '/../inc/store.php';
+require_once __DIR__ . '/../inc/render.php';
+require __DIR__ . '/../inc/security.php';
+nb_send_security_headers();
+
+define('SITE_URL', nordbahn_site_url());
+$root = '../';
+$assetVersion = (int) @filemtime(__DIR__ . '/../assets/css/dashboard.css');
+
+$faq = [
+    ['Was bedeutet „Nordbahn beeinträchtigt“ oder „Nordbahn gestört“?',
+     'Die Karte zählt, wie viele der nächsten Züge in beide Richtungen betroffen sind: Zugausfälle, Umleitungen über Hamburg-Altona und Verspätungen ab zehn Minuten. Bis zu einem Viertel der Züge heißt „beeinträchtigt“, darüber „gestört“. Fahren RB61 und RB71 wegen Bauarbeiten laut Sonderfahrplan der Nordbahn nur ab und bis Altona, zählt das nicht als Umleitung: Die Karte zeigt dann gelb „Nordbahn fährt nach Baufahrplan“ mit dem Text des Sonderfahrplans, gezählt werden nur noch Ausfälle und Verspätungen.'],
+    ['Kann ich einzelne Meldungen ausblenden?',
+     'Ja. Jede Störungskarte und jede Meldung unter „Aktuelle Meldungen“ auf der Startseite hat rechts ein Kreuz. Ein Tipp darauf blendet sie aus, der Browser merkt sich das sieben Tage lang, die Meldung bleibt also auch nach dem Neuladen weg. Die Auswahl bleibt im eigenen Browser und wird nicht übertragen. Die Lagekarten oben zeigen weiter die ganze Lage. Unter „Meldungen“ in der Navigation steht im Reiter „Aktiv“ immer alles, was gerade gilt, auch das Weggeklickte.'],
+    ['Ich habe einen Fehler gefunden oder einen Wunsch, wohin damit?',
+     'Unten links auf jeder Seite gibt es den Knopf „Feedback“. Art wählen, ein paar Sätze schreiben, abschicken; die Nachricht landet direkt beim Betreiber. Bei Fehlern helfen Bahnhof, Uhrzeit und Zugnummer, bei Anzeigefehlern Gerät und Browser. Einen Kontakt brauchst du nur anzugeben, wenn du eine Antwort möchtest. Was daraus geworden ist, steht unter „Was ist neu“.'],
+    ['Was ist ein „Hinweis ohne spürbare Folgen“?',
+     'strecken-info.de führt manche Meldung tagelang als aktiv, obwohl für Pendler nichts mehr passiert, etwa „Betrieb wieder planmäßig, an der Signalanlage wird noch ein Ersatzteil eingebaut“. Solche Meldungen behandelt die Seite als Hinweis, nicht als Störung: Die Lagekarte bleibt grün und nennt sie nur klein, auf der Startseite erscheint keine Karte, es gibt keine Benachrichtigung, und sie zählen weder unter „Wichtig“ noch in der Statistik. Vollständig stehen sie unter „Meldungen · Aktiv“ und auf ihrer eigenen Seite. Das Urteil trifft die KI aus dem Text der Meldung; fehlt es, gilt eine Meldung nur dann als Hinweis, wenn strecken-info für den Nahverkehr gar keine Auswirkung nennt. Im Zweifel bleibt es eine Störung.'],
+    ['Was steht unter „Geplante Fahrplanänderungen“?',
+     'Die Sonderfahrpläne der Nordbahn zu RB60, RB61 und RB71, also Bauarbeiten, Ersatzverkehr mit Bussen oder geänderte Start- und Endbahnhöfe, im Wortlaut der Nordbahn und mit Link zum Sonderfahrplan auf nordbahn.de. Die Liste zeigt, was die Nordbahn gerade führt oder für die nächsten 14 Tage ankündigt, höchstens sechs Einträge. Wann eine Änderung gilt, steht im Text selbst. Nennt die Nordbahn den Zeitraum vorn im Titel, steht er links daneben. So weißt du es vorher und nicht erst am Bahnsteig. Fahren die Züge gerade nach Baufahrplan ab und bis Hamburg-Altona, steht das schon oben in der Lagekarte der Nordbahn und deshalb nicht noch einmal in der Liste. Wie jede Meldung lässt sich ein Eintrag mit dem Kreuz ausblenden. Unter „Meldungen · Aktiv“ steht die Liste immer vollständig.'],
+    ['Woher kommen die Daten?',
+     'Abfahrten, Gleise und Verspätungen stammen vom Stationsmonitor der Nordbahn, Eilmeldungen und Sonderfahrpläne von nordbahn.de, Infrastrukturstörungen von strecken-info.de der DB InfraGO. Die S-Bahn S3, die DB-Regio-Züge und die HVV-Meldungen kommen über die Schnittstelle des HVV (Geofox). Abfahrten und S3 werden jede Minute geladen, Störungen und Eilmeldungen alle zwei Minuten.'],
+    ['Warum stehen bei manchen Bahnhöfen auch RE-Züge in der Tafel?',
+     'In Elmshorn halten neben der Nordbahn auch RE6, RE7 und RE70 von DB Regio, in Glückstadt und Itzehoe der RE6, in Wrist einzelne RE70. Sie fahren im HVV-Tarif, HVV-Ticket und Deutschlandticket gelten dort genauso. Ist einer dieser Bahnhöfe deiner, stehen sie deshalb mit in „Nächste Züge“, nach Abfahrt sortiert und am roten Linienzeichen mit „DB Regio“ zu erkennen. Nach Hamburg fahren RE7 und RE70 zum Hbf, RE6 nach Altona, zurück entsprechend ab Hbf oder Altona. Auf dem Rückweg stehen nur die RE, die an deinem Bahnhof auch halten. Echtzeit, Ausfälle und Gleiswechsel kommen vom HVV. Für die Lagekarte „Nordbahn“, die Benachrichtigungen und die Statistik zählen weiter nur die Züge der Nordbahn. IC und ICE fehlen, dort gilt der HVV-Tarif nicht.'],
+    ['Was zeigt die Karte „S3 Pinneberg – Hamburg“?',
+     'Die S3 ist der Plan B, wenn die RB nur bis Pinneberg fährt oder ausfällt. Die Karte wertet die nächsten S3-Züge der kommenden Stunde ab Pinneberg Richtung Hamburg und ab Hamburg Hbf Richtung Pinneberg aus: Ausfälle und Verspätungen ab fünf Minuten zählen. Weil die S3 dicht fährt, färbt ein einzelner verspäteter oder ausgefallener Zug die Karte nicht, sie heißt dann „S3 fährt weitgehend planmäßig“ und nennt die Zahlen. „S3 beeinträchtigt“ heißt es ab gut einem Drittel betroffener Züge, ab zwei Ausfällen oder ab einer Verspätung von 15 Minuten, „S3 gestört“ ab drei Fünfteln. Meldungen des HVV färben die Karte nicht, sie richtet sich allein nach den Zügen: Der HVV hängt eine Meldung oft an alle Linien, die im betroffenen Abschnitt halten, eine Störung der S1 trägt dann auch die S3, obwohl die S3 fährt. Trifft es die S3 wirklich, zeigen das ihre Abfahrten. Welcher Stadtbahnhof gilt, Altona, Stadthausbrücke, Jungfernstieg oder Hauptbahnhof, lässt sich im S3-Abschnitt wählen und wird im Browser gemerkt. Geplante Meldungen wie Bauarbeiten stehen nicht auf der Startseite; fährt deswegen eine S3 nicht, zeigen das die Abfahrten und die Karte. Ungeplante HVV-Meldungen, die gerade gelten, stehen unter „Aktuelle Meldungen“: zur S3 nur, wenn ihr Titel die S3 nennt, zu RB60, RB61 und RB71 nach der Zuordnung des HVV.'],
+    ['Was bedeutet „Fahrgäste: Zug steht“?',
+     'Das haben andere Fahrgäste gemeldet, nicht die Nordbahn. Gerade bei Störungen kommen die offiziellen Daten oft spät, ein Zug steht dann schon, gilt aber noch als pünktlich. Melden kann man vier Dinge: Zug steht, sehr voll, kurzer Zug und Klima oder Heizung aus. In der Abfahrtstafel geht das in der aufgeklappten Fahrt ab einer Viertelstunde vor der planmäßigen Abfahrt, im Zug selbst über die Live-Karte: Zug antippen, dann die Art wählen. Ein zweiter Tipp nimmt die eigene Meldung zurück, „Stimmt nicht mehr“ blendet eine fremde aus. Eine Meldung gilt nur für diese Fahrt und verschwindet von selbst: „Zug steht“ nach 15 Minuten, „Sehr voll“ nach 30 Minuten ohne neue Meldung, die anderen nach zwei Stunden. Es gibt keinen Freitext und kein Konto.'],
+    ['Was sind Pendlermeldungen?',
+     'Kurze Hinweise von anderen Pendlern zu dem, was keine offizielle Quelle meldet: eine Durchsage im Zug, wo der Ersatzbus wirklich hält, ein kaputter Aufzug, ein guter Tipp. Jede Meldung hat ein Thema und einen Bahnhof, manchmal auch einen Zug; dann steht sie in der Abfahrtstafel in der aufgeklappten Fahrt. Schreiben kann man über „Etwas melden“ unter den aktuellen Meldungen oder unter „Meldungen“, ohne Konto. Vor der Veröffentlichung prüft die Seite automatisch auf ein paar Regeln: keine Personen, keine Kontrollen, keine Links. Trotzdem sind es ungeprüfte Angaben. „Stimmt noch“ hält eine Meldung länger sichtbar, „Nicht mehr“ von zwei Leuten blendet sie aus, die Fahne meldet sie als unpassend. Nach einer bis zwölf Stunden verschwindet sie von selbst. Die genauen Regeln stehen in den Nutzungsbedingungen.'],
+    ['Woher weiß die Live-Karte, wo ein Zug ist?',
+     'Die Züge der Nordbahn senden keine Position, die Karte rechnet sie: Für jeden Zug, der gerade unterwegs ist oder in den nächsten 20 Minuten startet, liest die Seite den Laufweg aus dem Stationsmonitor, also Soll-Zeit und Prognose an jedem Halt. Daraus ergibt sich, zwischen welchen Halten der Zug ist und wie weit, und der Punkt dazu liegt auf der Strecke. Zwischen zwei Abrufen (alle 30 Sekunden) bewegen sich die Züge nach diesen Zeiten weiter; meldet der Monitor eine neue Prognose, springen sie. Ein Zug steht deshalb auf der Karte, wo er laut Fahrplan und Prognose sein müsste, nicht wo er per GPS ist. Der Streckenverlauf ist vereinfacht, die Bahnhöfe liegen auf ihren echten Koordinaten. Die Kacheln kommen von OpenStreetMap, das ist die einzige Verbindung zu einem fremden Dienst, die der Browser auf dieser Seite aufbaut.'],
+    ['Welche Linien und Bahnhöfe werden angezeigt?',
+     'Die RB61 Hamburg – Itzehoe, die RB71 Hamburg – Wrist und die Verstärkerzüge der RB60. Als eigener Bahnhof lässt sich jeder Halt zwischen Pinneberg und Itzehoe bzw. Wrist wählen, die Auswahl bleibt im Browser gespeichert.'],
+    ['Was bedeuten „ab Hbf“, „ab Dammtor“, „ab Altona“ und „ab Pinneberg“?',
+     'Züge Richtung Norden starten am Hamburg Hbf und halten drei Minuten später am Dammtor; die Zeile zeigt beides. Fällt ein Zug am Hbf aus, fährt er oft stattdessen ab Hamburg-Altona. Das steht als Hinweis am Ausfall und als eigene, orange markierte Zeile. Nachts beginnen die Züge nach Norden oft erst in Pinneberg; sie stehen dann als „ab Pinneberg“ in der Liste, aus Hamburg kommt man mit der S-Bahn dorthin.'],
+    ['Was bedeutet „an 08:41“ unter einem Zug?',
+     'Das ist die Ankunft, dort wo sie für dich zählt: Richtung Hamburg am Ziel des Zuges, also am Hauptbahnhof oder in Altona, auf dem Rückweg an deinem Bahnhof („an Prisdorf 17:31“). Die Zeit kommt aus dem Laufweg des Zuges im Stationsmonitor der Nordbahn und enthält die Prognose: Ist der Zug verspätet, steht die erwartete Ankunft mit der Verspätung in Klammern da. So lässt sich auch vergleichen, etwa in Elmshorn, wo ein später abfahrender RE früher in Hamburg sein kann als die RB davor. Hält ein Zug heute nicht an deinem Bahnhof, steht dort „Halt … entfällt“. Alle Halte mit ihren Zeiten zeigt ein Tipp auf die Zeile.'],
+    ['Kann ich mich bei Zugausfällen benachrichtigen lassen?',
+     'Ja, über die Glocke oben rechts, sie führt zu den Einstellungen. Dort lassen sich Benachrichtigungen einschalten, wahlweise nur zu Pendelzeiten. Gemeldet werden Zugausfälle am eigenen Bahnhof, neue und aufgehobene Störungen sowie Eilmeldungen, per Web Push auch bei geschlossener Seite. Auf dem iPhone geht das nur, wenn die Seite über „Teilen“ zum Home-Bildschirm hinzugefügt und von dort geöffnet wird. Unabhängig davon gibt es die Telegram-Kanäle „Nordbahn Eilmeldungen“ und „Prisdorf Pendler“.'],
+    ['Kann ich mich nur für meinen Zug benachrichtigen lassen?',
+     'Ja. Über die Glocke oben rechts geht es zu den Einstellungen. Unter „Meine Züge“ Bahnhof und Richtung wählen, die Abfahrtszeit eintippen (etwa 8:13 oder 813, auch „RB 71“ oder „Altona“) und den Zug aus der Liste antippen, zum Beispiel für Hin- und Rückfahrt. Ab einer Stunde vor der Abfahrt meldet sich die Seite, wenn der Zug ausfällt, stattdessen ab Altona fährt, erst unterwegs startet oder früher endet, ein Bus fährt, er fünf Minuten oder mehr Verspätung hat (erneut bei 10, 15, 20, 30, 45 und 60 Minuten) oder das Gleis wechselt. Eine neue Meldung ersetzt die vorige, das Handy sammelt also keine Stapel. Auf der Startseite ist ein gemerkter Zug in der Abfahrtstafel hinterlegt und mit „Mein Zug“ beschriftet. Je Zug lassen sich die Wochentage wählen (vorgegeben Montag bis Freitag), und mit „Nur meine Züge“ kommen alle anderen Meldungen nicht mehr. Fährt dein Zug im Baufahrplan unter anderer Nummer und Zeit, etwa 08:18 nach Altona statt 08:17 zum Hbf, erkennt die Seite das als denselben Zug und meldet sich zu der Variante, die gerade fährt. Die Suche kennt alle Züge, die die Seite in den letzten zwei Wochen gesehen hat: Richtung Hamburg je Bahnhof, sobald dort jemand die Seite nutzt, zurück aus Hamburg für alle Bahnhöfe. Gespeichert werden nur die gemerkten Züge am Push-Abo, kein Konto und kein Standort; unter „Gespeicherte Daten“ steht, was der Browser speichert, mit „Alles löschen“.'],
+    ['Kann ich die Seite als App nutzen?',
+     'Ja. Auf dem iPhone über Teilen und „Zum Home-Bildschirm“, auf Android über „App installieren“ im Browsermenü. Die Seite startet dann im Vollbild und aktualisiert sich selbst.'],
+    ['Was zählt als „wichtige Meldung“?',
+     'Die Seite „Wichtige Meldungen“ filtert nach festen Regeln: Infrastrukturstörungen mit schwerer Einschränkung, mit Ausfällen, Umleitungen, Ersatzverkehr oder Sperrungen als Auswirkung oder mit mindestens zwei Stunden Dauer. Bei den Eilmeldungen der Nordbahn alles zu Ersatzverkehr, Sperrungen, Streik, Bauarbeiten, Unwetter, Stellwerk- oder Signalstörungen sowie Meldungen, die mehrere Züge oder einen Zeitraum betreffen. Einzelne kurzfristige Zugausfälle, etwa wegen Personalausfall, stehen nur im Archiv der Eilmeldungen.'],
+    ['Was steht auf der Seite einer einzelnen Störung?',
+     'Jede Störung und jede Eilmeldung hat eine eigene Seite, erreichbar über den Titel in den Listen: der Pendler-Text, die Originalmeldung von strecken-info.de, der Verlauf mit jedem neuen Stand, die in dieser Zeit beobachteten Ausfälle und Verspätungen sowie Eilmeldungen und weitere Störungen zur selben Zeit. Die Push-Nachrichten auf Telegram und X verlinken direkt dorthin.'],
+    ['Wie zuverlässig ist mein Zug?',
+     'Die Seite merkt sich bei jeder Abfrage der Abfahrten je Tag und Zug den letzten Stand vor der Abfahrt: ausgefallen, nur teilweise gefahren, wie viele Minuten verspätet. Die Statistikseite wertet nur den Berufsverkehr aus: montags bis freitags, nach Hamburg mit Abfahrt zwischen 5 und 10 Uhr, zurück zwischen 15 und 20 Uhr. Feiertage zählen dabei mit. Pünktlich heißt unter fünf Minuten Verspätung, ein Teilausfall zählt als Ausfall. In die Listen der unzuverlässigsten und zuverlässigsten Züge kommt ein Zug erst, wenn er mindestens halb so oft beobachtet wurde wie der am häufigsten beobachtete, wenigstens aber fünfmal. Beobachtet wird nur, was abgefragt wird: Prisdorf durchgehend, andere Bahnhöfe, solange jemand die Seite mit diesem Bahnhof offen hat. Die Werte sind eine Näherung aus der Prognose des Stationsmonitors, keine amtliche Pünktlichkeitsstatistik.'],
+    ['Gibt es die Daten auch für Programme oder KI-Assistenten?',
+     'Ja. Unter /lage.md steht die aktuelle Lage als Text (Markdown), unter /llms.txt eine Beschreibung der Seite und der Datenfelder, und /api/data sowie /api/abfahrten?bhf=APD liefern alles als JSON. Alles öffentlich und ohne Schlüssel, bitte nicht häufiger als einmal pro Minute abrufen.'],
+    ['Kann ich Claude oder ChatGPT direkt fragen, ob meine Bahn fährt?',
+     'Ja, über den MCP-Server der Seite. In Claude unter Einstellungen → Connectors, in ChatGPT im Entwicklermodus unter Connectors einen eigenen Connector mit der Adresse https://bahn-pinneberg.de/mcp anlegen, eine Anmeldung braucht es nicht. Danach beantwortet der Assistent Fragen wie „Gibt es gerade Probleme zwischen Elmshorn und Hamburg?“ oder „Wann fährt der nächste Zug ab Tornesch?“ mit dem Stand von jetzt statt mit dem, was eine Suchmaschine irgendwann gesehen hat. Der Server kann nur lesen, er kennt die Lage, die Abfahrten und die Details einer Störung. Die ganze Anleitung steht unter „In Claude und ChatGPT“ (/mcp-hilfe/).'],
+    ['Ist das eine offizielle Seite der Nordbahn?',
+     'Nein. Bahn-Pinneberg.de ist ein privates Projekt ohne Verbindung zur NBE Nordbahn Eisenbahngesellschaft, Betreiber siehe Impressum. Verbindliche Auskünfte gibt es auf nordbahn.de.'],
+];
+$jsonLd = [
+    '@context' => 'https://schema.org',
+    '@type' => 'FAQPage',
+    'mainEntity' => array_map(function ($qa) {
+        return ['@type' => 'Question', 'name' => $qa[0], 'acceptedAnswer' => ['@type' => 'Answer', 'text' => $qa[1]]];
+    }, $faq),
+];
+$title = 'Häufige Fragen – Bahn-Pinneberg.de';
+$description = 'Wie Bahn-Pinneberg.de Störungen, Abfahrten und Eilmeldungen der RB60, RB61 und RB71 ermittelt, woher die Daten kommen und wie Benachrichtigungen funktionieren.';
+?>
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title><?= nb_e($title) ?></title>
+<meta name="description" content="<?= nb_e($description) ?>">
+<link rel="canonical" href="<?= SITE_URL ?>/faq/">
+<meta name="robots" content="index, follow">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#f6f6f4" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#121211" media="(prefers-color-scheme: dark)">
+<?= nb_theme_head() ?>
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Bahn-Pinneberg.de">
+<meta property="og:locale" content="de_DE">
+<meta property="og:url" content="<?= SITE_URL ?>/faq/">
+<meta property="og:title" content="<?= nb_e($title) ?>">
+<meta property="og:description" content="<?= nb_e($description) ?>">
+<meta property="og:image" content="<?= SITE_URL ?>/assets/og/info.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<link rel="icon" type="image/png" sizes="64x64" href="<?= $root ?>assets/icons/icon-64.png">
+<link rel="apple-touch-icon" href="<?= $root ?>assets/icons/icon-180.png?v=2">
+<link rel="stylesheet" href="<?= $root ?>assets/css/dashboard.css?v=<?= $assetVersion ?>">
+<script type="application/ld+json"><?= json_encode($jsonLd, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) ?></script>
+<?php require __DIR__ . '/../inc/analytics.php'; ?>
+</head>
+<body>
+
+<?= nb_render_kopf($root, 'faq') ?>
+
+<main class="wrap">
+	<div class="page-head">
+		<div>
+			<h1>H&auml;ufige Fragen</h1>
+			<p class="page-head__lead">Wie Bahn-Pinneberg.de funktioniert und woher die Daten kommen.</p>
+		</div>
+	</div>
+
+	<section class="section" aria-label="Fragen und Antworten">
+		<div class="card faq">
+<?php foreach ($faq as $qa): ?>
+			<details>
+				<summary><?= nb_e($qa[0]) ?></summary>
+				<p><?= nb_e($qa[1]) ?></p>
+			</details>
+<?php endforeach; ?>
+		</div>
+	</section>
+</main>
+
+<?php $current = 'faq'; require __DIR__ . '/../inc/footer.php'; ?>
+</body>
+</html>

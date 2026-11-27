@@ -1,8 +1,8 @@
 <?php
 /** Web Push: Verschluesselung, VAPID und Ereignis-Ableitung. */
 
-require_once __DIR__ . '/../../api/webpush.php';
-require_once __DIR__ . '/../../api/notify.php';
+require_once __DIR__ . '/../../inc/webpush.php';
+require_once __DIR__ . '/../../inc/notify.php';
 
 function test_webpush_verschluesselung_roundtrip()
 {

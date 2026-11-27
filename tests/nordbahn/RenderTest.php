@@ -1,5 +1,5 @@
 <?php
-/** Fahrplankarte (api/render.php), gleiche Regeln wie renderBetrieb im Script. */
+/** Fahrplankarte (inc/render.php), gleiche Regeln wie renderBetrieb im Script. */
 
 function t_abf(array $hin, array $rueck = [])
 {

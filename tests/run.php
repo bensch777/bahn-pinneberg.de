@@ -18,10 +18,10 @@ $tmp = sys_get_temp_dir() . '/nordbahn-tests-' . getmypid();
 @mkdir($tmp, 0775, true);
 define('NORDBAHN_CACHE_DIR', $tmp);
 
-require_once __DIR__ . '/../api/store.php';
-require_once __DIR__ . '/../api/render.php';
+require_once __DIR__ . '/../inc/store.php';
+require_once __DIR__ . '/../inc/render.php';
 require_once __DIR__ . '/../api/abfahrten.php';
-require_once __DIR__ . '/../api/geofox.php';
+require_once __DIR__ . '/../inc/geofox.php';
 require_once __DIR__ . '/../api/karte.php';
 require_once __DIR__ . '/../api/feedback.php';
 require_once __DIR__ . '/../api/community.php';

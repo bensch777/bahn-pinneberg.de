@@ -29,7 +29,7 @@
  * werden geloescht. Aus mit NORDBAHN_COMMUNITY => false in config.php.
  */
 
-require_once __DIR__ . '/store.php';
+require_once __DIR__ . '/../inc/store.php';
 if (!function_exists('nb_feedback_kennung')) {
     if (!defined('NORDBAHN_FEEDBACK_LIB')) {
         define('NORDBAHN_FEEDBACK_LIB', true);

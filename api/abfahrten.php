@@ -36,8 +36,8 @@
  * erreichbar, kommt der letzte bekannte Stand mit ok=false.
  */
 
-require_once __DIR__ . '/store.php';
-require_once __DIR__ . '/zuglog.php';
+require_once __DIR__ . '/../inc/store.php';
+require_once __DIR__ . '/../inc/zuglog.php';
 
 const ABF_API        = 'https://datnet-nbe.etc-consult.de/datnet-nbe/xml_v3';
 const ABF_STADT      = ['AH' => 'Hbf', 'AA' => 'Altona']; // Startbahnhoefe fuer den Rueckweg

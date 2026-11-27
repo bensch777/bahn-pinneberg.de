@@ -13,8 +13,8 @@
  * und Schluessel des Abos, Heimatbahnhof, Zeitregel und die gemerkten Zuege.
  */
 
-require __DIR__ . '/store.php';
-require __DIR__ . '/notify.php';
+require __DIR__ . '/../inc/store.php';
+require __DIR__ . '/../inc/notify.php';
 
 function sub_respond($status, array $body)
 {

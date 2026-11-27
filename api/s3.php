@@ -4,7 +4,7 @@
  *
  * URL: /api/s3[?stadt=altona|stadthausbruecke|jungfernstieg|hbf]
  *
- * Quelle ist die HVV-Schnittstelle Geofox GTI (api/geofox.php). Ohne Zugang in
+ * Quelle ist die HVV-Schnittstelle Geofox GTI (inc/geofox.php). Ohne Zugang in
  * config.php antwortet der Endpunkt mit ok=false und s3=null. Ein Stand bis
  * GF_STALE_TTL Sekunden Alter wird sofort geliefert und danach im Hintergrund
  * erneuert, wie bei api/abfahrten.
@@ -14,8 +14,8 @@
  * Antwortformat ohne SSH zu pruefen. Nie gecacht.
  */
 
-require_once __DIR__ . '/store.php';
-require_once __DIR__ . '/geofox.php';
+require_once __DIR__ . '/../inc/store.php';
+require_once __DIR__ . '/../inc/geofox.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('X-Robots-Tag: noindex');

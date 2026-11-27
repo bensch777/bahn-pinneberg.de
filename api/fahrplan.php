@@ -9,15 +9,15 @@
  *          {zug, nummern [zug, Varianten …], linie, zeit "HH:MM", ziel, ab,
  *           tage [1 = Montag …], varianten [{zug, zeit, ziel, ab}]}
  *
- * Quelle ist das Zuglog (api/zuglog.php). Die Rueckrichtung kommt von den
+ * Quelle ist das Zuglog (inc/zuglog.php). Die Rueckrichtung kommt von den
  * Hamburger Tafeln und gilt fuer alle Bahnhoefe, die der Zug erreicht; die
  * Hinrichtung kennt die Seite nur fuer Bahnhoefe, die abgefragt werden
  * (Prisdorf durchgehend, andere, solange jemand sie offen hat oder dort einen
  * Zug gemerkt hat). Je Bahnhof FP_TTL Sekunden gecacht.
  */
 
-require_once __DIR__ . '/store.php';
-require_once __DIR__ . '/zuglog.php';
+require_once __DIR__ . '/../inc/store.php';
+require_once __DIR__ . '/../inc/zuglog.php';
 if (!defined('NORDBAHN_ABF_LIB')) {
     define('NORDBAHN_ABF_LIB', true); // nur die Funktionen (abf_erreicht), kein Endpunkt
 }

@@ -10,8 +10,8 @@
  * Eine Minute Browser-Cache reicht, n8n liefert ohnehin nur alle fuenf.
  */
 
-require __DIR__ . '/store.php';
-require_once __DIR__ . '/render.php';
+require __DIR__ . '/../inc/store.php';
+require_once __DIR__ . '/../inc/render.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: public, max-age=20');

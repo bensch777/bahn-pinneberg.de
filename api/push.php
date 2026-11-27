@@ -7,7 +7,7 @@
  * Der n8n-Workflow "Nordbahn Dashboard Push" ruft diesen Endpunkt alle fuenf
  * Minuten auf und schickt im Header X-Nordbahn-Token den Wert, der hier als
  * NORDBAHN_PUSH_TOKEN in config.php hinterlegt ist (siehe
- * config.example.php). Ohne passenden Token wird nichts angenommen.
+ * dev/config.example.php). Ohne passenden Token wird nichts angenommen.
  *
  * Das Paket wird bereinigt, als cache/data.json abgelegt und die
  * aktiven Stoerungen wandern ins Logbuch cache/stoerungen-log.json, die
@@ -16,8 +16,8 @@
  * Deploy, landen aber nie in Git.
  */
 
-require __DIR__ . '/store.php';
-require __DIR__ . '/notify.php';
+require __DIR__ . '/../inc/store.php';
+require __DIR__ . '/../inc/notify.php';
 
 const PUSH_MAX_BYTES = 4 * 1024 * 1024;
 
@@ -117,8 +117,8 @@ abf_cached(NORDBAHN_HEIMAT_DEFAULT);
 
 // DB Regio laufend in Elmshorn beobachten (dort halten alle RE), damit die
 // Statistik nicht nur Zeiten kennt, in denen jemand die Seite offen hat
-require_once __DIR__ . '/geofox.php';
-require_once __DIR__ . '/zuglog.php';
+require_once __DIR__ . '/../inc/geofox.php';
+require_once __DIR__ . '/../inc/zuglog.php';
 if (gf_aktiv()) {
     gf_regio_cached(ZL_DB_LAUFEND);
 }

@@ -1,4 +1,4 @@
-# Nordbahn Monitor. Das Repo-Wurzelverzeichnis ist das Web-Root.
+# Bahn-Pinneberg.de. Das Repo-Wurzelverzeichnis ist das Web-Root.
 RewriteEngine On
 
 # www entfernen und dabei gleich auf HTTPS gehen
@@ -19,41 +19,59 @@ RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
 	Header always set X-Frame-Options "SAMEORIGIN"
 </IfModule>
 
-# Interne Ordner und Dateien sind von aussen nicht erreichbar
-RewriteRule ^(cache|tests|dev|\.git|\.github)(/|$) - [F,L]
-<FilesMatch "^(config\.php|config\.example\.php|README\.md|\.gitignore)$">
-	Require all denied
-</FilesMatch>
+# ---------- Aufbau ----------
+# Oeffentlich liegen nur assets/ (CSS, JS, Schriften, Bilder) und api/ (Endpunkte).
+# Seiten stehen in seiten/, Bibliotheken und Bausteine in inc/; beide sind nur ueber
+# die Regeln unten erreichbar. Die Adressen der Seiten bleiben dabei unveraendert.
+# dev/router.php bildet diese Regeln fuer den eingebauten PHP-Server nach.
 
-# Die API-Endpunkte sind PHP-Dateien.
-RewriteRule ^api/data$ api/data.php [L]
-RewriteRule ^api/push$ api/push.php [L]
-RewriteRule ^api/abfahrten$ api/abfahrten.php [L]
-RewriteRule ^api/revision$ api/revision.php [L]
-RewriteRule ^api/subscribe$ api/subscribe.php [L]
-RewriteRule ^api/push-key$ api/push-key.php [L]
-RewriteRule ^api/s3$ api/s3.php [L]
-RewriteRule ^api/regio$ api/regio.php [L]
-RewriteRule ^api/karte$ api/karte.php [L]
-RewriteRule ^api/feedback$ api/feedback.php [L]
-RewriteRule ^api/community$ api/community.php [L]
-RewriteRule ^api/fahrplan$ api/fahrplan.php [L]
-RewriteRule ^api/pendler$ api/pendler.php [L]
-RewriteRule ^pendler/verwalten/?$ api/pendler.php?verwalten=1 [L,QSA]
+# Startseite und Seiten: /faq/ -> seiten/faq.php, /faq und /faq/index.php -> /faq/
+RewriteRule ^$ seiten/start.php [L]
+RewriteRule ^index\.php$ / [R=301,L]
+RewriteRule ^(aktuell|changelog|eilmeldungen|einstellungen|faq|impressum|karte|mcp-hilfe|news|nutzungsbedingungen|statistik|stoerungen)(/index\.php)?$ /$1/ [R=301,L]
+RewriteRule ^(aktuell|changelog|eilmeldungen|einstellungen|faq|impressum|karte|mcp-hilfe|news|nutzungsbedingungen|statistik|stoerungen)/$ seiten/$1.php [L]
+
+# Ereignisseiten mit Kennung und lesbarem Zusatz
+RewriteRule ^stoerung/([A-Za-z0-9_.-]+)(?:/([a-z0-9-]*))?/?$ seiten/stoerung.php?key=$1&slug=$2 [L,QSA]
+RewriteRule ^eilmeldung/([A-Za-z0-9_.-]+)(?:/([a-z0-9-]*))?/?$ seiten/eilmeldung.php?id=$1&slug=$2 [L,QSA]
+
+# Dynamische Textdateien (Adresse aus config.php)
+RewriteRule ^sitemap\.xml$ seiten/sitemap.php [L]
+RewriteRule ^robots\.txt$ seiten/robots.php [L]
+RewriteRule ^llms\.txt$ seiten/llms.php [L]
+RewriteRule ^lage\.md$ seiten/lage.php [L]
+RewriteRule ^\.well-known/openai-apps-challenge$ seiten/openai-challenge.php [L]
+
+# API: /api/data -> api/data.php; dazu MCP-Server und Verwaltung der Pendlermeldungen
+RewriteRule ^api/([a-z0-9-]+)$ api/$1.php [L]
 RewriteRule ^mcp/?$ api/mcp.php [L]
-RewriteRule ^\.well-known/openai-apps-challenge$ openai-challenge.php [L]
+RewriteRule ^pendler/verwalten/?$ api/pendler.php?verwalten=1 [L,QSA]
 
-# Sitemap und robots.txt sind dynamisch (Adresse aus config.php).
-RewriteRule ^sitemap\.xml$ sitemap.php [L]
-RewriteRule ^llms\.txt$ llms.php [L]
-RewriteRule ^lage\.md$ lage.php [L]
-RewriteRule ^stoerung/([A-Za-z0-9_.-]+)(?:/([a-z0-9-]*))?/?$ stoerung.php?key=$1&slug=$2 [L,QSA]
-RewriteRule ^eilmeldung/([A-Za-z0-9_.-]+)(?:/([a-z0-9-]*))?/?$ eilmeldung.php?id=$1&slug=$2 [L,QSA]
-RewriteRule ^robots\.txt$ robots.php [L]
+# Dateien mit festen Adressen im Wurzelverzeichnis. Icons und Vorschaubilder auch
+# unter ihren alten Adressen (Home-Bildschirm, schon geteilte Links).
+RewriteRule ^sw\.js$ assets/js/sw.js [L]
+RewriteRule ^manifest\.webmanifest$ assets/manifest.webmanifest [L]
+RewriteRule ^favicon\.ico$ assets/icons/favicon.ico [L]
+RewriteRule ^(icon-[a-z0-9-]+\.png)$ assets/icons/$1 [L]
+RewriteRule ^og/([a-z]+\.png)$ assets/og/$1 [L]
+RewriteRule ^(google[0-9a-f]+\.html)$ assets/$1 [L]
 
-<IfModule mod_dir.c>
-	DirectoryIndex index.php
-</IfModule>
+# Alles andere gibt es von aussen nicht (404 statt 403, damit nichts verraet, was
+# auf dem Server liegt): Verzeichnislisten, versteckte Dateien, Ordner ausser assets/,
+# api/ und .well-known/ (cache/, inc/, seiten/, tests/, dev/, Reste wie v2/) und jede
+# Datei direkt im Wurzelverzeichnis (config.php, .gitignore, Reste alter Deploys).
+# REDIRECT_STATUS ist nur bei der Adresse leer, die der Browser angefragt hat; die
+# internen Weiterleitungen der Regeln oben kommen so durch.
+RewriteCond %{ENV:REDIRECT_STATUS} ^$
+RewriteRule ^(assets|api)/(.*/)?$ - [R=404,L]
+RewriteCond %{ENV:REDIRECT_STATUS} ^$
+RewriteRule (^|/)\.(?!well-known/) - [R=404,L]
+RewriteCond %{ENV:REDIRECT_STATUS} ^$
+RewriteRule ^(?!(?:assets|api|\.well-known)/)[^/]+/ - [R=404,L]
+RewriteCond %{ENV:REDIRECT_STATUS} ^$
+RewriteCond %{REQUEST_FILENAME} -f
+RewriteRule ^[^/]+$ - [R=404,L]
+
 
 <IfModule mod_deflate.c>
 	AddOutputFilterByType DEFLATE text/html text/plain text/css text/xml

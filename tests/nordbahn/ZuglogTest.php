@@ -1,7 +1,7 @@
 <?php
 /** Zuverlaessigkeit je Zug: Log-Zusammenfuehrung, Auswertung, Bewertung. */
 
-require_once __DIR__ . '/../../api/zuglog.php';
+require_once __DIR__ . '/../../inc/zuglog.php';
 
 function t_zl_zeile($zug, $zeit, array $o = [])
 {

@@ -20,8 +20,8 @@
  * Aufrufe je Tag und Werkzeug zaehlt cache/mcp-zaehler.json.
  */
 
-require_once __DIR__ . '/store.php';
-require_once __DIR__ . '/render.php';
+require_once __DIR__ . '/../inc/store.php';
+require_once __DIR__ . '/../inc/render.php';
 if (!defined('NORDBAHN_FEEDBACK_LIB')) {
     define('NORDBAHN_FEEDBACK_LIB', true); // nur Kennung und Limit, nicht der Endpunkt
 }

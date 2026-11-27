@@ -20,8 +20,8 @@ if (PHP_SAPI !== 'cli') {
     exit;
 }
 
-require_once __DIR__ . '/../api/store.php';
-require_once __DIR__ . '/../api/geofox.php';
+require_once __DIR__ . '/../inc/store.php';
+require_once __DIR__ . '/../inc/geofox.php';
 
 $zugang = gf_zugang();
 if ($zugang === null) {
