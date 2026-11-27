@@ -42,6 +42,12 @@ function test_pendler_pruefen_schreiben()
 
 function test_pendler_ki_antworten()
 {
+    // Ohne eingerichtete KI-Pruefung: sofort sichtbar. Eingerichtet, aber ohne Urteil: wartet.
+    t_eq('frei', nb_pd_start_status('nur_regeln', null), 'ohne KI sofort sichtbar');
+    t_eq('wartet', nb_pd_start_status('ki', null), 'KI ohne Urteil wartet');
+    t_eq('wartet', nb_pd_start_status('ohne_ki', null), 'Kostenbremse wartet');
+    t_eq('frei', nb_pd_start_status('ki', ['ok' => true]), 'KI ok');
+
     $m = ['thema' => 'sev', 'bhf' => 'AP', 'zug' => null, 'text' => 'SEV ab ZOB Steig 4'];
     $gesendet = null;
     $fetch = function ($antwort) use (&$gesendet) {

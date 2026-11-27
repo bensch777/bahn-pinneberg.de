@@ -25,8 +25,9 @@
  *      derselbe Text nicht doppelt
  *   2. KI ueber einen n8n-Webhook (NORDBAHN_PENDLER_PRUEFUNG, Header X-Nordbahn-Token
  *      mit NORDBAHN_PUSH_TOKEN): {"ok":true} oder {"ok":false,"grund":"person"}. Die KI
- *      urteilt nur und formuliert nichts um. Ist der Webhook nicht eingerichtet, nicht
- *      erreichbar oder sind schon NB_PD_KI_MAX Pruefungen in der Stunde gelaufen,
+ *      urteilt nur und formuliert nichts um. Ist der Webhook nicht eingerichtet, gelten
+ *      nur die Regeln und die Meldung ist sofort sichtbar. Ist er eingerichtet, aber
+ *      nicht erreichbar oder sind schon NB_PD_KI_MAX Pruefungen in der Stunde gelaufen,
  *      wartet die Meldung auf Freigabe von Hand.
  * Danach geht jede Meldung mit Verwaltungslink an Discord (NORDBAHN_PENDLER_WEBHOOK,
  * sonst der Feedback-Webhook). "Unangemessen" von NB_PD_SCHWELLE verschiedenen
@@ -351,6 +352,20 @@ function nb_pd_ki_pruefen(array $m, $url, $token, ?callable $fetch = null)
 function nb_pd_neue_id()
 {
     return bin2hex(random_bytes(6));
+}
+
+/**
+ * Status einer neuen Meldung nach der Vorpruefung: Ohne eingerichtete KI-Pruefung
+ * (nur_regeln) ist sie sofort sichtbar, mit KI-Urteil ebenso. Ist die KI eingerichtet,
+ * liefert aber kein Urteil oder ist die Kostenbremse erreicht, wartet sie auf Freigabe.
+ */
+function nb_pd_start_status($weg, $urteil)
+{
+    if ($weg === 'nur_regeln') {
+        return 'frei';
+    }
+
+    return $urteil === null ? 'wartet' : 'frei';
 }
 
 /** Legt eine Meldung an. $status: frei oder wartet. */
@@ -741,13 +756,17 @@ if (!nb_feedback_limit($ipKennung, NORDBAHN_CACHE_DIR . '/pendler-limit-ip', $no
     exit;
 }
 // Vor der KI-Pruefung: Sperre, Doppel und Kostenbremse unter der Dateisperre klaeren
-$vorab = nb_pd_aendern(function ($daten) use ($p, $kennung, $now) {
+$kiUrl = nb_pd_pruefung_url();
+$vorab = nb_pd_aendern(function ($daten) use ($p, $kennung, $kiUrl, $now) {
     $daten = nb_pd_aufraeumen($daten, $now);
     if (nb_pd_gesperrt($daten, $kennung, $now)) {
         return [$daten, 'gesperrt'];
     }
     if (nb_pd_doppelt($daten, $p['daten']['text'], $now)) {
         return [$daten, 'doppelt'];
+    }
+    if ($kiUrl === '') {
+        return [$daten, 'nur_regeln'];
     }
     list($daten, $erlaubt) = nb_pd_ki_erlaubt($daten, $now);
 
@@ -761,12 +780,13 @@ if ($vorab[1] === 'gesperrt' || $vorab[1] === 'doppelt') {
     nb_pd_antwort($vorab[1] === 'gesperrt' ? 429 : 409, ['ok' => false, 'status' => $vorab[1]]);
     exit;
 }
-$urteil = $vorab[1] === 'ki' ? nb_pd_ki_pruefen($p['daten'], nb_pd_pruefung_url(), nb_pd_token()) : null;
-$r = nb_pd_aendern(function ($daten) use ($p, $urteil, $kennung, $ipKennung, $now) {
+$urteil = $vorab[1] === 'ki' ? nb_pd_ki_pruefen($p['daten'], $kiUrl, nb_pd_token()) : null;
+$status = nb_pd_start_status($vorab[1], $urteil);
+$r = nb_pd_aendern(function ($daten) use ($p, $urteil, $status, $kennung, $ipKennung, $now) {
     if ($urteil !== null && !$urteil['ok']) {
         return [in_array($urteil['grund'], NB_PD_VERWARNEN, true) ? nb_pd_verwarnen($daten, $kennung, $now) : $daten, null];
     }
-    list($daten, $id) = nb_pd_anlegen($daten, $p['daten'], $kennung, $ipKennung, $urteil === null ? 'wartet' : 'frei', $now);
+    list($daten, $id) = nb_pd_anlegen($daten, $p['daten'], $kennung, $ipKennung, $status, $now);
 
     return [$daten, $id];
 });

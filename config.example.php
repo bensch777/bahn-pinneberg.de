@@ -57,8 +57,8 @@ return [
     // Pendlermeldungen (api/pendler.php): kurze Texte von Fahrgaesten zu Thema und
     // Bahnhof. false schaltet Schreiben und Anzeige sofort ab.
     // PRUEFUNG: Adresse des n8n-Webhooks "Pendlermeldung pruefen" (KI-Urteil, Header
-    // X-Nordbahn-Token mit NORDBAHN_PUSH_TOKEN). Leer: jede Meldung wartet auf Freigabe
-    // von Hand ueber den Link in Discord.
+    // X-Nordbahn-Token mit NORDBAHN_PUSH_TOKEN). Leer: nur die festen Regeln, die Meldung
+    // ist sofort sichtbar. Gesetzt, aber ohne Antwort: Freigabe von Hand ueber Discord.
     // WEBHOOK: Discord-Kanal fuer neue Meldungen mit Link zum Freigeben/Entfernen.
     // Leer: der Feedback-Kanal (NORDBAHN_FEEDBACK_WEBHOOK).
     'NORDBAHN_PENDLER'          => true,
