@@ -868,7 +868,15 @@ function test_statistik_url_und_verlauf()
     t_contains('title="Fr 16.10.: nicht beobachtet"', $html, 'Tag ohne Beobachtung');
     t_contains('data-tag="Fr 16.10." data-leer="Nicht beobachtet"', $html, 'Tooltip ohne Beobachtung');
     t_contains('<div class="verlauf__tag verlauf__tag--gut" data-tag="Mo 19.10." data-n="9" data-spaet="0" data-ausfall="0" title="Mo 19.10.: 0 % unpünktlich', $html, 'Tag ohne Problem');
+    t_contains('<div class="verlauf__achse" aria-hidden="true"><span class="verlauf__marke"><span>Do</span></span><span class="verlauf__marke"><span>Fr</span></span><span class="verlauf__marke"><span>Mo</span></span></div>', $html, 'wenige Tage: jeder Wochentag an der Achse');
+    $lang = [];
+    foreach (['2026-10-15', '2026-10-16', '2026-10-19', '2026-10-20', '2026-10-21', '2026-10-22', '2026-10-23', '2026-10-26', '2026-10-27', '2026-10-28', '2026-10-29'] as $tag) {
+        $lang[] = ['tag' => $tag, 'puenktlich' => 5, 'spaet' => 0, 'ausfall' => 0, 'beobachtet' => true];
+    }
+    $html = nb_render_zug_verlauf($lang);
+    t_eq(2, substr_count($html, '<span class="verlauf__marke"><span>'), 'viele Tage: nur Montage an der Achse');
+    t_contains('<span>19.10.</span>', $html, 'Montag mit Datum');
     $top = nb_render_zug_top([['zug' => '1', 'linie' => 'RB61', 'ziel' => 'Itzehoe', 'ab' => 'Hbf', 'plan' => '17:05', 'dir' => 'rueck', 'fahrten' => 20, 'puenktlich' => 13, 'spaet' => 5, 'ausfall' => 2, 'quote' => 0.65, 'schnitt' => 3.2]]);
-    t_contains('<span class="top__weg">ab Hamburg Hbf</span><span class="top__info">5× zu spät · 2× Ausfall</span></span><span class="top__quote">65 %<small>pünktlich</small></span>', $top, 'Rangliste');
+    t_contains('<span class="top__weg">ab Hamburg Hbf</span><span class="top__info">5× zu spät · 2× Ausfall</span></span><span class="top__quote top__quote--schlecht">65 %<small>pünktlich</small></span>', $top, 'Rangliste');
     t_eq('87 %', nb_prozent(0.866), 'Prozent');
 }

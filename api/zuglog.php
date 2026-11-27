@@ -271,6 +271,7 @@ function zl_dashboard_rechnen(array $logs, array $f, $now)
 {
     $tz = new DateTimeZone('Europe/Berlin');
     $k = ['fahrten' => 0, 'puenktlich' => 0, 'spaet' => 0, 'ausfall' => 0, 'teil' => 0, 'versp_summe' => 0, 'gefahren' => 0];
+    $k['richtungen'] = ['hin' => ['fahrten' => 0, 'puenktlich' => 0], 'rueck' => ['fahrten' => 0, 'puenktlich' => 0]];
     $verlauf = [];
     $zuege = [];
     for ($i = $f['tage'] - 1; $i >= 0; $i--) {
@@ -287,6 +288,8 @@ function zl_dashboard_rechnen(array $logs, array $f, $now)
             $v[$erg]++;
             $k[$erg]++;
             $k['fahrten']++;
+            $k['richtungen'][$e['dir']]['fahrten']++;
+            $k['richtungen'][$e['dir']]['puenktlich'] += $erg === 'puenktlich' ? 1 : 0;
             if (!empty($e['teil']) && empty($e['ausfall'])) {
                 $k['teil']++;
             }
@@ -319,6 +322,19 @@ function zl_dashboard_rechnen(array $logs, array $f, $now)
     unset($k['versp_summe'], $k['gefahren']);
 
     return ['kennzahlen' => $k, 'verlauf' => $verlauf, 'top' => zl_ranglisten($zuege)];
+}
+
+/**
+ * Kennzahlen des Vorzeitraums fuer den Trend, nur wenn er ungefaehr so dicht
+ * beobachtet wurde wie der aktuelle (mindestens halb so viele Fahrten).
+ */
+function zl_vorher(array $vorher, array $jetzt)
+{
+    if ($vorher['quote'] === null || !$jetzt['fahrten'] || $vorher['fahrten'] < $jetzt['fahrten'] / 2) {
+        return null;
+    }
+
+    return ['quote' => $vorher['quote'], 'fahrten' => $vorher['fahrten'], 'ausfall' => $vorher['ausfall'], 'schnitt' => $vorher['schnitt']];
 }
 
 /**
@@ -365,7 +381,11 @@ function zl_dashboard(array $f, $now = null, $frisch = false)
     if (is_array($cache) && isset($cache['stand']) && $now - (int) $cache['stand'] < NB_ZUGSTAT_TTL) {
         return $cache;
     }
-    $d = ['stand' => $now] + zl_dashboard_rechnen(zl_lesen($f['tage'], $now), $f, $now);
+    // Doppelter Zeitraum, solange die Tagesdateien reichen: der Vorzeitraum gibt den Trend
+    $mitVorher = 2 * $f['tage'] <= NB_ZUGLOG_KEEP_DAYS;
+    $logs = zl_lesen(($mitVorher ? 2 : 1) * $f['tage'], $now);
+    $d = ['stand' => $now] + zl_dashboard_rechnen($logs, $f, $now);
+    $d['vorher'] = $mitVorher ? zl_vorher(zl_dashboard_rechnen($logs, $f, $now - $f['tage'] * 86400)['kennzahlen'], $d['kennzahlen']) : null;
     nordbahn_write_json($datei, $d);
     zl_aufraeumen($now);
 

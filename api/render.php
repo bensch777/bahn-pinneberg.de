@@ -995,8 +995,16 @@ function nb_render_zug_verlauf(array $verlauf, $fenster = '')
         $html .= '</div>';
     }
     $html .= '</div>';
+    // Achse: bei wenigen Tagen jeder Wochentag, sonst jeder Montag als Wochenanfang
     if ($verlauf) {
-        $html .= '<div class="verlauf__achse"><span>' . nb_e(nb_tag_kurz($verlauf[0]['tag'])) . '</span><span>' . nb_e(nb_tag_kurz(end($verlauf)['tag'])) . '</span></div>';
+        $wenig = count($verlauf) <= 10;
+        $html .= '<div class="verlauf__achse" aria-hidden="true">';
+        foreach ($verlauf as $v) {
+            $ts = strtotime($v['tag'] . ' 12:00:00');
+            $text = $wenig ? nb_tag_kurz($v['tag']) : (date('N', $ts) === '1' ? date('j.n.', $ts) : '');
+            $html .= '<span class="verlauf__marke">' . ($text !== '' ? '<span>' . nb_e($wenig ? substr($text, 0, 2) : $text) . '</span>' : '') . '</span>';
+        }
+        $html .= '</div>';
     }
 
     return $html;
@@ -1029,7 +1037,7 @@ function nb_render_zug_top(array $zuege)
         }
         $h .= '<li class="top__zug" title="' . (int) $z['fahrten'] . ' Fahrten beobachtet"><span class="top__zeit">' . nb_e($z['plan']) . '</span>' . nb_render_linie($z['linie'])
             . '<span class="top__text"><span class="top__weg">' . nb_e($weg) . '</span><span class="top__info">' . nb_e(implode(' · ', $teile)) . '</span></span>'
-            . '<span class="top__quote">' . nb_e(nb_prozent($z['quote'])) . '<small>pünktlich</small></span></li>';
+            . '<span class="top__quote top__quote--' . ($z['quote'] >= 0.9 ? 'gut' : ($z['quote'] >= 0.75 ? 'mittel' : 'schlecht')) . '">' . nb_e(nb_prozent($z['quote'])) . '<small>pünktlich</small></span></li>';
     }
 
     return $h . '</ol>';
