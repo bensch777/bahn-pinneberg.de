@@ -31,6 +31,7 @@ function test_pendler_pruefen_schreiben()
     t_eq(['lage', 'ATM', '20123'], [$p['daten']['thema'], $p['daten']['bhf'], $p['daten']['zug']], 'Felder, Bahnhof in Grossbuchstaben');
     t_eq(null, nb_pd_pruefen_schreiben($post, t_feedback_server(), $site, [])['daten']['zug'], 'unbekannter Zug: Meldung ohne Zug');
     t_eq(200, nb_pd_pruefen_schreiben(['bhf' => 'AH'] + $post, t_feedback_server(), $site, [])['code'], 'Hamburg Hbf erlaubt');
+    t_eq('STRECKE', nb_pd_pruefen_schreiben(['bhf' => 'strecke'] + $post, t_feedback_server(), $site, [])['daten']['bhf'], 'ohne Bahnhof erlaubt');
     t_eq('ungueltig', nb_pd_pruefen_schreiben(['thema' => 'chat'] + $post, t_feedback_server(), $site, [])['status'], 'unbekanntes Thema');
     t_eq('ungueltig', nb_pd_pruefen_schreiben(['bhf' => 'XYZ'] + $post, t_feedback_server(), $site, [])['status'], 'unbekannter Bahnhof');
     $abgelehnt = nb_pd_pruefen_schreiben(['text' => 'Kontrolle in der RB61!'] + $post, t_feedback_server(), $site, []);
@@ -190,11 +191,13 @@ function test_pendler_in_lage_md()
     t_eq('', nb_lage_md_pendler($now), 'ohne Meldungen kein Abschnitt');
     list($d) = nb_pd_anlegen([], t_pd_neu('sev', 'SEV-Bus hält am ZOB, Steig 4'), 'k1', 'ip1', 'frei', $now - 600);
     list($d) = nb_pd_anlegen($d, t_pd_neu('lage', 'Wartet noch auf Freigabe hier'), 'k2', 'ip2', 'wartet', $now - 300);
+    list($d) = nb_pd_anlegen($d, ['bhf' => 'STRECKE'] + t_pd_neu('lage', 'Durchsage: alle Züge 10 Min. später'), 'k3', 'ip3', 'frei', $now - 200);
     @mkdir(nb_pd_dir(), 0775, true);
     file_put_contents(nb_pd_datei(), json_encode($d));
     $md = nb_lage_md_pendler($now);
     t_assert(strpos($md, '## Von Pendlern (ungeprüft)') === 0, 'eigener, gekennzeichneter Abschnitt');
     t_assert(strpos($md, 'Ersatzverkehr, Tornesch: SEV-Bus hält am ZOB, Steig 4') !== false, 'freigegebene Meldung steht drin');
     t_assert(strpos($md, 'Wartet noch') === false, 'wartende Meldung nicht');
+    t_assert(strpos($md, 'Lage unterwegs: Durchsage: alle Züge') !== false, 'ohne Bahnhof ohne Ortsangabe');
     @unlink(nb_pd_datei());
 }

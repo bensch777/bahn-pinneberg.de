@@ -24,8 +24,9 @@
 	];
 	var THEMA = {};
 	THEMEN.forEach(function (t) { THEMA[t.id] = t; });
+	// STRECKE: ohne bestimmten Bahnhof
 	var ORTE = [
-		['AH', 'Hamburg Hbf'], ['ADF', 'Dammtor'], ['AA', 'Altona'], ['AP', 'Pinneberg'], ['APD', 'Prisdorf'], ['ATM', 'Tornesch'],
+		['STRECKE', 'Ohne Bahnhof'], ['AH', 'Hamburg Hbf'], ['ADF', 'Dammtor'], ['AA', 'Altona'], ['AP', 'Pinneberg'], ['APD', 'Prisdorf'], ['ATM', 'Tornesch'],
 		['AEL', 'Elmshorn'], ['AHZH', 'Herzhorn'], ['AGST', 'Glückstadt'], ['AKM', 'Krempe'], ['AKHD', 'Kremperheide'], ['AIZ', 'Itzehoe'],
 		['AHOT', 'Horst (Holst)'], ['ADH', 'Dauenhof'], ['AWST', 'Wrist']
 	];
@@ -222,6 +223,9 @@
 		return box;
 	}
 
+	/** " · Bahnhof" fuer Ueberschriften, leer bei Meldungen ohne Bahnhof. */
+	function ortZusatz(m) { return m.bhf === 'STRECKE' ? '' : ' · ' + m.bhf_name; }
+
 	/** Eine Meldung als Eintrag der Liste (gleiches Raster wie die anderen Meldungen). */
 	function eintrag(m) {
 		return el('li', { class: 'pd', 'data-pd-id': m.id }, [
@@ -230,7 +234,7 @@
 				el('p', { class: 'feed__kicker feed__kicker--pendler', text: 'Pendlermeldung · ungeprüft' }),
 				el('p', { class: 'feed__title' }, [
 					el('span', { class: 'pd__symbol', 'aria-hidden': 'true', text: themaSymbol(m) }),
-					themaText(m) + ' · ' + m.bhf_name
+					themaText(m) + ortZusatz(m)
 				]),
 				el('p', { class: 'pd__text', text: m.text }),
 				// Auf dem Handy faellt die Zeitspalte weg, die Zeit steht dann vor den Knoepfen
@@ -256,7 +260,7 @@
 		opt = opt || {};
 		while (container.firstChild) container.removeChild(container.firstChild);
 		if (!state.an || !state.geladen) { container.hidden = true; return 0; }
-		var alle = state.meldungen.filter(function (m) { return !opt.bhf || m.bhf === opt.bhf; });
+		var alle = state.meldungen.filter(function (m) { return !opt.bhf || m.bhf === opt.bhf || m.bhf === 'STRECKE'; });
 		var zeigen = opt.max ? sortiert(alle).slice(0, opt.max) : alle;
 		if (!zeigen.length && !opt.immer && !state.einladen) { container.hidden = true; return 0; }
 		if (zeigen.length) {
@@ -308,7 +312,7 @@
 				el('p', { class: 'pd-zug__kopf' }, [
 					el('span', { 'aria-hidden': 'true', text: themaSymbol(m) + ' ' }),
 					el('strong', { text: themaText(m) }),
-					' · ' + m.bhf_name + ' · ' + wann(m.zeit)
+					ortZusatz(m) + ' · ' + wann(m.zeit)
 				]),
 				el('p', { class: 'pd__text', text: m.text }),
 				knoepfe(m)
@@ -478,6 +482,14 @@
 		beiAenderung: function (fn) { hoerer.push(fn); }
 	};
 
+	// "Melden" in der Kopfleiste: Dialog direkt oeffnen, wo pendler.js laeuft
+	document.addEventListener('click', function (ev) {
+		var a = ev.target && ev.target.closest ? ev.target.closest('.pd-kopf-melden') : null;
+		if (!a || !state.url || ev.metaKey || ev.ctrlKey || ev.shiftKey) return;
+		ev.preventDefault();
+		schreiben({});
+	});
+
 	// Seiten ohne dashboard.js (/aktuell/): Container mit data-pendler-liste selbst fuellen
 	document.addEventListener('DOMContentLoaded', function () {
 		var box = document.querySelector('[data-pendler-liste]');
@@ -492,5 +504,10 @@
 		try { heimat = localStorage.getItem('nordbahn.heimat') || ''; } catch (e) { /* egal */ }
 		start(box.getAttribute('data-root') || './', { heimat: function () { return { id: heimat }; } });
 		window.nbPendler.beiAenderung(zeichnen);
+		// Von "Melden" in der Kopfleiste einer anderen Seite: Dialog gleich oeffnen
+		if (/[?&]melden=1/.test(location.search)) {
+			try { history.replaceState(null, '', location.pathname + location.hash); } catch (e) { /* egal */ }
+			schreiben({});
+		}
 	});
 })();
