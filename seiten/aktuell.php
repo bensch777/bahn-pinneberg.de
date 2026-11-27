@@ -137,12 +137,6 @@ $jsonLd = [
 	<section class="section" id="pendler" aria-labelledby="pendler-h">
 		<div class="section__head">
 			<h2 class="section__title" id="pendler-h">Von Pendlern</h2>
-			<select id="pendler-filter" class="pd-filter" aria-label="Nach Bahnhof filtern" hidden>
-				<option value="">Alle Bahnh&ouml;fe</option>
-<?php foreach (array_merge(['AH' => 'Hamburg Hbf', 'ADF' => 'Dammtor', 'AA' => 'Altona'], array_map(function ($b) { return $b['name']; }, NORDBAHN_BAHNHOEFE)) as $id => $name): ?>
-				<option value="<?= nb_e($id) ?>"><?= nb_e($name) ?></option>
-<?php endforeach; ?>
-			</select>
 		</div>
 		<div class="card meldungen pd-start" data-pendler-liste data-root="<?= $root ?>" hidden></div>
 		<noscript><p class="notice">Pendlermeldungen brauchen JavaScript.</p></noscript>

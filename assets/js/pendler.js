@@ -24,12 +24,6 @@
 	];
 	var THEMA = {};
 	THEMEN.forEach(function (t) { THEMA[t.id] = t; });
-	// STRECKE: ohne bestimmten Bahnhof
-	var ORTE = [
-		['STRECKE', 'Ohne Bahnhof'], ['AH', 'Hamburg Hbf'], ['ADF', 'Dammtor'], ['AA', 'Altona'], ['AP', 'Pinneberg'], ['APD', 'Prisdorf'], ['ATM', 'Tornesch'],
-		['AEL', 'Elmshorn'], ['AHZH', 'Herzhorn'], ['AGST', 'Glückstadt'], ['AKM', 'Krempe'], ['AKHD', 'Kremperheide'], ['AIZ', 'Itzehoe'],
-		['AHOT', 'Horst (Holst)'], ['ADH', 'Dauenhof'], ['AWST', 'Wrist']
-	];
 	var MAX_TEXT = 200;
 	var REFRESH_MS = 60 * 1000;
 	var SPEICHER_KEY = 'nordbahn.pendler';
@@ -343,8 +337,6 @@
 			themen.appendChild(input);
 			themen.appendChild(el('label', { for: 'pd-thema-' + t.id, class: 'pd-themen__chip' }, [el('span', { 'aria-hidden': 'true', text: t.symbol + ' ' }), t.text]));
 		});
-		var bhf = el('select', { id: 'pd-bhf', name: 'bhf' });
-		ORTE.forEach(function (o) { bhf.appendChild(el('option', { value: o[0], text: o[1] })); });
 		var zugZeile = el('label', { class: 'pd-form__zug', for: 'pd-zug' }, [el('input', { type: 'checkbox', id: 'pd-zug', name: 'mit_zug', checked: true }), el('span', { class: 'pd-form__zugtext' })]);
 		var text = el('textarea', { id: 'pd-text', name: 'text', maxlength: String(MAX_TEXT), rows: '3', required: true });
 		var zaehler = el('span', { class: 'pd-form__zaehler', 'aria-live': 'polite', text: '0/' + MAX_TEXT });
@@ -359,8 +351,6 @@
 			el('div', { class: 'feedback-form__hp', 'aria-hidden': 'true' }, [el('label', { for: 'pd-website', text: 'Website' }), el('input', { type: 'text', id: 'pd-website', name: 'website', tabindex: '-1', autocomplete: 'off' })]),
 			el('p', { class: 'pd-form__label', id: 'pd-thema-label', text: 'Thema' }),
 			themen,
-			el('label', { for: 'pd-bhf', text: 'Bahnhof' }),
-			bhf,
 			zugZeile,
 			el('div', { class: 'pd-form__textkopf' }, [el('label', { for: 'pd-text', text: 'Was ist los?' }), zaehler]),
 			text,
@@ -400,7 +390,7 @@
 			if (text.value.trim().length < 10) { setStatus(GRUENDE.zu_kurz, false); text.focus(); return; }
 			var g = geheimnis();
 			var felder = {
-				aktion: 'schreiben', thema: thema.value, bhf: bhf.value, text: text.value.trim(), geheim: g,
+				aktion: 'schreiben', thema: thema.value, bhf: 'STRECKE', text: text.value.trim(), geheim: g,
 				website: form.querySelector('[name="website"]').value,
 				zug: dlg.zug && form.querySelector('#pd-zug').checked ? dlg.zug : null
 			};
@@ -426,7 +416,7 @@
 			}).catch(function () { setStatus(STATUS.fehler, false); })
 				.then(function () { senden.disabled = false; senden.textContent = 'Veröffentlichen'; });
 		});
-		return { dialog: dialog, form: form, bhf: bhf, text: text, zugZeile: zugZeile, status: status, platzhalter: platzhalter, zug: null };
+		return { dialog: dialog, form: form, text: text, zugZeile: zugZeile, status: status, platzhalter: platzhalter, zug: null };
 	}
 
 	/** Oeffnet den Dialog. vorgabe: { thema, bhf, zug, zugText } */
@@ -434,8 +424,6 @@
 		if (!state.url) return;
 		vorgabe = vorgabe || {};
 		if (!dlg) dlg = dialogBauen();
-		var heimat = state.heimat ? (state.heimat() || {}).id : '';
-		dlg.bhf.value = vorgabe.bhf || heimat || 'APD';
 		dlg.zug = vorgabe.zug || null;
 		dlg.zugZeile.hidden = !dlg.zug;
 		dlg.zugZeile.querySelector('input').checked = true;

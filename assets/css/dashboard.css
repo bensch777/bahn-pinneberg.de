@@ -194,6 +194,9 @@ button { font: inherit; color: inherit; }
 }
 .tool:hover { color: var(--ink); background: var(--surface-2); }
 .tool:focus-visible { outline: 2px solid var(--series); outline-offset: 1px; }
+/* Melden: einziger gefuellter Knopf der Kopfleiste, damit man ihn ohne Suchen findet */
+.tool.pd-kopf-melden { background: var(--series); color: #fff; font-weight: 600; }
+.tool.pd-kopf-melden:hover { background: color-mix(in srgb, var(--series) 85%, #000); color: #fff; }
 .tool__icon { width: 18px; height: 18px; fill: currentColor; flex: none; }
 .tool--toggle { padding: 0 7px; }
 .tool--toggle[aria-pressed="true"], .tool--an { color: var(--series); background: var(--surface-2); }
