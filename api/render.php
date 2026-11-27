@@ -926,11 +926,8 @@ function nb_statistik_url(array $f, array $extra = [])
         'betreiber' => $f['betreiber'] ?? 'nordbahn',
         'richtung' => $f['richtung'],
         'tage'     => $f['tage'],
-        'zeit'     => $f['zeit'],
-        'werktage' => $f['werktage'] ? '1' : '',
-        'sort'     => $f['sort'] ?? 'zeit',
     ], $extra);
-    $vorgabe = ['ansicht' => 'zuege', 'bhf' => NORDBAHN_HEIMAT_DEFAULT, 'betreiber' => 'nordbahn', 'richtung' => 'beide', 'tage' => 30, 'zeit' => 'alle', 'werktage' => '', 'sort' => 'zeit'];
+    $vorgabe = ['ansicht' => 'zuege', 'bhf' => NORDBAHN_HEIMAT_DEFAULT, 'betreiber' => 'nordbahn', 'richtung' => 'beide', 'tage' => 30];
     foreach ($vorgabe as $k => $v) {
         if ((string) $q[$k] === (string) $v) {
             unset($q[$k]);
@@ -955,28 +952,41 @@ function nb_tag_kurz($tag)
 }
 
 /**
- * Verlauf je Tag als gestapelte Saeulen (unten ausgefallen, darueber verspaetet,
- * oben puenktlich), Hoehe relativ zum Tag mit den meisten Fahrten. HTML statt SVG,
- * damit die Saeulen schmal bleiben; Hoehen in 5-Prozent-Stufen (CSP ohne Inline-Style).
+ * Verlauf je Werktag: Anteil der Fahrten, die verspaetet (oben) oder
+ * ausgefallen (unten) waren. Die Hoehe ist der Anteil auf einer Skala bis
+ * mindestens 20 %, in 10-Prozent-Schritten nach dem schlechtesten Tag, damit
+ * Tage mit wenigen Fahrten nicht kleiner aussehen. Ein Tag ohne Problem zeigt
+ * nur einen Strich. HTML statt SVG, Hoehen in 5-Prozent-Stufen (CSP ohne
+ * Inline-Style).
  */
-function nb_render_zug_verlauf(array $verlauf)
+function nb_render_zug_verlauf(array $verlauf, $fenster = '')
 {
-    $max = 1;
-    foreach ($verlauf as $v) {
-        $max = max($max, $v['puenktlich'] + $v['spaet'] + $v['ausfall']);
-    }
-    $html = '<div class="verlauf" role="img" aria-label="Fahrten je Tag: pünktlich, verspätet und ausgefallen. Die Zahlen stehen auch in der Tabelle darunter.">';
+    $maxAnteil = 0;
     foreach ($verlauf as $v) {
         $n = $v['puenktlich'] + $v['spaet'] + $v['ausfall'];
+        if ($n) {
+            $maxAnteil = max($maxAnteil, ($v['spaet'] + $v['ausfall']) / $n);
+        }
+    }
+    $skala = max(20, (int) ceil(round($maxAnteil * 100, 1) / 10) * 10);
+    $html = '<div class="verlauf__kopf"><span>' . nb_e($fenster) . '</span><span class="verlauf__skala" aria-hidden="true">' . $skala . ' %</span></div>';
+    $html .= '<div class="verlauf" role="img" aria-label="Anteil verspäteter und ausgefallener Fahrten je Werktag, Skala bis ' . $skala . ' Prozent.">';
+    foreach ($verlauf as $v) {
+        $n = $v['puenktlich'] + $v['spaet'] + $v['ausfall'];
+        $schlecht = $v['spaet'] + $v['ausfall'];
         if (!$n) {
             $html .= '<div class="verlauf__tag verlauf__tag--leer" title="' . nb_e(nb_tag_kurz($v['tag']) . ': ' . ($v['beobachtet'] ? 'keine passende Fahrt' : 'nicht beobachtet')) . '"></div>';
             continue;
         }
-        $titel = nb_tag_kurz($v['tag']) . ': ' . $v['puenktlich'] . ' pünktlich, ' . $v['spaet'] . ' verspätet, ' . $v['ausfall'] . ' ausgefallen';
-        $html .= '<div class="verlauf__tag" data-h="' . nb_bar_stufe($n, $max) . '" title="' . nb_e($titel) . '">';
-        foreach (['ausfall', 'spaet', 'puenktlich'] as $art) {
+        $titel = nb_tag_kurz($v['tag']) . ': ' . (int) round(100 * $schlecht / $n) . ' % unpünktlich, ' . $v['spaet'] . ' verspätet, ' . $v['ausfall'] . ' ausgefallen von ' . $n;
+        if (!$schlecht) {
+            $html .= '<div class="verlauf__tag verlauf__tag--gut" title="' . nb_e($titel) . '"></div>';
+            continue;
+        }
+        $html .= '<div class="verlauf__tag" data-h="' . nb_bar_stufe($schlecht / $n, $skala / 100) . '" title="' . nb_e($titel) . '">';
+        foreach (['ausfall', 'spaet'] as $art) {
             if ($v[$art]) {
-                $html .= '<span class="verlauf__seg verlauf__seg--' . $art . '" data-h="' . nb_bar_stufe($v[$art], $n) . '"></span>';
+                $html .= '<span class="verlauf__seg verlauf__seg--' . $art . '" data-h="' . nb_bar_stufe($v[$art], $schlecht) . '"></span>';
             }
         }
         $html .= '</div>';
@@ -989,51 +999,37 @@ function nb_render_zug_verlauf(array $verlauf)
     return $html;
 }
 
-/** Dieselben Zahlen als Tabelle, juengster Tag zuerst, nur Tage mit Fahrten. */
-function nb_render_zug_verlauf_tabelle(array $verlauf)
+/** Hamburger Abfahrtsbahnhof der Rueckrichtung in Langform. */
+function nb_hamburg_ab($ab)
 {
-    $h = '<table class="bars"><tr><th scope="col">Tag</th><th scope="col" class="num">P&uuml;nktlich</th><th scope="col" class="num">Versp&auml;tet</th><th scope="col" class="num">Ausgefallen</th></tr>';
-    foreach (array_reverse($verlauf) as $v) {
-        if ($v['puenktlich'] + $v['spaet'] + $v['ausfall'] === 0) {
-            continue;
-        }
-        $h .= '<tr><th scope="row">' . nb_e(nb_tag_kurz($v['tag'])) . '</th><td class="num">' . (int) $v['puenktlich'] . '</td><td class="num">' . (int) $v['spaet'] . '</td><td class="num">' . (int) $v['ausfall'] . '</td></tr>';
-    }
-
-    return $h . '</table>';
+    return ['Hbf' => 'Hamburg Hbf', 'Altona' => 'Altona', 'Dammtor' => 'Dammtor'][$ab] ?? ($ab !== '' ? $ab : 'Hamburg');
 }
 
-/** Zuverlaessigkeit je Zug fuer eine Richtung; $sortLinks: [zeit-URL, ausfall-URL, aktiv]. */
-function nb_render_zug_tabelle(array $zuege, $mitAb, array $sortLinks)
+/** Rangliste der Zuege (aus zl_ranglisten): Abfahrt, Linie, Richtung, Anteil puenktlich. */
+function nb_render_zug_top(array $zuege)
 {
     if (!$zuege) {
-        return '<p class="feed__empty">Keine Fahrt zu diesem Filter beobachtet.</p>';
+        return '<p class="feed__empty">Noch zu wenige Fahrten.</p>';
     }
-    [$urlZeit, $urlAusfall, $sort] = $sortLinks;
-    if ($sort === 'ausfall') {
-        uasort($zuege, function ($a, $b) {
-            return [$b['ausfallquote'], $b['spaetquote'], $a['plan']] <=> [$a['ausfallquote'], $a['spaetquote'], $b['plan']];
-        });
-    }
-    $kopf = function ($label, $url, $aktiv) {
-        return $aktiv ? $label . ' <span aria-hidden="true">&darr;</span>' : '<a href="' . nb_e($url) . '">' . $label . '</a>';
-    };
-    $h = '<table class="bars bars--zuege"><tr><th scope="col">' . $kopf('Zug', $urlZeit, $sort !== 'ausfall') . '</th>' . ($mitAb ? '<th scope="col">ab</th>' : '')
-        . '<th scope="col" class="num">Tage</th><th scope="col" class="num">' . $kopf('Ausf&auml;lle', $urlAusfall, $sort === 'ausfall') . '</th><th scope="col" class="bar"><span class="visually-hidden">Ausfallquote</span></th>'
-        . '<th scope="col" class="num">&ge; 5 min</th><th scope="col" class="num">&Oslash; Versp.</th><th scope="col" class="num col-max">max.</th></tr>';
+    $h = '<ol class="top">';
     foreach ($zuege as $z) {
-        $wenig = $z['tage'] < NB_ZUGLOG_MIN_TAGE;
-        $h .= '<tr' . ($wenig ? ' class="is-wenig"' : '') . '><th scope="row">' . nb_e($z['plan']) . ' ' . nb_e($z['linie']) . ' <span class="zug__ziel">' . nb_e($z['ziel']) . '</span></th>'
-            . ($mitAb ? '<td>' . nb_e($z['ab']) . '</td>' : '')
-            . '<td class="num">' . (int) $z['tage'] . '</td>'
-            . '<td class="num">' . (int) $z['ausfaelle'] . ($z['teil'] ? ' <span class="zug__teil" title="Teilausf&auml;lle">+' . (int) $z['teil'] . '</span>' : '') . '</td>'
-            . '<td class="bar"><div class="bar__track" aria-hidden="true"><div class="bar__fill bar__fill--rot' . ($z['ausfaelle'] ? '' : ' bar__fill--leer') . '" data-w="' . nb_bar_stufe($z['ausfaelle'], max(1, $z['tage'])) . '"></div></div></td>'
-            . '<td class="num">' . (int) $z['spaet'] . '</td>'
-            . '<td class="num">' . ($z['schnitt'] >= 0.05 ? '+' . nb_e(number_format($z['schnitt'], 1, ',', '')) : '0') . '</td>'
-            . '<td class="num col-max">' . ($z['max'] ? '+' . (int) $z['max'] : '0') . '</td></tr>';
+        $weg = $z['dir'] === 'hin' ? 'nach ' . $z['ziel'] : 'ab ' . nb_hamburg_ab($z['ab']);
+        $teile = [];
+        if ($z['spaet']) {
+            $teile[] = $z['spaet'] . '× zu spät';
+        }
+        if ($z['ausfall']) {
+            $teile[] = $z['ausfall'] . '× Ausfall';
+        }
+        if (!$teile) {
+            $teile[] = $z['schnitt'] >= 0.05 ? 'Ø +' . number_format($z['schnitt'], 1, ',', '') . ' Min.' : 'immer pünktlich';
+        }
+        $h .= '<li class="top__zug" title="' . (int) $z['fahrten'] . ' Fahrten beobachtet"><span class="top__zeit">' . nb_e($z['plan']) . '</span>' . nb_render_linie($z['linie'])
+            . '<span class="top__text"><span class="top__weg">' . nb_e($weg) . '</span><span class="top__info">' . nb_e(implode(' · ', $teile)) . '</span></span>'
+            . '<span class="top__quote">' . nb_e(nb_prozent($z['quote'])) . '<small>pünktlich</small></span></li>';
     }
 
-    return $h . '</table>';
+    return $h . '</ol>';
 }
 
 /**

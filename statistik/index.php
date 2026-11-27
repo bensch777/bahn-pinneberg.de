@@ -1,8 +1,8 @@
 <?php
 /**
  * Statistik als Dashboard mit zwei Ansichten und einer Filterleiste:
- * "Zuege" (Zuverlaessigkeit aus dem Zuglog, filterbar nach Bahnhof, Richtung,
- * Zeitraum, Tageszeit und Werktagen) und "Strecke" (Infrastrukturstoerungen aus
+ * "Zuege" (Zuverlaessigkeit im Pendelfenster aus dem Zuglog, filterbar nach
+ * Bahnhof, Richtung und Zeitraum) und "Strecke" (Infrastrukturstoerungen aus
  * dem Logbuch, gleicher Zeitraum). Die Filter stehen in der Adresse, die Seite
  * rendert server-seitig; ein kleines Script schickt das Formular bei jeder
  * Aenderung ab und uebernimmt den Bahnhof von der Startseite.
@@ -20,7 +20,6 @@ $assetVersion = (int) @filemtime(__DIR__ . '/../dashboard.css');
 
 $f = zl_filter($_GET);
 $f['ansicht'] = ($_GET['ansicht'] ?? '') === 'strecke' ? 'strecke' : 'zuege';
-$f['sort'] = ($_GET['sort'] ?? '') === 'ausfall' ? 'ausfall' : 'zeit';
 $bhfName = NORDBAHN_BAHNHOEFE[$f['bhf']]['name'];
 
 $data = nordbahn_dataset();
@@ -28,14 +27,16 @@ $stat = nb_statistik($data['stoerungen_verlauf'] ?? [], null, $f['tage']);
 $sz = $stat['zeitraum'];
 $maxWoche = max(1, max(array_column($stat['wochen'], 'n') ?: [0]));
 $maxUrsache = max(1, max(array_column($stat['ursachen'], 'n') ?: [0]));
-$dash = $f['ansicht'] === 'zuege' ? zl_dashboard(array_diff_key($f, ['ansicht' => 1, 'sort' => 1])) : null;
+$dash = $f['ansicht'] === 'zuege' ? zl_dashboard(array_diff_key($f, ['ansicht' => 1])) : null;
 $k = $dash['kennzahlen'] ?? null;
-$sortLinks = [nb_statistik_url($f, ['sort' => 'zeit']), nb_statistik_url($f, ['sort' => 'ausfall']), $f['sort']];
+$fenster = ZL_PENDELFENSTER;
+$uhr = function ($hhmm) { return (int) $hhmm; };
+$fensterText = 'Mo–Fr, hin ' . $uhr($fenster['hin'][0]) . '–' . $uhr($fenster['hin'][1]) . ' Uhr, zurück ' . $uhr($fenster['rueck'][0]) . '–' . $uhr($fenster['rueck'][1]) . ' Uhr';
 
 $zeitraumText = 'letzte ' . $f['tage'] . ' Tage';
 $title = 'Statistik Nordbahn RB60/RB61/RB71 – Pünktlichkeit und Störungen ab Pinneberg, Elmshorn, Itzehoe, Wrist';
 $description = 'Wie pünktlich fahren RB60, RB61 und RB71 ab ' . $bhfName . '? Ausfälle, Verspätungen und Störungen der letzten '
-    . $f['tage'] . ' Tage, filterbar nach Bahnhof, Richtung, Tageszeit und Werktagen. Dazu ' . $sz['n'] . ' Infrastruktur-Störung'
+    . $f['tage'] . ' Tage im Berufsverkehr, die unzuverlässigsten und zuverlässigsten Züge. Dazu ' . $sz['n'] . ' Infrastruktur-Störung'
     . ($sz['n'] === 1 ? '' : 'en') . ' auf der Strecke.';
 $jsonLd = [
     '@context' => 'https://schema.org',
@@ -97,7 +98,11 @@ function nb_filter_select($name, $label, array $optionen, $wert)
 	<div class="page-head">
 		<div>
 			<h1>Statistik</h1>
-			<p class="page-head__lead">Wie p&uuml;nktlich die Z&uuml;ge fahren und wie oft die Strecke Hamburg &ndash; Elmshorn &ndash; Itzehoe / Wrist gest&ouml;rt ist.</p>
+<?php if ($f['ansicht'] === 'zuege'): ?>
+			<p class="page-head__lead">Wie verl&auml;sslich das Pendeln im Berufsverkehr ist.</p>
+<?php else: ?>
+			<p class="page-head__lead">Wie oft die Strecke Hamburg &ndash; Elmshorn &ndash; Itzehoe / Wrist gest&ouml;rt ist.</p>
+<?php endif; ?>
 		</div>
 	</div>
 
@@ -122,54 +127,41 @@ function nb_filter_select($name, $label, array $optionen, $wert)
 		<input type="hidden" name="richtung" value="<?= nb_e($f['richtung']) ?>">
 <?php endif; ?>
 		<?= nb_filter_select('tage', 'Zeitraum', [7 => '7 Tage', 14 => '14 Tage', 30 => '30 Tage', 60 => '60 Tage'], $f['tage']) ?>
-<?php if ($f['ansicht'] === 'zuege'): ?>
-		<?= nb_filter_select('zeit', 'Tageszeit', ['alle' => 'Ganzer Tag', 'morgens' => 'Morgens 5–10 Uhr', 'abends' => 'Abends 15–20 Uhr'], $f['zeit']) ?>
-		<?= nb_filter_select('werktage', 'Tage', ['' => 'Alle Tage', '1' => 'Mo–Fr'], $f['werktage'] ? '1' : '') ?>
-<?php else: ?>
-		<input type="hidden" name="zeit" value="<?= nb_e($f['zeit']) ?>">
-		<input type="hidden" name="werktage" value="<?= $f['werktage'] ? '1' : '' ?>">
-<?php endif; ?>
 		<button type="submit" class="filters__los">Anzeigen</button>
 	</form>
 
 <?php if ($f['ansicht'] === 'zuege'): ?>
 	<section class="section" aria-label="Kennzahlen">
-		<div class="stats">
-			<div class="card stat"><p class="stat__label">P&uuml;nktlich</p><p class="stat__value"><?= nb_e(nb_prozent($k['quote'])) ?></p><p class="stat__note"><?= (int) $k['puenktlich'] ?> von <?= (int) $k['fahrten'] ?> Fahrten unter <?= (int) NB_ZUG_SPAET ?> Min.</p></div>
+		<div class="stats stats--drei">
+			<div class="card stat"><p class="stat__label">P&uuml;nktlich</p><p class="stat__value"><?= nb_e(nb_prozent($k['quote'])) ?></p><p class="stat__note"><?= (int) $k['puenktlich'] ?> von <?= (int) $k['fahrten'] ?> Fahrten</p></div>
 			<div class="card stat"><p class="stat__label">Ausgefallen</p><p class="stat__value"><?= (int) $k['ausfall'] ?></p><p class="stat__note"><?= nb_e(nb_prozent($k['fahrten'] ? $k['ausfall'] / $k['fahrten'] : null)) ?><?= $k['teil'] ? ', davon ' . (int) $k['teil'] . ' teilweise' : '' ?></p></div>
-			<div class="card stat"><p class="stat__label">&Oslash; Versp&auml;tung</p><p class="stat__value"><?= $k['fahrten'] ? '+' . nb_e(number_format($k['schnitt'], 1, ',', '')) . ' Min.' : '–' ?></p><p class="stat__note">ohne ausgefallene Fahrten</p></div>
-			<div class="card stat"><p class="stat__label">Beobachtet</p><p class="stat__value"><?= (int) $k['tage_beobachtet'] ?> von <?= (int) $f['tage'] ?></p><p class="stat__note">Tagen</p></div>
+			<div class="card stat"><p class="stat__label">&Oslash; Versp&auml;tung</p><p class="stat__value"><?= $k['fahrten'] ? '+' . nb_e(number_format($k['schnitt'], 1, ',', '')) . ' Min.' : '–' ?></p><p class="stat__note">ohne Ausf&auml;lle</p></div>
 		</div>
 	</section>
 
 	<section class="section">
 		<div class="section__head">
-			<h2 class="section__title">Verlauf je Tag</h2>
+			<h2 class="section__title">Unp&uuml;nktlich je Werktag</h2>
 			<ul class="legende" aria-label="Legende">
-				<li><span class="legende__punkt legende__punkt--puenktlich"></span>P&uuml;nktlich</li>
 				<li><span class="legende__punkt legende__punkt--spaet"></span>Ab <?= (int) NB_ZUG_SPAET ?> Min. versp&auml;tet</li>
 				<li><span class="legende__punkt legende__punkt--ausfall"></span>Ausgefallen</li>
 			</ul>
 		</div>
 		<div class="card verlauf-karte">
-			<?= nb_render_zug_verlauf($dash['verlauf']) ?>
-			<details class="verlauf__zahlen"><summary>Zahlen je Tag</summary><?= nb_render_zug_verlauf_tabelle($dash['verlauf']) ?></details>
+			<?= nb_render_zug_verlauf($dash['verlauf'], $fensterText) ?>
 		</div>
 	</section>
 
-<?php if ($f['richtung'] !== 'rueck'): ?>
-	<section class="section">
-		<h2 class="section__title"><?= nb_e($bhfName) ?> &rarr; Hamburg</h2>
-		<div class="card"><?= nb_render_zug_tabelle($dash['hin'], false, $sortLinks) ?></div>
-	</section>
-<?php endif; ?>
-<?php if ($f['richtung'] !== 'hin'): ?>
-	<section class="section">
-		<h2 class="section__title">Hamburg &rarr; <?= nb_e($bhfName) ?></h2>
-		<div class="card"><?= nb_render_zug_tabelle($dash['rueck'], true, $sortLinks) ?></div>
-	</section>
-<?php endif; ?>
-	<p class="section__note">P&uuml;nktlich hei&szlig;t unter <?= (int) NB_ZUG_SPAET ?> Minuten Versp&auml;tung. Graue Zeilen haben weniger als <?= (int) NB_ZUGLOG_MIN_TAGE ?> Tage.</p>
+	<div class="top-raster">
+		<section class="section">
+			<h2 class="section__title">Unzuverl&auml;ssigste Z&uuml;ge</h2>
+			<div class="card"><?= nb_render_zug_top($dash['top']['unzuverlaessig']) ?></div>
+		</section>
+		<section class="section">
+			<h2 class="section__title">Zuverl&auml;ssigste Z&uuml;ge</h2>
+			<div class="card"><?= nb_render_zug_top($dash['top']['zuverlaessig']) ?></div>
+		</section>
+	</div>
 <?php else: ?>
 	<section class="section" aria-label="Kennzahlen">
 		<div class="stats">

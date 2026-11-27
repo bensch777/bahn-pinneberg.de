@@ -37,26 +37,6 @@ function test_zuglog_merge_letzter_stand_zaehlt()
     t_eq([], zl_merge([], ['ok' => true, 'richtungen' => ['hin' => [t_zl_zeile('', '2026-10-15T07:42:00+02:00')]]], 'APD', $now), 'ohne Zugnummer nichts');
 }
 
-function test_zuglog_auswertung()
-{
-    $tag = function ($versp, $ausfall = false, $teil = '', $max = null) {
-        return ['zug' => '81871', 'linie' => 'RB61', 'ziel' => 'Hamburg Hbf', 'ab' => '', 'station' => 'APD', 'dir' => 'hin', 'plan' => '07:42', 'versp' => $versp, 'max' => $max ?? $versp, 'ausfall' => $ausfall, 'teil' => $teil, 'gleis' => false, 'n' => 3, 't' => 0];
-    };
-    $logs = [
-        '2026-10-10' => ['APD|hin|81871' => $tag(0)],
-        '2026-10-11' => ['APD|hin|81871' => $tag(6)],
-        '2026-10-12' => ['APD|hin|81871' => $tag(0, true)],
-        '2026-10-13' => ['APD|hin|81871' => $tag(2, false, 'endet', 12)],
-        '2026-10-14' => ['APD|hin|81871' => $tag(4), 'AH|rueck|75514' => ['zug' => '75514', 'linie' => 'RB71', 'ziel' => 'Wrist', 'ab' => 'Hbf', 'station' => 'AH', 'dir' => 'rueck', 'plan' => '17:05', 'versp' => 0, 'max' => 0, 'ausfall' => false, 'teil' => '', 'gleis' => true, 'n' => 1, 't' => 0]],
-    ];
-    $a = zl_auswertung($logs);
-    $z = $a['APD']['hin']['81871'];
-    t_eq([5, 1, 1, 1, 12, 3.0], [$z['tage'], $z['ausfaelle'], $z['teil'], $z['spaet'], $z['max'], $z['schnitt']], 'Tage, Ausfall, Teilausfall, >=5 min, Max, Schnitt ohne Ausfalltag ((0+6+2+4)/4)');
-    t_eq([0.2, 0.25], [$z['ausfallquote'], $z['spaetquote']], 'Quoten');
-    t_eq('2026-10-14', $z['zuletzt'], 'zuletzt gesehen');
-    t_eq(1, $a['AH']['rueck']['75514']['gleis'], 'Gleiswechsel gezaehlt');
-}
-
 function test_zuglog_dateien_und_auswertung()
 {
     $now = strtotime('2026-10-15 07:30:00 Europe/Berlin');
@@ -70,13 +50,13 @@ function test_zuglog_dateien_und_auswertung()
     $datei = nordbahn_read_json(NB_ZUGLOG_DIR . '/2026-10-15.json');
     t_eq(2, $datei['APD|hin|81871']['n'], 'Tagesdatei zaehlt beide Beobachtungen');
     // Vier weitere Tage, dann reicht es fuer eine Aussage
-    foreach ([11, 12, 13, 14] as $d) {
+    foreach (['09', '12', '13', '14'] as $d) { // Freitag und Mo-Mi, das Wochenende dazwischen zaehlt nicht
         nordbahn_write_json(NB_ZUGLOG_DIR . "/2026-10-$d.json", ['APD|hin|81871' => $datei['APD|hin|81871'] + []]);
     }
     $f = zl_filter(['bhf' => 'APD']);
     $d = zl_dashboard($f, $now, true);
-    t_eq(5, $d['kennzahlen']['tage_beobachtet'], 'fuenf Tage gelesen');
-    t_eq(5, $d['hin']['81871']['tage'], 'Zug in der Auswertung');
+    t_eq(5, $d['kennzahlen']['tage_beobachtet'], 'fuenf Werktage gelesen');
+    t_eq(['81871', 5], [$d['top']['unzuverlaessig'][0]['zug'], $d['top']['unzuverlaessig'][0]['fahrten']], 'Zug mit 5 Min. Verspaetung in der Rangliste');
     t_eq(1, count(glob(NORDBAHN_CACHE_DIR . '/zugstat-*.json')), 'Auswertung je Filter gecacht');
     zl_log(['ok' => false], 'APD', $now);
     foreach (glob(NB_ZUGLOG_DIR . '/*.json') ?: [] as $f) {
@@ -87,9 +67,9 @@ function test_zuglog_dateien_und_auswertung()
 
 function test_zuglog_filter()
 {
-    t_eq(['bhf' => 'APD', 'betreiber' => 'nordbahn', 'richtung' => 'beide', 'tage' => 30, 'zeit' => 'alle', 'werktage' => false], zl_filter([]), 'Vorgaben');
-    t_eq(['bhf' => 'AEL', 'betreiber' => 'nordbahn', 'richtung' => 'hin', 'tage' => 7, 'zeit' => 'morgens', 'werktage' => true], zl_filter(['bhf' => 'ael', 'richtung' => 'hin', 'tage' => '7', 'zeit' => 'morgens', 'werktage' => '1']), 'gueltige Werte');
-    t_eq(['bhf' => 'APD', 'betreiber' => 'nordbahn', 'richtung' => 'beide', 'tage' => 30, 'zeit' => 'alle', 'werktage' => false], zl_filter(['bhf' => 'XYZ', 'richtung' => 'quer', 'tage' => '999', 'zeit' => 'nachts', 'werktage' => 'ja']), 'Unsinn faellt auf Vorgaben');
+    t_eq(['bhf' => 'APD', 'betreiber' => 'nordbahn', 'richtung' => 'beide', 'tage' => 30], zl_filter([]), 'Vorgaben');
+    t_eq(['bhf' => 'AEL', 'betreiber' => 'nordbahn', 'richtung' => 'hin', 'tage' => 7], zl_filter(['bhf' => 'ael', 'richtung' => 'hin', 'tage' => '7', 'zeit' => 'morgens']), 'gueltige Werte, alte Parameter ignoriert');
+    t_eq(['bhf' => 'APD', 'betreiber' => 'nordbahn', 'richtung' => 'beide', 'tage' => 30], zl_filter(['bhf' => 'XYZ', 'richtung' => 'quer', 'tage' => '999']), 'Unsinn faellt auf Vorgaben');
 }
 
 function test_zuglog_dashboard()
@@ -107,21 +87,41 @@ function test_zuglog_dashboard()
     ];
     $d = zl_dashboard_rechnen($logs, zl_filter(['tage' => '7']), $now);
     $k = $d['kennzahlen'];
-    t_eq([6, 2, 2, 2, 1], [$k['fahrten'], $k['puenktlich'], $k['spaet'], $k['ausfall'], $k['teil']], 'alle Fahrten ab Prisdorf und zurueck, ohne Elmshorn');
-    t_eq(round((9 + 0 + 6 + 0 + 2) / 5, 1), $k['schnitt'], 'Schnitt ohne ganz ausgefallene Fahrt');
-    t_eq(3, $k['tage_beobachtet'], 'drei Tage mit Log');
-    t_eq(7, count($d['verlauf']), 'sieben Tage Verlauf');
-    t_eq(['2026-10-10', '2026-10-16'], [$d['verlauf'][0]['tag'], $d['verlauf'][6]['tag']], 'aelteste zuerst');
-    t_eq(['puenktlich' => 0, 'spaet' => 0, 'ausfall' => 1], array_intersect_key($d['verlauf'][6], ['puenktlich' => 1, 'spaet' => 1, 'ausfall' => 1]), 'Teilausfall zaehlt als ausgefallen');
-    t_eq([1, 2], array_keys($d['hin']), 'Zugtabelle hin');
-    t_eq(['AH|3', 'AH|4'], array_keys($d['rueck']), 'Zugtabelle zurueck');
+    t_eq([4, 2, 0, 2, 1], [$k['fahrten'], $k['puenktlich'], $k['spaet'], $k['ausfall'], $k['teil']], 'nur Pendelfenster an Werktagen: ohne Sonntag, ohne 12 Uhr, ohne Elmshorn');
+    t_eq(round((0 + 0 + 2) / 3, 1), $k['schnitt'], 'Schnitt ohne ganz ausgefallene Fahrt');
+    t_eq(2, $k['tage_beobachtet'], 'zwei Werktage mit Log');
+    t_eq(5, count($d['verlauf']), 'fuenf Werktage Verlauf');
+    t_eq(['2026-10-12', '2026-10-16'], [$d['verlauf'][0]['tag'], $d['verlauf'][4]['tag']], 'aelteste zuerst, Wochenende fehlt');
+    t_eq(['puenktlich' => 0, 'spaet' => 0, 'ausfall' => 1], array_intersect_key($d['verlauf'][4], ['puenktlich' => 1, 'spaet' => 1, 'ausfall' => 1]), 'Teilausfall zaehlt als ausgefallen');
 
     $d = zl_dashboard_rechnen($logs, zl_filter(['tage' => '7', 'bhf' => 'AIZ', 'richtung' => 'rueck']), $now);
-    t_eq(['AH|3'], array_keys($d['rueck']), 'Itzehoe: Zug nach Wrist faellt raus');
-    t_eq([], $d['hin'], 'nur Rueckrichtung');
+    t_eq([1, 1], [$d['kennzahlen']['fahrten'], $d['kennzahlen']['ausfall']], 'Itzehoe zurueck: Zug nach Wrist faellt raus');
+}
 
-    $d = zl_dashboard_rechnen($logs, zl_filter(['tage' => '7', 'zeit' => 'morgens', 'werktage' => '1']), $now);
-    t_eq(2, $d['kennzahlen']['fahrten'], 'morgens an Werktagen: Do und Fr um 7 Uhr, Sonntag nicht');
+function test_zuglog_ranglisten()
+{
+    $now = strtotime('2026-10-30 20:00:00 Europe/Berlin'); // Freitag
+    $e = function ($zug, $plan, $versp, $ausfall = false) {
+        return ['zug' => $zug, 'linie' => 'RB61', 'ziel' => 'Hamburg Hbf', 'ab' => '', 'station' => 'APD', 'dir' => 'hin', 'plan' => $plan, 'versp' => $versp, 'max' => $versp, 'ausfall' => $ausfall, 'teil' => '', 'gleis' => false];
+    };
+    $logs = [];
+    // Zehn Werktage; Zug 1 jeden zweiten Tag verspaetet, Zug 2 einmal ausgefallen, Zug 3 immer puenktlich, Zug 9 nur zweimal (zu selten)
+    $tage = ['2026-10-19', '2026-10-20', '2026-10-21', '2026-10-22', '2026-10-23', '2026-10-26', '2026-10-27', '2026-10-28', '2026-10-29', '2026-10-30'];
+    foreach ($tage as $i => $tag) {
+        $logs[$tag] = [
+            'APD|hin|1' => $e('1', '06:50', $i % 2 ? 8 : 0),
+            'APD|hin|2' => $e('2', '07:10', 1, $i === 3),
+            'APD|hin|3' => $e('3', '07:30', 0),
+        ];
+        if ($i < 2) {
+            $logs[$tag]['APD|hin|9'] = $e('9', '08:10', 20, true);
+        }
+    }
+    $top = zl_dashboard_rechnen($logs, zl_filter(['tage' => '14']), $now)['top'];
+    t_eq(5, $top['min'], 'Mindestzahl: halb so oft wie der haeufigste Zug, wenigstens fuenf');
+    t_eq(['1', '2'], array_column($top['unzuverlaessig'], 'zug'), 'unzuverlaessig: schlechteste Quote zuerst, seltener Zug fehlt');
+    t_eq([0.5, 5, 0], [$top['unzuverlaessig'][0]['quote'], $top['unzuverlaessig'][0]['spaet'], $top['unzuverlaessig'][0]['ausfall']], 'Kennzahlen je Zug');
+    t_eq(['3'], array_column($top['zuverlaessig'], 'zug'), 'zuverlaessig ohne Ueberschneidung');
 }
 
 function test_zuglog_db_regio_getrennt()
@@ -145,11 +145,11 @@ function test_zuglog_db_regio_getrennt()
     $logs2 = zl_merge($logs, ['ok' => true, 'richtungen' => ['hin' => [], 'rueck' => [$re('2026-11-12T07:40:00+01:00', ['ab' => 'Hbf', 'ziel' => 'Kiel Hbf'])]]], 'AP', $now + 60);
     t_eq(['AEL', 'AP'], $logs2['2026-11-12']['AH|rueck|RE70 07:40']['bis'], 'bis vereinigt');
 
+    // Pendelfenster: der RE ab Hbf um 07:40 zaehlt nicht (zurueck erst ab 15 Uhr)
     $nb = zl_dashboard_rechnen($logs, zl_filter(['bhf' => 'AEL', 'tage' => '7']), $now);
     t_eq([1, 0], [$nb['kennzahlen']['fahrten'], $nb['kennzahlen']['ausfall']], 'Nordbahn zaehlt keine RE');
     $db = zl_dashboard_rechnen($logs, zl_filter(['bhf' => 'AEL', 'tage' => '7', 'betreiber' => 'db']), $now);
-    t_eq([2, 1, 1], [$db['kennzahlen']['fahrten'], $db['kennzahlen']['spaet'], $db['kennzahlen']['ausfall']], 'DB Regio getrennt');
-    t_eq(['RE70 07:12'], array_keys($db['hin']), 'Tabelle Hinrichtung');
+    t_eq([1, 1, 0], [$db['kennzahlen']['fahrten'], $db['kennzahlen']['spaet'], $db['kennzahlen']['ausfall']], 'DB Regio getrennt');
     $ap = zl_dashboard_rechnen($logs, zl_filter(['bhf' => 'AP', 'tage' => '7', 'betreiber' => 'db']), $now);
     t_eq(0, $ap['kennzahlen']['fahrten'], 'RE nur fuer Bahnhoefe aus bis');
     t_eq('nordbahn', zl_filter(['bhf' => 'APD', 'betreiber' => 'db'])['betreiber'], 'Prisdorf hat keine RE');
