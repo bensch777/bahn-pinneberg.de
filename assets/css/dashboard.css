@@ -142,7 +142,7 @@ button { font: inherit; color: inherit; }
 	overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
 }
 
-/* Kopf: bleibt oben stehen, damit Bereiche und Glocke von ueberall erreichbar sind.
+/* Kopf: bleibt oben stehen, damit Bereiche, Melden und Einstellungen von ueberall erreichbar sind.
    z-index ueber den Leaflet-Ebenen (bis 1000) der Live-Karte. */
 .site-head { position: sticky; top: 0; z-index: 1100; border-bottom: 1px solid var(--line); background: var(--surface); }
 .site-head__row { display: flex; align-items: center; gap: 20px; height: 52px; }
@@ -198,20 +198,20 @@ button { font: inherit; color: inherit; }
 .tool.pd-kopf-melden { background: var(--series); color: #fff; font-weight: 600; }
 .tool.pd-kopf-melden:hover { background: color-mix(in srgb, var(--series) 85%, #000); color: #fff; }
 .tool__icon { width: 18px; height: 18px; fill: currentColor; flex: none; }
+#notify-toggle .tool__icon { width: 20px; height: 20px; }
 .tool--toggle { padding: 0 7px; }
 .tool--toggle[aria-pressed="true"], .tool--an { color: var(--series); background: var(--surface-2); }
 .tool--toggle[aria-current="page"] { color: var(--ink); background: var(--surface-2); }
 .tool--toggle:disabled { opacity: 0.45; cursor: default; }
 .tool--toggle:disabled:hover { background: transparent; color: var(--ink-2); }
-/* Hell/Dunkel-Schalter: zeigt das Ziel (Mond im hellen, Sonne im dunklen Schema) */
-.theme-toggle .theme-toggle__sonne { display: none; }
-:root[data-theme="dark"] .theme-toggle .theme-toggle__sonne { display: block; }
-:root[data-theme="dark"] .theme-toggle .theme-toggle__mond { display: none; }
-@media (prefers-color-scheme: dark) {
-	:root:not([data-theme="light"]) .theme-toggle .theme-toggle__sonne { display: block; }
-	:root:not([data-theme="light"]) .theme-toggle .theme-toggle__mond { display: none; }
+/* Schmale Handys: Kopf rueckt zusammen, damit Melden seine Beschriftung behaelt.
+   Erst unter 375px (kleiner als iPhone SE/mini) bleibt nur das Symbol. */
+@media (max-width: 420px) {
+	.site-head__row { gap: 8px; }
+	.site-head__tools { gap: 2px; }
+	.tool.pd-kopf-melden { padding: 0 9px; }
 }
-@media (max-width: 560px) { .tool span:not(.visually-hidden) { display: none; } .tool { padding: 0 7px; } }
+@media (max-width: 374px) { .tool span:not(.visually-hidden) { display: none; } .tool { padding: 0 7px; } .tool.pd-kopf-melden { padding: 0 7px; } }
 .tool-menu { position: relative; }
 .menu {
 	position: absolute; right: 0; top: calc(100% + 6px); z-index: 20; width: 272px; padding: 8px 12px 10px;
@@ -842,7 +842,7 @@ button.freshness:focus-visible { outline: 2px solid var(--series); outline-offse
 	color: var(--muted); font: inherit; font-size: 12px; cursor: pointer;
 }
 .meine__tag[aria-pressed="true"] { color: #fff; background: var(--series); border-color: var(--series); font-weight: 600; }
-.meine__neu { display: grid; gap: 10px; padding-top: 2px; }
+.meine__neu { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; padding-top: 2px; }
 
 /* Einstellungen: Karten mit Zeilen wie in einer Systemeinstellung (einstellungen/) */
 .einst { padding: 6px 18px 14px; }

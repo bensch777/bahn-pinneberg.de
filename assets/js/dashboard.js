@@ -2118,8 +2118,8 @@
 	}
 
 	/**
-	 * Glocke im Kopf (Link zu den Einstellungen) zeigt, ob Benachrichtigungen an
-	 * sind; auf der Einstellungsseite stehen Schalter, Was und Wann.
+	 * Zahnrad im Kopf (Link zu den Einstellungen) nennt in Titel und Beschriftung, ob
+	 * Benachrichtigungen an sind; auf der Einstellungsseite stehen Schalter, Was und Wann.
 	 */
 	function renderNotify() {
 		var unterstuetzt = 'Notification' in window;
@@ -2130,10 +2130,9 @@
 			: on ? 'Benachrichtigungen an' + (nur ? ', nur meine Züge' : notifyZeit() === 'pendel' ? ', nur zu Pendelzeiten' : '') : 'Benachrichtigungen aus';
 		var btn = document.getElementById('notify-toggle');
 		if (btn) {
-			btn.classList.toggle('tool--an', on);
-			btn.title = text + ' · Einstellungen';
+			btn.title = 'Einstellungen · ' + text;
 			var label = document.getElementById('notify-label');
-			if (label) label.textContent = text + ', Einstellungen öffnen';
+			if (label) label.textContent = 'Einstellungen, ' + text;
 		}
 
 		var box = document.getElementById('notify-on');

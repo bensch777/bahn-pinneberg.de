@@ -14,6 +14,9 @@ $root = '../';
 $assetVersion = (int) @filemtime(__DIR__ . '/../assets/css/dashboard.css');
 
 $changelog = [
+    ['2026-11-28', [
+        ['Aufgeräumte Kopfzeile', 'Oben rechts stehen jetzt nur noch drei Knöpfe: „Melden“ für eine Pendlermeldung, jetzt auch auf dem Handy mit Beschriftung, das Zahnrad für die Einstellungen und das Menü. Die Glocke ist dem Zahnrad gewichen, denn dahinter lagen schon immer Meine Züge und die Benachrichtigungen. Der Schalter für hell oder dunkel ist aus der Kopfzeile in die Einstellungen gewandert, unter „Darstellung“ mit „Wie Gerät“, „Hell“ und „Dunkel“. Eine bisherige Wahl bleibt erhalten.'],
+    ]],
     ['2026-11-27', [
         ['Pendlermeldungen: was andere unterwegs wissen', 'Manche Infos stehen nirgends: was der Zugführer durchsagt, wo der Ersatzbus wirklich hält, welcher Aufzug kaputt ist. Dafür gibt es jetzt Pendlermeldungen. Ein Thema wählen (Lage unterwegs, Ersatzverkehr, Am Bahnhof, Tipp), den Bahnhof, dazu ein, zwei Sätze, fertig, ohne Konto. Die Seite prüft jede Meldung vorher automatisch, sie erscheint dann unter den aktuellen Meldungen, unter „Meldungen“ und, wenn sie an einem Zug hängt, in der Abfahrtstafel. Andere bestätigen mit „Stimmt noch“ oder blenden mit „Nicht mehr“ aus, nach einer bis zwölf Stunden ist sie von selbst weg.'],
         ['Statistik zeigt, wie verlässlich das Pendeln ist', 'Die Statistik der Züge wertet jetzt nur noch den Berufsverkehr aus: montags bis freitags, nach Hamburg 5 bis 10 Uhr, zurück 15 bis 20 Uhr. Nachtzüge und Wochenenden verwässern die Zahlen nicht mehr. Der Verlauf zeigt je Werktag, welcher Anteil der Fahrten verspätet oder ausgefallen war, statt absoluter Zugzahlen. Die langen Tabellen je Tag und je Zug sind weg. Stattdessen stehen dort die fünf unzuverlässigsten und die fünf zuverlässigsten Züge, gezählt nur, wenn sie oft genug beobachtet wurden. Die Filter Tageszeit und Werktage entfallen damit.'],
