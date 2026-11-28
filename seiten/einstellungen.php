@@ -1,8 +1,8 @@
 <?php
 /**
- * Einstellungen: Meine Zuege und Benachrichtigungen, im Stil einer
+ * Einstellungen: Meine Zuege, Benachrichtigungen und Design, im Stil einer
  * Systemeinstellung (Karten mit Zeilen, Kippschalter, Segmente). Erreichbar
- * ueber die Glocke im Kopf jeder Seite und aus dem Handy-Menue. Alles liegt im
+ * ueber das Zahnrad im Kopf jeder Seite. Alles liegt im
  * Browser, gemerkte Zuege zusaetzlich am Push-Abo; dashboard.js steuert die
  * Seite (data-seite="einstellungen"), ohne JavaScript bleibt nur der Hinweis.
  */
@@ -131,6 +131,20 @@ $description = 'Meine Züge und Benachrichtigungen für Bahn-Pinneberg.de: Push-
 					</div>
 				</div>
 			</details>
+		</div>
+	</section>
+
+	<section id="darstellung" class="section" aria-labelledby="darstellung-h">
+		<div class="card einst">
+			<h2 id="darstellung-h" class="einst__label">Darstellung</h2>
+			<div class="einst__zeile einst__zeile--stapel">
+				<span class="einst__text" id="theme-wahl-label">Design</span>
+				<div class="segment" role="radiogroup" aria-labelledby="theme-wahl-label">
+					<label class="segment__opt"><input type="radio" name="theme-wahl" value="system"><span>Wie Ger&auml;t</span></label>
+					<label class="segment__opt"><input type="radio" name="theme-wahl" value="light"><span>Hell</span></label>
+					<label class="segment__opt"><input type="radio" name="theme-wahl" value="dark"><span>Dunkel</span></label>
+				</div>
+			</div>
 		</div>
 	</section>
 

@@ -1770,7 +1770,8 @@ function nb_render_feedback($root)
 
 /**
  * Kopfzeile aller Seiten: Name, Hauptnavigation und rechts optionale Werkzeuge
- * ($tools, z. B. die Glocke der Startseite). Auf breiten Bildschirmen stehen die
+ * ($tools). Rechts stehen immer Melden (gefuellt) und das Zahnrad zu den Einstellungen;
+ * Hell/Dunkel steht dort, nicht in der Kopfzeile. Auf breiten Bildschirmen stehen die
  * Bereiche nebeneinander, auf dem Handy hinter dem Menue-Knopf, zusammen mit FAQ
  * und Changelog. Das Menue ist ein <details>, klappt also auch ohne JavaScript;
  * nav.js schliesst es bei Klick daneben und mit Escape.
@@ -1811,7 +1812,6 @@ function nb_render_kopf($root, $aktiv, $tools = '')
         'statistik' => ['statistik/', 'Statistik', ['statistik']],
     ];
     $extra = [
-        'einstellungen' => ['einstellungen/', 'Einstellungen'],
         'faq' => ['faq/', 'H&auml;ufige Fragen'],
         'changelog' => ['changelog/', 'Was ist neu'],
     ];
@@ -1830,19 +1830,12 @@ function nb_render_kopf($root, $aktiv, $tools = '')
         $menue .= '<li>' . $link('nav-menu__link nav-menu__link--klein', $b[0], $b[1], $aktiv === $key) . '</li>';
     }
     $version = (int) @filemtime(__DIR__ . '/../assets/js/nav.js');
-    // Glocke: fuehrt zu den Einstellungen (Benachrichtigungen, Meine Zuege); ob sie an
-    // sind, setzt dashboard.js auf Start- und Einstellungsseite
-    $glocke = '<a class="tool tool--toggle" id="notify-toggle" href="' . nb_e($root) . 'einstellungen/"'
-        . ($aktiv === 'einstellungen' ? ' aria-current="page"' : '') . ' title="Benachrichtigungen und Einstellungen">'
-        . '<svg class="tool__icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22a2.5 2.5 0 0 0 2.4-2h-4.8a2.5 2.5 0 0 0 2.4 2Zm7-6.3V11c0-3.3-2-6.1-5-6.8V3.5a2 2 0 1 0-4 0v.7C7 4.9 5 7.7 5 11v4.7L3 17.5V19h18v-1.5l-2-1.8ZM17 16.5H7V11c0-2.8 2.1-5 5-5s5 2.2 5 5v5.5Z"/></svg>'
-        . '<span class="visually-hidden" id="notify-label">Benachrichtigungen und Einstellungen</span></a>';
-
-    // Hell/Dunkel: ueberschreibt das Systemschema, nav.js schaltet und merkt sich die Wahl,
-    // nb_theme_head() setzt sie vor dem ersten Zeichnen
-    $schema = '<button type="button" class="tool tool--toggle theme-toggle" id="theme-toggle" title="Hell oder dunkel">'
-        . '<svg class="tool__icon theme-toggle__mond" viewBox="0 0 24 24" aria-hidden="true"><path d="M12.3 22A10 10 0 0 1 9.6 2.3a1 1 0 0 1 1.2 1.3 7.5 7.5 0 0 0 9.6 9.6 1 1 0 0 1 1.3 1.2A10 10 0 0 1 12.3 22Zm-3.6-16.9a8 8 0 1 0 10.2 10.2 9.5 9.5 0 0 1-10.2-10.2Z"/></svg>'
-        . '<svg class="tool__icon theme-toggle__sonne" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 7a5 5 0 1 1 0 10 5 5 0 0 1 0-10Zm0 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6Zm-1-7h2v3h-2V2Zm0 17h2v3h-2v-3ZM2 11h3v2H2v-2Zm17 0h3v2h-3v-2ZM4.2 5.6l1.4-1.4 2.1 2.1-1.4 1.4-2.1-2.1Zm12.1 12.1 1.4-1.4 2.1 2.1-1.4 1.4-2.1-2.1ZM18.4 4.2l1.4 1.4-2.1 2.1-1.4-1.4 2.1-2.1ZM6.3 16.3l1.4 1.4-2.1 2.1-1.4-1.4 2.1-2.1Z"/></svg>'
-        . '<span class="visually-hidden" id="theme-label">Hell oder dunkel</span></button>';
+    // Zahnrad: fuehrt zu den Einstellungen (Meine Zuege, Benachrichtigungen, Design). Die
+    // Beschriftung mit dem Stand der Benachrichtigungen setzt dashboard.js.
+    $zahnrad = '<a class="tool tool--toggle" id="notify-toggle" href="' . nb_e($root) . 'einstellungen/"'
+        . ($aktiv === 'einstellungen' ? ' aria-current="page"' : '') . ' title="Einstellungen">'
+        . '<svg class="tool__icon" viewBox="0 -960 960 960" aria-hidden="true"><path d="m370-80-16-128q-13-5-24.5-12T307-235l-119 50L78-375l103-78q-1-7-1-13.5v-27q0-6.5 1-13.5L78-585l110-190 119 50q11-8 23-15t24-12l16-128h220l16 128q13 5 24.5 12t22.5 15l119-50 110 190-103 78q1 7 1 13.5v27q0 6.5-2 13.5l103 78-110 190-118-50q-11 8-23 15t-24 12L590-80H370Zm70-80h79l14-106q31-8 57.5-23.5T639-327l99 41 39-68-86-65q5-14 7-29.5t2-31.5q0-16-2-31.5t-7-29.5l86-65-39-68-99 42q-22-23-48.5-38.5T533-694l-13-106h-79l-14 106q-31 8-57.5 23.5T321-633l-99-41-39 68 86 64q-5 15-7 30t-2 32q0 16 2 31t7 30l-86 65 39 68 99-42q22 23 48.5 38.5T427-266l13 106Zm42-180q58 0 99-41t41-99q0-58-41-99t-99-41q-59 0-99.5 41T342-480q0 58 40.5 99t99.5 41Z"/></svg>'
+        . '<span class="visually-hidden" id="notify-label">Einstellungen</span></a>';
 
     // Melden: Pendlermeldung schreiben. pendler.js oeffnet auf Start und /aktuell/ direkt
     // den Dialog, sonst fuehrt der Link nach /aktuell/ und oeffnet ihn dort.
@@ -1857,7 +1850,7 @@ function nb_render_kopf($root, $aktiv, $tools = '')
         . '<div class="wrap site-head__row">'
         . '<a class="site-head__brand" href="' . nb_e($root) . '"><img class="site-head__logo" src="' . nb_e($root) . 'assets/icons/icon-64.png" alt="" width="28" height="28">Bahn-Pinneberg.de</a>'
         . '<nav class="site-nav" aria-label="Bereiche">' . $leiste . '</nav>'
-        . '<div class="site-head__tools">' . $tools . $melden . $glocke . $schema
+        . '<div class="site-head__tools">' . $tools . $melden . $zahnrad
         . '<details class="nav-menu" id="nav-menu">'
         . '<summary class="tool nav-menu__knopf" title="Men&uuml;">'
         . '<svg class="tool__icon nav-menu__auf" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18v2H3V6Zm0 5h18v2H3v-2Zm0 5h18v2H3v-2Z"/></svg>'

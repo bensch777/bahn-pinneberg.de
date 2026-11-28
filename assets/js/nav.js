@@ -18,21 +18,19 @@
 	}
 })();
 
-/* Hell/Dunkel-Schalter im Kopf (nb_render_kopf): wechselt gegen das gerade
-   sichtbare Schema und merkt sich die Wahl in localStorage (nordbahn.theme).
-   Entspricht die Wahl wieder dem System, wird sie vergessen, dann folgt die
-   Seite wieder der Systemeinstellung. Das Setzen beim Laden macht nb_theme_head(). */
+/* Design-Wahl auf der Einstellungsseite (Darstellung): Wie Geraet, Hell oder Dunkel.
+   Hell/Dunkel merkt sich localStorage (nordbahn.theme), "Wie Geraet" loescht den
+   Eintrag, dann folgt die Seite wieder dem System. Das Setzen beim Laden macht
+   nb_theme_head() auf jeder Seite. */
 (function () {
 	'use strict';
-	var knopf = document.getElementById('theme-toggle');
-	if (!knopf) return;
+	var radios = document.querySelectorAll('input[name="theme-wahl"]');
+	if (!radios.length) return;
 	var KEY = 'nordbahn.theme';
 	var html = document.documentElement;
-	var dunkelSys = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
-	function system() { return dunkelSys && dunkelSys.matches ? 'dark' : 'light'; }
-	function aktuell() {
+	function gewaehlt() {
 		var t = html.getAttribute('data-theme');
-		return t === 'light' || t === 'dark' ? t : system();
+		return t === 'light' || t === 'dark' ? t : 'system';
 	}
 	function metaFarben(t) {
 		var m = document.querySelectorAll('meta[name="theme-color"]');
@@ -41,28 +39,19 @@
 			m[i].setAttribute('content', t ? (t === 'dark' ? '#121211' : '#f6f6f4') : eigen);
 		}
 	}
-	function beschriften() {
-		var text = aktuell() === 'dark' ? 'Helles Design' : 'Dunkles Design';
-		knopf.title = text;
-		var label = document.getElementById('theme-label');
-		if (label) label.textContent = text;
-	}
-	knopf.addEventListener('click', function () {
-		var neu = aktuell() === 'dark' ? 'light' : 'dark';
-		if (neu === system()) {
-			html.removeAttribute('data-theme');
-			try { localStorage.removeItem(KEY); } catch (e) { /* privater Modus */ }
-			metaFarben(null);
-		} else {
-			html.setAttribute('data-theme', neu);
-			try { localStorage.setItem(KEY, neu); } catch (e) { /* privater Modus */ }
-			metaFarben(neu);
-		}
-		beschriften();
+	Array.prototype.forEach.call(radios, function (r) {
+		r.checked = r.value === gewaehlt();
+		r.addEventListener('change', function () {
+			if (!r.checked) return;
+			if (r.value === 'system') {
+				html.removeAttribute('data-theme');
+				try { localStorage.removeItem(KEY); } catch (e) { /* privater Modus */ }
+				metaFarben(null);
+			} else {
+				html.setAttribute('data-theme', r.value);
+				try { localStorage.setItem(KEY, r.value); } catch (e) { /* privater Modus */ }
+				metaFarben(r.value);
+			}
+		});
 	});
-	if (dunkelSys) {
-		if (dunkelSys.addEventListener) dunkelSys.addEventListener('change', beschriften);
-		else if (dunkelSys.addListener) dunkelSys.addListener(beschriften);
-	}
-	beschriften();
 })();
