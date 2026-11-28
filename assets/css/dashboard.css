@@ -1208,3 +1208,12 @@ html:not(.js) .dep--skelett, html:not(.js) .board__lade { display: none; }
 /* Kennzeichnung KI-formulierter Texte (Art. 50 Abs. 4 KI-VO): dezent hinter dem Text */
 .ki-marke { font-size: 11px; color: var(--muted); white-space: nowrap; letter-spacing: .01em; }
 .ki-marke::before { content: "· "; }
+
+/* iOS Safari zoomt beim Antippen in ein Eingabefeld mit weniger als 16px Schrift hinein
+   und danach nicht wieder heraus (Seite breiter als der Bildschirm, Scrollbalken).
+   Auf Touch-Geraeten haben Felder und Auswahllisten deshalb mindestens 16px. Zoomen
+   per Geste bleibt erlaubt, der Viewport sperrt nichts. */
+@media (pointer: coarse) {
+	.feedback-form textarea, .feedback-form input, .feedback-form select,
+	.heimat__select, .chip__select { font-size: 16px; }
+}
